@@ -1,7 +1,8 @@
 package com.coolstuff.ecommerce.grab;
 
-import com.coolstuff.ecommerce.grab.persistence.entity.Privilege;
-import com.coolstuff.ecommerce.grab.persistence.entity.Role;
+import com.coolstuff.ecommerce.grab.persistence.entity.PrivilegeEntity;
+import com.coolstuff.ecommerce.grab.persistence.entity.RoleEntity;
+import com.coolstuff.ecommerce.grab.persistence.entity.UserEntity;
 import com.coolstuff.ecommerce.grab.persistence.repository.PrivilegeRepository;
 import com.coolstuff.ecommerce.grab.persistence.repository.RoleRepository;
 import com.coolstuff.ecommerce.grab.persistence.repository.UserRepository;
@@ -43,41 +44,55 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
         }
 
         // == create initial privileges
-        final Privilege readPrivilege = createPrivilegeIfNotFound("READ_PRIVILEGE");
-        final Privilege writePrivilege = createPrivilegeIfNotFound("WRITE_PRIVILEGE");
-        final Privilege passwordPrivilege = createPrivilegeIfNotFound("CHANGE_PASSWORD_PRIVILEGE");
+        final PrivilegeEntity readPrivilege = createPrivilegeIfNotFound("READ_PRIVILEGE");
+        final PrivilegeEntity writePrivilege = createPrivilegeIfNotFound("WRITE_PRIVILEGE");
+        final PrivilegeEntity passwordPrivilege = createPrivilegeIfNotFound("CHANGE_PASSWORD_PRIVILEGE");
 
         // == create initial roles
-        final List<Privilege> adminPrivileges = new ArrayList<>(Arrays.asList(readPrivilege, writePrivilege, passwordPrivilege));
-        final List<Privilege> userPrivileges = new ArrayList<>(Arrays.asList(readPrivilege, passwordPrivilege));
-        final Role adminRole = createRoleIfNotFound("ROLE_ADMIN", adminPrivileges);
-        createRoleIfNotFound("ROLE_USER", userPrivileges);
+        final List<PrivilegeEntity> adminPrivileges = new ArrayList<>(Arrays.asList(readPrivilege, writePrivilege, passwordPrivilege));
+        final List<PrivilegeEntity> userPrivileges = new ArrayList<>(Arrays.asList(readPrivilege, passwordPrivilege));
+        final RoleEntity adminRole = createRoleIfNotFound("ADMIN", adminPrivileges);
 
         // == create initial user
+        createUserIfNotFound("test@test.com", "Test", "Test", "test", new ArrayList<>(Arrays.asList(adminRole)));
+
         alreadySetup = true;
     }
 
     @Transactional
-    public Privilege createPrivilegeIfNotFound(final String name) {
-        Privilege privilege = privilegeRepository.findByName(name);
+    public PrivilegeEntity createPrivilegeIfNotFound(final String name) {
+        PrivilegeEntity privilege = privilegeRepository.findByName(name);
         if (privilege == null) {
-            privilege = Privilege.builder().name(name).build();
+            privilege = PrivilegeEntity.builder().name(name).build();
             privilege = privilegeRepository.save(privilege);
         }
         return privilege;
     }
 
     @Transactional
-    public Role createRoleIfNotFound(final String name, final List<Privilege> privileges) {
-        Role role = roleRepository.findByName(name);
+    public RoleEntity createRoleIfNotFound(final String name, final List<PrivilegeEntity> privileges) {
+        RoleEntity role = roleRepository.findByName(name);
         if (role == null) {
-            role = Role.builder().name(name).build();
+            role = RoleEntity.builder().name(name).build();
         }
         role.setPrivileges(privileges);
         role = roleRepository.save(role);
         return role;
     }
 
-
-
+    @Transactional
+    public UserEntity createUserIfNotFound(final String email, final String firstName, final String lastName, final String password, final List<RoleEntity> roles) {
+        var user = userRepository.findByUserNameOrEmail(email).orElse(null);
+        if (user == null) {
+            user = new UserEntity();
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setEmail(email);
+            user.setRoles(roles);
+        }
+        user.setRoles(roles);
+        user = userRepository.save(user);
+        return user;
+    }
 }

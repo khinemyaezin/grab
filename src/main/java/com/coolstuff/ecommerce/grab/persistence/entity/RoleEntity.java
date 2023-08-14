@@ -6,9 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Data
 @Builder
@@ -17,18 +15,18 @@ import java.util.Set;
 @Entity
 @Table(name = "role",
         uniqueConstraints = @UniqueConstraint(name = "unique_name_constraint", columnNames = {"name"}))
-public class Role {
+public class RoleEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String name;
 
     @ManyToMany(mappedBy = "roles")
-    private List<User> users;
+    private List<UserEntity> users;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "role_privilege",
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "privilege_id"))
-    private List<Privilege> privileges;
+    private List<PrivilegeEntity> privileges;
 }

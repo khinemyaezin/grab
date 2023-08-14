@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Collection;
 import java.util.List;
 
 @Data
@@ -15,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "privilege")
-public class Privilege {
+public class PrivilegeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -24,5 +23,5 @@ public class Privilege {
     private String name;
 
     @ManyToMany(mappedBy = "privileges")
-    private List<Role> roles;
+    private List<RoleEntity> roles;
 }
