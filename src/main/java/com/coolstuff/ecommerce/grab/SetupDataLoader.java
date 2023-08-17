@@ -6,6 +6,7 @@ import com.coolstuff.ecommerce.grab.persistence.entity.UserEntity;
 import com.coolstuff.ecommerce.grab.persistence.repository.PrivilegeRepository;
 import com.coolstuff.ecommerce.grab.persistence.repository.RoleRepository;
 import com.coolstuff.ecommerce.grab.persistence.repository.UserRepository;
+import com.coolstuff.ecommerce.grab.utility.UserUtility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -33,6 +34,9 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserUtility userUtility;
 
     // API
 
@@ -89,6 +93,7 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
             user.setLastName(lastName);
             user.setPassword(passwordEncoder.encode(password));
             user.setEmail(email);
+            user.setUserName( this.userUtility.generateUsername( user ));
             user.setRoles(roles);
         }
         user.setRoles(roles);

@@ -3,11 +3,14 @@ package com.coolstuff.ecommerce.grab.configuration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
@@ -17,7 +20,9 @@ import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler
 @RequiredArgsConstructor
 @EnableMethodSecurity
 public class SecurityConfig {
-    private final String[] SKIP_URLS = new String[]{
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final AuthenticationProvider authenticationProvider;
+    public static final String[] SKIP_URLS = new String[]{
             "/api/v1/auth/**",
             "/v2/api-docs",
             "/v3/api-docs",
@@ -45,9 +50,12 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests((authorize) -> authorize
                         .requestMatchers(SKIP_URLS).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/test").hasAnyAuthority("READ_PRIVILEGE", "ROLE_ADMIN")
                         .anyRequest().authenticated()
-                ).rememberMe(Customizer.withDefaults());
-        ;
+                )
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .rememberMe(Customizer.withDefaults());
         return http.build();
     }
 }

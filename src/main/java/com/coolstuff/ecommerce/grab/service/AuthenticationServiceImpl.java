@@ -8,20 +8,21 @@ import com.coolstuff.ecommerce.grab.persistence.entity.UserEntity;
 import com.coolstuff.ecommerce.grab.persistence.repository.TokenRepository;
 import com.coolstuff.ecommerce.grab.persistence.repository.UserRepository;
 import com.coolstuff.ecommerce.grab.utility.JwtService;
+import com.coolstuff.ecommerce.grab.utility.UserUtility;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserRepository repository;
     private final TokenRepository tokenRepository;
-    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserUtility userUtility;
     @Override
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         try {
@@ -31,12 +32,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                             request.getPassword()
                     )
             );
-            var user = repository.findByUserNameOrEmail(request.getUserName())
-                    .orElseThrow();
-            var jwtToken = jwtService.generateToken(user);
-            var refreshToken = jwtService.generateRefreshToken(user);
+            UserEntity user = repository.findByUserNameOrEmail(request.getUserName()).orElseThrow();
+            String jwtToken = jwtService.generateToken(user);
+            String refreshToken = jwtService.generateRefreshToken(user);
+
             revokeAllUserTokens(user);
             saveUserToken(user, jwtToken);
+
             return AuthenticationResponse.builder()
                     .accessToken(jwtToken)
                     .refreshToken(refreshToken)
@@ -46,7 +48,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
         return null;
     }
-
+    @Transactional
     private void revokeAllUserTokens(UserEntity user) {
         var validUserTokens = tokenRepository.findAllValidTokenByUser(user.getId());
         if (validUserTokens.isEmpty())
@@ -57,7 +59,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         });
         tokenRepository.saveAll(validUserTokens);
     }
-
+    @Transactional
     private void saveUserToken(UserEntity user, String jwtToken) {
         var token = TokenEntity.builder()
                 .user(user)
