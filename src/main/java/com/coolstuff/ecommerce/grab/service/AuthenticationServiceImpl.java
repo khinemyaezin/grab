@@ -8,7 +8,6 @@ import com.coolstuff.ecommerce.grab.persistence.entity.UserEntity;
 import com.coolstuff.ecommerce.grab.persistence.repository.TokenRepository;
 import com.coolstuff.ecommerce.grab.persistence.repository.UserRepository;
 import com.coolstuff.ecommerce.grab.utility.JwtService;
-import com.coolstuff.ecommerce.grab.utility.UserUtility;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,17 +21,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final TokenRepository tokenRepository;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final UserUtility userUtility;
     @Override
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUserName(),
+                            request.getUsername(),
                             request.getPassword()
                     )
             );
-            UserEntity user = repository.findByUserNameOrEmail(request.getUserName()).orElseThrow();
+            UserEntity user = repository.findByUserNameOrEmail(request.getUsername()).orElseThrow();
             String jwtToken = jwtService.generateToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
