@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    product:
+      url: jdbc:postgresql://localhost:5432/product
+      username: postgres
+      password: admin
+      driver-class-name: org.postgresql.Driver
+    inventory:
+      url: jdbc:mysql://localhost:3306/inventory
+      username: root
+      password: admin
+      driver-class-name: com.mysql.cj.jdbc.Driver
+logging:
+  level:
+    root: INFO
+    org.springframework.web: TRACE
