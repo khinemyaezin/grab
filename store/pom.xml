@@ -10,7 +10,7 @@
     </parent>
 
     <groupId>com.coolstuff.ecommerce.grab.store</groupId>
-    <artifactId>grab-store</artifactId>
+    <artifactId>store</artifactId>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -38,13 +38,13 @@
             <artifactId>spring-modulith-starter-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.coolstuff.ecommerce.grab.domain</groupId>
-            <artifactId>grab-domain</artifactId>
+            <groupId>com.coolstuff.ecommerce.grab.domain.product</groupId>
+            <artifactId>product-domain</artifactId>
             <version>0.0.1</version>
         </dependency>
         <dependency>
-            <groupId>com.coolstuff.ecommerce.grab.infrastructure</groupId>
-            <artifactId>grab-infrastructure</artifactId>
+            <groupId>com.coolstuff.ecommerce.grab.infrastructure.product</groupId>
+            <artifactId>product-infrastructure</artifactId>
             <version>0.0.1</version>
         </dependency>
         <dependency>
