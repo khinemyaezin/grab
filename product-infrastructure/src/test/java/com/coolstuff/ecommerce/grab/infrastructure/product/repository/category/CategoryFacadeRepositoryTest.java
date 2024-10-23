@@ -1,19 +1,19 @@
 package com.coolstuff.ecommerce.grab.infrastructure.product.repository.category;
 
-import com.coolstuff.core.nestedset.service.NodeComponentFactory;
-import com.coolstuff.core.nestedset.service.TreeBuilder;
-import com.coolstuff.ecommerce.grab.domain.product.entity.category.CategoryComposite;
-import com.coolstuff.ecommerce.grab.domain.product.entity.category.CategoryLeaf;
-import com.coolstuff.ecommerce.grab.infrastructure.product.entity.category.CategoryEntity;
-import com.coolstuff.ecommerce.grab.infrastructure.product.integration.category.CategoryService;
-import com.coolstuff.ecommerce.grab.infrastructure.product.integration.category.CategoryTreeBuilder;
+import com.product.infrastructure.entity.category.CategoryEntity;
+import com.product.infrastructure.integration.category.CategoryService;
+import com.product.infrastructure.integration.category.CategoryTreeBuilder;
+import com.product.domain.entity.category.CategoryComposite;
+import com.product.domain.entity.category.CategoryLeaf;
+import com.product.infrastructure.integration.category.NodeComponentFactory;
+import com.product.infrastructure.integration.category.TreeBuilder;
+import com.product.infrastructure.repository.category.CategoryFacadeRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,7 +33,7 @@ class CategoryFacadeRepositoryTest {
         var categoryService = mock(CategoryService.class);
         when(categoryService.findImmediateCategory("1")).thenReturn(getCategoryEntities());
 
-        var categoryRepository = new CategoryFacadeRepository(categoryService, null, null,  treeBuilder);
+        var categoryRepository = new CategoryFacadeRepository(categoryService, null, null, treeBuilder, null);
         var categoryOptional = categoryRepository.findImmediateChildrenOf("1");
 
         Assertions.assertTrue(categoryOptional.isPresent());
@@ -66,32 +66,4 @@ class CategoryFacadeRepositoryTest {
         return List.of(c1, c1_1, c1_2);
     }
 
-    //@Test
-    void shouldReturnParent_whenLeafProvided(){
-        CategoryEntity c1 = new CategoryEntity();
-        c1.setName("Electronics");
-        c1.setLft(1);
-        c1.setRgt(14);
-        c1.setDepth(0);
-
-        CategoryEntity c1_1 = new CategoryEntity();
-        c1_1.setName("Laptops");
-        c1_1.setLft(2);
-        c1_1.setRgt(7);
-        c1_1.setDepth(1);
-
-        CategoryEntity c1_2 = new CategoryEntity();
-        c1_1.setName("Smartphones");
-        c1_1.setLft(3);
-        c1_1.setRgt(4);
-        c1_1.setDepth(1);
-
-        var categoryList=  List.of(c1, c1_1, c1_2);
-
-        var categoryService = mock(CategoryService.class);
-        when(categoryService.findParentCategoryOf("1")).thenReturn(categoryList);
-
-        var categoryRepository = new CategoryFacadeRepository(categoryService, null, null,  treeBuilder);
-        var categoryOptional = categoryRepository.findParentOf("1");
-    }
 }

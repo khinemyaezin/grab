@@ -4,34 +4,39 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.coolstuff.ecommerce</groupId>
+        <groupId>com.coolstuff.ecommerce.grab</groupId>
         <artifactId>grab</artifactId>
         <version>0.0.1</version>
     </parent>
 
-    <groupId>com.coolstuff.ecommerce.grab.infrastructure.product</groupId>
     <artifactId>product-infrastructure</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <product-domain.version>0.0.1</product-domain.version>
     </properties>
     <dependencies>
         <dependency>
-            <groupId>com.coolstuff.ecommerce.grab.domain.product</groupId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>product-domain</artifactId>
-            <version>0.0.1</version>
+            <version>${product-domain.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.core</groupId>
-            <artifactId>nestedset</artifactId>
+            <artifactId>library</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-log4j2</artifactId>
-        </dependency>
+   <!--     <dependency>
+            <groupId>com.coolstuff.core</groupId>
+            <artifactId>app</artifactId>
+        </dependency>-->
 
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -69,24 +74,11 @@
                 <configuration>
                     <source>21</source> <!-- depending on your project -->
                     <target>21</target> <!-- depending on your project -->
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${lombok.version}</version>
-                        </path>
-                        <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>${org.mapstruct.version}</version>
-                        </path>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok-mapstruct-binding</artifactId>
-                            <version>${lombok-mapstruct-binding.version}</version>
-                        </path>
-                        <!-- other annotation processors -->
-                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <compilerArg>
+                            -Amapstruct.defaultComponentModel=spring
+                        </compilerArg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
         </plugins>

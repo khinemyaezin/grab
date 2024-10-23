@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2024-08-29T07:09:33.123Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.6.4 Chrome/124.0.6367.207 Electron/30.0.6 Safari/537.36" etag="IZJGixtNyoV99q6-XJj-" version="24.6.4" type="device">
+<mxfile host="Electron" modified="2024-10-19T14:06:06.526Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.6.4 Chrome/124.0.6367.207 Electron/30.0.6 Safari/537.36" etag="C4BA6Swke6qGb5h4vHN2" version="24.6.4" type="device" pages="2">
   <diagram name="ClassDiagram" id="037rk1NdvTvzyruKRL5v">
     <mxGraphModel dx="1194" dy="1311" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -219,6 +219,20 @@
             <mxPoint x="581" y="-152" as="sourcePoint" />
             <mxPoint x="741" y="-152" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="vq5Fdj21bOyfBjC7FPj_" name="Page-2">
+    <mxGraphModel dx="1006" dy="511" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="3iGWRCpO6rbkinHiOZAe-1" value="Exception" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="252" y="67" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="3iGWRCpO6rbkinHiOZAe-2" value="Optional" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="28" y="154" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

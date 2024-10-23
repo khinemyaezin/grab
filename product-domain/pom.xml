@@ -4,19 +4,21 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.coolstuff.ecommerce</groupId>
+        <groupId>com.coolstuff.ecommerce.grab</groupId>
         <artifactId>grab</artifactId>
         <version>0.0.1</version>
     </parent>
-    <groupId>com.coolstuff.ecommerce.grab.domain.product</groupId>
+
     <artifactId>product-domain</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -35,18 +37,13 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok-mapstruct-binding</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.springframework/spring-core -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.coolstuff.core</groupId>
-            <artifactId>nestedset</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.core</groupId>
+            <artifactId>library</artifactId>
         </dependency>
     </dependencies>
 
@@ -77,7 +74,6 @@
                         <!-- other annotation processors -->
                     </annotationProcessorPaths>
                 </configuration>
-
             </plugin>
         </plugins>
     </build>
