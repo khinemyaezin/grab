@@ -1,9 +1,9 @@
 package com.product.infrastructure.repository.category;
 
+import com.nestedset.app.service.TreeBuilder;
 import com.product.domain.entity.category.ICategory;
 import com.product.infrastructure.entity.category.CategoryEntity;
 import com.product.infrastructure.integration.category.CategoryService;
-import com.product.infrastructure.integration.category.TreeBuilder;
 import com.product.infrastructure.mapper.category.CategoryLeafMapper;
 import com.product.infrastructure.mapper.category.CategoryEntityMapper;
 import com.product.domain.entity.category.CategoryComposite;

@@ -1,5 +1,7 @@
 package com.product.infrastructure.integration.category;
 
+import com.nestedset.app.service.AbstractTreeBuilder;
+import com.nestedset.app.service.NodeComponentFactory;
 import com.product.infrastructure.entity.category.CategoryEntity;
 import com.nestedset.library.model.NestedSet;
 import com.nestedset.library.model.NodeComponent;

@@ -1,5 +1,6 @@
 package com.product.infrastructure.integration.category;
 
+import com.nestedset.app.service.AbstractNodeService;
 import com.product.infrastructure.entity.category.CategoryEntity;
 import com.product.infrastructure.repository.category.CategoryEntityRepository;
 import org.springframework.stereotype.Service;
@@ -8,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class CategoryServiceImpl extends AbstractNodeService implements CategoryService{
+public class CategoryServiceImpl extends AbstractNodeService<CategoryEntity, Long> implements CategoryService{
     private final CategoryEntityRepository categoryRepository;
 
     public CategoryServiceImpl(CategoryEntityRepository categoryRepository) {

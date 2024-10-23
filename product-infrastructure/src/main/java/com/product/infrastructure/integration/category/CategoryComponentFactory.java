@@ -1,5 +1,6 @@
 package com.product.infrastructure.integration.category;
 
+import com.nestedset.app.service.NodeComponentFactory;
 import com.nestedset.library.model.NodeComponent;
 import com.product.domain.entity.category.CategoryComposite;
 import com.product.domain.entity.category.CategoryLeaf;

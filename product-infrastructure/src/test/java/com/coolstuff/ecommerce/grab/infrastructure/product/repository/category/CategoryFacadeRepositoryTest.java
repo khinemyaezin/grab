@@ -6,7 +6,6 @@ import com.product.infrastructure.integration.category.CategoryTreeBuilder;
 import com.product.domain.entity.category.CategoryComposite;
 import com.product.domain.entity.category.CategoryLeaf;
 import com.product.infrastructure.integration.category.NodeComponentFactory;
-import com.product.infrastructure.integration.category.TreeBuilder;
 import com.product.infrastructure.repository.category.CategoryFacadeRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

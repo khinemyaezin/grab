@@ -33,10 +33,10 @@
             <groupId>com.coolstuff.core</groupId>
             <artifactId>library</artifactId>
         </dependency>
-   <!--     <dependency>
+        <dependency>
             <groupId>com.coolstuff.core</groupId>
             <artifactId>app</artifactId>
-        </dependency>-->
+        </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>
