@@ -3,7 +3,7 @@ package com.product.domain.entity.category;
 public interface ICategory {
     String getUuid();
 
-    void setUuid(String uuid);
+    void setUuid(String id);
 
     String getName();
 

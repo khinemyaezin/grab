@@ -1,20 +1,21 @@
 package com.product.infrastructure.integration.category;
 
-import com.nestedset.app.service.NodeComponentFactory;
+import com.nestedset.app.config.NodeComponentFactory;
+
 import com.nestedset.library.model.NodeComponent;
 import com.product.domain.entity.category.CategoryComposite;
 import com.product.domain.entity.category.CategoryLeaf;
-import org.springframework.stereotype.Component;
+import com.product.infrastructure.entity.category.CategoryEntity;
 
-@Component
-public class CategoryComponentFactory implements NodeComponentFactory {
+public class CategoryComponentFactory implements NodeComponentFactory<CategoryEntity,Long> {
+
     @Override
-    public NodeComponent createCompositeNodeComponent() {
-        return new CategoryComposite();
+    public NodeComponent<CategoryEntity> createCompositeNodeComponent(CategoryEntity categoryEntity) {
+        return new CategoryComposite<>(categoryEntity);
     }
 
     @Override
-    public NodeComponent createLeafNodeComponent() {
-        return new CategoryLeaf();
+    public NodeComponent<CategoryEntity> createLeafNodeComponent(CategoryEntity categoryEntity) {
+        return new CategoryLeaf<>(categoryEntity);
     }
 }

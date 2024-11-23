@@ -1,81 +1,49 @@
 package com.product.domain.entity.category;
 
 import com.nestedset.library.model.NodeComponent;
+
 import java.util.Set;
 
-public class CategoryLeaf extends AbstractCategory{
-    @Override
-    public String getUuid() {
-        return uuid;
+public class CategoryLeaf<T> extends NodeComponent<T> {
+    private T node;
+    private NodeComponent<T> parent;
+
+    public CategoryLeaf(T node) {
+        super(node);
     }
 
     @Override
-    public void setUuid(String uuid) {
-        super.uuid = uuid;
+    public T getNode() {
+        return node;
     }
 
     @Override
-    public String getName() {
-        return name;
+    public void setNode(T node) {
+        this.node = node;
     }
 
     @Override
-    public void setName(String name) {
-        super.name = name;
+    public Set<NodeComponent<T>> getChildren() {
+        throw new UnsupportedOperationException("Not supported on leaf node.");
     }
 
     @Override
-    public Integer getLft() {
-        return this.lft;
+    public void addChild(NodeComponent<T> nodeComponent) {
+        throw new UnsupportedOperationException("Not supported on leaf node.");
     }
 
     @Override
-    public void setLft(Integer integer) {
-        this.lft = integer;
+    public NodeComponent<T> getParent() {
+        return parent;
     }
 
     @Override
-    public Integer getRgt() {
-        return this.rgt;
-    }
-
-    @Override
-    public void setRgt(Integer integer) {
-        this.rgt = integer;
-    }
-
-    @Override
-    public Integer getDepth() {
-        return this.depth;
-    }
-
-    @Override
-    public void setDepth(Integer integer) {
-        this.depth = integer;
-    }
-
-    @Override
-    public Set<NodeComponent> getChildren() {
-        throw new UnsupportedOperationException("Unsupported operation");
-    }
-
-    @Override
-    public void addChild(NodeComponent nodeComponent) {
-        throw new UnsupportedOperationException("Unsupported operation");
-    }
-
-    @Override
-    public NodeComponent getParent() {
-        return this.parent;
-    }
-
-    @Override
-    public void setParent(NodeComponent nodeComponent) {
-        super.parent = (AbstractCategory) nodeComponent;
+    public void setParent(NodeComponent<T> parent) {
+        this.parent = parent;
     }
 
     @Override
     public void print(String i) {
-        System.out.println(i+name);
+        ///System.out.println(i + node.getName());
     }
 }

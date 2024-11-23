@@ -5,89 +5,51 @@ import com.nestedset.library.model.NodeComponent;
 import java.util.HashSet;
 import java.util.Set;
 
-public class CategoryComposite extends AbstractCategory {
-    private final Set<AbstractCategory> children = new HashSet<>();
+public class CategoryComposite<T> extends NodeComponent<T> {
+    private T node;
+    private NodeComponent<T> parent;
+    private final Set<NodeComponent<T>> children = new HashSet<>();
+
+    public CategoryComposite(T node) {
+        super(node);
+    }
+
 
     @Override
-    public String getUuid() {
-        return uuid;
+    public T getNode() {
+        return node;
     }
 
     @Override
-    public void setUuid(String uuid) {
-        super.uuid = uuid;
+    public void setNode(T T) {
+        node = T;
     }
 
     @Override
-    public String getName() {
-        return name;
+    public Set<NodeComponent<T>> getChildren() {
+        return children;
     }
 
     @Override
-    public void setName(String name) {
-        super.name = name;
+    public void addChild(NodeComponent<T> nodeComponent) {
+        children.add(nodeComponent);
     }
 
     @Override
-    public String toString() {
-        return super.name;
+    public NodeComponent<T> getParent() {
+        return parent;
     }
 
     @Override
-    public Integer getLft() {
-        return super.lft;
-    }
-
-    @Override
-    public void setLft(Integer integer) {
-        super.lft = integer;
-    }
-
-    @Override
-    public Integer getRgt() {
-        return super.rgt;
-    }
-
-    @Override
-    public void setRgt(Integer integer) {
-        super.rgt = integer;
-    }
-
-    @Override
-    public Integer getDepth() {
-        return super.depth;
-    }
-
-    @Override
-    public void setDepth(Integer integer) {
-        super.depth = integer;
-    }
-
-    @Override
-    public Set<NodeComponent> getChildren() {
-        return new HashSet<>(children);
-    }
-
-    @Override
-    public void addChild(NodeComponent nodeComponent) {
-        this.children.add((AbstractCategory) nodeComponent);
-    }
-
-    @Override
-    public NodeComponent getParent() {
-        return super.parent;
-    }
-
-    @Override
-    public void setParent(NodeComponent nodeComponent) {
-        super.parent = (AbstractCategory) nodeComponent;
+    public void setParent(NodeComponent<T> nodeComponent) {
+        parent = nodeComponent;
     }
 
     @Override
     public void print(String i) {
-        System.out.println(i + name);
+        //System.out.println(i + node.get());
 
-        for (NodeComponent child : children) {
+        for (NodeComponent<T> child : children) {
             child.print(i + "-"); // Increase indentation for children
         }
     }

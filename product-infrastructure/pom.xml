@@ -18,6 +18,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <product-domain.version>0.0.1</product-domain.version>
+        <product-application.version>0.0.1</product-application.version>
     </properties>
     <dependencies>
         <dependency>
@@ -28,6 +29,11 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>product-domain</artifactId>
             <version>${product-domain.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>product-application</artifactId>
+            <version>${product-application.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.core</groupId>
@@ -65,7 +71,34 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>1.20.3</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <build>
         <plugins>
             <plugin>
