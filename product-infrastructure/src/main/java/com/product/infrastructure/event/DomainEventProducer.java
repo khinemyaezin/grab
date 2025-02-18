@@ -1,6 +1,6 @@
 package com.product.infrastructure.event;
 
-import com.product.domain.event.Event;
+import com.grab.framework.domain.Event;
 
 import java.util.List;
 

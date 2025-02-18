@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>com.coolstuff.ecommerce.grab</groupId>
 		<artifactId>maven-bom</artifactId>
-		<version>0.0.1</version>
+		<version>0.0.3</version>
 	</parent>
 
 	<artifactId>grab</artifactId>
@@ -17,9 +17,11 @@
     <modules>
 		<module>product-domain</module>
 		<module>product-infrastructure</module>
-		<module>store-interface</module>
+		<module>product-application</module>
 		<module>store</module>
-        <module>inventory-infrastructure</module>
+		<module>pricing-domain</module>
+		<module>pricing-infrastructure</module>
+        <module>framework</module>
     </modules>
     <scm>
 		<connection/>

@@ -1,6 +1,6 @@
 package com.product.infrastructure.entity.product.entity;
 
-import com.product.infrastructure.entity.category.CategoryEntity;
+import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

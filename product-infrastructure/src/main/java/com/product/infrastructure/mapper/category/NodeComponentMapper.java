@@ -1,16 +1,14 @@
 package com.product.infrastructure.mapper.category;
 
 import com.nestedset.library.model.NodeComponent;
-import com.product.domain.entity.category.CategoryComposite;
-import com.product.domain.entity.category.CategoryLeaf;
-import com.product.domain.entity.category.ICategory;
-import com.product.infrastructure.entity.category.CategoryEntity;
-import com.product.infrastructure.mapper.ObjectMapper;
+import com.product.domain.aggregate.category.CategoryComposite;
+import com.product.domain.aggregate.category.CategoryLeaf;
+import com.product.domain.aggregate.category.ICategory;
+import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import org.mapstruct.Mapper;
 
 @Mapper
-public abstract class NodeComponentMapper implements ObjectMapper<NodeComponent<CategoryEntity>, NodeComponent<ICategory>> {
-    @Override
+public abstract class NodeComponentMapper {
     public NodeComponent<ICategory> convert(NodeComponent<CategoryEntity> source) {
         if (source == null) {
             return null;

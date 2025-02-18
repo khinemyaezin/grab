@@ -43,7 +43,10 @@
             <groupId>com.coolstuff.core</groupId>
             <artifactId>app</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.joda</groupId>
+            <artifactId>joda-money</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

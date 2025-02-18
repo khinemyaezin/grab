@@ -1,11 +1,5 @@
 package com.product.domain.service;
 
-import com.product.domain.entity.variant_option.VariantOption;
-import com.product.domain.entity.variant_type.VariantType;
-
-import java.util.ArrayList;
-import java.util.List;
-
 public class Service {
 //    public List<List<VariantOption>> generateCombinations(List<VariantType> variantTypes) {
 //        List<List<VariantOption>> optionLists = new ArrayList<>();

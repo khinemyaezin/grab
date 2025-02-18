@@ -1,6 +1,6 @@
 package com.product.infrastructure.event;
 
-import com.product.domain.event.Event;
+import com.grab.framework.domain.Event;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;

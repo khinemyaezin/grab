@@ -1,7 +1,7 @@
 package com.product.infrastructure.entity.product.meta;
 
 
-import com.product.infrastructure.entity.category.CategoryEntity;
+import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import com.product.infrastructure.entity.product.entity.MediaEntity;
 import com.product.infrastructure.entity.product.entity.ProductDescriptionEntity;
 import com.product.infrastructure.entity.product.entity.ProductEntity;

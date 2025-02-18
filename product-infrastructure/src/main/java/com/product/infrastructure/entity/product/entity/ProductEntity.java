@@ -1,14 +1,11 @@
 package com.product.infrastructure.entity.product.entity;
 
-import com.product.domain.entity.product_variant.ProductVariant;
-import com.product.infrastructure.entity.category.CategoryEntity;
+import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Getter
 @Entity

@@ -1,7 +1,6 @@
 package com.product.infrastructure.validator.product;
 
-import com.product.domain.entity.category.ICategory;
-import com.product.domain.entity.product.Product;
+import com.product.domain.aggregate.product.Product;
 import com.product.infrastructure.validator.Validator;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;

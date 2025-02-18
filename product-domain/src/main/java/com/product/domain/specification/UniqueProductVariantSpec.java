@@ -1,8 +1,8 @@
 package com.product.domain.specification;
 
-import com.product.domain.entity.product.Product;
-import com.product.domain.entity.product_variant.ProductVariant;
-import com.product.domain.specification.framework.CompositeSpecification;
+import com.grab.framework.specification.CompositeSpecification;
+import com.product.domain.aggregate.product.Product;
+import com.product.domain.aggregate.product.ProductVariant;
 
 public class UniqueProductVariantSpec extends CompositeSpecification<Product> {
     private final ProductVariant productVariant;

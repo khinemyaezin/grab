@@ -1,15 +1,26 @@
 package com.product.infrastructure.mapper.product;
 
-import com.product.domain.entity.product.Product;
-import com.product.domain.entity.product_variant.ProductVariant;
-import com.product.infrastructure.entity.product.entity.ProductEntity;
+import com.product.domain.aggregate.product.Product;
+import com.product.domain.aggregate.product.ProductVariant;
+import com.product.domain.aggregate.product.ProductVariation;
+import com.product.infrastructure.common.CommonId;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
-import com.product.infrastructure.mapper.CentralMapperConfig;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
+import org.springframework.stereotype.Component;
 
-@Mapper(config = CentralMapperConfig.class)
-public interface ProductVariantMapper {
+import java.util.List;
 
-    void map(ProductVariant source, @MappingTarget ProductVariantEntity product);
+@Component
+public class ProductVariantMapper {
+
+    public ProductVariant reconstruct(Product parent, ProductVariantEntity variantEntity, List<ProductVariation> variations) {
+        return parent.getId().map(
+                id-> new ProductVariant(
+                        new CommonId(variantEntity.getUuid()),
+                        id,
+                        variantEntity.getSku(),
+                        variations
+                )
+
+        ).orElseThrow();
+    }
 }
