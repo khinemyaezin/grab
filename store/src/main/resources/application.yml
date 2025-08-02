@@ -1,0 +1,16 @@
+product:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/product
+    username: admin
+    password: 123
+    driver-class-name: org.postgresql.Driver
+
+#  inventory:
+#    url: jdbc:postgresql://localhost:5432/inventory
+#    username: admin
+#    password: 12
+#    driver-class-name: org.postgresql.Driver
+logging:
+  level:
+    root: INFO
+    org.springframework.web: TRACE
