@@ -27,8 +27,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryEntity findOrBuildCategory(Category category) {
-        return category.getId()
-                .flatMap(id -> this.categoryJpaRepository.findByUuid(id.getValue()))
+        return this.categoryJpaRepository.findByUuid(category.getId().getValue())
                 .map(categoryEntity -> {
                     this.categoryEntityMapper.map(category, categoryEntity);
                     return categoryEntity;

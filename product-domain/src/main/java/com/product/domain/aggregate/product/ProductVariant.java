@@ -6,13 +6,14 @@ import lombok.Getter;
 
 import java.util.*;
 
+/**
+ * A variant has a set of variations.
+ * {Variant 1 , [ Color, Size ]}
+ */
 @Getter
 public class ProductVariant extends Entity<Id> {
     private final String sku;
     private final Id productId;
-    /**
-     * red.color, medium.size
-     */
     private final Set<ProductVariation> variations ;
 
     public ProductVariant(Id id, Id productId, String sku, List<ProductVariation> variants) {
@@ -27,11 +28,20 @@ public class ProductVariant extends Entity<Id> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ProductVariant that = (ProductVariant) o;
-        return Objects.equals(super.getId(), that.getId()) || Objects.equals(sku, that.sku);
+        return (productId.equals(that.productId)
+                && (sku.equalsIgnoreCase(that.sku)
+                || variations.equals(that.variations)));
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.getId(), sku);
+    }
+
+    @Override
+    public String toString() {
+        return variations.stream()
+                .map(ProductVariation::getOptionName)
+                .reduce("",(a,b)-> a+b);
     }
 }

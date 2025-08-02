@@ -21,13 +21,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductEntity findOrBuildProduct(Product product, CategoryEntity categoryEntity) {
-        return product.getId()
-                .flatMap( id-> productJpaRepository.findByUuid(id.getValue()))
-                .map(existingProductEntity -> {
-                    productEntityMapper.map(product, categoryEntity, existingProductEntity);
-                    return existingProductEntity;
-                })
-                .orElseGet(() -> productEntityFactory.create(product, categoryEntity));
+        Optional<ProductEntity> optionalProduct = productJpaRepository.findByUuid(product.getId().getValue());
+        if (optionalProduct.isPresent()) {
+            ProductEntity existing = optionalProduct.get();
+            productEntityMapper.map(product, categoryEntity, existing);
+            return existing;
+        } else {
+            return productEntityFactory.create(product, categoryEntity);
+        }
     }
 
     @Override
@@ -49,6 +50,4 @@ public class ProductServiceImpl implements ProductService {
     public Boolean exists(String uuid) {
         return this.productJpaRepository.existsById(uuid);
     }
-
-
 }

@@ -1,8 +1,8 @@
 package com.product.infrastructure.service.impl;
 
+import com.grab.framework.domain.Entity;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.ProductVariant;
-import com.product.infrastructure.common.CommonId;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
 import com.product.infrastructure.entity.product.factory.ProductVariantEntityFactory;
@@ -32,26 +32,24 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
     @Override
     public void updateVariants(ProductEntity productEntity, List<ProductVariant> productVariants) {
-        Map<Id, ProductVariant> inputVariantsMap = productVariants.stream()
-                .filter(variant -> variant.getId().isPresent()) // Filter out empty Optionals
+        Map<Id, ProductVariant> domainVariantMap = productVariants.stream()
                 .collect(Collectors.toMap(
-                        variant -> variant.getId().get(), // Use the value from the Optional
+                        Entity::getId,
                         Function.identity(),
-                        (e1, e2) -> e1, // Merge function, use the first value in case of conflict
+                        (e1, e2) -> e1,
                         LinkedHashMap::new
                 ));
-        mergeAndRemoveVariants(productEntity, inputVariantsMap);
-        addNewVariants(productEntity, inputVariantsMap);
+        mergeAndRemoveVariants(productEntity, domainVariantMap);
+        addNewVariants(productEntity, domainVariantMap);
     }
 
     private void mergeAndRemoveVariants(ProductEntity productEntity, Map<Id, ProductVariant> inputVariantsMap) {
         for (ProductVariantEntity existingVariant : productEntity.getProductVariants()) {
-            ProductVariant inputVariant = inputVariantsMap.get(new CommonId(existingVariant.getUuid()));
-
+            ProductVariant inputVariant = inputVariantsMap.get(existingVariant.getUuid());
             if (Objects.nonNull(inputVariant)) {
                 productVariantEntityMapper.map(inputVariant, existingVariant);
                 productVariantOptionService.updateVariations(existingVariant, inputVariant.getVariations());
-                inputVariantsMap.remove(new CommonId(existingVariant.getUuid()));
+                inputVariantsMap.remove(existingVariant.getUuid());
             } else {
                 productEntity.removeVariant(existingVariant);
             }

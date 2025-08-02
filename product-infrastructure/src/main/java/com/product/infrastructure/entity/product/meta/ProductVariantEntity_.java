@@ -16,7 +16,7 @@ public class ProductVariantEntity_ {
 
     // Define SetAttributes for collection-type attributes
     public static volatile SetAttribute<ProductVariantEntity, MediaEntity> medias;
-    public static volatile SetAttribute<ProductVariantEntity, ProductVariantOptionEntity> productVariantOptions;
+    public static volatile SetAttribute<ProductVariantEntity, ProductVariationEntity> productVariantOptions;
     public static volatile SetAttribute<ProductVariantEntity, ProductFeatureEntity> productFeatures;
     public static volatile SetAttribute<ProductVariantEntity, ProductVariantDescriptionEntity> descriptions;
 

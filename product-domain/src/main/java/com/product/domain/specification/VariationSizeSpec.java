@@ -16,6 +16,6 @@ public class VariationSizeSpec extends CompositeSpecification<Product> {
         if (product.getVariants().isEmpty()) {
             return true; // No variants, so the specification is satisfied.
         }
-        return productVariant.getVariations().size() == product.getVariantTypes().size();
+        return true;
     }
 }

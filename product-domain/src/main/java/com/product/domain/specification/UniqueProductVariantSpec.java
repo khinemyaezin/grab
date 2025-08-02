@@ -4,6 +4,8 @@ import com.grab.framework.specification.CompositeSpecification;
 import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
 
+import java.util.Objects;
+
 public class UniqueProductVariantSpec extends CompositeSpecification<Product> {
     private final ProductVariant productVariant;
 
@@ -14,8 +16,6 @@ public class UniqueProductVariantSpec extends CompositeSpecification<Product> {
     @Override
     public boolean isSatisfiedBy(Product product) {
         return product.getVariants().stream()
-                .noneMatch(variant -> variant.getVariations().equals(productVariant.getVariations())
-                        || variant.getSku().equals( productVariant.getSku())
-                        || variant.getId().equals( productVariant.getId()));
+                .noneMatch(variant -> Objects.equals(variant, this.productVariant));
     }
 }

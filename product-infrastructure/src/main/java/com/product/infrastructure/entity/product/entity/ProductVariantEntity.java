@@ -27,7 +27,7 @@ public class ProductVariantEntity {
     private ProductEntity product;
 
     @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductVariantOptionEntity> productVariantOptions = new ArrayList<>();
+    private List<ProductVariationEntity> productVariations = new ArrayList<>();
 
     @ManyToMany(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     @JoinTable(
@@ -42,29 +42,13 @@ public class ProductVariantEntity {
     @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<ProductFeatureEntity> productFeatures = new ArrayList<>();
 
-    public void addProductVariantOption(ProductVariantOptionEntity entity) {
+    public void addProductVariantOption(ProductVariationEntity entity) {
         entity.setProductVariant(this);
-        this.productVariantOptions.add(entity);
+        this.productVariations.add(entity);
     }
 
-    public void removeProductVariantOption(ProductVariantOptionEntity entity) {
-        this.productVariantOptions.remove(entity);
-    }
-
-    public List<ProductVariantOptionEntity> getProductVariantOptions() {
-        return Collections.unmodifiableList(productVariantOptions);
-    }
-
-    public List<MediaEntity> getMedias() {
-        return Collections.unmodifiableList(medias);
-    }
-
-    public List<ProductVariantDescriptionEntity> getDescriptions() {
-        return Collections.unmodifiableList(descriptions);
-    }
-
-    public List<ProductFeatureEntity> getProductFeatures() {
-        return Collections.unmodifiableList(productFeatures);
+    public void removeProductVariantOption(ProductVariationEntity entity) {
+        this.productVariations.remove(entity);
     }
 
     @Override

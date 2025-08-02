@@ -24,7 +24,6 @@ public class ProductEntity implements Serializable {
     @Column
     private String name;
 
-    @Setter
     @ManyToOne
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
@@ -53,16 +52,8 @@ public class ProductEntity implements Serializable {
         productVariants.remove(productVariantEntity);
     }
 
-    public List<ProductVariantEntity> getProductVariants() {
-        return Collections.unmodifiableList(productVariants);
+    public void setCategory(CategoryEntity categoryEntity) {
+        this.category = categoryEntity;
+        categoryEntity.addProduct(this);
     }
-
-    public List<MediaEntity> getMedias() {
-        return Collections.unmodifiableList(medias);
-    }
-
-    public List<ProductDescriptionEntity> getDescriptions() {
-        return Collections.unmodifiableList(descriptions);
-    }
-
 }

@@ -3,11 +3,15 @@ package com.product.infrastructure.common;
 import com.grab.framework.id.Id;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class CommonId implements Id {
     private final String id;
     public CommonId(String id) {
         this.id = id;
+    }
+    public CommonId(){
+        this.id = UUID.randomUUID().toString();
     }
     @Override
     public String getValue() {

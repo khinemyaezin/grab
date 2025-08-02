@@ -6,6 +6,10 @@ import lombok.Getter;
 
 import java.util.*;
 
+/**
+ * Variant type defines as a set of attributes.
+ * Color -> [ Yellow, brown, green ]
+ */
 @Getter
 public class VariantType extends Entity<Id> {
     private final String name;

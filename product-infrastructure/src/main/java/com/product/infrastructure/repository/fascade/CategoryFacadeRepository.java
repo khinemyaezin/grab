@@ -8,7 +8,6 @@ import com.product.infrastructure.event.DomainEventProducer;
 import com.product.infrastructure.service.CategoryService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -18,7 +17,6 @@ public class CategoryFacadeRepository implements CategoryRepository {
     private final CategoryService categoryService;
     private final DomainEventProducer domainEventProducer;
 
-    @Transactional
     @Override
     public void save(Category category) {
         CategoryEntity categoryEntity = this.categoryService.findOrBuildCategory(category);

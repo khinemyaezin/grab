@@ -12,7 +12,6 @@ import com.product.infrastructure.service.ProductService;
 import com.product.infrastructure.service.ProductVariantService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -25,30 +24,26 @@ public class ProductFacadeRepository implements ProductRepository {
     private final DomainEventProducer domainEventProducer;
     private final ProductMapper productMapper;
 
-    @Transactional
     @Override
     public void save(Product product) {
         CategoryEntity categoryEntity = categoryService.find(product.getCategoryId().getValue()).orElseThrow();
         ProductEntity productEntity = productService.findOrBuildProduct(product, categoryEntity);
-
         productVariantService.updateVariants(productEntity, product.getVariants());
         productService.save(productEntity);
 
         domainEventProducer.produce(product.getEvents());
     }
 
-    @Transactional
     @Override
     public void delete(Id uuid) {
         this.productService.find(uuid.getValue())
                 .ifPresent(this.productService::delete);
     }
 
-    @Transactional(readOnly = true)
     @Override
     public Optional<Product> find(Id uuid) {
         return this.productService.find(uuid.getValue())
-                .map(productMapper::reconstruct);
+                .map(productMapper::toDomain);
 
     }
 

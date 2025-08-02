@@ -14,10 +14,9 @@ public abstract class Entity<ID extends Serializable> {
         this.id = id;
     }
 
-    public Optional<ID> getId(){
-        return Optional.ofNullable(id);
+    public boolean isNew() {
+        return Objects.isNull(this.id);
     }
-
 
     @Override
     public boolean equals(Object o) {

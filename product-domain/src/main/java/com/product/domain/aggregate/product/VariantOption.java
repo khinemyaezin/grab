@@ -6,6 +6,10 @@ import lombok.Getter;
 
 import java.util.Objects;
 
+/**
+ * Variant option contains a name[Yellow] and its type[Color].
+ * { Yellow, Color }
+ */
 @Getter
 public class VariantOption extends Entity<Id> {
     private final String name;

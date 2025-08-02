@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 @AllArgsConstructor
 public class CategoryEntityFactory {
-    private final CategoryEntityMapper categoryEntityMapper;
+     final CategoryEntityMapper categoryEntityMapper;
 
     public CategoryEntity create(Category product) {
         CategoryEntity categoryEntity = new CategoryEntity();
