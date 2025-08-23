@@ -9,6 +9,7 @@ import java.util.*;
 @Entity
 @Table(name = "product_variant")
 public class ProductVariantEntity {
+    @Setter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

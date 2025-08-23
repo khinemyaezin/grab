@@ -13,6 +13,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(config = CentralMapperConfig.class, uses = CommonMapper.class)
 public interface ProductEntityMapper {
 
+    @Mapping(ignore = true, target = ProductEntity_.ID)
     @Mapping(source = "source.id", target = ProductEntity_.UUID)
     @Mapping(source = "source.name", target = ProductEntity_.NAME)
     @Mapping(source = "categoryEntity", target = ProductEntity_.CATEGORY_ENTITY)

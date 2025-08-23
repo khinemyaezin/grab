@@ -11,7 +11,7 @@ import java.util.*;
 @Entity
 @Table(name = "product")
 public class ProductEntity implements Serializable {
-
+    @Setter
     @Id
     @GeneratedValue(strategy = GenerationType.TABLE, generator = "TABLE_GEN")
     private Long id;
@@ -46,10 +46,6 @@ public class ProductEntity implements Serializable {
     public void addVariant(ProductVariantEntity productVariantEntity) {
         productVariantEntity.setProduct(this);
         productVariants.add(productVariantEntity);
-    }
-
-    public void removeVariant(ProductVariantEntity productVariantEntity) {
-        productVariants.remove(productVariantEntity);
     }
 
     public void setCategory(CategoryEntity categoryEntity) {

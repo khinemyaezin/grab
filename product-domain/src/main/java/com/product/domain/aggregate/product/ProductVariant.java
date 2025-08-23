@@ -40,8 +40,9 @@ public class ProductVariant extends Entity<Id> {
 
     @Override
     public String toString() {
-        return variations.stream()
+        String optionName = variations.stream()
                 .map(ProductVariation::getOptionName)
                 .reduce("",(a,b)-> a+b);
+        return this.sku + " : " + optionName;
     }
 }

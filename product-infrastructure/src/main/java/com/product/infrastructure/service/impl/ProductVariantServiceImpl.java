@@ -1,7 +1,5 @@
 package com.product.infrastructure.service.impl;
 
-import com.grab.framework.domain.Entity;
-import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.ProductVariant;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
@@ -32,35 +30,44 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
     @Override
     public void updateVariants(ProductEntity productEntity, List<ProductVariant> productVariants) {
-        Map<Id, ProductVariant> domainVariantMap = productVariants.stream()
+        Map<String, ProductVariant> domainVariantMap = productVariants.stream()
                 .collect(Collectors.toMap(
-                        Entity::getId,
+                        productVariant -> productVariant.getId().getValue(),
                         Function.identity(),
                         (e1, e2) -> e1,
                         LinkedHashMap::new
                 ));
-        mergeAndRemoveVariants(productEntity, domainVariantMap);
-        addNewVariants(productEntity, domainVariantMap);
+        List<ProductVariantEntity> removedProductVariantEntityList = getRemovedVariants(productEntity.getProductVariants(), domainVariantMap);
+        productEntity.getProductVariants().removeAll(removedProductVariantEntityList);
+
+        List<ProductVariantEntity> newProductVariantEntityList = getNewVariants(domainVariantMap);
+        for(ProductVariantEntity entity:newProductVariantEntityList) {
+            productEntity.addVariant(entity);
+        }
     }
 
-    private void mergeAndRemoveVariants(ProductEntity productEntity, Map<Id, ProductVariant> inputVariantsMap) {
-        for (ProductVariantEntity existingVariant : productEntity.getProductVariants()) {
-            ProductVariant inputVariant = inputVariantsMap.get(existingVariant.getUuid());
-            if (Objects.nonNull(inputVariant)) {
-                productVariantEntityMapper.map(inputVariant, existingVariant);
-                productVariantOptionService.updateVariations(existingVariant, inputVariant.getVariations());
-                inputVariantsMap.remove(existingVariant.getUuid());
+    protected List<ProductVariantEntity> getRemovedVariants(List<ProductVariantEntity> productVariantEntityList, Map<String, ProductVariant> domainVariantMap) {
+        List<ProductVariantEntity> removedProductVariantEntityList = new ArrayList<>();
+        for (ProductVariantEntity variantEntity : productVariantEntityList) {
+            ProductVariant matchVariant = domainVariantMap.get(variantEntity.getUuid());
+            if (Objects.nonNull(matchVariant)) {
+                productVariantEntityMapper.map(matchVariant, variantEntity);
+                productVariantOptionService.updateVariations(variantEntity, matchVariant.getVariations());
+                domainVariantMap.remove(variantEntity.getUuid());
             } else {
-                productEntity.removeVariant(existingVariant);
+                removedProductVariantEntityList.add(variantEntity);
             }
         }
+        return removedProductVariantEntityList;
     }
 
-    private void addNewVariants(ProductEntity productEntity, Map<Id, ProductVariant> remainingVariantsMap) {
-        for (ProductVariant inputVariant : remainingVariantsMap.values()) {
-            ProductVariantEntity productVariantEntity = this.productVariantEntityFactory.create(inputVariant);
-            productVariantOptionService.updateVariations(productVariantEntity, inputVariant.getVariations());
-            productEntity.addVariant(productVariantEntity);
+    protected List<ProductVariantEntity> getNewVariants(Map<String, ProductVariant> remainingVariantsMap) {
+        List<ProductVariantEntity> newProductVariantEntityList = new ArrayList<>();
+        for (ProductVariant productVariant : remainingVariantsMap.values()) {
+            ProductVariantEntity productVariantEntity = this.productVariantEntityFactory.create(productVariant);
+            productVariantOptionService.updateVariations(productVariantEntity, productVariant.getVariations());
+            newProductVariantEntityList.add(productVariantEntity);
         }
+        return newProductVariantEntityList;
     }
 }
