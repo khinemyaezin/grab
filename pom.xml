@@ -18,11 +18,10 @@
 		<module>product-domain</module>
 		<module>product-infrastructure</module>
 		<module>product-application</module>
-		<module>store</module>
-		<module>pricing-domain</module>
-		<module>pricing-infrastructure</module>
         <module>framework</module>
-    </modules>
+        <module>category-domain</module>
+		<module>category-infrastructure</module>
+	</modules>
     <scm>
 		<connection/>
 		<developerConnection/>

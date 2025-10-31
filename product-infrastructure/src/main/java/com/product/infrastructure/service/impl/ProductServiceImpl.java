@@ -1,7 +1,6 @@
 package com.product.infrastructure.service.impl;
 
 import com.product.domain.aggregate.product.Product;
-import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.entity.product.factory.ProductEntityFactory;
 import com.product.infrastructure.mapper.product.ProductEntityMapper;
@@ -20,14 +19,14 @@ public class ProductServiceImpl implements ProductService {
     private final ProductEntityFactory productEntityFactory;
 
     @Override
-    public ProductEntity findOrBuildProduct(Product product, CategoryEntity categoryEntity) {
+    public ProductEntity findOrBuildProduct(Product product) {
         Optional<ProductEntity> optionalProduct = productJpaRepository.findByUuid(product.getId().getValue());
         if (optionalProduct.isPresent()) {
             ProductEntity existing = optionalProduct.get();
-            productEntityMapper.map(product, categoryEntity, existing);
+            productEntityMapper.map(product, existing);
             return existing;
         } else {
-            return productEntityFactory.create(product, categoryEntity);
+            return productEntityFactory.create(product);
         }
     }
 

@@ -17,7 +17,7 @@ public class ProductMapper {
     public Product toDomain(ProductEntity productJpaEntity) {
         Id productId = idGenerator.generateId(productJpaEntity.getUuid());
         String productName = productJpaEntity.getName();
-        Id categoryId = idGenerator.generateId(productJpaEntity.getCategory().getUuid());
+        Id categoryId = idGenerator.generateId(productJpaEntity.getCategoryId());
         Product product = new Product(productId, productName, categoryId);
 
         for (ProductVariantEntity variantEntity : productJpaEntity.getProductVariants()) {

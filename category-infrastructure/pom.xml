@@ -9,7 +9,7 @@
         <version>0.0.1</version>
     </parent>
 
-    <artifactId>product-infrastructure</artifactId>
+    <artifactId>category-infrastructure</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
 
@@ -24,24 +24,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>product-domain</artifactId>
-            <version>${product-domain.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.coolstuff.core</groupId>
-            <artifactId>library</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.coolstuff.core</groupId>
-            <artifactId>app</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.17.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -85,6 +67,20 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>category-domain</artifactId>
+            <version>0.0.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.core</groupId>
+            <artifactId>library</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.core</groupId>
+            <artifactId>app</artifactId>
         </dependency>
     </dependencies>
     <dependencyManagement>
@@ -131,4 +127,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
