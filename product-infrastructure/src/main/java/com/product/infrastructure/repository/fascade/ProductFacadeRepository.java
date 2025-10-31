@@ -3,11 +3,9 @@ package com.product.infrastructure.repository.fascade;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.Product;
 import com.product.domain.repository.ProductRepository;
-import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.event.DomainEventProducer;
 import com.product.infrastructure.mapper.product.ProductMapper;
-import com.product.infrastructure.service.CategoryService;
 import com.product.infrastructure.service.ProductService;
 import com.product.infrastructure.service.ProductVariantService;
 import lombok.AllArgsConstructor;
@@ -20,14 +18,12 @@ import java.util.Optional;
 public class ProductFacadeRepository implements ProductRepository {
     private final ProductService productService;
     private final ProductVariantService productVariantService;
-    private final CategoryService categoryService;
     private final DomainEventProducer domainEventProducer;
     private final ProductMapper productMapper;
 
     @Override
     public void save(Product product) {
-        CategoryEntity categoryEntity = categoryService.find(product.getCategoryId().getValue()).orElseThrow();
-        ProductEntity productEntity = productService.findOrBuildProduct(product, categoryEntity);
+        ProductEntity productEntity = productService.findOrBuildProduct(product);
         productVariantService.updateVariants(productEntity, product.getVariants());
         productService.save(productEntity);
 

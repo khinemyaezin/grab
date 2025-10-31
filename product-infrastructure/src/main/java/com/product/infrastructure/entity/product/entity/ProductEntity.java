@@ -1,6 +1,5 @@
 package com.product.infrastructure.entity.product.entity;
 
-import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,9 +23,10 @@ public class ProductEntity implements Serializable {
     @Column
     private String name;
 
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private CategoryEntity category;
+    @Getter
+    @Setter
+    @Column(name = "category_id", nullable = false)
+    private String categoryId;
 
     @ManyToMany(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     @JoinTable(name = "product_media", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "media_id"))
@@ -48,8 +48,4 @@ public class ProductEntity implements Serializable {
         productVariants.add(productVariantEntity);
     }
 
-    public void setCategory(CategoryEntity categoryEntity) {
-        this.category = categoryEntity;
-        categoryEntity.addProduct(this);
-    }
 }

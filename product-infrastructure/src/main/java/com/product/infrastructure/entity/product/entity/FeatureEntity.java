@@ -1,6 +1,5 @@
 package com.product.infrastructure.entity.product.entity;
 
-import com.product.infrastructure.entity.category.entity.CategoryEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,7 +22,7 @@ public class FeatureEntity {
 
     @ManyToOne
     @JoinColumn(name = "category_id")
-    private CategoryEntity category;
+    private Long categoryId;
 
     @OneToMany(mappedBy = "feature")
     private Set<FeatureOptionEntity> featureOptions;
