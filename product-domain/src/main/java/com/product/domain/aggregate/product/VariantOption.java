@@ -34,4 +34,13 @@ public class VariantOption extends Entity<Id> {
     public int hashCode() {
         return Objects.hash(name, variantType);
     }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "{\"id\":\"%s\",\"name\":\"%s\"}",
+                Objects.toString(getId(), ""),
+                name
+        );
+    }
 }

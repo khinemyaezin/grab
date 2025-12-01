@@ -20,7 +20,7 @@ public class ProductVariant extends Entity<Id> {
         super(id);
         this.sku = sku;
         this.productId = productId;
-        this.variations = new HashSet<>(variants);
+        this.variations = new LinkedHashSet<>(variants);
     }
 
     @Override
@@ -29,7 +29,8 @@ public class ProductVariant extends Entity<Id> {
         if (o == null || getClass() != o.getClass()) return false;
         ProductVariant that = (ProductVariant) o;
         return (productId.equals(that.productId)
-                && (sku.equalsIgnoreCase(that.sku)
+                && (super.equals(that.id)
+                || sku.equalsIgnoreCase(that.sku)
                 || variations.equals(that.variations)));
     }
 
@@ -43,6 +44,6 @@ public class ProductVariant extends Entity<Id> {
         String optionName = variations.stream()
                 .map(ProductVariation::getOptionName)
                 .reduce("",(a,b)-> a+b);
-        return this.sku + " : " + optionName;
+        return this.id + " : " +this.sku + " : " + optionName;
     }
 }
