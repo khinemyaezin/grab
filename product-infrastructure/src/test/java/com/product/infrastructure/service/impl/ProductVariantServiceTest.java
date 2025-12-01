@@ -63,7 +63,7 @@ class ProductVariantServiceTest extends ProductTest {
         Product product = super.createProduct();
         ProductEntity productEntity = createProductEntity(product);
 
-        ProductVariant variant = product.getVariants().get(0);
+        ProductVariant variant = product.getVariants().getFirst();
         int originalVariantCount = productEntity.getProductVariants().size();
         String updatedSku = "UPDATED-" + variant.getSku();
 

@@ -35,7 +35,7 @@ class VariantCombinationTest {
 
         List<List<VariantOption>> combinations = variantCombination.generateCombinations(List.of(color, size));
         assertThat(combinations)
-                .extracting(combo -> combo.get(0).getName() + "-" + combo.get(1).getName())
+                .extracting(combo -> combo.getFirst().getName() + "-" + combo.get(1).getName())
                 .containsExactly(
                         "Yellow-Small",
                         "Yellow-Large",
@@ -55,6 +55,6 @@ class VariantCombinationTest {
     }
 
     private Id id(String value) {
-        return (Id) () -> value;
+        return () -> value;
     }
 }
