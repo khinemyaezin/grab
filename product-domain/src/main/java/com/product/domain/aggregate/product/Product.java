@@ -16,7 +16,7 @@ import java.util.function.UnaryOperator;
  * {Product -> [ {SKU1, GREEN, SMALL}, {SKU2, GREEN, LARGE} ]}
  */
 public class Product extends AggregateRoot<Id> {
-    private List<ProductVariant> variants = new ArrayList<>();
+    private final List<ProductVariant> variants = new ArrayList<>();
     @Setter
     @Getter
     private String name;
