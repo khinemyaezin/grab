@@ -124,6 +124,7 @@ public class ProductFactoryImpl implements ProductFactory {
 
     private String key(List<String> typeOrder, Iterable<ProductVariation> variations, Set<String> ignoredTypes) {
         Map<String, String> map = StreamSupport.stream(variations.spliterator(), false)
+                .filter(variation -> variation.getTypeName() != null)
                 .collect(Collectors.toMap(
                         variation -> variation.getTypeName().toLowerCase(),
                         variation -> variation.getOptionName().toLowerCase()
