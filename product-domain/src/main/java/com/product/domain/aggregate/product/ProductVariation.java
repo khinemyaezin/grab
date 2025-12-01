@@ -13,18 +13,8 @@ import java.util.Objects;
 @Getter
 public class ProductVariation extends ValueObject {
     private final String optionName; // yellow
-    private Id optionId; // nullable
-    private String typeName;
-
-    public ProductVariation(String optionName, String typeName) {
-        this.optionName = optionName;
-        this.typeName = typeName;
-    }
-
-    public ProductVariation(String optionName, Id optionId) {
-        this.optionName = optionName;
-        this.optionId = optionId;
-    }
+    private final Id optionId; // nullable
+    private final String typeName;
 
     public ProductVariation(String optionName, Id optionId,  String typeName) {
         this.optionName = optionName;

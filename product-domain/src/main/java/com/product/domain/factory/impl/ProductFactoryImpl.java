@@ -20,10 +20,24 @@ public class ProductFactoryImpl implements ProductFactory {
     private final SkuGenerator skuGenerator;
 
     public void create(Product product, List<VariantType> desiredVariantTypes, List<Id> variantIdsToRemove) {
+        VariantInputs inputs = prepareInputs(product, desiredVariantTypes, variantIdsToRemove);
+        ExistingVariantState existing = mapExistingVariants(product, inputs);
+        Set<Id> keysToKeep = synchronizeVariants(product, inputs, existing);
+        removeObsoleteVariants(product, keysToKeep);
+    }
+
+    public Product create(ProductSpec spec) {
+        Product product = new Product(idGenerator.generateId(),spec.name(), spec.categoryId());
+        VariantInputs inputs = prepareInputs(product, spec.desiredVariantTypes(), List.of());
+        ExistingVariantState existing = mapExistingVariants(product, inputs);
+        synchronizeVariants(product, inputs, existing);
+        return product;
+    }
+
+    private VariantInputs prepareInputs(Product product, List<VariantType> desiredVariantTypes, List<Id> variantIdsToRemove) {
         Objects.requireNonNull(product, "product is required");
         List<VariantType> variantTypes = desiredVariantTypes != null ? desiredVariantTypes : List.of();
 
-        // [Color, Size, Storage]
         List<String> variantTypeOrder = variantTypes.stream()
                 .map(VariantType::getName)
                 .filter(Objects::nonNull)
@@ -45,15 +59,19 @@ public class ProductFactoryImpl implements ProductFactory {
                 .collect(Collectors.toSet())
                 : Set.of();
 
+        return new VariantInputs(variantTypes, variantTypeOrder, newTypeNames, removalIds);
+    }
+
+    private ExistingVariantState mapExistingVariants(Product product, VariantInputs inputs) {
         Map<String, ProductVariant> existingByKey = new LinkedHashMap<>(); // Order preserved
         Set<String> bannedKeys = new HashSet<>();
         Map<String, Integer> keyFirstIndex = new HashMap<>();
 
         for (int i = 0; i < product.getVariants().size(); i++) {
             ProductVariant variant = product.getVariants().get(i);
-            String key = key(variantTypeOrder, variant.getVariations(), newTypeNames);
+            String key = getVariationKey(inputs.variantTypeOrder(), variant.getVariations(), inputs.newTypeNames());
 
-            if (removalIds.contains(variant.getId())) {
+            if (inputs.removalIds().contains(variant.getId())) {
                 bannedKeys.add(key);
                 continue;
             }
@@ -61,10 +79,15 @@ public class ProductFactoryImpl implements ProductFactory {
             keyFirstIndex.putIfAbsent(key, i);
         }
 
-        List<List<VariantOption>> combinations = variantCombination.generateCombinations(variantTypes);
+        return new ExistingVariantState(existingByKey, bannedKeys, keyFirstIndex);
+    }
 
-        // Track how many times we've consumed a base key so additional combinations get unique SKUs
+    private Set<Id> synchronizeVariants(Product product, VariantInputs inputs, ExistingVariantState existing) {
+        List<List<VariantOption>> combinations = variantCombination.generateCombinations(inputs.variantTypes());
+
+        // Track how many times a base key is consumed so adding variant is in combination order
         Map<String, Integer> baseKeyUseCount = new HashMap<>();
+        // Housekeeping to track keys to remove variants not contained in combinations
         Set<Id> keysToKeep = new HashSet<>();
         String lastUsedKey = null;
 
@@ -73,10 +96,10 @@ public class ProductFactoryImpl implements ProductFactory {
             List<ProductVariation> variations = combination.stream()
                     .map(this::toVariation)
                     .toList();
-            String key = key(variantTypeOrder, variations, newTypeNames);
-            if (bannedKeys.contains(key)) continue;
+            String key = getVariationKey(inputs.variantTypeOrder(), variations, inputs.newTypeNames());
+            if (existing.bannedKeys().contains(key)) continue;
 
-            ProductVariant match = existingByKey.get(key);
+            ProductVariant match = existing.existingByKey().get(key);
             ProductVariant replacement;
             if (match != null) {
                 int useCount = baseKeyUseCount.getOrDefault(key, 0);
@@ -92,8 +115,8 @@ public class ProductFactoryImpl implements ProductFactory {
                     // New variant 
                     replacement = new ProductVariant(newVariantId, product.getId(), sku, variations);
                     keysToKeep.add(newVariantId);
-                    if (Objects.equals(key, lastUsedKey)) {
-                        int baseIndex = keyFirstIndex.getOrDefault(key, product.getVariants().size() - 1);
+                    if (Objects.equals(key, lastUsedKey)) { // preserve ordering within same base key
+                        int baseIndex = existing.keyFirstIndex().getOrDefault(key, product.getVariants().size() - 1);
                         int insertionIndex = Math.min(baseIndex + useCount, product.getVariants().size());
                         product.addVariant(replacement, insertionIndex);
                     } else {
@@ -105,24 +128,40 @@ public class ProductFactoryImpl implements ProductFactory {
                     replacement = new ProductVariant(match.getId(), product.getId(), match.getSku(), variations);
                     product.updateVariant(replacement);
                     keysToKeep.add(replacement.getId());
-                    int baseIndex = keyFirstIndex.getOrDefault(key, product.getVariants().size() - 1);
+                    int baseIndex = existing.keyFirstIndex().getOrDefault(key, product.getVariants().size() - 1);
                     if(baseIndex != i) {
-                        keyFirstIndex.put(key, i);
+                        existing.keyFirstIndex().put(key, i);
                     }
                 }
                 baseKeyUseCount.put(key, useCount + 1);
                 lastUsedKey = key;
+            } else {
+                SkuGenerator.Context skuContext = new SkuGenerator.Context(
+                        product.getId(),
+                        product.getName(),
+                        variations,
+                        null,
+                        0);
+                String sku = skuGenerator.generate(skuContext);
+                Id newVariantId = idGenerator.generateId();
+                replacement = new ProductVariant(newVariantId, product.getId(), sku, variations);
+                product.addVariant(replacement);
+                keysToKeep.add(newVariantId);
             }
-
         }
-        List<Id> stream = product.getVariants().stream()
-                .map(ProductVariant::getId)
-                .filter(id->!keysToKeep.contains(id))
-                .toList();
-        stream.forEach(product::removeVariant);
+
+        return keysToKeep;
     }
 
-    private String key(List<String> typeOrder, Iterable<ProductVariation> variations, Set<String> ignoredTypes) {
+    private void removeObsoleteVariants(Product product, Set<Id> keysToKeep) {
+        product.getVariants().stream()
+                .map(ProductVariant::getId)
+                .filter(id -> !keysToKeep.contains(id))
+                .toList()
+                .forEach(product::removeVariant);
+    }
+
+    protected String getVariationKey(List<String> typeOrder, Iterable<ProductVariation> variations, Set<String> ignoredTypes) {
         Map<String, String> map = StreamSupport.stream(variations.spliterator(), false)
                 .filter(variation -> variation.getTypeName() != null)
                 .collect(Collectors.toMap(
@@ -144,4 +183,13 @@ public class ProductFactoryImpl implements ProductFactory {
     protected ProductVariation toVariation(VariantOption option) {
         return new ProductVariation(option.getName(), option.getId(), Objects.nonNull(option.getVariantType()) ? option.getVariantType().getName(): null);
     }
+
+    private record VariantInputs(List<VariantType> variantTypes,
+                                 List<String> variantTypeOrder,
+                                 Set<String> newTypeNames,
+                                 Set<Id> removalIds) { }
+
+    private record ExistingVariantState(Map<String, ProductVariant> existingByKey,
+                                        Set<String> bannedKeys,
+                                        Map<String, Integer> keyFirstIndex) { }
 }

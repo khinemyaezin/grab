@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.product.domain.factory.ProductTestData.fullProduct;
-import static com.product.domain.factory.ProductTestData.id;
+import static com.product.domain.factory.ProductTestData.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 /**
@@ -79,7 +79,6 @@ public class ProductFactoryTest{
                 "4 RedFemale"
         };
         productFactory.create(FULL_PRODUCT, desiredTypes, List.of());
-        System.out.println(FULL_PRODUCT);
         assertThat(FULL_PRODUCT.getVariants())
                 .extracting(this::extractProductVariation)
                 .containsExactly(desiredCombination );
@@ -118,7 +117,6 @@ public class ProductFactoryTest{
                 "7 SmallRed"
         };
         productFactory.create(FULL_PRODUCT, desiredTypes, List.of());
-        System.out.println(FULL_PRODUCT);
         assertThat(FULL_PRODUCT.getVariants())
                 .extracting(this::extractProductVariation)
                 .containsExactly(desiredCombination );
@@ -161,7 +159,6 @@ public class ProductFactoryTest{
                 "id SmallRedFemale256"
         };
         productFactory.create(FULL_PRODUCT, desiredTypes, List.of());
-        System.out.println(FULL_PRODUCT);
         assertThat(FULL_PRODUCT.getVariants())
                 .extracting(this::extractProductVariation)
                 .containsExactly(desiredCombination );
@@ -221,7 +218,6 @@ public class ProductFactoryTest{
                 "id SmallRedFemale256Level2"
         };
         productFactory.create(FULL_PRODUCT, desiredTypes, List.of());
-        System.out.println(FULL_PRODUCT);
         assertThat(FULL_PRODUCT.getVariants())
                 .extracting(this::extractProductVariation)
                 .containsExactly(desiredCombination );
@@ -264,7 +260,6 @@ public class ProductFactoryTest{
                 "id 256SmallRedFemale"
         };
         productFactory.create(FULL_PRODUCT, desiredTypes, List.of());
-        System.out.println(FULL_PRODUCT);
         assertThat(FULL_PRODUCT.getVariants())
                 .extracting(this::extractProductVariation)
                 .containsExactly(desiredCombination );
@@ -288,9 +283,84 @@ public class ProductFactoryTest{
                 "8 SmallRedFemale",
         };
         productFactory.create(FULL_PRODUCT, desiredTypes, List.of(new ProductTestData.CommonId("5")) );
-        System.out.println(FULL_PRODUCT);
         assertThat(FULL_PRODUCT.getVariants())
                 .extracting(this::extractProductVariation)
                 .containsExactly(desiredCombination );
     }
+
+    @Test
+    public void shouldGeneratesCombinationsInSpecifiedOrder_whenAddVariantTypes() {
+        when(idGenerator.generateId()).thenReturn(id);
+        doAnswer(invocationOnMock -> {
+            SkuGenerator.Context context = invocationOnMock.getArgument(0);
+            String sku = context.baseSku() == null ? getSku(context.orderedVariations()) : context.baseSku();
+            if (context.collisionIndex() > 0) {
+                return String.join("-", sku, "" + context.collisionIndex());
+            }
+            return sku;
+        }).when(skuGenerator).generate(any(SkuGenerator.Context.class));
+
+        Product PRODUCT = emptyVariationProduct();
+        List<VariantType> desiredTypes = List.of(
+                variantType("size", "Size", "Large", "Small"),
+                variantType("color", "Color", "Yellow", "Red"),
+                variantType("gender", "Gender", "Male", "Female")
+        );
+        String[] desiredCombination = {
+                "id LargeYellowMale",
+                "id LargeYellowFemale",
+                "id LargeRedMale",
+                "id LargeRedFemale",
+                "id SmallYellowMale",
+                "id SmallYellowFemale",
+                "id SmallRedMale",
+                "id SmallRedFemale",
+        };
+        productFactory.create(PRODUCT, desiredTypes, List.of(new ProductTestData.CommonId("5")) );
+        assertThat(PRODUCT.getVariants())
+                .extracting(this::extractProductVariation)
+                .containsExactly(desiredCombination );
+    }
+
+    @Test
+    public void shouldCreateProduct_whenDesiredTypesGiven() {
+        when(idGenerator.generateId()).thenReturn(id);
+        doAnswer(invocationOnMock -> {
+            SkuGenerator.Context context = invocationOnMock.getArgument(0);
+            String sku = context.baseSku() == null ? getSku(context.orderedVariations()) : context.baseSku();
+            if (context.collisionIndex() > 0) {
+                return String.join("-", sku, "" + context.collisionIndex());
+            }
+            return sku;
+        }).when(skuGenerator).generate(any(SkuGenerator.Context.class));
+
+        List<VariantType> desiredTypes = List.of(
+                variantType("size", "Size", "Large", "Small"),
+                variantType("color", "Color", "Yellow", "Red"),
+                variantType("gender", "Gender", "Male", "Female")
+        );
+        String[] desiredCombination = {
+                "id LargeYellowMale",
+                "id LargeYellowFemale",
+                "id LargeRedMale",
+                "id LargeRedFemale",
+                "id SmallYellowMale",
+                "id SmallYellowFemale",
+                "id SmallRedMale",
+                "id SmallRedFemale",
+        };
+        ProductSpec spec = new ProductSpec(
+                "T-Shirt",
+                new CommonId("Clothing"),
+                desiredTypes
+        );
+        Product product = productFactory.create(spec);
+        assertEquals(spec.name(), product.getName());
+        assertEquals(spec.categoryId(), product.getCategoryId());
+        assertThat(product.getVariants())
+                .extracting(this::extractProductVariation)
+                .containsExactly(desiredCombination );
+    }
+
+
 }

@@ -5,9 +5,9 @@ import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
 import com.product.domain.aggregate.product.ProductVariation;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Test helper that builds a Product aggregate using the demo product-full.json data.
@@ -19,44 +19,44 @@ public class ProductTestData {
         Product product = new Product(productId, "Unisex Tee", id("category-1"));
 
         product.addVariant(variant("1", productId, "SKU-LYM",
-                variation("size-large", "Large", "Size"),
-                variation("color-yellow", "Yellow", "Color"),
-                variation("gender-male", "Male", "Gender")));
+                variation(id("size-large"), "Large", "Size"),
+                variation(id("color-yellow"), "Yellow", "Color"),
+                variation(id("gender-male"), "Male", "Gender")));
 
         product.addVariant(variant("2", productId, "SKU-LYF",
-                variation("size-large", "Large", "Size"),
-                variation("color-yellow", "Yellow", "Color"),
-                variation("gender-female", "Female", "Gender")));
+                variation(id("size-large"), "Large", "Size"),
+                variation(id("color-yellow"), "Yellow", "Color"),
+                variation(id("gender-female"), "Female", "Gender")));
 
         product.addVariant(variant("3", productId, "SKU-LRM",
-                variation("size-large", "Large", "Size"),
-                variation("color-red", "Red", "Color"),
-                variation("gender-male", "Male", "Gender")));
+                variation(id("size-large"), "Large", "Size"),
+                variation(id("color-red"), "Red", "Color"),
+                variation(id("gender-male"), "Male", "Gender")));
 
         product.addVariant(variant("4", productId, "SKU-LRF",
-                variation("size-large", "Large", "Size"),
-                variation("color-red", "Red", "Color"),
-                variation("gender-female", "Female", "Gender")));
+                variation(id("size-large"), "Large", "Size"),
+                variation(id("color-red"), "Red", "Color"),
+                variation(id("gender-female"), "Female", "Gender")));
 
         product.addVariant(variant("5", productId, "SKU-SYM",
-                variation("size-small", "Small", "Size"),
-                variation("color-yellow", "Yellow", "Color"),
-                variation("gender-male", "Male", "Gender")));
+                variation(id("size-small"), "Small", "Size"),
+                variation(id("color-yellow"), "Yellow", "Color"),
+                variation(id("gender-male"), "Male", "Gender")));
 
         product.addVariant(variant("6", productId, "SKU-SYF",
-                variation("size-small", "Small", "Size"),
-                variation("color-yellow", "Yellow", "Color"),
-                variation("gender-female", "Female", "Gender")));
+                variation(id("size-small"), "Small", "Size"),
+                variation(id("color-yellow"), "Yellow", "Color"),
+                variation(id("gender-female"), "Female", "Gender")));
 
         product.addVariant(variant("7", productId, "SKU-SRM",
-                variation("size-small", "Small", "Size"),
-                variation("color-red", "Red", "Color"),
-                variation("gender-male", "Male", "Gender")));
+                variation(id("size-small"), "Small", "Size"),
+                variation(id("color-red"), "Red", "Color"),
+                variation(id("gender-male"), "Male", "Gender")));
 
         product.addVariant(variant("8", productId, "SKU-SRF",
-                variation("size-small", "Small", "Size"),
-                variation("color-red", "Red", "Color"),
-                variation("gender-female", "Female", "Gender")));
+                variation(id("size-small"), "Small", "Size"),
+                variation(id("color-red"), "Red", "Color"),
+                variation(id("gender-female"), "Female", "Gender")));
 
         return product;
     }
@@ -65,20 +65,8 @@ public class ProductTestData {
         return new ProductVariant(id(variantId), productId, sku, List.of(variations));
     }
 
-    protected static ProductVariation variation(String optionId, String optionName, String typeName) {
-        ProductVariation variation = new ProductVariation(optionName, typeName);
-        setOptionId(variation, optionId);
-        return variation;
-    }
-
-    protected static void setOptionId(ProductVariation variation, String optionId) {
-        try {
-            Field field = ProductVariation.class.getDeclaredField("optionId");
-            field.setAccessible(true);
-            field.set(variation, id(optionId));
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Unable to set optionId on ProductVariation", e);
-        }
+    protected static ProductVariation variation(Id optionId, String optionName, String typeName) {
+        return new ProductVariation(optionName, optionId, typeName);
     }
 
     protected static Id id(String value) {
@@ -112,5 +100,16 @@ public class ProductTestData {
         public String toString() {
             return id;
         }
+    }
+
+    public static Product emptyVariationProduct() {
+        Id productId = id("product-1");
+        return new Product(productId, "Unisex Tee", id("category-1"));
+    }
+    
+    protected static String getSku(List<ProductVariation> variations) {
+        return variations.stream()
+                .map(variation -> variation.getOptionName().substring(0, 1).toUpperCase() + variation.getOptionName().substring(1))
+                .collect(Collectors.joining("-"));
     }
 }
