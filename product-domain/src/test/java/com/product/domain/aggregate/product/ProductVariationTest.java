@@ -12,7 +12,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-class ProductVariationTest {
+public class ProductVariationTest {
     static class CommonId implements Id {
         private final String id;
         public CommonId(String id) {

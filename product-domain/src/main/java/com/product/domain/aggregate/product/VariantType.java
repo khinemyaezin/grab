@@ -13,7 +13,7 @@ import java.util.*;
 @Getter
 public class VariantType extends Entity<Id> {
     private final String name;
-    private final Set<VariantOption> options = new HashSet<>();
+    private final Set<VariantOption> options = new LinkedHashSet<>();
 
     public VariantType(Id id, String name) {
         super(id);
@@ -36,5 +36,21 @@ public class VariantType extends Entity<Id> {
     @Override
     public int hashCode() {
         return Objects.hash(name);
+    }
+
+    @Override
+    public String toString() {
+        String optionValues = options.stream()
+                //.sorted(Comparator.comparing(VariantOption::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .map(option -> "\"" + option.getName() + "\"")
+                .reduce((a, b) -> a + "," + b)
+                .orElse("");
+
+        return String.format(
+                "{\"id\":\"%s\",\"name\":\"%s\",\"options\":[%s]}",
+                Objects.toString(getId(), ""),
+                name,
+                optionValues
+        );
     }
 }

@@ -9,13 +9,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.*;
+import java.util.function.UnaryOperator;
 
 /**
  * A product has list of variants. Variant order can be neglect.
  * {Product -> [ {SKU1, GREEN, SMALL}, {SKU2, GREEN, LARGE} ]}
  */
 public class Product extends AggregateRoot<Id> {
-    private final List<ProductVariant> variants = new ArrayList<>();
+    private List<ProductVariant> variants = new ArrayList<>();
     @Setter
     @Getter
     private String name;
@@ -42,9 +43,20 @@ public class Product extends AggregateRoot<Id> {
     }
 
     public boolean addVariant(ProductVariant variant) {
+        return addVariant(variant, this.variants.size()); // Add at end
+    }
+
+    public boolean addVariant(ProductVariant variant, int index) {
         CompositeSpecification<Product> spec = new UniqueProductVariantCompositeSpec(variant);
         if (!spec.isSatisfiedBy(this)) return false;
-        this.variants.add(variant);
+        this.variants.add(index, variant);
+        return true;
+    }
+
+    public boolean updateVariant(ProductVariant variant) {
+        int index = variants.indexOf(variant);
+        if(index == -1) return false;
+        variants.set(index, variant);
         return true;
     }
 

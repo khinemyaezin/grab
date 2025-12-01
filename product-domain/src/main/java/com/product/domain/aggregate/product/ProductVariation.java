@@ -26,6 +26,12 @@ public class ProductVariation extends ValueObject {
         this.optionId = optionId;
     }
 
+    public ProductVariation(String optionName, Id optionId,  String typeName) {
+        this.optionName = optionName;
+        this.optionId = optionId;
+        this.typeName = typeName;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof ProductVariation that)) return false;
