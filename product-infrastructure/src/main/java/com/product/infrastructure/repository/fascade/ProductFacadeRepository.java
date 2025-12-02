@@ -9,11 +9,9 @@ import com.product.infrastructure.mapper.product.ProductMapper;
 import com.product.infrastructure.service.ProductService;
 import com.product.infrastructure.service.ProductVariantService;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@Service
 @AllArgsConstructor
 public class ProductFacadeRepository implements ProductRepository {
     private final ProductService productService;

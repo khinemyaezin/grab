@@ -6,11 +6,9 @@ import com.product.domain.aggregate.product.ProductVariant;
 import com.product.domain.aggregate.product.ProductVariation;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 @AllArgsConstructor
 public class ProductVariantMapper {
     private final IdGenerator idGenerator;
