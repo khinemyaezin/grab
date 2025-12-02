@@ -3,11 +3,9 @@ package com.product.infrastructure.event;
 import com.grab.framework.domain.Event;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 @AllArgsConstructor
 public class ApplicationDomainEventProducer implements DomainEventProducer {
     private final ApplicationEventPublisher applicationEventPublisher;

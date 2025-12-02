@@ -10,11 +10,12 @@ import com.product.infrastructure.mapper.product.ProductVariationMapper;
 import com.product.infrastructure.repository.jpa.VariantOptionJpaRepository;
 import com.product.infrastructure.service.ProductVariantOptionService;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
-@Service
 @AllArgsConstructor
 public class ProductVariantOptionServiceImpl implements ProductVariantOptionService {
     private final ProductVariantOptionEntityFactory productVariantOptionEntityFactory;
@@ -23,19 +24,26 @@ public class ProductVariantOptionServiceImpl implements ProductVariantOptionServ
 
     @Override
     public void updateVariations(ProductVariantEntity productVariantEntity, Set<ProductVariation> updatedVariantOptions) {
-
         mergeAndRemoveVariantOptions(productVariantEntity, updatedVariantOptions);
         addNewVariantOptions(productVariantEntity, updatedVariantOptions);
     }
 
-    private void mergeAndRemoveVariantOptions(ProductVariantEntity productVariantEntity, Set<ProductVariation> inputOptionsMap) {
+    private void mergeAndRemoveVariantOptions(ProductVariantEntity productVariantEntity, Set<ProductVariation> updatedVariantOptions) {
+        Set<ProductVariationEntity> optionsToRemove = new HashSet<>();
+
+        // First pass: identify what to remove
         for (ProductVariationEntity optionEntity : productVariantEntity.getProductVariations()) {
-            ProductVariation variation = productVariationMapper.toDomain(optionEntity);
-            if (inputOptionsMap.contains(variation)) {
-                inputOptionsMap.remove(variation);
+            ProductVariation oldVariantOption = productVariationMapper.toDomain(optionEntity);
+            if (updatedVariantOptions.contains(oldVariantOption)) {
+                updatedVariantOptions.remove(oldVariantOption);
             } else {
-                productVariantEntity.removeProductVariantOption(optionEntity);
+                optionsToRemove.add(optionEntity);
             }
+        }
+
+        // Second pass: perform removal
+        for (ProductVariationEntity optionToRemove : optionsToRemove) {
+            productVariantEntity.removeProductVariantOption(optionToRemove);
         }
     }
 

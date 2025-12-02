@@ -7,11 +7,9 @@ import com.product.infrastructure.mapper.product.ProductEntityMapper;
 import com.product.infrastructure.repository.jpa.ProductJpaRepository;
 import com.product.infrastructure.service.ProductService;
 import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@Service
 @AllArgsConstructor
 public class ProductServiceImpl implements ProductService {
     private final ProductJpaRepository productJpaRepository;

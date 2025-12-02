@@ -1,6 +1,7 @@
 package com.product.infrastructure.service.impl;
 
-import com.product.domain.aggregate.product.*;
+import com.product.domain.aggregate.product.Product;
+import com.product.domain.aggregate.product.ProductVariant;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
 import com.product.infrastructure.entity.product.factory.ProductVariantEntityFactory;
@@ -14,14 +15,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ProductVariantServiceTest extends ProductTest {
+class ProductVariantServiceTest extends ProductTestData {
 
     @Mock
     private ProductVariantEntityFactory productVariantEntityFactory;
