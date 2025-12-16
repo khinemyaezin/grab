@@ -17,10 +17,10 @@
     <modules>
 		<module>product-domain</module>
 		<module>product-infrastructure</module>
-		<module>product-application</module>
         <module>framework</module>
         <module>category-domain</module>
 		<module>category-infrastructure</module>
+        <module>store</module>
 	</modules>
     <scm>
 		<connection/>

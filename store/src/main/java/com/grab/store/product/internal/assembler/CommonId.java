@@ -7,9 +7,14 @@ import java.util.UUID;
 public class CommonId implements Id {
     private final UUID id;
 
-    public CommonId(){
+    public CommonId() {
         this.id = UUID.randomUUID();
     }
+
+    public CommonId(String id) {
+        this.id = UUID.fromString(id);
+    }
+
     public String getValue() {
         return id.toString();
     }

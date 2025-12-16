@@ -109,7 +109,8 @@ public class ProductFactoryImpl implements ProductFactory {
                             product.getName(),
                             variations,
                             match.getSku(),
-                            useCount);
+                            useCount,
+                            Map.of());
                     String sku = skuGenerator.generate(skuContext);
                     Id newVariantId = idGenerator.generateId();
                     // New variant 
@@ -141,7 +142,8 @@ public class ProductFactoryImpl implements ProductFactory {
                         product.getName(),
                         variations,
                         null,
-                        0);
+                        0,
+                        Map.of());
                 String sku = skuGenerator.generate(skuContext);
                 Id newVariantId = idGenerator.generateId();
                 replacement = new ProductVariant(newVariantId, product.getId(), sku, variations);
