@@ -5,6 +5,7 @@ import com.product.domain.aggregate.product.ProductVariation;
 import lombok.Builder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -23,7 +24,8 @@ import java.util.Objects;
  *         "Unisex Tee",
  *         orderedVariations,   // e.g. [Storage=128, Size=Large, Color=Red, Gender=Male]
  *         baseSku,             // existing SKU if extending a variant, otherwise null
- *         collisionIndex       // 0 for first use, 1+ for additional SKUs sharing the same base
+ *         collisionIndex,      // 0 for first use, 1+ for additional SKUs sharing the same base
+ *         Map.of("channel", "amazon", "region", "sg") // optional, arbitrary metadata
  * );
  * String sku = skuGenerator.generate(context);
  * </pre>
@@ -45,15 +47,15 @@ public interface SkuGenerator {
             String productName,
             List<ProductVariation> orderedVariations,
             String baseSku,
-            int collisionIndex
+            int collisionIndex,
+            Map<String, String> attributes
     ) {
         public Context {
-            Objects.requireNonNull(productId, "productId is required");
-            Objects.requireNonNull(productName, "productName is required");
             Objects.requireNonNull(orderedVariations, "orderedVariations is required");
             if (collisionIndex < 0) {
                 throw new IllegalArgumentException("collisionIndex must be >= 0");
             }
+            attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
         }
     }
 }

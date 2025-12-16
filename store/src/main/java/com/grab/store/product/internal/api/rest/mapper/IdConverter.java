@@ -10,6 +10,6 @@ public class IdConverter {
     }
 
     public Id getId(String id) {
-        return CommonId.of(id);
+        return new CommonId(id);
     }
 }
