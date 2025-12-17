@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # ===========================================
+  # Spring Boot Application
+  # ===========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grab-store
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - PRODUCT_DATASOURCE_URL=jdbc:postgresql://postgres:5432/product
+      - PRODUCT_DATASOURCE_USERNAME=admin
+      - PRODUCT_DATASOURCE_PASSWORD=123
+      - PRODUCT_DATASOURCE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - PRODUCT_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - grab-network
+    restart: unless-stopped
+
+  # ===========================================
+  # PostgreSQL Database
+  # ===========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: grab-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=product
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=123
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d product"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grab-network
+    restart: unless-stopped
+
+  # ===========================================
+  # pgAdmin (Database Management UI)
+  # ===========================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: grab-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@grab.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - grab-network
+    restart: unless-stopped
+
+networks:
+  grab-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  pgadmin-data:

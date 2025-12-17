@@ -1,18 +1,18 @@
 product:
   datasource:
-    url: jdbc:postgresql://localhost:5432/product
-    username: admin
-    password: 123
+    url: ${PRODUCT_DATASOURCE_URL}
+    username: ${PRODUCT_DATASOURCE_USERNAME}
+    password: ${PRODUCT_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      dialect: org.hibernate.dialect.PostgreSQLDialect
+      dialect: ${PRODUCT_DATASOURCE_DIALECT}
       hbm2ddl:
-        auto: create
-      show_sql: true
+        auto: ${PRODUCT_JPA_DDL_AUTO:create}
+      show_sql: ${PRODUCT_JPA_SHOW_SQL:true}
       format_sql: true
 
 logging:
   level:
-    root: INFO
-    org.springframework.web: TRACE
+    root: ${LOG_LEVEL_ROOT:INFO}
+    org.springframework.web: ${LOG_LEVEL_WEB:TRACE}
