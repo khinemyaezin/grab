@@ -19,6 +19,13 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.sql.DataSource;
 import java.util.Map;
 
+/**
+ * Data source configuration for product module.
+ *
+ * Following DDD principles:
+ * - Only scans for MapStruct generated mappers (which have @Component by MapStruct convention)
+ * - Infrastructure service beans are configured explicitly in ProductInfrastructureConfig
+ */
 @Configuration
 @ComponentScan(
         basePackages = "com.product.infrastructure.mapper",

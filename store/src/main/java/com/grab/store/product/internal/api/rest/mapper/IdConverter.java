@@ -1,15 +1,18 @@
 package com.grab.store.product.internal.api.rest.mapper;
 
 import com.grab.framework.id.Id;
-import com.grab.store.product.internal.assembler.CommonId;
-import org.mapstruct.Mapper;
+import com.grab.framework.id.IdGenerator;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class IdConverter {
+    private IdGenerator idGenerator;
+
     public String toId(Id id){
-        return id.getValue();
+        return id == null ? null : id.getValue();
     }
 
     public Id getId(String id) {
-        return new CommonId(id);
+        return idGenerator.generateId(id);
     }
 }

@@ -10,6 +10,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Spring-based implementation of QueryBus.
+ * Automatically discovers and registers all QueryHandler beans.
+ */
 @Slf4j
 @Component
 public class SimpleQueryBus implements QueryBus {

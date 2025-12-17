@@ -2,6 +2,7 @@ package com.grab.store.product.internal.cqrs.command;
 
 /**
  * Command Bus interface for dispatching commands to their handlers.
+ * Implements the Mediator pattern for command routing.
  */
 public interface CommandBus {
 
