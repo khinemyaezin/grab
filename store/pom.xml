@@ -15,9 +15,9 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <product-domain.version>0.0.1</product-domain.version>
         <inventory-infrastructure.version>0.0.1</inventory-infrastructure.version>
         <product-infrastructure.version>0.0.1</product-infrastructure.version>
+        <category-infrastructure.version>0.0.1</category-infrastructure.version>
     </properties>
 
     <dependencies>
@@ -58,11 +58,6 @@
             <artifactId>lombok-mapstruct-binding</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.modulith</groupId>
             <artifactId>spring-modulith-starter-test</artifactId>
             <scope>test</scope>
@@ -76,20 +71,15 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-hateoas</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>product-domain</artifactId>
-            <version>${product-domain.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>product-infrastructure</artifactId>
             <version>${product-infrastructure.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>category-infrastructure</artifactId>
+            <version>${category-infrastructure.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.modulith</groupId>
@@ -98,6 +88,11 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>

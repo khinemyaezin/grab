@@ -9,6 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -17,15 +18,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
+import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Data source configuration for product module.
- *
- * Following DDD principles:
- * - Only scans for MapStruct generated mappers (which have @Component by MapStruct convention)
- * - Infrastructure service beans are configured explicitly in ProductInfrastructureConfig
- */
 @Configuration
 @ComponentScan(
         basePackages = "com.product.infrastructure.mapper",
@@ -41,6 +36,11 @@ import java.util.Map;
 )
 @EnableTransactionManagement
 public class ProductModuleDataSourceConfig {
+    private final Environment environment;
+
+    public ProductModuleDataSourceConfig(Environment environment) {
+        this.environment = environment;
+    }
 
     @Primary
     @Bean("productDataSourceProperties")
@@ -75,9 +75,11 @@ public class ProductModuleDataSourceConfig {
     }
 
     private Map<String, Object> hibernateProperties() {
-        return Map.of("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect",
-                "hibernate.hbm2ddl.auto", "create",
-                "hibernate.show_sql", "true",
-                "hibernate.format_sql", "true");
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("hibernate.dialect", environment.getProperty("product.jpa.hibernate.dialect"));
+        properties.put("hibernate.hbm2ddl.auto", environment.getProperty("product.jpa.hibernate.hbm2ddl.auto"));
+        properties.put("hibernate.show_sql", environment.getProperty("product.jpa.hibernate.show_sql"));
+        properties.put("hibernate.format_sql", environment.getProperty("product.jpa.hibernate.format_sql"));
+        return properties;
     }
 }

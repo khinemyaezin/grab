@@ -1,6 +1,7 @@
 package com.product.infrastructure.configuration;
 
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.mapper.CommonMapper;
 import com.product.domain.repository.ProductRepository;
 import com.product.infrastructure.entity.product.factory.ProductEntityFactory;
 import com.product.infrastructure.entity.product.factory.ProductVariantEntityFactory;
@@ -30,6 +31,10 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import(DomainConfig.class)
 public class ProductInfraConfig {
+    @Bean
+    public CommonMapper commonMapper() {
+        return new CommonMapper();
+    }
     @Bean
     public ProductVariationMapper productVariationMapper(IdGenerator idGenerator) {
         return new ProductVariationMapper(idGenerator);
@@ -97,8 +102,6 @@ public class ProductInfraConfig {
                 productEntityMapper,
                 productEntityFactory);
     }
-
-    // ==================== Event Producer ====================
 
     @Bean
     public DomainEventProducer domainEventProducer(ApplicationEventPublisher applicationEventPublisher) {

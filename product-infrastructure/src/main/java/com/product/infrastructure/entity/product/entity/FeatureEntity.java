@@ -20,8 +20,7 @@ public class FeatureEntity {
 
     private String name;
 
-    @ManyToOne
-    @JoinColumn(name = "category_id")
+    @Column(name = "category_id")
     private Long categoryId;
 
     @OneToMany(mappedBy = "feature")

@@ -4,12 +4,14 @@ product:
     username: admin
     password: 123
     driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+      hbm2ddl:
+        auto: create
+      show_sql: true
+      format_sql: true
 
-#  inventory:
-#    url: jdbc:postgresql://localhost:5432/inventory
-#    username: admin
-#    password: 12
-#    driver-class-name: org.postgresql.Driver
 logging:
   level:
     root: INFO
