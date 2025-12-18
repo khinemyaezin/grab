@@ -10,6 +10,7 @@ import org.mapstruct.Mapping;
 @Mapper(config = CentralMapperConfig.class, uses = IdConverter.class)
 public abstract class ProductCombinationDtoMapper {
 
+    @Mapping(target = "desiredVariantTypes", source = "variantTypes")
     public abstract ProductCombinationQuery toQuery(ProductCombinationRequest dto);
 
     protected abstract ProductCombinationQuery.VariantType toQueryVariantType(
