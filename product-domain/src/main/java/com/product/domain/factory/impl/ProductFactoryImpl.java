@@ -71,9 +71,8 @@ public class ProductFactoryImpl implements ProductFactory {
             ProductVariant variant = product.getVariants().get(i);
             String key = getVariationKey(inputs.variantTypeOrder(), variant.getVariations(), inputs.newTypeNames());
 
-            if (inputs.removalIds().contains(variant.getId())) {
-                bannedKeys.add(key);
-                continue;
+            if (inputs.removalIds().contains(variant.getId()) && variant.isActive()) {
+                variant.markAsDeleted();
             }
             existingByKey.putIfAbsent(key, variant);
             keyFirstIndex.putIfAbsent(key, i);
@@ -97,8 +96,6 @@ public class ProductFactoryImpl implements ProductFactory {
                     .map(this::toVariation)
                     .toList();
             String key = getVariationKey(inputs.variantTypeOrder(), variations, inputs.newTypeNames());
-            if (existing.bannedKeys().contains(key)) continue;
-
             ProductVariant match = existing.existingByKey().get(key);
             ProductVariant replacement;
             if (match != null) {
@@ -126,7 +123,7 @@ public class ProductFactoryImpl implements ProductFactory {
 
                 } else {
                     // Replacement
-                    replacement = new ProductVariant(match.getId(), product.getId(), match.getSku(), variations);
+                    replacement = new ProductVariant(match.getId(), product.getId(), match.getSku(), match.getStatus(), variations);
                     product.updateVariant(replacement);
                     keysToKeep.add(replacement.getId());
                     int baseIndex = existing.keyFirstIndex().getOrDefault(key, product.getVariants().size() - 1);
