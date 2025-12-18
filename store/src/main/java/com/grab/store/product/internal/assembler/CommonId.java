@@ -5,17 +5,17 @@ import com.grab.framework.id.Id;
 import java.util.UUID;
 
 public class CommonId implements Id {
-    private final UUID id;
+    private final String id;
 
     public CommonId() {
-        this.id = UUID.randomUUID();
+        this.id = UUID.randomUUID().toString();
     }
 
     public CommonId(String id) {
-        this.id = UUID.fromString(id);
+        this.id = id;
     }
 
     public String getValue() {
-        return id.toString();
+        return id;
     }
 }

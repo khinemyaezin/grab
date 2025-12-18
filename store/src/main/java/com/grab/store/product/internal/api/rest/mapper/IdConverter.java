@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class IdConverter {
-    private IdGenerator idGenerator;
+    private final IdGenerator idGenerator;
 
     public String toId(Id id){
         return id == null ? null : id.getValue();
