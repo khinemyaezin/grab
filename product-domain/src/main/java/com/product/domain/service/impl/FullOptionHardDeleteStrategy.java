@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
  * rather than kept as soft-deleted.</p>
  */
 public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
-
     @Override
     public List<VariantType> filterVariantTypes(Product product, List<VariantType> desiredVariantTypes) {
         if (product.getVariants().isEmpty() || desiredVariantTypes == null || desiredVariantTypes.isEmpty()) {

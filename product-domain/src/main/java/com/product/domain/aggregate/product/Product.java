@@ -92,6 +92,10 @@ public class Product extends AggregateRoot<Id> {
         return variants.removeIf( v-> Objects.equals(id, v.getId()) );
     }
 
+    public void sortVariants(Comparator<ProductVariant> comparator) {
+        this.variants.sort(comparator);
+    }
+
     public void applySoftDeleteVariants(Collection<Id> variantIds) {
         if (variantIds == null || variantIds.isEmpty()) return;
 

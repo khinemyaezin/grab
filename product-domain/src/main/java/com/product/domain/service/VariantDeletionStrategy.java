@@ -12,7 +12,6 @@ import java.util.Set;
  * Follows Open/Closed Principle - extend behavior without modifying ProductFactoryImpl.
  */
 public interface VariantDeletionStrategy {
-
     /**
      * Filters the desired variant types based on deletion rules.
      * Called before generating combinations to exclude option values that should be hard deleted.
