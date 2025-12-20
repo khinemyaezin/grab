@@ -19,44 +19,44 @@ public class ProductTestData {
         Product product = new Product(productId, "Unisex Tee", id("category-1"));
 
         product.addVariant(variant("1", productId, "SKU-LYM",
-                variation(id("size-large"), "Large", "Size"),
-                variation(id("color-yellow"), "Yellow", "Color"),
-                variation(id("gender-male"), "Male", "Gender")));
+                variation(id("size-large"), "Large", new CommonId("size"), "Size"),
+                variation(id("color-yellow"), "Yellow", new CommonId("color"), "Color"),
+                variation(id("gender-male"), "Male", new CommonId("gender"), "Gender")));
 
         product.addVariant(variant("2", productId, "SKU-LYF",
-                variation(id("size-large"), "Large", "Size"),
-                variation(id("color-yellow"), "Yellow", "Color"),
-                variation(id("gender-female"), "Female", "Gender")));
+                variation(id("size-large"), "Large",new CommonId("size"), "Size"),
+                variation(id("color-yellow"), "Yellow",  new CommonId("color"), "Color"),
+                variation(id("gender-female"), "Female",  new CommonId("gender"), "Gender")));
 
         product.addVariant(variant("3", productId, "SKU-LRM",
-                variation(id("size-large"), "Large", "Size"),
-                variation(id("color-red"), "Red", "Color"),
-                variation(id("gender-male"), "Male", "Gender")));
+                variation(id("size-large"), "Large", new CommonId("size"), "Size"),
+                variation(id("color-red"), "Red",  new CommonId("color"), "Color"),
+                variation(id("gender-male"), "Male",  new CommonId("gender"), "Gender")));
 
         product.addVariant(variant("4", productId, "SKU-LRF",
-                variation(id("size-large"), "Large", "Size"),
-                variation(id("color-red"), "Red", "Color"),
-                variation(id("gender-female"), "Female", "Gender")));
+                variation(id("size-large"), "Large", new CommonId("size"), "Size"),
+                variation(id("color-red"), "Red",  new CommonId("color"), "Color"),
+                variation(id("gender-female"), "Female",  new CommonId("gender"), "Gender")));
 
         product.addVariant(variant("5", productId, "SKU-SYM",
-                variation(id("size-small"), "Small", "Size"),
-                variation(id("color-yellow"), "Yellow", "Color"),
-                variation(id("gender-male"), "Male", "Gender")));
+                variation(id("size-small"), "Small", new CommonId("size"), "Size"),
+                variation(id("color-yellow"), "Yellow",  new CommonId("color"), "Color"),
+                variation(id("gender-male"), "Male",  new CommonId("gender"), "Gender")));
 
         product.addVariant(variant("6", productId, "SKU-SYF",
-                variation(id("size-small"), "Small", "Size"),
-                variation(id("color-yellow"), "Yellow", "Color"),
-                variation(id("gender-female"), "Female", "Gender")));
+                variation(id("size-small"), "Small", new CommonId("size"), "Size"),
+                variation(id("color-yellow"), "Yellow",  new CommonId("color"), "Color"),
+                variation(id("gender-female"), "Female",  new CommonId("gender"), "Gender")));
 
         product.addVariant(variant("7", productId, "SKU-SRM",
-                variation(id("size-small"), "Small", "Size"),
-                variation(id("color-red"), "Red", "Color"),
-                variation(id("gender-male"), "Male", "Gender")));
+                variation(id("size-small"), "Small", new CommonId("size"), "Size"),
+                variation(id("color-red"), "Red",  new CommonId("color"), "Color"),
+                variation(id("gender-male"), "Male",  new CommonId("gender"), "Gender")));
 
         product.addVariant(variant("8", productId, "SKU-SRF",
-                variation(id("size-small"), "Small", "Size"),
-                variation(id("color-red"), "Red", "Color"),
-                variation(id("gender-female"), "Female", "Gender")));
+                variation(id("size-small"), "Small", new CommonId("size"), "Size"),
+                variation(id("color-red"), "Red",  new CommonId("color"), "Color"),
+                variation(id("gender-female"), "Female",  new CommonId("gender"), "Gender")));
 
         return product;
     }
@@ -65,8 +65,8 @@ public class ProductTestData {
         return new ProductVariant(id(variantId), productId, sku, List.of(variations));
     }
 
-    protected static ProductVariation variation(Id optionId, String optionName, String typeName) {
-        return new ProductVariation(optionName, optionId, typeName);
+    protected static ProductVariation variation(Id optionId, String optionName,Id typeId, String typeName) {
+        return new ProductVariation(optionName, optionId, typeName, typeId);
     }
 
     protected static Id id(String value) {

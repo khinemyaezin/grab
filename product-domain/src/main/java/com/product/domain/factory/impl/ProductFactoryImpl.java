@@ -6,24 +6,55 @@ import com.product.domain.aggregate.product.*;
 import com.product.domain.factory.ProductFactory;
 import com.product.domain.service.SkuGenerator;
 import com.product.domain.service.VariantCombination;
-import lombok.RequiredArgsConstructor;
+import com.product.domain.service.VariantDeletionStrategy;
+import com.product.domain.service.impl.DefaultDeletionStrategy;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-@RequiredArgsConstructor
 public class ProductFactoryImpl implements ProductFactory {
     private final VariantCombination variantCombination;
     private final IdGenerator idGenerator;
     private final SkuGenerator skuGenerator;
+    private final VariantDeletionStrategy deletionStrategy;
+
+    public ProductFactoryImpl(VariantCombination variantCombination, IdGenerator idGenerator, SkuGenerator skuGenerator) {
+        this(variantCombination, idGenerator, skuGenerator, new DefaultDeletionStrategy());
+    }
+
+    public ProductFactoryImpl(VariantCombination variantCombination, IdGenerator idGenerator,
+                              SkuGenerator skuGenerator, VariantDeletionStrategy deletionStrategy) {
+        this.variantCombination = variantCombination;
+        this.idGenerator = idGenerator;
+        this.skuGenerator = skuGenerator;
+        this.deletionStrategy = deletionStrategy;
+    }
 
     public void create(Product product, List<VariantType> desiredVariantTypes, List<Id> variantIdsToRemove) {
-        VariantInputs inputs = prepareInputs(product, desiredVariantTypes, variantIdsToRemove);
+        applySoftDeleteVariant(product, variantIdsToRemove);
+        List<VariantType> filteredTypes = deletionStrategy.filterVariantTypes(product, desiredVariantTypes);
+        VariantInputs inputs = prepareInputs(product, filteredTypes, List.of());
         ExistingVariantState existing = mapExistingVariants(product, inputs);
         Set<Id> keysToKeep = synchronizeVariants(product, inputs, existing);
-        removeObsoleteVariants(product, keysToKeep);
+        deletionStrategy.removeObsoleteVariants(product, keysToKeep);
+    }
+
+    private void applySoftDeleteVariant(Product product, List<Id> variantIdsToRemove) {
+        if (variantIdsToRemove == null || variantIdsToRemove.isEmpty()) {
+            return;
+        }
+
+        Set<Id> removalIds = new HashSet<>(variantIdsToRemove.size());
+        for (Id id : variantIdsToRemove) {
+            if (id != null) removalIds.add(id);
+        }
+
+        for (ProductVariant variant : product.getVariants()) {
+            if (variant.isActive() && removalIds.contains(variant.getId())) {
+                variant.markAsDeleted();
+            }
+        }
     }
 
     public Product create(ProductSpec spec) {
@@ -38,20 +69,20 @@ public class ProductFactoryImpl implements ProductFactory {
         Objects.requireNonNull(product, "product is required");
         List<VariantType> variantTypes = desiredVariantTypes != null ? desiredVariantTypes : List.of();
 
-        List<String> variantTypeOrder = variantTypes.stream()
-                .map(VariantType::getName)
+        List<Id> variantTypeOrder = variantTypes.stream()
+                .map(VariantType::getId)
                 .filter(Objects::nonNull)
-                .map(String::toLowerCase)
-                .sorted(Comparator.comparing(Function.identity(),Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .distinct()
+                .sorted(Comparator.comparing(
+                        Id::getValue, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
                 .toList();
-        Set<String> existingTypeNames = product.getVariants().stream()
+        Set<Id> existingTypes = product.getVariants().stream()
                 .flatMap(v -> v.getVariations().stream())
-                .map(ProductVariation::getTypeName)
+                .map(ProductVariation::getTypeId)
                 .filter(Objects::nonNull)
-                .map(String::toLowerCase)
                 .collect(Collectors.toSet());
-        Set<String> newTypeNames = variantTypeOrder.stream()
-                .filter(name -> !existingTypeNames.contains(name))
+        Set<Id> newType = variantTypeOrder.stream()
+                .filter(id -> !existingTypes.contains(id))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<Id> removalIds = variantIdsToRemove != null
                 ? variantIdsToRemove.stream()
@@ -59,26 +90,22 @@ public class ProductFactoryImpl implements ProductFactory {
                 .collect(Collectors.toSet())
                 : Set.of();
 
-        return new VariantInputs(variantTypes, variantTypeOrder, newTypeNames, removalIds);
+        return new VariantInputs(variantTypes, variantTypeOrder, newType, removalIds);
     }
 
     private ExistingVariantState mapExistingVariants(Product product, VariantInputs inputs) {
         Map<String, ProductVariant> existingByKey = new LinkedHashMap<>(); // Order preserved
-        Set<String> bannedKeys = new HashSet<>();
         Map<String, Integer> keyFirstIndex = new HashMap<>();
 
         for (int i = 0; i < product.getVariants().size(); i++) {
             ProductVariant variant = product.getVariants().get(i);
-            String key = getVariationKey(inputs.variantTypeOrder(), variant.getVariations(), inputs.newTypeNames());
+            String key = getVariationKey(inputs.variantTypeOrder(), variant.getVariations(), inputs.newType());
 
-            if (inputs.removalIds().contains(variant.getId()) && variant.isActive()) {
-                variant.markAsDeleted();
-            }
             existingByKey.putIfAbsent(key, variant);
             keyFirstIndex.putIfAbsent(key, i);
         }
 
-        return new ExistingVariantState(existingByKey, bannedKeys, keyFirstIndex);
+        return new ExistingVariantState(existingByKey, keyFirstIndex);
     }
 
     private Set<Id> synchronizeVariants(Product product, VariantInputs inputs, ExistingVariantState existing) {
@@ -95,7 +122,8 @@ public class ProductFactoryImpl implements ProductFactory {
             List<ProductVariation> variations = combination.stream()
                     .map(this::toVariation)
                     .toList();
-            String key = getVariationKey(inputs.variantTypeOrder(), variations, inputs.newTypeNames());
+            String key = getVariationKey(inputs.variantTypeOrder(), variations, inputs.newType());
+
             ProductVariant match = existing.existingByKey().get(key);
             ProductVariant replacement;
             if (match != null) {
@@ -152,43 +180,36 @@ public class ProductFactoryImpl implements ProductFactory {
         return keysToKeep;
     }
 
-    private void removeObsoleteVariants(Product product, Set<Id> keysToKeep) {
-        product.getVariants().stream()
-                .map(ProductVariant::getId)
-                .filter(id -> !keysToKeep.contains(id))
-                .toList()
-                .forEach(product::removeVariant);
-    }
-
-    protected String getVariationKey(List<String> typeOrder, Iterable<ProductVariation> variations, Set<String> ignoredTypes) {
-        Map<String, String> map = StreamSupport.stream(variations.spliterator(), false)
-                .filter(variation -> variation.getTypeName() != null)
+    protected String getVariationKey(List<Id> typeOrder, Iterable<ProductVariation> variations, Set<Id> ignoredTypes) {
+        Map<Id, Id> map = StreamSupport.stream(variations.spliterator(), false)
+                .filter(variation -> variation.getTypeId() != null)
                 .collect(Collectors.toMap(
-                        variation -> variation.getTypeName().toLowerCase(),
-                        variation -> variation.getOptionName().toLowerCase()
+                        ProductVariation::getTypeId,
+                        ProductVariation::getOptionId
                 ));
 
-        return typeOrder.stream()
-                .filter(type -> !ignoredTypes.contains(type))
-                .map(type -> {
-                    String option = map.get(type);
-                    return option == null ? null : type + "=" + option + "|";
-                })
-                .filter(Objects::nonNull)
-                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
-                .toString();
+        StringBuilder sb = new StringBuilder();
+        for (Id type : typeOrder) {
+            if (!ignoredTypes.contains(type)) {
+                Id option = map.get(type);
+                if (option != null) sb.append(type.getValue()).append("=").append(option.getValue()).append("|");
+            }
+        }
+        return sb.toString();
     }
     
     protected ProductVariation toVariation(VariantOption option) {
-        return new ProductVariation(option.getName(), option.getId(), Objects.nonNull(option.getVariantType()) ? option.getVariantType().getName(): null);
+        return new ProductVariation(option.getName(),
+                option.getId(),
+                option.getVariantType().getName(),
+                option.getVariantType().getId());
     }
 
     private record VariantInputs(List<VariantType> variantTypes,
-                                 List<String> variantTypeOrder,
-                                 Set<String> newTypeNames,
+                                 List<Id> variantTypeOrder,
+                                 Set<Id> newType,
                                  Set<Id> removalIds) { }
 
     private record ExistingVariantState(Map<String, ProductVariant> existingByKey,
-                                        Set<String> bannedKeys,
                                         Map<String, Integer> keyFirstIndex) { }
 }
