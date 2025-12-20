@@ -32,7 +32,7 @@ public class Product extends AggregateRoot<Id> {
     public void changeCategory(Id categoryId) {
         if (Objects.equals(this.categoryId, categoryId)) return;
 
-        CategoryChangedEvent categoryChangedEvent = new CategoryChangedEvent(this.categoryId, categoryId, super.id);
+        CategoryChangedEvent categoryChangedEvent = new CategoryChangedEvent(this.categoryId, categoryId, super.getId());
         this.categoryId = categoryId;
 
         super.addEvent(categoryChangedEvent);
@@ -40,6 +40,34 @@ public class Product extends AggregateRoot<Id> {
 
     public List<ProductVariant> getVariants() {
         return Collections.unmodifiableList(variants);
+    }
+
+    public List<ProductVariant> getActiveVariants() {
+        return variants.stream()
+                .filter(ProductVariant::isActive)
+                .toList();
+    }
+
+    public List<ProductVariant> getDeletedVariants() {
+        return variants.stream()
+                .filter(ProductVariant::isDeleted)
+                .toList();
+    }
+
+    public Optional<ProductVariant> findVariantById(Id id) {
+        return variants.stream()
+                .filter(v -> Objects.equals(v.getId(), id))
+                .findFirst();
+    }
+
+    public boolean restoreVariant(Id id) {
+        return findVariantById(id)
+                .filter(ProductVariant::isDeleted)
+                .map(v -> {
+                    v.activate();
+                    return true;
+                })
+                .orElse(false);
     }
 
     public boolean addVariant(ProductVariant variant) {

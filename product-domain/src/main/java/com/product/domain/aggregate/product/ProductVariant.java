@@ -15,21 +15,45 @@ public class ProductVariant extends Entity<Id> {
     private final String sku;
     private final Id productId;
     private final Set<ProductVariation> variations ;
+    private ProductVariantStatus status;
 
     public ProductVariant(Id id, Id productId, String sku, List<ProductVariation> variants) {
         super(id);
         this.sku = sku;
         this.productId = productId;
+        this.status = ProductVariantStatus.ACTIVE;
         this.variations = new LinkedHashSet<>(variants);
     }
 
+    public ProductVariant(Id id, Id productId, String sku, ProductVariantStatus status, List<ProductVariation> variants) {
+        super(id);
+        this.sku = sku;
+        this.productId = productId;
+        this.status = status;
+        this.variations = new LinkedHashSet<>(variants);
+    }
+
+    public void markAsDeleted() {
+        this.status = ProductVariantStatus.DELETED;
+    }
+
+    public void activate() {
+        this.status = ProductVariantStatus.ACTIVE;
+    }
+
+    public boolean isActive() {
+        return this.status == ProductVariantStatus.ACTIVE;
+    }
+    public boolean isDeleted() {
+        return this.status == ProductVariantStatus.DELETED;
+    }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ProductVariant that = (ProductVariant) o;
         return (productId.equals(that.productId)
-                && (super.equals(that.id)
+                && (super.equals(that.getId())
                 || sku.equalsIgnoreCase(that.sku)
                 || variations.equals(that.variations)));
     }
@@ -44,6 +68,6 @@ public class ProductVariant extends Entity<Id> {
         String optionName = variations.stream()
                 .map(ProductVariation::getOptionName)
                 .reduce("",(a,b)-> a+b);
-        return this.id + " : " +this.sku + " : " + optionName;
+        return this.getId() + " : " + this.sku + " : " + optionName + " [" + status + "]";
     }
 }
