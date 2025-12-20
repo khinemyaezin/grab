@@ -92,6 +92,22 @@ public class Product extends AggregateRoot<Id> {
         return variants.removeIf( v-> Objects.equals(id, v.getId()) );
     }
 
+    public void applySoftDeleteVariants(Collection<Id> variantIds) {
+        if (variantIds == null || variantIds.isEmpty()) return;
+
+        Set<Id> removalIds = new HashSet<>(variantIds.size());
+        for (Id id : variantIds) {
+            if (id != null) removalIds.add(id);
+        }
+
+        for (ProductVariant variant : this.variants) {
+            if (variant.isActive() && removalIds.contains(variant.getId())) {
+                variant.markAsDeleted();
+            }
+        }
+    }
+
+
     @Override
     public String toString() {
         String variants = this.variants.stream()
