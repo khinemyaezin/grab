@@ -4,9 +4,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.product.domain.aggregate.product.*;
 import com.product.domain.service.SkuGenerator;
-import com.product.domain.service.impl.FullOptionHardDeleteStrategy;
-import com.product.domain.service.impl.ProductVariantSynchronizer;
-import com.product.domain.service.impl.VariantCombinationServiceImpl;
+import com.product.domain.service.impl.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,11 +45,15 @@ public class ProductVariantSynchronizerTest {
 
     @BeforeEach
     public void init() {
+        var keyFactory = new DefaultVariantKeyGenerator();
         productVariantSynchronizer = new ProductVariantSynchronizer(
-                new VariantCombinationServiceImpl(),
                 idGenerator,
                 skuGenerator,
-                new FullOptionHardDeleteStrategy()
+                new VariantCombinationServiceImpl(),
+                new FullOptionHardDeleteStrategy(),
+                new DefaultVariantInputsFactory(keyFactory),
+                new DefaultVariantSorter(keyFactory),
+                new DefaultVariantKeyGenerator()
         );
     }
 

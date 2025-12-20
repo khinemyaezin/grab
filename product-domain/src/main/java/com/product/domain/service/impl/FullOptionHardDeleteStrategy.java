@@ -58,16 +58,12 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
             }
         }
 
-        // Find options where ALL variants are DELETED
         return variantsByOption.entrySet().stream()
                 .filter(entry -> entry.getValue().stream().allMatch(ProductVariant::isDeleted))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
 
-    /**
-     * Filters out option values that are fully deleted from the desired variant types.
-     */
     private List<VariantType> filterOutDeletedOptions(
             List<VariantType> desiredVariantTypes,
             Set<String> fullyDeletedOptions) {
@@ -84,7 +80,6 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
                 remainingOptions.forEach(filteredType::addOption);
                 filtered.add(filteredType);
             }
-            // If all options are deleted, the entire type is excluded
         }
 
         return filtered;
@@ -92,9 +87,5 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
 
     private String buildOptionKey(String typeName, String optionName) {
         return typeName + ":" + optionName;
-    }
-
-    private record OptionKey(Id typeId, Id optionId){
-
     }
 }
