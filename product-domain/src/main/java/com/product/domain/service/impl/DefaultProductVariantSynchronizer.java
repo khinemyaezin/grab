@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.*;
 
 @RequiredArgsConstructor
-public class ProductVariantSynchronizer {
+public class DefaultProductVariantSynchronizer implements ProductVariantSynchronizer{
     private final IdGenerator idGenerator;
     private final SkuGenerator skuGenerator;
     private final VariantCombination variantCombination;
@@ -18,9 +18,9 @@ public class ProductVariantSynchronizer {
     private final VariantSorter variantSorter;
     private final VariantKeyGenerator variantKeyGenerator;
 
-    public ProductVariantSynchronizer(VariantCombination variantCombination, IdGenerator idGenerator,
-                                      SkuGenerator skuGenerator, VariantDeletionStrategy deletionStrategy,
-                                      VariantInputsFactory variantInputsFactory, VariantSorter variantSorter, VariantKeyGenerator variantKeyGenerator) {
+    public DefaultProductVariantSynchronizer(VariantCombination variantCombination, IdGenerator idGenerator,
+                                             SkuGenerator skuGenerator, VariantDeletionStrategy deletionStrategy,
+                                             VariantInputsFactory variantInputsFactory, VariantSorter variantSorter, VariantKeyGenerator variantKeyGenerator) {
         this.variantCombination = variantCombination;
         this.idGenerator = idGenerator;
         this.skuGenerator = skuGenerator;

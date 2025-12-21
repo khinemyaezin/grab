@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @Entity
@@ -26,5 +28,14 @@ public class VariantOptionEntity {
     @JoinColumn(name = "variant_type_id",nullable = false)
     private VariantTypeEntity variantType;
 
-    // getters and setters
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof VariantOptionEntity that)) return false;
+        return Objects.equals(id, that.id) && Objects.equals(uuid, that.uuid) && Objects.equals(variantType, that.variantType);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, uuid, variantType);
+    }
 }

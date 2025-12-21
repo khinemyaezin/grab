@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -28,4 +29,15 @@ public class VariantTypeEntity {
 
     @OneToMany(mappedBy = "variantType", fetch = FetchType.LAZY)
     private Set<VariantOptionUnitEntity> variantOptionUnits;
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof VariantTypeEntity that)) return false;
+        return Objects.equals(id, that.id) && Objects.equals(uuid, that.uuid);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, uuid);
+    }
 }

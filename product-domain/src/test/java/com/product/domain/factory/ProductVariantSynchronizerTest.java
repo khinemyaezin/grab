@@ -3,6 +3,7 @@ package com.product.domain.factory;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.product.domain.aggregate.product.*;
+import com.product.domain.service.ProductVariantSynchronizer;
 import com.product.domain.service.SkuGenerator;
 import com.product.domain.service.impl.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +47,7 @@ public class ProductVariantSynchronizerTest {
     @BeforeEach
     public void init() {
         var keyFactory = new DefaultVariantKeyGenerator();
-        productVariantSynchronizer = new ProductVariantSynchronizer(
+        productVariantSynchronizer = new DefaultProductVariantSynchronizer(
                 idGenerator,
                 skuGenerator,
                 new VariantCombinationServiceImpl(),

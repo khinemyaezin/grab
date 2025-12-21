@@ -53,7 +53,7 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
 
         for (ProductVariant variant : product.getVariants()) {
             for (ProductVariation variation : variant.getVariations()) {
-                String key = buildOptionKey(variation.getTypeName(), variation.getOptionName());
+                String key = buildOptionKey(variation.getTypeId(), variation.getOptionId());
                 variantsByOption.computeIfAbsent(key, k -> new ArrayList<>()).add(variant);
             }
         }
@@ -72,7 +72,7 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
 
         for (VariantType type : desiredVariantTypes) {
             List<VariantOption> remainingOptions = type.getOptions().stream()
-                    .filter(opt -> !fullyDeletedOptions.contains(buildOptionKey(type.getName(), opt.getName())))
+                    .filter(opt -> !fullyDeletedOptions.contains(buildOptionKey(type.getId(), opt.getId())))
                     .toList();
 
             if (!remainingOptions.isEmpty()) {
@@ -85,7 +85,7 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
         return filtered;
     }
 
-    private String buildOptionKey(String typeName, String optionName) {
-        return typeName + ":" + optionName;
+    private String buildOptionKey(Id typeId, Id optionId) {
+        return typeId.getValue() + ":" + optionId.getValue();
     }
 }
