@@ -50,8 +50,8 @@ public class ProductVariationTest {
         productId = new CommonId();
         variantId1 = new CommonId();
         variantId2 = new CommonId();
-        variationSizeL = new ProductVariation("L", null, "Size");
-        variationColorRed = new ProductVariation("Red", null, "Color");
+        variationSizeL = new ProductVariation("L", new CommonId("large"), "Size", new CommonId("small"));
+        variationColorRed = new ProductVariation("Red", new CommonId("red"), "Color", new CommonId("color"));
     }
 
     @Test

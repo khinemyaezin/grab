@@ -4,11 +4,10 @@ import lombok.Getter;
 
 import java.io.Serializable;
 import java.util.Objects;
-import java.util.Optional;
 
 @Getter
 public abstract class Entity<ID extends Serializable> {
-    protected final ID id;
+    private final ID id;
 
     protected Entity(ID id) {
         this.id = id;

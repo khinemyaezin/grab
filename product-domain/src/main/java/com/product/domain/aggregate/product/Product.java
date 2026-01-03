@@ -32,7 +32,7 @@ public class Product extends AggregateRoot<Id> {
     public void changeCategory(Id categoryId) {
         if (Objects.equals(this.categoryId, categoryId)) return;
 
-        CategoryChangedEvent categoryChangedEvent = new CategoryChangedEvent(this.categoryId, categoryId, super.id);
+        CategoryChangedEvent categoryChangedEvent = new CategoryChangedEvent(this.categoryId, categoryId, super.getId());
         this.categoryId = categoryId;
 
         super.addEvent(categoryChangedEvent);
@@ -40,6 +40,34 @@ public class Product extends AggregateRoot<Id> {
 
     public List<ProductVariant> getVariants() {
         return Collections.unmodifiableList(variants);
+    }
+
+    public List<ProductVariant> getActiveVariants() {
+        return variants.stream()
+                .filter(ProductVariant::isActive)
+                .toList();
+    }
+
+    public List<ProductVariant> getDeletedVariants() {
+        return variants.stream()
+                .filter(ProductVariant::isDeleted)
+                .toList();
+    }
+
+    public Optional<ProductVariant> findVariantById(Id id) {
+        return variants.stream()
+                .filter(v -> Objects.equals(v.getId(), id))
+                .findFirst();
+    }
+
+    public boolean restoreVariant(Id id) {
+        return findVariantById(id)
+                .filter(ProductVariant::isDeleted)
+                .map(v -> {
+                    v.activate();
+                    return true;
+                })
+                .orElse(false);
     }
 
     public boolean addVariant(ProductVariant variant) {
@@ -63,6 +91,26 @@ public class Product extends AggregateRoot<Id> {
     public boolean removeVariant(Id id) {
         return variants.removeIf( v-> Objects.equals(id, v.getId()) );
     }
+
+    public void sortVariants(Comparator<ProductVariant> comparator) {
+        this.variants.sort(comparator);
+    }
+
+    public void applySoftDeleteVariants(Collection<Id> variantIds) {
+        if (variantIds == null || variantIds.isEmpty()) return;
+
+        Set<Id> removalIds = new HashSet<>(variantIds.size());
+        for (Id id : variantIds) {
+            if (id != null) removalIds.add(id);
+        }
+
+        for (ProductVariant variant : this.variants) {
+            if (variant.isActive() && removalIds.contains(variant.getId())) {
+                variant.markAsDeleted();
+            }
+        }
+    }
+
 
     @Override
     public String toString() {

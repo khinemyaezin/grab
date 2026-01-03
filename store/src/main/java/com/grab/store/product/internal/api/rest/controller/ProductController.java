@@ -1,6 +1,8 @@
 package com.grab.store.product.internal.api.rest.controller;
 
+import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
+import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
 import jakarta.validation.Valid;
@@ -27,6 +29,20 @@ public class ProductController {
 
         EntityModel<ProductCombinationResponse> response =
                 productFacadeService.generateCombinations(request);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(
+            value = "/build",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<EntityModel<BuildProductResponse>> buildProduct(
+            @Valid @RequestBody BuildProductRequest request) {
+
+        EntityModel<BuildProductResponse> response =
+                productFacadeService.buildProduct(request);
 
         return ResponseEntity.ok(response);
     }

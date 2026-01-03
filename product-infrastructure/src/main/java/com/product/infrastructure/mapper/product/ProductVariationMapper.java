@@ -13,11 +13,13 @@ public class ProductVariationMapper {
 
     public ProductVariation toDomain(ProductVariationEntity productVariantOptionEntity) {
         if(Objects.isNull(productVariantOptionEntity.getVariantOption())) {
-            return new ProductVariation(productVariantOptionEntity.getVariantOptionValue(),null, productVariantOptionEntity.getVariantTypeValue());
+            return new ProductVariation(productVariantOptionEntity.getVariantOptionValue(),null,
+                    productVariantOptionEntity.getVariantTypeValue(), null);
         } else {
             return new ProductVariation(productVariantOptionEntity.getVariantOptionValue(),
                     idGenerator.generateId(productVariantOptionEntity.getVariantOption().getUuid()),
-                    productVariantOptionEntity.getVariantTypeValue());
+                    productVariantOptionEntity.getVariantTypeValue(),
+                    idGenerator.generateId(productVariantOptionEntity.getVariantOption().getVariantType().getUuid()));
         }
     }
 }
