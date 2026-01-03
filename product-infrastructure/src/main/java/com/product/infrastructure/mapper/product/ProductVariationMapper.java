@@ -18,7 +18,8 @@ public class ProductVariationMapper {
         } else {
             return new ProductVariation(productVariantOptionEntity.getVariantOptionValue(),
                     idGenerator.generateId(productVariantOptionEntity.getVariantOption().getUuid()),
-                    productVariantOptionEntity.getVariantTypeValue());
+                    productVariantOptionEntity.getVariantTypeValue(),
+                    idGenerator.generateId(productVariantOptionEntity.getVariantOption().getVariantType().getUuid()));
         }
     }
 }

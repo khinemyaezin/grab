@@ -1,11 +1,9 @@
 package com.product.domain.service;
 
-import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.VariantOption;
 import com.product.domain.aggregate.product.VariantType;
 
 import java.util.List;
-import java.util.Set;
 
 public interface VariantCombination {
     /**

@@ -1,12 +1,18 @@
 package com.grab.store.product.internal.api.rest.service;
 
 import com.grab.framework.id.IdGenerator;
+import com.grab.store.product.internal.api.rest.assembler.BuildProductModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
+import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
+import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
+import com.grab.store.product.internal.api.rest.mapper.BuildProductDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
 import com.grab.store.product.internal.cqrs.command.CommandBus;
 import com.grab.store.product.internal.cqrs.query.QueryBus;
+import com.grab.store.product.internal.query.BuildProductQuery;
+import com.grab.store.product.internal.query.BuildProductResult;
 import com.grab.store.product.internal.query.ProductCombinationQuery;
 import com.grab.store.product.internal.query.ProductCombinationResult;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +30,10 @@ public class ProductFacadeService {
 
     private final ProductCombinationDtoMapper combinationDtoMapper;
     private final ProductCombinationModelAssembler combinationModelAssembler;
+
+    private final BuildProductDtoMapper buildProductDtoMapper;
+    private final BuildProductModelAssembler buildProductModelAssembler;
+
     private final IdGenerator idGenerator;
 
     public EntityModel<ProductCombinationResponse> generateCombinations(
@@ -38,5 +48,17 @@ public class ProductFacadeService {
         ProductCombinationResponse response = combinationDtoMapper.toResponse(result);
 
         return combinationModelAssembler.toModel(response);
+    }
+
+    public EntityModel<BuildProductResponse> buildProduct(BuildProductRequest request) {
+        log.info("Building product: {}", request.product().name());
+
+        BuildProductQuery query = buildProductDtoMapper.toQuery(request);
+
+        BuildProductResult result = queryBus.dispatch(query);
+
+        BuildProductResponse response = buildProductDtoMapper.toResponse(result);
+
+        return buildProductModelAssembler.toModel(response);
     }
 }

@@ -11,6 +11,7 @@ services:
     container_name: grab-store
     ports:
       - "8080:8080"
+      - "5005:5005"
     environment:
       - SPRING_PROFILES_ACTIVE=default
       - PRODUCT_DATASOURCE_URL=jdbc:postgresql://postgres:5432/product
@@ -18,6 +19,7 @@ services:
       - PRODUCT_DATASOURCE_PASSWORD=123
       - PRODUCT_DATASOURCE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
       - PRODUCT_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     depends_on:
       postgres:
         condition: service_healthy

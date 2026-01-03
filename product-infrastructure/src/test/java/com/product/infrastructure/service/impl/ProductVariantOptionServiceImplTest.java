@@ -1,6 +1,5 @@
 package com.product.infrastructure.service.impl;
 
-import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.ProductVariation;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
 import com.product.infrastructure.entity.product.entity.ProductVariationEntity;
@@ -46,20 +45,20 @@ class ProductVariantOptionServiceImplTest extends ProductTestData{
         ProductVariationEntity existingOne = new ProductVariationEntity();
         existingOne.setId(1L);
         existingOne.setVariantOptionValue("Red");
-        ProductVariation existingVariationOne = new ProductVariation("Red", id("opt-red"), "Color");
+        ProductVariation existingVariationOne = new ProductVariation("Red", id("opt-red"), "Color",id("color"));
         when(productVariationMapper.toDomain(existingOne)).thenReturn(existingVariationOne);
 
         ProductVariationEntity existingTwo = new ProductVariationEntity();
         existingTwo.setId(2L);
         existingTwo.setVariantOptionValue("Small");
-        ProductVariation existingVariationTwo = new ProductVariation("Small", id("opt-s"), "Size");
+        ProductVariation existingVariationTwo = new ProductVariation("Small", id("opt-s"), "Size", id("size"));
         when(productVariationMapper.toDomain(existingTwo)).thenReturn(existingVariationTwo);
 
         variantEntity.addProductVariantOption(existingOne);
         variantEntity.addProductVariantOption(existingTwo);
 
-        ProductVariation blueVariation = new ProductVariation("Blue", id("opt-blue"), "Color");
-        ProductVariation mediumVariation = new ProductVariation("Medium", null, "Size");
+        ProductVariation blueVariation = new ProductVariation("Blue", id("opt-blue"), "Color",id("color"));
+        ProductVariation mediumVariation = new ProductVariation("Medium", id("opt-medium"), "Size", id("size"));
 
         VariantTypeEntity colorType = new VariantTypeEntity();
         VariantOptionEntity blueOption = new VariantOptionEntity();

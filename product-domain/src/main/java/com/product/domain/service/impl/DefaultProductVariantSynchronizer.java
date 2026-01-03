@@ -18,18 +18,6 @@ public class DefaultProductVariantSynchronizer implements ProductVariantSynchron
     private final VariantSorter variantSorter;
     private final VariantKeyGenerator variantKeyGenerator;
 
-    public DefaultProductVariantSynchronizer(VariantCombination variantCombination, IdGenerator idGenerator,
-                                             SkuGenerator skuGenerator, VariantDeletionStrategy deletionStrategy,
-                                             VariantInputsFactory variantInputsFactory, VariantSorter variantSorter, VariantKeyGenerator variantKeyGenerator) {
-        this.variantCombination = variantCombination;
-        this.idGenerator = idGenerator;
-        this.skuGenerator = skuGenerator;
-        this.deletionStrategy = deletionStrategy;
-        this.variantInputsFactory = variantInputsFactory;
-        this.variantSorter = variantSorter;
-        this.variantKeyGenerator = variantKeyGenerator;
-    }
-
     public void synchronize(Product product, List<VariantType> desiredTypes) {
         List<VariantType> filteredTypes = deletionStrategy.filterVariantTypes(product, desiredTypes);
         VariantInputsFactory.VariantInputs inputs = variantInputsFactory.prepare(product, filteredTypes);

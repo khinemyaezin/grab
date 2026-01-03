@@ -16,4 +16,5 @@ public enum ProductVariantStatus {
      * from being recreated when new variant types are added.
      */
     DELETED
+
 }

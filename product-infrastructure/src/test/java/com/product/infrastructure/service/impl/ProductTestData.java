@@ -30,8 +30,8 @@ public class ProductTestData {
                 String sku = "TSH-" + color.getName().toUpperCase() + "-" + size.getName().toUpperCase();
                 
                 List<ProductVariation> variations = new ArrayList<>();
-                variations.add(new ProductVariation(color.getName(),color.getId(), colorType.getName()));
-                variations.add(new ProductVariation(size.getName(), size.getId(), sizeType.getName()));
+                variations.add(new ProductVariation(color.getName(),color.getId(), colorType.getName(), colorType.getId()));
+                variations.add(new ProductVariation(size.getName(), size.getId(), sizeType.getName(), sizeType.getId()));
 
                 ProductVariant variant = new ProductVariant(
                     id(UUID.randomUUID().toString()),
