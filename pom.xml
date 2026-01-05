@@ -45,8 +45,7 @@
         <lombok.version>1.18.34</lombok.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <junit-jupiter-api.version>5.10.2</junit-jupiter-api.version>
-        <nested-set.library.version>0.0.1</nested-set.library.version>
-        <nested-set.app.version>0.0.1</nested-set.app.version>
+        <khinemyaezin.nested-set.version>1.0.0</khinemyaezin.nested-set.version>
         <joda-money.version>2.0.0</joda-money.version>
         <mockito-core.version>5.4.0</mockito-core.version>
         <hibernate-validator.version>8.0.0.Final</hibernate-validator.version>
@@ -95,17 +94,6 @@
                 <version>${mockito-core.version}</version>
                 <scope>test</scope>
             </dependency>
-
-            <dependency>
-                <groupId>com.coolstuff.core</groupId>
-                <artifactId>library</artifactId>
-                <version>${nested-set.library.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.coolstuff.core</groupId>
-                <artifactId>app</artifactId>
-                <version>${nested-set.app.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.joda</groupId>
                 <artifactId>joda-money</artifactId>
@@ -115,6 +103,16 @@
                 <groupId>org.hibernate.validator</groupId>
                 <artifactId>hibernate-validator</artifactId>
                 <version>${hibernate-validator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.khinemyaezin.nested-set</groupId>
+                <artifactId>nested-set-library</artifactId>
+                <version>${khinemyaezin.nested-set.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.khinemyaezin.nested-set</groupId>
+                <artifactId>nested-set</artifactId>
+                <version>${khinemyaezin.nested-set.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -153,4 +151,10 @@
             </plugin>
         </plugins>
     </build>
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 </project>

@@ -13,21 +13,6 @@ COPY product-domain/pom.xml product-domain/
 COPY product-infrastructure/pom.xml product-infrastructure/
 COPY store/pom.xml store/
 
-COPY libs/ libs/
-
-ARG LIB_GROUP_ID=com.coolstuff.core
-ARG LIB_LIBRARY_ARTIFACT_ID=library
-ARG LIB_LIBRARY_VERSION=0.0.1
-ARG LIB_APP_ARTIFACT_ID=app
-ARG LIB_APP_VERSION=0.0.1
-
-RUN mvn install:install-file -Dfile=libs/${LIB_LIBRARY_ARTIFACT_ID}-${LIB_LIBRARY_VERSION}.jar \
-    -DgroupId=${LIB_GROUP_ID} -DartifactId=${LIB_LIBRARY_ARTIFACT_ID} -Dversion=${LIB_LIBRARY_VERSION} \
-    -Dpackaging=jar -DgeneratePom=true -B && \
-    mvn install:install-file -Dfile=libs/${LIB_APP_ARTIFACT_ID}-${LIB_APP_VERSION}.jar \
-    -DgroupId=${LIB_GROUP_ID} -DartifactId=${LIB_APP_ARTIFACT_ID} -Dversion=${LIB_APP_VERSION} \
-    -Dpackaging=jar -DgeneratePom=true -B
-
 RUN mvn dependency:go-offline -B
 
 # Copy source code for all modules
@@ -65,7 +50,6 @@ ENV JAVA_OPTS="-XX:+UseContainerSupport \
     -XX:InitialRAMPercentage=50.0 \
     -Djava.security.egd=file:/dev/./urandom"
 
-# Default Spring profile (can be overridden at runtime)
 ENV SPRING_PROFILES_ACTIVE=default
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

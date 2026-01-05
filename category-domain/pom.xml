@@ -18,6 +18,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mockito.version>5.17.0</mockito.version>
+        <coolstuff.core.version>1.0.0</coolstuff.core.version>
     </properties>
 
     <dependencies>
@@ -48,8 +49,8 @@
             <artifactId>junit-jupiter-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.coolstuff.core</groupId>
-            <artifactId>library</artifactId>
+            <groupId>com.github.khinemyaezin.nested-set</groupId>
+            <artifactId>nested-set-library</artifactId>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>

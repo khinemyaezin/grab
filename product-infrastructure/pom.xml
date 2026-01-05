@@ -18,7 +18,6 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <product-domain.version>0.0.1</product-domain.version>
-        <product-application.version>0.0.1</product-application.version>
     </properties>
     <dependencies>
         <dependency>

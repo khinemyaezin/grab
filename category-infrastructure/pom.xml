@@ -17,8 +17,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <product-domain.version>0.0.1</product-domain.version>
-        <product-application.version>0.0.1</product-application.version>
+        <grab.category-domain.version>0.0.1</grab.category-domain.version>
     </properties>
     <dependencies>
         <dependency>
@@ -71,12 +70,12 @@
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>category-domain</artifactId>
-            <version>0.0.1</version>
+            <version>${grab.category-domain.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>com.coolstuff.core</groupId>
-            <artifactId>app</artifactId>
+            <groupId>com.github.khinemyaezin.nested-set</groupId>
+            <artifactId>nested-set</artifactId>
         </dependency>
     </dependencies>
     <dependencyManagement>
