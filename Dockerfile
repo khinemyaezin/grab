@@ -15,7 +15,6 @@ COPY store/pom.xml store/
 
 RUN mvn dependency:go-offline -B
 
-# Copy source code for all modules
 COPY framework/src framework/src
 COPY category-domain/src category-domain/src
 COPY category-infrastructure/src category-infrastructure/src
@@ -33,8 +32,7 @@ LABEL description="Grab E-Commerce Store Application"
 
 WORKDIR /app
 
-RUN apk add --no-cache netcat-openbsd && \
-    addgroup --system --gid 1001 appgroup && \
+RUN addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 --ingroup appgroup appuser
 
 COPY --from=builder /app/store/target/*.jar app.jar
