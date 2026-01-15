@@ -2,13 +2,16 @@ package com.grab.store.product.internal.api.rest.service;
 
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.product.internal.api.rest.assembler.BuildProductModelAssembler;
+import com.grab.store.product.internal.api.rest.assembler.GetAllProductsModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
 import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
+import com.grab.store.product.internal.api.rest.dto.response.GetAllProductsResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.mapper.BuildProductDtoMapper;
+import com.grab.store.product.internal.api.rest.mapper.GetAllProductsDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.SaveProductDtoMapper;
 import com.grab.store.product.internal.command.SaveProductCommand;
@@ -17,6 +20,8 @@ import com.grab.store.product.internal.cqrs.command.CommandBus;
 import com.grab.store.product.internal.cqrs.query.QueryBus;
 import com.grab.store.product.internal.query.BuildProductQuery;
 import com.grab.store.product.internal.query.BuildProductResult;
+import com.grab.store.product.internal.query.GetAllProductsQuery;
+import com.grab.store.product.internal.query.GetAllProductsResult;
 import com.grab.store.product.internal.query.ProductCombinationQuery;
 import com.grab.store.product.internal.query.ProductCombinationResult;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +44,9 @@ public class ProductFacadeService {
     private final BuildProductModelAssembler buildProductModelAssembler;
 
     private final SaveProductDtoMapper saveProductDtoMapper;
+
+    private final GetAllProductsDtoMapper getAllProductsDtoMapper;
+    private final GetAllProductsModelAssembler getAllProductsModelAssembler;
 
     private final IdGenerator idGenerator;
 
@@ -76,5 +84,17 @@ public class ProductFacadeService {
         SaveProductResult result = commandBus.dispatch(command);
 
         return result.productId();
+    }
+
+    public EntityModel<GetAllProductsResponse> getAllProducts() {
+        log.info("Getting all products");
+
+        GetAllProductsQuery query = new GetAllProductsQuery();
+
+        GetAllProductsResult result = queryBus.dispatch(query);
+
+        GetAllProductsResponse response = getAllProductsDtoMapper.toResponse(result);
+
+        return getAllProductsModelAssembler.toModel(response);
     }
 }

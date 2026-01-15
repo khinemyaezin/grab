@@ -4,6 +4,7 @@ import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
 import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
+import com.grab.store.product.internal.api.rest.dto.response.GetAllProductsResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
 import jakarta.validation.Valid;
@@ -22,6 +23,12 @@ import java.net.URI;
 public class ProductController {
 
     private final ProductFacadeService productFacadeService;
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<GetAllProductsResponse>> getAllProducts() {
+        EntityModel<GetAllProductsResponse> response = productFacadeService.getAllProducts();
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping(
             value = "/combinations",

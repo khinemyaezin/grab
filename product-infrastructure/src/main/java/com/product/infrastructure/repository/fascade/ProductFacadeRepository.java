@@ -10,6 +10,7 @@ import com.product.infrastructure.service.ProductService;
 import com.product.infrastructure.service.ProductVariantService;
 import lombok.AllArgsConstructor;
 
+import java.util.List;
 import java.util.Optional;
 
 @AllArgsConstructor
@@ -38,7 +39,13 @@ public class ProductFacadeRepository implements ProductRepository {
     public Optional<Product> find(Id uuid) {
         return this.productService.find(uuid.getValue())
                 .map(productMapper::toDomain);
+    }
 
+    @Override
+    public List<Product> findAll() {
+        return this.productService.findAll().stream()
+                .map(productMapper::toDomain)
+                .toList();
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.product.infrastructure.service;
 import com.product.domain.aggregate.product.Product;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductService {
@@ -11,6 +12,8 @@ public interface ProductService {
     ProductEntity save(ProductEntity productEntity);
 
     Optional<ProductEntity> find(String uuid);
+
+    List<ProductEntity> findAll();
 
     void delete(ProductEntity productEntity);
 

@@ -8,6 +8,7 @@ import com.product.infrastructure.repository.jpa.ProductJpaRepository;
 import com.product.infrastructure.service.ProductService;
 import lombok.AllArgsConstructor;
 
+import java.util.List;
 import java.util.Optional;
 
 @AllArgsConstructor
@@ -36,6 +37,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Optional<ProductEntity> find(String uuid) {
         return this.productJpaRepository.findByUuid(uuid);
+    }
+
+    @Override
+    public List<ProductEntity> findAll() {
+        return this.productJpaRepository.findAll();
     }
 
     @Override
