@@ -5,10 +5,14 @@ import com.grab.store.product.internal.api.rest.assembler.BuildProductModelAssem
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
+import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
 import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.mapper.BuildProductDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
+import com.grab.store.product.internal.api.rest.mapper.SaveProductDtoMapper;
+import com.grab.store.product.internal.command.SaveProductCommand;
+import com.grab.store.product.internal.command.SaveProductResult;
 import com.grab.store.product.internal.cqrs.command.CommandBus;
 import com.grab.store.product.internal.cqrs.query.QueryBus;
 import com.grab.store.product.internal.query.BuildProductQuery;
@@ -33,6 +37,8 @@ public class ProductFacadeService {
 
     private final BuildProductDtoMapper buildProductDtoMapper;
     private final BuildProductModelAssembler buildProductModelAssembler;
+
+    private final SaveProductDtoMapper saveProductDtoMapper;
 
     private final IdGenerator idGenerator;
 
@@ -60,5 +66,15 @@ public class ProductFacadeService {
         BuildProductResponse response = buildProductDtoMapper.toResponse(result);
 
         return buildProductModelAssembler.toModel(response);
+    }
+
+    public String saveProduct(SaveProductRequest request) {
+        log.info("Saving product: {}", request.product().name());
+
+        SaveProductCommand command = saveProductDtoMapper.toCommand(request);
+
+        SaveProductResult result = commandBus.dispatch(command);
+
+        return result.productId();
     }
 }

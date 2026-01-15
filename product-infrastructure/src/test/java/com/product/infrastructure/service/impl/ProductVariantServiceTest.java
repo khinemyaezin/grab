@@ -147,6 +147,7 @@ class ProductVariantServiceTest extends ProductTestData {
     public void updateVariants_newVariants_shouldCreateVariants() {
         Product product = super.createProduct();
         ProductEntity productEntity = createProductEntity(product);
+        int originalVariantCount = product.getVariants().size();
         ProductVariant newProductVariant = product.getVariants().getFirst();
         ProductVariantEntity removedProductVariantEntity = productEntity.getProductVariants().stream()
                 .filter(v->v.getUuid().equals(newProductVariant.getId().getValue()))
@@ -156,9 +157,16 @@ class ProductVariantServiceTest extends ProductTestData {
         when(productVariantEntityFactory.create(any(ProductVariant.class)))
                 .thenAnswer(invocation -> {
                     ProductVariant variant = invocation.getArgument(0);
-                    assertEquals(newProductVariant.getId(),variant.getId());
-                    return new ProductVariantEntity();
+                    ProductVariantEntity newVariant = new ProductVariantEntity();
+                    productVariantEntityMapper.map(variant, newVariant);
+                    return newVariant;
                 });
+
         productVariantService.updateVariants(productEntity, product.getVariants());
+
+        assertEquals(originalVariantCount, productEntity.getProductVariants().size(),
+                "Entity should have all variants after update");
+        verify(productVariantEntityFactory, times(1)).create(any(ProductVariant.class));
+        verify(productVariantOptionService, times(originalVariantCount)).updateVariations(any(ProductVariantEntity.class), any());
     }
 } 
