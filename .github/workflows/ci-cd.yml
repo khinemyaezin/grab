@@ -29,15 +29,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Install custom libraries
-        run: |
-          mvn install:install-file -Dfile=libs/library-0.0.1.jar \
-            -DgroupId=com.coolstuff.core -DartifactId=library -Dversion=0.0.1 \
-            -Dpackaging=jar -DgeneratePom=true -B
-          mvn install:install-file -Dfile=libs/app-0.0.1.jar \
-            -DgroupId=com.coolstuff.core -DartifactId=app -Dversion=0.0.1 \
-            -Dpackaging=jar -DgeneratePom=true -B
-
       - name: Build with Maven
         run: ./mvnw clean package -DskipTests -B
 
