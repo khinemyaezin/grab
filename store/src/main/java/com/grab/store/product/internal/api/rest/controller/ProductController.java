@@ -78,7 +78,7 @@ public class ProductController {
     }
 
     @DeleteMapping(value = "/{productId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<DeleteProductResponse>> deleteProduct(@PathVariable String productId) {
+    public ResponseEntity<EntityModel<DeleteProductResponse>> deleteProduct(@PathVariable("productId") String productId) {
         EntityModel<DeleteProductResponse> response = productFacadeService.deleteProduct(productId);
 
         if (response.getContent() != null && response.getContent().deleted()) {

@@ -1,15 +1,16 @@
 package com.product.domain.aggregate.product;
 
+import com.grab.framework.domain.Entity;
 import com.grab.framework.id.Id;
 import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.specification.CompositeSpecification;
 import com.product.domain.event.CategoryChangedEvent;
+import com.product.domain.event.ProductDeletedEvent;
 import com.product.domain.specification.UniqueProductVariantCompositeSpec;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.*;
-import java.util.function.UnaryOperator;
 
 /**
  * A product has list of variants. Variant order can be neglect.
@@ -36,6 +37,12 @@ public class Product extends AggregateRoot<Id> {
         this.categoryId = categoryId;
 
         super.addEvent(categoryChangedEvent);
+    }
+
+    public void delete() {
+        ProductDeletedEvent productDeletedEvent = new ProductDeletedEvent(this.getId(),this.getCategoryId(),
+                this.variants.stream().map(Entity::getId).toList());
+        super.addEvent(productDeletedEvent);
     }
 
     public List<ProductVariant> getVariants() {
