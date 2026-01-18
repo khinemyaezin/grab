@@ -4,6 +4,7 @@ import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
 import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
+import com.grab.store.product.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.GetAllProductsResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
@@ -74,5 +75,15 @@ public class ProductController {
                 .toUri();
 
         return ResponseEntity.created(location).build();
+    }
+
+    @DeleteMapping(value = "/{productId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<DeleteProductResponse>> deleteProduct(@PathVariable String productId) {
+        EntityModel<DeleteProductResponse> response = productFacadeService.deleteProduct(productId);
+
+        if (response.getContent() != null && response.getContent().deleted()) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.notFound().build();
     }
 }
