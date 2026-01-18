@@ -49,11 +49,12 @@ public class ProductVariantOptionServiceImpl implements ProductVariantOptionServ
 
     private void addNewVariantOptions(ProductVariantEntity productVariantEntity, Set<ProductVariation> productVariations) {
         for (ProductVariation productVariation : productVariations) {
-            Optional<VariantOptionEntity> option = Objects.isNull(productVariation.getOptionId())
-                    ? Optional.empty() : this.variantOptionJpaRepository.findByUuid(productVariation.getOptionId().getValue());
-
-            Optional<VariantTypeEntity> type = option.map( VariantOptionEntity::getVariantType);
-            ProductVariationEntity newOption = this.productVariantOptionEntityFactory.create(productVariation,type,option);
+            Optional<VariantOptionEntity> option = Objects.isNull(productVariation.getOptionId()) ? Optional.empty()
+                    : this.variantOptionJpaRepository.findByUuid(productVariation.getOptionId().getValue());
+            if(option.isEmpty()) {
+                throw new IllegalArgumentException("Variation with id " + productVariation.getOptionId().getValue() + " not found");
+            }
+            ProductVariationEntity newOption = this.productVariantOptionEntityFactory.create(productVariation,option.get().getVariantType(), option.get());
             productVariantEntity.addProductVariantOption(newOption);
         }
     }

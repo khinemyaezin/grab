@@ -21,45 +21,30 @@ public class ProductVariationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    
+
     @Column(name = "uuid", unique = true)
     private String uuid;
 
-    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "variant_id")
     private ProductVariantEntity productVariant;
-
     
     @ManyToOne
     @JoinColumn(name = "variant_type_id")
     private VariantTypeEntity variantType;
-
-    @Column(name = "variant_type_value")
-    private String variantTypeValue;
-
     
     @ManyToOne
     @JoinColumn(name = "variant_option_id")
     private VariantOptionEntity variantOption;
 
-    @Column(name = "variant_option_value")
-    private String variantOptionValue;
-
-    /*
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_option_unit_id")
-    private VariantOptionUnitEntity variantOptionUnit;*/
-
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof ProductVariationEntity that)) return false;
-        return Objects.equals(variantOption, that.variantOption) && Objects.equals(variantOptionValue, that.variantOptionValue);
+        return Objects.equals(variantOption, that.variantOption) && Objects.equals(variantType, that.variantType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(variantOption, variantOptionValue);
+        return Objects.hash(variantOption, variantType);
     }
 }

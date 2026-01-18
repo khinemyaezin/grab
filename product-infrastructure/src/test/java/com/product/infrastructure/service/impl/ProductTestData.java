@@ -74,8 +74,6 @@ public class ProductTestData {
         for (ProductVariation variation : variant.getVariations()) {
             ProductVariationEntity variationEntity = new ProductVariationEntity();
             variationEntity.setProductVariant(variantEntity);
-            variationEntity.setVariantOptionValue(variation.getOptionName());
-            variationEntity.setVariantTypeValue(variation.getTypeName());
         }
         return variantEntity;
     }

@@ -12,14 +12,9 @@ public class ProductVariationMapper {
     private final IdGenerator idGenerator;
 
     public ProductVariation toDomain(ProductVariationEntity productVariantOptionEntity) {
-        if(Objects.isNull(productVariantOptionEntity.getVariantOption())) {
-            return new ProductVariation(productVariantOptionEntity.getVariantOptionValue(),null,
-                    productVariantOptionEntity.getVariantTypeValue(), null);
-        } else {
-            return new ProductVariation(productVariantOptionEntity.getVariantOptionValue(),
-                    idGenerator.generateId(productVariantOptionEntity.getVariantOption().getUuid()),
-                    productVariantOptionEntity.getVariantTypeValue(),
-                    idGenerator.generateId(productVariantOptionEntity.getVariantOption().getVariantType().getUuid()));
-        }
+        return new ProductVariation(productVariantOptionEntity.getVariantOption().getName(),
+                idGenerator.generateId(productVariantOptionEntity.getVariantOption().getUuid()),
+                productVariantOptionEntity.getVariantOption().getVariantType().getName(),
+                idGenerator.generateId(productVariantOptionEntity.getVariantOption().getVariantType().getUuid()));
     }
 }
