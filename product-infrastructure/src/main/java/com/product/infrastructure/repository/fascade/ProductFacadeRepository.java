@@ -31,8 +31,14 @@ public class ProductFacadeRepository implements ProductRepository {
 
     @Override
     public void delete(Id uuid) {
-        this.productService.find(uuid.getValue())
-                .ifPresent(this.productService::delete);
+        Optional<ProductEntity> productEntity = this.productService.find(uuid.getValue());
+        if (productEntity.isPresent()) {
+            Product product = productMapper.toDomain(productEntity.get());
+            product.delete();
+            productService.delete(productEntity.get());
+
+            domainEventProducer.produce(product.getEvents());
+        }
     }
 
     @Override

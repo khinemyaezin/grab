@@ -2,18 +2,22 @@ package com.grab.store.product.internal.api.rest.service;
 
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.product.internal.api.rest.assembler.BuildProductModelAssembler;
+import com.grab.store.product.internal.api.rest.assembler.DeleteProductModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.GetAllProductsModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
 import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
+import com.grab.store.product.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.GetAllProductsResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.mapper.BuildProductDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.GetAllProductsDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.SaveProductDtoMapper;
+import com.grab.store.product.internal.command.DeleteProductCommand;
+import com.grab.store.product.internal.command.DeleteProductResult;
 import com.grab.store.product.internal.command.SaveProductCommand;
 import com.grab.store.product.internal.command.SaveProductResult;
 import com.grab.store.product.internal.cqrs.command.CommandBus;
@@ -47,6 +51,8 @@ public class ProductFacadeService {
 
     private final GetAllProductsDtoMapper getAllProductsDtoMapper;
     private final GetAllProductsModelAssembler getAllProductsModelAssembler;
+
+    private final DeleteProductModelAssembler deleteProductModelAssembler;
 
     private final IdGenerator idGenerator;
 
@@ -96,5 +102,17 @@ public class ProductFacadeService {
         GetAllProductsResponse response = getAllProductsDtoMapper.toResponse(result);
 
         return getAllProductsModelAssembler.toModel(response);
+    }
+
+    public EntityModel<DeleteProductResponse> deleteProduct(String productId) {
+        log.info("Deleting product: {}", productId);
+
+        DeleteProductCommand command = new DeleteProductCommand(productId);
+
+        DeleteProductResult result = commandBus.dispatch(command);
+
+        DeleteProductResponse response = new DeleteProductResponse(productId, result.deleted());
+
+        return deleteProductModelAssembler.toModel(response);
     }
 }
