@@ -13,14 +13,11 @@ import java.util.Optional;
 public class ProductVariantOptionEntityFactory {
     private IdGenerator IdGenerator;
 
-    public ProductVariationEntity create(ProductVariation productVariation, Optional<VariantTypeEntity> type, Optional<VariantOptionEntity> option) {
+    public ProductVariationEntity create(ProductVariation productVariation, VariantTypeEntity type, VariantOptionEntity option) {
         ProductVariationEntity variationEntity = new ProductVariationEntity();
-        type.ifPresent(variationEntity::setVariantType);
-        option.ifPresent(variationEntity::setVariantOption);
-
         variationEntity.setUuid(IdGenerator.generateId().getValue());
-        variationEntity.setVariantOptionValue(productVariation.getOptionName());
-        variationEntity.setVariantTypeValue(productVariation.getTypeName());
+        variationEntity.setVariantType(type);
+        variationEntity.setVariantOption(option);
         return variationEntity;
     }
 }

@@ -39,54 +39,68 @@ class ProductVariantOptionServiceImplTest extends ProductTestData{
     private ProductVariantOptionServiceImpl service;
 
     @Test
-    void updateVariations_shouldKeepExistingAndAddNewOnes() {
+    void updateVariations_withNewVariations_shouldExistNewVariations() {
+        VariantOptionEntity redOptionEntity = new VariantOptionEntity();
+        redOptionEntity.setUuid("opt-red");
+        VariantOptionEntity smallOptionEntity = new VariantOptionEntity();
+        smallOptionEntity.setUuid("opt-s");
+
+        ProductVariationEntity redEntity = new ProductVariationEntity();
+        redEntity.setId(1L);
+        redEntity.setVariantOption(redOptionEntity);
+        ProductVariationEntity smallEntity = new ProductVariationEntity();
+        smallEntity.setId(2L);
+        smallEntity.setVariantOption(smallOptionEntity);
+
+        ProductVariation redDomain = new ProductVariation("Red", id("opt-red"), "Color",id("color"));
+        ProductVariation smallDomain = new ProductVariation("Small", id("opt-s"), "Size", id("size"));
+        ProductVariation blueDomain = new ProductVariation("Blue", id("opt-blue"), "Color",id("color"));
+        ProductVariation mediumDomain = new ProductVariation("Medium", id("opt-medium"), "Size", id("size"));
+
+        when(productVariationMapper.toDomain(redEntity)).thenReturn(redDomain);
+        when(productVariationMapper.toDomain(smallEntity)).thenReturn(smallDomain);
+
+        // Existing Variant : Red - Small
         ProductVariantEntity variantEntity = new ProductVariantEntity();
+        variantEntity.addProductVariantOption(redEntity);
+        variantEntity.addProductVariantOption(smallEntity);
 
-        ProductVariationEntity existingOne = new ProductVariationEntity();
-        existingOne.setId(1L);
-        existingOne.setVariantOptionValue("Red");
-        ProductVariation existingVariationOne = new ProductVariation("Red", id("opt-red"), "Color",id("color"));
-        when(productVariationMapper.toDomain(existingOne)).thenReturn(existingVariationOne);
-
-        ProductVariationEntity existingTwo = new ProductVariationEntity();
-        existingTwo.setId(2L);
-        existingTwo.setVariantOptionValue("Small");
-        ProductVariation existingVariationTwo = new ProductVariation("Small", id("opt-s"), "Size", id("size"));
-        when(productVariationMapper.toDomain(existingTwo)).thenReturn(existingVariationTwo);
-
-        variantEntity.addProductVariantOption(existingOne);
-        variantEntity.addProductVariantOption(existingTwo);
-
-        ProductVariation blueVariation = new ProductVariation("Blue", id("opt-blue"), "Color",id("color"));
-        ProductVariation mediumVariation = new ProductVariation("Medium", id("opt-medium"), "Size", id("size"));
+        VariantOptionEntity blueOption = new VariantOptionEntity();
+        blueOption.setUuid(blueDomain.getOptionId().getValue());
 
         VariantTypeEntity colorType = new VariantTypeEntity();
-        VariantOptionEntity blueOption = new VariantOptionEntity();
-        blueOption.setUuid(blueVariation.getOptionId().getValue());
         blueOption.setVariantType(colorType);
 
-        when(variantOptionJpaRepository.findByUuid(blueVariation.getOptionId().getValue()))
+        when(variantOptionJpaRepository.findByUuid(blueDomain.getOptionId().getValue()))
                 .thenReturn(Optional.of(blueOption));
 
+        VariantOptionEntity mediumOption = new VariantOptionEntity();
+        mediumOption.setUuid(mediumDomain.getOptionId().getValue());
+
+        VariantTypeEntity sizeType = new VariantTypeEntity();
+        mediumOption.setVariantType(sizeType);
+
+        when(variantOptionJpaRepository.findByUuid(mediumDomain.getOptionId().getValue()))
+                .thenReturn(Optional.of(mediumOption));
+
         ProductVariationEntity blueVariationEntity = new ProductVariationEntity();
-        blueVariationEntity.setVariantOptionValue("Blue");
-        when(productVariantOptionEntityFactory.create(eq(blueVariation), any(), any()))
+        when(productVariantOptionEntityFactory.create(eq(blueDomain), any(), any()))
                 .thenAnswer(invocation -> blueVariationEntity);
         ProductVariationEntity mediumVariationEntity = new ProductVariationEntity();
-        mediumVariationEntity.setVariantOptionValue("Medium");
-        when(productVariantOptionEntityFactory.create(eq(mediumVariation), any(), any()))
+        when(productVariantOptionEntityFactory.create(eq(mediumDomain), any(), any()))
                 .thenAnswer(invocation -> mediumVariationEntity);
 
+        // Replace Red-Small to Blue-Medium
         Set<ProductVariation> updates = new LinkedHashSet<>();
-        updates.add(blueVariation);
-        updates.add(mediumVariation);
+        updates.add(blueDomain);
+        updates.add(mediumDomain);
 
         service.updateVariations(variantEntity, updates);
 
         assertThat(variantEntity.getProductVariations()).hasSize(2);
         assertThat(variantEntity.getProductVariations()).contains(blueVariationEntity, mediumVariationEntity);
 
-        verify(variantOptionJpaRepository, times(1)).findByUuid(blueVariation.getOptionId().getValue());
+        verify(variantOptionJpaRepository, times(1)).findByUuid(blueDomain.getOptionId().getValue());
         verify(productVariantOptionEntityFactory, times(2)).create(any(ProductVariation.class), any(), any());
         verify(productVariationMapper, times(2)).toDomain(any(ProductVariationEntity.class));
     }
