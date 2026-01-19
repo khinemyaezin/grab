@@ -1,0 +1,20 @@
+package com.inventory.domain.enums;
+
+public enum StockMovementType {
+    PURCHASE_ORDER_RECEIPT,
+    CUSTOMER_RETURN,
+    TRANSFER_IN,
+    INITIAL_STOCK,
+
+    SALE,
+    TRANSFER_OUT,
+    RETURN_TO_VENDOR,
+    WRITE_OFF,
+
+    CYCLE_COUNT_ADJUSTMENT,
+    DAMAGE_ADJUSTMENT,
+    SHRINKAGE,
+
+    RESERVATION,
+    RESERVATION_RELEASE
+}
