@@ -16,9 +16,8 @@ public class StockMovement extends Entity<Id> {
     private final int quantityBefore;
     private final int quantityAfter;
     private final String referenceId;
-    private final String notes;
     private final LocalDateTime createdAt;
-    private final String createdBy;
+    private final Id createdBy;
 
     public StockMovement(
             Id id,
@@ -27,9 +26,8 @@ public class StockMovement extends Entity<Id> {
             int quantityBefore,
             int quantityAfter,
             String referenceId,
-            String notes,
             LocalDateTime createdAt,
-            String createdBy
+            Id createdBy
     ) {
         super(id);
         this.type = Objects.requireNonNull(type, "type is required");
@@ -37,7 +35,6 @@ public class StockMovement extends Entity<Id> {
         this.quantityBefore = quantityBefore;
         this.quantityAfter = quantityAfter;
         this.referenceId = referenceId;
-        this.notes = notes;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
         this.createdBy = createdBy;
     }
@@ -48,13 +45,12 @@ public class StockMovement extends Entity<Id> {
             int quantity,
             int quantityBefore,
             String referenceId,
-            String notes,
-            String createdBy
+            Id createdBy
     ) {
         int quantityAfter = calculateQuantityAfter(type, quantityBefore, quantity);
         return new StockMovement(
                 id, type, quantity, quantityBefore, quantityAfter,
-                referenceId, notes, LocalDateTime.now(), createdBy
+                referenceId, LocalDateTime.now(), createdBy
         );
     }
 

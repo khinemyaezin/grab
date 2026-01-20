@@ -8,10 +8,10 @@ public record InventoryQuantity(
 ) {
 
     public InventoryQuantity {
-        if (onHand < 0) throw new IllegalArgumentException("onHand cannot be negative");
-        if (reserved < 0) throw new IllegalArgumentException("reserved cannot be negative");
-        if (inTransit < 0) throw new IllegalArgumentException("inTransit cannot be negative");
-        if (damaged < 0) throw new IllegalArgumentException("damaged cannot be negative");
+        if (onHand < 0) throw new IllegalArgumentException("OnHand quantity cannot be negative");
+        if (reserved < 0) throw new IllegalArgumentException("Reserved quantity cannot be negative");
+        if (inTransit < 0) throw new IllegalArgumentException("InTransit quantity cannot be negative");
+        if (damaged < 0) throw new IllegalArgumentException("Damaged quantity cannot be negative");
     }
 
     public static InventoryQuantity zero() {

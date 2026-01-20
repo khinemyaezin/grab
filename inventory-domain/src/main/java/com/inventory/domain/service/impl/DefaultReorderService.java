@@ -80,9 +80,9 @@ public class DefaultReorderService implements ReorderService {
         return ReorderPriority.LOW;
     }
 
+    // Only suggest for CRITICAL, HIGH, and MEDIUM priorities
     private boolean shouldSuggestReorder(InventoryItem item) {
         ReorderPriority priority = calculatePriority(item);
-        // Only suggest for CRITICAL, HIGH, and MEDIUM priorities
         return priority != ReorderPriority.LOW;
     }
 

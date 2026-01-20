@@ -11,6 +11,7 @@ import com.inventory.domain.event.StockAdjustedEvent;
 import com.inventory.domain.event.StockReceivedEvent;
 import com.inventory.domain.event.StockReservedEvent;
 import com.inventory.domain.event.StockShippedEvent;
+import com.inventory.domain.exception.InsufficientQuantityException;
 import com.inventory.domain.valueobject.InventoryQuantity;
 import com.inventory.domain.valueobject.ReorderConfig;
 import lombok.Getter;
@@ -75,9 +76,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         );
 
         if (initialQuantity > 0) {
-            item.addEvent(new StockReceivedEvent(
-                    id, sku, initialQuantity, locationId, LocalDateTime.now()
-            ));
+            item.addEvent(new StockReceivedEvent(id, sku, initialQuantity, locationId, LocalDateTime.now()));
         }
 
         return item;
@@ -91,7 +90,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         return quantity.available();
     }
 
-    public void receiveStock(int qty, StockMovementType type, String referenceId, String notes, String userId, Id movementId) {
+    public void receiveStock(int qty, StockMovementType type, String referenceId, String notes, Id userId, Id movementId) {
         validateReceiveType(type);
         validatePositiveQuantity(qty);
 
@@ -100,7 +99,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, type, qty, before, referenceId, notes, userId
+                movementId, type, qty, before, referenceId, userId
         );
         movements.add(movement);
 
@@ -109,10 +108,10 @@ public class InventoryItem extends AggregateRoot<Id> {
         updateStatusBasedOnQuantity();
     }
 
-    public void reserveStock(int qty, String orderId, String userId, Id movementId) {
+    public void reserveStock(int qty, String orderId, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > getAvailableQuantity()) {
-            throw new IllegalStateException("Insufficient available quantity. Available: " + getAvailableQuantity() + ", Requested: " + qty);
+            throw new InsufficientQuantityException(getAvailableQuantity(), qty);
         }
 
         int before = quantity.onHand();
@@ -120,17 +119,17 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, StockMovementType.RESERVATION, qty, before, orderId, null, userId
+                movementId, StockMovementType.RESERVATION, qty, before, orderId, userId
         );
         movements.add(movement);
 
         addEvent(new StockReservedEvent(getId(), sku, qty, orderId, LocalDateTime.now()));
     }
 
-    public void releaseReservation(int qty, String orderId, String userId, Id movementId) {
+    public void releaseReservation(int qty, String orderId, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > quantity.reserved()) {
-            throw new IllegalStateException("Cannot release more than reserved. Reserved: " + quantity.reserved() + ", Requested: " + qty);
+            throw new InsufficientQuantityException(quantity.reserved(), qty);
         }
 
         int before = quantity.onHand();
@@ -138,17 +137,17 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, StockMovementType.RESERVATION_RELEASE, qty, before, orderId, null, userId
+                movementId, StockMovementType.RESERVATION_RELEASE, qty, before, orderId, userId
         );
         movements.add(movement);
 
         checkAndRaiseLowStockAlert();
     }
 
-    public void shipStock(int qty, String orderId, String userId, Id movementId) {
+    public void shipStock(int qty, String orderId, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > quantity.reserved()) {
-            throw new IllegalStateException("Cannot ship more than reserved. Reserved: " + quantity.reserved() + ", Requested: " + qty);
+            throw new InsufficientQuantityException(quantity.reserved(), qty);
         }
 
         int before = quantity.onHand();
@@ -156,7 +155,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, StockMovementType.SALE, qty, before, orderId, null, userId
+                movementId, StockMovementType.SALE, qty, before, orderId, userId
         );
         movements.add(movement);
 
@@ -165,7 +164,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         updateStatusBasedOnQuantity();
     }
 
-    public void adjustStock(int newOnHandQuantity, AdjustmentReason reason, String notes, String userId, Id movementId) {
+    public void adjustStock(int newOnHandQuantity, AdjustmentReason reason, String notes, Id userId, Id movementId) {
         int before = quantity.onHand();
         int adjustment = newOnHandQuantity - before;
 
@@ -179,7 +178,7 @@ public class InventoryItem extends AggregateRoot<Id> {
 
         StockMovement movement = StockMovement.create(
                 movementId, StockMovementType.CYCLE_COUNT_ADJUSTMENT, adjustment, before,
-                reason.name(), notes, userId
+                reason.name(), userId
         );
         movements.add(movement);
 
@@ -188,7 +187,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         updateStatusBasedOnQuantity();
     }
 
-    public void markDamaged(int qty, String notes, String userId, Id movementId) {
+    public void markDamaged(int qty, String notes, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
 
         int before = quantity.onHand();
@@ -197,7 +196,7 @@ public class InventoryItem extends AggregateRoot<Id> {
 
         StockMovement movement = StockMovement.create(
                 movementId, StockMovementType.DAMAGE_ADJUSTMENT, -qty, before,
-                AdjustmentReason.DAMAGED.name(), notes, userId
+                AdjustmentReason.DAMAGED.name(), userId
         );
         movements.add(movement);
 
@@ -205,10 +204,10 @@ public class InventoryItem extends AggregateRoot<Id> {
         checkAndRaiseLowStockAlert();
     }
 
-    public void writeOff(int qty, String reason, String notes, String userId, Id movementId) {
+    public void writeOff(int qty, String reason, String notes, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > getAvailableQuantity()) {
-            throw new IllegalStateException("Cannot write off more than available. Available: " + getAvailableQuantity() + ", Requested: " + qty);
+            throw new InsufficientQuantityException(getAvailableQuantity(), qty);
         }
 
         int before = quantity.onHand();
@@ -216,7 +215,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, StockMovementType.WRITE_OFF, qty, before, reason, notes, userId
+                movementId, StockMovementType.WRITE_OFF, qty, before, reason, userId
         );
         movements.add(movement);
 
@@ -269,14 +268,12 @@ public class InventoryItem extends AggregateRoot<Id> {
                 && type != StockMovementType.CUSTOMER_RETURN
                 && type != StockMovementType.TRANSFER_IN
                 && type != StockMovementType.INITIAL_STOCK) {
-            throw new IllegalArgumentException("Invalid receive movement type: " + type);
+            throw new IllegalArgumentException("Invalid Stock Movement Type");
         }
     }
 
     private void validatePositiveQuantity(int qty) {
-        if (qty <= 0) {
-            throw new IllegalArgumentException("Quantity must be positive");
-        }
+        if(qty < 0) throw new IllegalArgumentException("Qty cannot be negative");
     }
 
     private void checkAndRaiseLowStockAlert() {

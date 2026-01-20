@@ -1,8 +1,9 @@
 package com.inventory.domain.service;
 
+import com.grab.framework.service.MessageSource;
 import com.grab.framework.id.Id;
 import com.inventory.domain.aggregate.InventoryItem;
-import com.inventory.domain.enums.AllocationError;
+import com.inventory.domain.exception.AllocationError;
 
 import java.util.List;
 
@@ -14,21 +15,14 @@ public interface InventoryAllocationService {
             int requestedQuantity,
             int allocatedQuantity,
             List<AllocationDetail> allocations,
-            AllocationError error,
-            String errorMessage
+            MessageSource error
     ) {
         public static AllocationResult success(String sku, int quantity, List<AllocationDetail> allocations) {
-            return new AllocationResult(true, sku, quantity, quantity, allocations, null, null);
+            return new AllocationResult(true, sku, quantity, quantity, allocations, null);
         }
 
-        public static AllocationResult partialSuccess(String sku, int requested, int allocated, List<AllocationDetail> allocations) {
-            return new AllocationResult(false, sku, requested, allocated, allocations,
-                    AllocationError.PARTIAL_ALLOCATION,
-                    AllocationError.PARTIAL_ALLOCATION.formatMessage(requested, allocated));
-        }
-
-        public static AllocationResult failure(String sku, int quantity, AllocationError error, Object... args) {
-            return new AllocationResult(false, sku, quantity, 0, List.of(), error, error.formatMessage(args));
+        public static AllocationResult failure(String sku, int quantity, AllocationError error) {
+            return new AllocationResult(false, sku, quantity, 0, List.of(), error);
         }
     }
 
@@ -38,11 +32,11 @@ public interface InventoryAllocationService {
             int quantity
     ) {}
 
-    AllocationResult allocateStock(String sku, int quantity, String orderId);
+    AllocationResult allocateStock(String sku, int quantity, String orderId, Id createdBy);
 
-    AllocationResult allocateStockFromLocation(String sku, Id locationId, int quantity, String orderId);
+    AllocationResult allocateStockFromLocation(String sku, Id locationId, int quantity, String orderId, Id createdBy);
 
-    void deallocateStock(String sku, int quantity, String orderId);
+    void deallocateStock(String sku, int quantity, String orderId, Id initiatedBy);
 
     boolean canAllocate(String sku, int quantity);
 

@@ -18,10 +18,10 @@ public interface ReorderService {
     ) {}
 
     enum ReorderPriority {
-        CRITICAL,   // Out of stock or below safety stock
-        HIGH,       // At or below reorder point
-        MEDIUM,     // Approaching reorder point (within 20%)
-        LOW         // Normal levels but suggested for optimization
+        CRITICAL,
+        HIGH,
+        MEDIUM,
+        LOW
     }
 
     List<ReorderSuggestion> calculateReorderSuggestions();

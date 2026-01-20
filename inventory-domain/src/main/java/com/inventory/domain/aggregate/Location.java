@@ -106,10 +106,6 @@ public class Location extends AggregateRoot<Id> {
         return type == LocationType.STORE;
     }
 
-    public boolean isFbaCenter() {
-        return type == LocationType.FBA_CENTER;
-    }
-
     public int getTotalZoneCount() {
         return zones.size();
     }
