@@ -289,20 +289,6 @@ if (!result.success()) {
 
 ---
 
-### InventoryTransferService
-Handles inventory transfers between locations.
-
-**Methods:**
-
-| Method | Description |
-|--------|-------------|
-| `transfer(sku, source, dest, qty, notes)` | Immediate transfer |
-| `initiateTransfer(sku, source, dest, qty, notes)` | Start async transfer (in-transit) |
-| `completeTransfer(transferId, actualQty)` | Complete pending transfer |
-| `cancelTransfer(transferId, reason)` | Cancel pending transfer |
-| `canTransfer(sku, source, qty)` | Check if transfer is possible |
-
----
 
 ### ReorderService
 Handles reorder point monitoring and suggestions.
