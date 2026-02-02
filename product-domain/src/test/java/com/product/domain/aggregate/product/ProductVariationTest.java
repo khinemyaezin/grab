@@ -1,6 +1,7 @@
 package com.product.domain.aggregate.product;
 
 import com.grab.framework.id.Id;
+import com.product.domain.valueobject.ProductVariation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

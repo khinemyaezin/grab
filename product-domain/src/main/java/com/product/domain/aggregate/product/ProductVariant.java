@@ -2,6 +2,7 @@ package com.product.domain.aggregate.product;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.domain.Entity;
+import com.product.domain.valueobject.ProductVariation;
 import lombok.Getter;
 
 import java.util.*;

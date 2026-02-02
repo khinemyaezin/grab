@@ -5,7 +5,7 @@ import com.grab.store.product.internal.query.GetAllProductsQuery;
 import com.grab.store.product.internal.query.GetAllProductsResult;
 import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
-import com.product.domain.aggregate.product.ProductVariation;
+import com.product.domain.valueobject.ProductVariation;
 import com.product.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -3,7 +3,7 @@ package com.product.domain.service.impl;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
-import com.product.domain.aggregate.product.ProductVariation;
+import com.product.domain.valueobject.ProductVariation;
 import com.product.domain.aggregate.product.VariantType;
 import com.product.domain.service.VariantInputsFactory;
 import com.product.domain.service.VariantKeyGenerator;

@@ -1,11 +1,9 @@
 package com.product.infrastructure.mapper.product;
 
 import com.grab.framework.id.IdGenerator;
-import com.product.domain.aggregate.product.ProductVariation;
+import com.product.domain.valueobject.ProductVariation;
 import com.product.infrastructure.entity.product.entity.ProductVariationEntity;
 import lombok.AllArgsConstructor;
-
-import java.util.Objects;
 
 @AllArgsConstructor
 public class ProductVariationMapper {

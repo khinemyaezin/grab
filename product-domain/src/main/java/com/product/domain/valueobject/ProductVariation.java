@@ -1,9 +1,8 @@
-package com.product.domain.aggregate.product;
+package com.product.domain.valueobject;
 
 import com.grab.framework.domain.ValueObject;
 import com.grab.framework.id.Id;
 import lombok.Getter;
-import lombok.NonNull;
 
 import java.util.Objects;
 

@@ -6,7 +6,7 @@ import com.product.domain.aggregate.product.*;
 import com.product.domain.factory.ProductFactory;
 import com.product.domain.service.SkuGenerator;
 import com.product.domain.service.VariantCombination;
-import com.product.domain.service.VariantDeletionStrategy;
+import com.product.domain.valueobject.ProductVariation;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;

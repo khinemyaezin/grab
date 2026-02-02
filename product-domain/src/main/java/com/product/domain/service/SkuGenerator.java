@@ -1,7 +1,7 @@
 package com.product.domain.service;
 
 import com.grab.framework.id.Id;
-import com.product.domain.aggregate.product.ProductVariation;
+import com.product.domain.valueobject.ProductVariation;
 import lombok.Builder;
 
 import java.util.List;
