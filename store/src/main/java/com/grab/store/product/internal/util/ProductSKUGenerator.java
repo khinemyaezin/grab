@@ -1,6 +1,6 @@
 package com.grab.store.product.internal.util;
 
-import com.product.domain.aggregate.product.ProductVariation;
+import com.product.domain.valueobject.ProductVariation;
 import com.product.domain.service.SkuGenerator;
 
 import java.security.SecureRandom;

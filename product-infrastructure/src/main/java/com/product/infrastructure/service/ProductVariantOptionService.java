@@ -1,6 +1,6 @@
 package com.product.infrastructure.service;
 
-import com.product.domain.aggregate.product.ProductVariation;
+import com.product.domain.valueobject.ProductVariation;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
 
 import java.util.Set;

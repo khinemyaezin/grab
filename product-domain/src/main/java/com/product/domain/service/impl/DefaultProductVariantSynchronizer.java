@@ -4,6 +4,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.product.domain.aggregate.product.*;
 import com.product.domain.service.*;
+import com.product.domain.valueobject.ProductVariation;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;

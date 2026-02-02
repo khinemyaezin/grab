@@ -6,6 +6,7 @@ import com.product.domain.aggregate.product.*;
 import com.product.domain.factory.impl.ProductFactoryImpl;
 import com.product.domain.service.SkuGenerator;
 import com.product.domain.service.impl.VariantCombinationServiceImpl;
+import com.product.domain.valueobject.ProductVariation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

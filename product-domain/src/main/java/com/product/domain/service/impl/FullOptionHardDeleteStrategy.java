@@ -3,6 +3,7 @@ package com.product.domain.service.impl;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.*;
 import com.product.domain.service.VariantDeletionStrategy;
+import com.product.domain.valueobject.ProductVariation;
 
 import java.util.*;
 import java.util.stream.Collectors;

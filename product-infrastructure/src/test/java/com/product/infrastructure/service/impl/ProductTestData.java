@@ -2,6 +2,7 @@ package com.product.infrastructure.service.impl;
 
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.*;
+import com.product.domain.valueobject.ProductVariation;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.entity.product.entity.ProductVariantEntity;
 import com.product.infrastructure.entity.product.entity.ProductVariationEntity;

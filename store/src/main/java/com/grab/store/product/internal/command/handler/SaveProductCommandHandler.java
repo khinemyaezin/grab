@@ -8,6 +8,7 @@ import com.grab.store.product.internal.cqrs.command.CommandHandler;
 import com.product.domain.aggregate.product.*;
 import com.product.domain.repository.ProductRepository;
 import com.product.domain.service.ProductVariantSynchronizer;
+import com.product.domain.valueobject.ProductVariation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

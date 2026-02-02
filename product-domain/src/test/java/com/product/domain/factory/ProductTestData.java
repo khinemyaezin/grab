@@ -3,7 +3,7 @@ package com.product.domain.factory;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
-import com.product.domain.aggregate.product.ProductVariation;
+import com.product.domain.valueobject.ProductVariation;
 
 import java.util.List;
 import java.util.Objects;
