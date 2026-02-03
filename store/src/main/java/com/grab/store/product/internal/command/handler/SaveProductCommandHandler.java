@@ -59,7 +59,7 @@ public class SaveProductCommandHandler implements CommandHandler<SaveProductComm
         Id productId = Objects.isNull(product.id()) ? idGenerator.generateId()
                 : idGenerator.generateId(product.id());
         Id categoryId = idGenerator.generateId(product.categoryId());
-        return new Product(productId, product.name(), categoryId);
+        return Product.create(productId, product.name(), categoryId);
     }
 
     private ProductVariant mapToDomainVariant(SaveProductCommand.Variant variant, Id productId) {

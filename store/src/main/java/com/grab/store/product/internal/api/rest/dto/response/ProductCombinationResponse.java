@@ -3,33 +3,39 @@ package com.grab.store.product.internal.api.rest.dto.response;
 import java.io.Serializable;
 import java.util.List;
 
-/**
- * HATEOAS-ready response DTO for variant combinations.
- */
 public record ProductCombinationResponse(
-        List<RequestedVariantType> requestedVariantTypes,
-        List<CombinationResponse> combinations,
-        int totalCombinations
+        Product product,
+        List<VariantType> variantTypes
 ) implements Serializable {
-    public record RequestedVariantType(
-            String typeId,
-            String typeName,
-            List<RequestedVariantOption> options
+
+    public record Product(
+            String id,
+            String name,
+            String categoryId,
+            List<Variant> variants
     ) {}
 
-    public record RequestedVariantOption(
+    public record VariantType(
+            String typeId,
+            String typeName,
+            List<VariantOption> options
+    ) {}
+
+    public record VariantOption(
             String optionId,
             String optionName
     ) {}
 
-    public record CombinationResponse(
+    public record Variant(
             String id,
-            List<VariationResponse> variations
+            String sku,
+            String status,
+            List<Variation> variations
     ) {}
 
-    public record VariationResponse(
-            String optionId,
+    public record Variation(
             String optionName,
+            String optionId,
             String typeId,
             String typeName
     ) {}

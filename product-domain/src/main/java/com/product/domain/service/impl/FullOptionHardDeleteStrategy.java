@@ -33,12 +33,52 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
     }
 
     @Override
+    public List<VariantType> filterVariantTypes(List<ProductVariant> targetVariants, List<VariantType> desiredVariantTypes) {
+        if (targetVariants.isEmpty() || desiredVariantTypes == null || desiredVariantTypes.isEmpty()) {
+            return desiredVariantTypes;
+        }
+
+        Set<String> fullyDeletedOptions = findFullyDeletedOptions(targetVariants);
+
+        if (fullyDeletedOptions.isEmpty()) {
+            return desiredVariantTypes;
+        }
+
+        return filterOutDeletedOptions(desiredVariantTypes, fullyDeletedOptions);
+    }
+
+    private Set<String> findFullyDeletedOptions(List<ProductVariant> targetVariants) {
+        // Group variants by each option value they contain
+        // Key: "Size:Large", Value: list of variants containing Large
+        Map<String, List<ProductVariant>> variantsByOption = new HashMap<>();
+
+        for (ProductVariant variant : targetVariants) {
+            for (ProductVariation variation : variant.getVariations()) {
+                String key = buildOptionKey(variation.getTypeId(), variation.getOptionId());
+                variantsByOption.computeIfAbsent(key, k -> new ArrayList<>()).add(variant);
+            }
+        }
+
+        return variantsByOption.entrySet().stream()
+                .filter(entry -> entry.getValue().stream().allMatch(ProductVariant::isDeleted))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
     public void removeObsoleteVariants(Product product, Set<Id> keysToKeep) {
         product.getVariants().stream()
                 .map(ProductVariant::getId)
                 .filter(id -> !keysToKeep.contains(id))
                 .toList()
                 .forEach(product::removeVariant);
+    }
+
+    @Override
+    public List<ProductVariant> removeObsoleteVariants(List<ProductVariant> variants, Set<Id> keysToKeep) {
+        return variants.stream()
+                .filter(variant -> !keysToKeep.contains(variant.getId()))
+                .toList();
     }
 
     /**

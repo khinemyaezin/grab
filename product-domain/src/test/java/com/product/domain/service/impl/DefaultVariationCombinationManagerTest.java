@@ -1,9 +1,7 @@
 package com.product.domain.service.impl;
 
 import com.grab.framework.id.Id;
-import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
-import com.product.domain.aggregate.product.VariantType;
 import com.product.domain.service.VariationCombinationManager;
 import com.product.domain.valueobject.ProductVariation;
 import com.product.domain.valueobject.VariantCombination;
@@ -16,7 +14,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.product.domain.factory.ProductTestData.fullProduct;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)

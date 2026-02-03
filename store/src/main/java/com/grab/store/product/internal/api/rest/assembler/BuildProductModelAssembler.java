@@ -1,6 +1,6 @@
 package com.grab.store.product.internal.api.rest.assembler;
 
-import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
+import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -8,10 +8,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class BuildProductModelAssembler
-        implements RepresentationModelAssembler<BuildProductResponse, EntityModel<BuildProductResponse>> {
+        implements RepresentationModelAssembler<ProductCombinationResponse, EntityModel<ProductCombinationResponse>> {
 
     @Override
-    public EntityModel<BuildProductResponse> toModel(BuildProductResponse response) {
+    public EntityModel<ProductCombinationResponse> toModel(ProductCombinationResponse response) {
         return EntityModel.of(response,
                 Link.of("/api/v1/products/build").withSelfRel(),
                 Link.of("/api/v1/products").withRel("products"),

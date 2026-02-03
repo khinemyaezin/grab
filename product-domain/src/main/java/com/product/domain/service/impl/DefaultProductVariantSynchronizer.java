@@ -13,7 +13,7 @@ import java.util.*;
 public class DefaultProductVariantSynchronizer implements ProductVariantSynchronizer{
     private final IdGenerator idGenerator;
     private final SkuGenerator skuGenerator;
-    private final VariantCombination variantCombination;
+    private final VariantCombinationService variantCombination;
     private final VariantDeletionStrategy deletionStrategy;
     private final VariantInputsFactory  variantInputsFactory;
     private final VariantSorter variantSorter;
@@ -70,12 +70,8 @@ public class DefaultProductVariantSynchronizer implements ProductVariantSynchron
                                   ProductVariant match, int useCount) {
         String baseSku = match != null ? match.getSku() : null;
         SkuGenerator.Context ctx = new SkuGenerator.Context(
-                product.getId(),
                 product.getName(),
-                variations,
-                baseSku,
-                useCount,
-                Map.of()
+                variations
         );
         String sku = skuGenerator.generate(ctx);
         Id newId = idGenerator.generateId();

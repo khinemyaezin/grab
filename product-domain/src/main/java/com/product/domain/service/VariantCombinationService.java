@@ -5,7 +5,7 @@ import com.product.domain.aggregate.product.VariantType;
 
 import java.util.List;
 
-public interface VariantCombination {
+public interface VariantCombinationService {
     /**
      * IMPLEMENTATION REQUIREMENTS:
      *

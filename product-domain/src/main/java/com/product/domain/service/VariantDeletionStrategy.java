@@ -2,6 +2,7 @@ package com.product.domain.service;
 
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.Product;
+import com.product.domain.aggregate.product.ProductVariant;
 import com.product.domain.aggregate.product.VariantType;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public interface VariantDeletionStrategy {
      */
     List<VariantType> filterVariantTypes(Product product, List<VariantType> desiredVariantTypes);
 
+    List<VariantType> filterVariantTypes(List<ProductVariant> variants, List<VariantType> desiredVariantTypes);
     /**
      * Removes obsolete variants from the product after synchronization.
      *
@@ -29,4 +31,5 @@ public interface VariantDeletionStrategy {
      * @param keysToKeep set of variant IDs that should be retained
      */
     void removeObsoleteVariants(Product product, Set<Id> keysToKeep);
+    List<ProductVariant> removeObsoleteVariants(List<ProductVariant> variants, Set<Id> keysToKeep);
 }

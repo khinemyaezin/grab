@@ -6,17 +6,39 @@ import com.grab.store.product.internal.cqrs.query.Query;
 import java.util.List;
 
 public record ProductCombinationQuery(
-        List<VariantType> desiredVariantTypes
+        Product product,
+        List<VariantType> variantTypes
 ) implements Query<ProductCombinationResult> {
 
+    public record Product(
+            Id id,
+            String name,
+            Id categoryId,
+            List<Variant> variants
+    ){}
+
     public record VariantType(
-            Id typeId,
-            String typeName,
-            List<VariantOption> options
-    ) {}
+            String typeId,
+       String typeName,
+           List<VariantOption> options
+    ){}
 
     public record VariantOption(
-            Id optionId,
-            String optionName
+            String optionId,
+           String optionName
     ) {}
+
+    public record Variant(
+            String id,
+            String sku,
+            String status,
+            List<Variation> variations
+    ){}
+
+    public record Variation(
+            String optionName,
+            String optionId,
+            String typeId,
+            String typeName
+    ){}
 }
