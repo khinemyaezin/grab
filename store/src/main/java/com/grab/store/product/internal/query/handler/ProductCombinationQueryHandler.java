@@ -49,12 +49,8 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
             domainVariants = synchronizeVariants(query, productId, variantTypes);
         }
 
-        Product product = Product.create(productId, query.product().name(), query.product().categoryId());
-        for(ProductVariant variant : domainVariants) {
-            product.addVariant(variant);
-        }
-
-        return mapToResult(product, variantTypes);
+        return mapToResult(productId, query.product().name(), query.product().categoryId(),
+                domainVariants, variantTypes);
     }
 
     private Id generateProductId(Id existingId) {
@@ -234,17 +230,18 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
                 .toList();
     }
 
-    private ProductCombinationResult mapToResult(Product product, List<VariantType> variantTypes) {
-        List<ProductCombinationResult.Variant> variants = product.getVariants().stream()
+    private ProductCombinationResult mapToResult(Id productId, String productName, Id categoryId,
+                                                  List<ProductVariant> variants, List<VariantType> variantTypes) {
+        List<ProductCombinationResult.Variant> resultVariants = variants.stream()
                 .map(this::mapToResultVariant)
                 .toList();
 
         return new ProductCombinationResult(
                 new ProductCombinationResult.Product(
-                        product.getId(),
-                        product.getName(),
-                        product.getCategoryId(),
-                        variants
+                        productId,
+                        productName,
+                        categoryId,
+                        resultVariants
                 ),
                 mapToResultVariantTypes(variantTypes)
         );
