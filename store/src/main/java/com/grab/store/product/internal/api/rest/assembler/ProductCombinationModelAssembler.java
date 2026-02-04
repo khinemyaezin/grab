@@ -6,9 +6,6 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
-/**
- * Assembler for converting ProductCombinationResponse to HATEOAS EntityModel.
- */
 @Component
 public class ProductCombinationModelAssembler
         implements RepresentationModelAssembler<ProductCombinationResponse, EntityModel<ProductCombinationResponse>> {
@@ -16,8 +13,7 @@ public class ProductCombinationModelAssembler
     @Override
     public EntityModel<ProductCombinationResponse> toModel(ProductCombinationResponse response) {
         return EntityModel.of(response,
-                Link.of("/api/v1/products/combinations").withSelfRel(),
-                Link.of("/api/v1/products").withRel("create-product"),
+                Link.of("/api/v1/products/combination").withSelfRel(),
                 Link.of("/api/v1/products").withRel("products")
         );
     }

@@ -6,7 +6,7 @@ import com.grab.store.product.internal.util.UuidGenerator;
 import com.product.domain.factory.ProductFactory;
 import com.product.domain.factory.impl.ProductFactoryImpl;
 import com.product.domain.service.SkuGenerator;
-import com.product.domain.service.VariantCombination;
+import com.product.domain.service.VariantCombinationService;
 import com.product.infrastructure.configuration.ProductInfraConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,9 +26,7 @@ public class ProductConfig {
     }
 
     @Bean
-    public ProductFactory productFactory(VariantCombination variantCombination,
-                                         IdGenerator idGenerator,
-                                         SkuGenerator skuGenerator) {
-        return new ProductFactoryImpl(variantCombination, idGenerator, skuGenerator);
+    public ProductFactory productFactory(IdGenerator idGenerator) {
+        return new ProductFactoryImpl(idGenerator);
     }
 }

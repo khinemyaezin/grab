@@ -5,31 +5,31 @@ import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationR
 import com.grab.store.product.internal.query.ProductCombinationQuery;
 import com.grab.store.product.internal.query.ProductCombinationResult;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdConverter.class)
 public abstract class ProductCombinationDtoMapper {
 
-    @Mapping(target = "desiredVariantTypes", source = "variantTypes")
-    public abstract ProductCombinationQuery toQuery(ProductCombinationRequest dto);
+    public abstract ProductCombinationQuery toQuery(ProductCombinationRequest request);
 
-    protected abstract ProductCombinationQuery.VariantType toQueryVariantType(
-            ProductCombinationRequest.VariantTypeRequest dto);
+    protected abstract ProductCombinationQuery.Product toQueryProduct(ProductCombinationRequest.Product product);
 
-    @Mapping(target = "requestedVariantTypes", source = "requestedTypes")
-    @Mapping(target = "totalCombinations", source = "totalCount")
+    protected abstract ProductCombinationQuery.Variant toQueryVariant(ProductCombinationRequest.Variant variant);
+
+    protected abstract ProductCombinationQuery.Variation toQueryVariation(ProductCombinationRequest.Variation variation);
+
+    protected abstract ProductCombinationQuery.VariantType toQueryVariantType(ProductCombinationRequest.VariantType variantType);
+
+    protected abstract ProductCombinationQuery.VariantOption toQueryVariantOption(ProductCombinationRequest.VariantOption option);
+
     public abstract ProductCombinationResponse toResponse(ProductCombinationResult result);
 
-    protected abstract ProductCombinationResponse.RequestedVariantType toRequestedVariantType(
-            ProductCombinationResult.VariantType type);
+    protected abstract ProductCombinationResponse.Product toResponseProduct(ProductCombinationResult.Product product);
 
-    protected abstract ProductCombinationResponse.RequestedVariantOption toRequestedVariantOption(
-            ProductCombinationResult.VariantOption option);
+    protected abstract ProductCombinationResponse.Variant toResponseVariant(ProductCombinationResult.Variant variant);
 
-    @Mapping(target = "id", source = "combinationId")
-    protected abstract ProductCombinationResponse.CombinationResponse toResponseCombination(
-            ProductCombinationResult.VariantCombination combination);
+    protected abstract ProductCombinationResponse.Variation toResponseVariation(ProductCombinationResult.Variation variation);
 
-    protected abstract ProductCombinationResponse.VariationResponse toVariationResponse(
-            ProductCombinationResult.Variation variation);
+    protected abstract ProductCombinationResponse.VariantType toResponseVariantType(ProductCombinationResult.VariantType variantType);
+
+    protected abstract ProductCombinationResponse.VariantOption toResponseVariantOption(ProductCombinationResult.VariantOption option);
 }

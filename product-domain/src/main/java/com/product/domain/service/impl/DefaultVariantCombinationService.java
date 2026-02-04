@@ -2,13 +2,13 @@ package com.product.domain.service.impl;
 
 import com.product.domain.aggregate.product.VariantOption;
 import com.product.domain.aggregate.product.VariantType;
-import com.product.domain.service.VariantCombination;
+import com.product.domain.service.VariantCombinationService;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class VariantCombinationServiceImpl implements VariantCombination {
+public class DefaultVariantCombinationService implements VariantCombinationService {
 
     public List<List<VariantOption>> generateCombinations(List<VariantType> variantTypes) {
         // Early return for empty input

@@ -6,6 +6,8 @@ import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.specification.CompositeSpecification;
 import com.product.domain.event.CategoryChangedEvent;
 import com.product.domain.event.ProductDeletedEvent;
+import com.product.domain.event.ProductVariantChangeEvent;
+import com.product.domain.event.ProductVariantDeletedEvent;
 import com.product.domain.specification.UniqueProductVariantCompositeSpec;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,10 +26,21 @@ public class Product extends AggregateRoot<Id> {
     @Getter
     private Id categoryId;
 
-    public Product(Id id, String name, Id categoryId) {
+    private Product(Id id, String name, Id categoryId) {
         super(id);
         this.name = Objects.requireNonNull(name);
         this.categoryId = Objects.requireNonNull(categoryId);
+    }
+
+    public Product(Id id, String name, Id categoryId, List<ProductVariant> variants) {
+        super(id);
+        this.name = Objects.requireNonNull(name);
+        this.categoryId = Objects.requireNonNull(categoryId);
+        this.variants.addAll(variants);
+    }
+
+    public static Product create(Id id, String name, Id categoryId) {
+        return new Product(id, name, categoryId);
     }
 
     public void changeCategory(Id categoryId) {
@@ -92,11 +105,16 @@ public class Product extends AggregateRoot<Id> {
         int index = variants.indexOf(variant);
         if(index == -1) return false;
         variants.set(index, variant);
+        super.addEvent(new ProductVariantChangeEvent(variant.getSku()));
         return true;
     }
 
     public boolean removeVariant(Id id) {
-        return variants.removeIf( v-> Objects.equals(id, v.getId()) );
+        boolean removed = variants.removeIf( v-> Objects.equals(id, v.getId()) );
+        if(removed) {
+            super.addEvent(new ProductVariantDeletedEvent(this.getId(),this.getCategoryId(), id));
+        }
+        return removed;
     }
 
     public void sortVariants(Comparator<ProductVariant> comparator) {

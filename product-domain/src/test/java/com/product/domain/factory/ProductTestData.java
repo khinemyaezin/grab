@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class ProductTestData {
     public static Product fullProduct() {
         Id productId = id("product-1");
-        Product product = new Product(productId, "Unisex Tee", id("category-1"));
+        Product product = Product.create(productId, "Unisex Tee", id("category-1"));
 
         product.addVariant(variant("1", productId, "SKU-LYM",
                 variation(id("size-large"), "Large", new CommonId("size"), "Size"),
@@ -104,7 +104,7 @@ public class ProductTestData {
 
     public static Product emptyVariationProduct() {
         Id productId = id("product-1");
-        return new Product(productId, "Unisex Tee", id("category-1"));
+        return Product.create(productId, "Unisex Tee", id("category-1"));
     }
     
     protected static String getSku(List<ProductVariation> variations) {

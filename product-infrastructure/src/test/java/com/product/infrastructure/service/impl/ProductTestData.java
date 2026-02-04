@@ -24,7 +24,7 @@ public class ProductTestData {
         sizeType.addOption(new VariantOption(id("size-xs"), "XS", sizeType));
         sizeType.addOption(new VariantOption(id("size-s"), "S", sizeType));
 
-        Product product = new Product(id("product-tshirt"), "Premium Cotton T-Shirt", clothing);
+        Product product = Product.create(id("product-tshirt"), "Premium Cotton T-Shirt", clothing);
 
         for (VariantOption color : colorType.getOptions()) {
             for (VariantOption size : sizeType.getOptions()) {

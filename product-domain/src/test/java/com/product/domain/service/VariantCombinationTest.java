@@ -3,7 +3,7 @@ package com.product.domain.service;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.VariantOption;
 import com.product.domain.aggregate.product.VariantType;
-import com.product.domain.service.impl.VariantCombinationServiceImpl;
+import com.product.domain.service.impl.DefaultVariantCombinationService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VariantCombinationTest {
-    private final VariantCombination variantCombination = new VariantCombinationServiceImpl();
+    private final VariantCombinationService variantCombination = new DefaultVariantCombinationService();
 
     /**
      * Given input:

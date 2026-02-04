@@ -3,28 +3,50 @@ package com.grab.store.product.internal.api.rest.dto.request;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.Builder;
 
 import java.io.Serializable;
 import java.util.List;
 
-@Builder
 public record ProductCombinationRequest(
-        @NotEmpty
-        @Valid
-        List<VariantTypeRequest> variantTypes
-) implements Serializable {
+    @Valid
+    Product product,
+    @NotEmpty
+    @Valid
+    List<VariantType> variantTypes
 
-    @Builder
-    public record VariantTypeRequest(
-            String typeId,
+) implements Serializable{
+    public record Product(
+            String id,
+            @NotBlank
+            String name,
+            @NotBlank
+            String categoryId,
+            List<Variant> variants
+    ){}
+
+    public record VariantType(
+            @NotBlank String typeId,
             @NotBlank String typeName,
-            @NotEmpty @Valid List<VariantOptionRequest> options
-    ) implements Serializable {}
+            @NotEmpty @Valid List<VariantOption> options
+    ){}
 
-    @Builder
-    public record VariantOptionRequest(
-            String optionId,
+    public record VariantOption(
+            @NotBlank String optionId,
             @NotBlank String optionName
-    ) implements Serializable {}
+    ) {}
+
+    public record Variant(
+            @NotBlank String id,
+            @NotBlank String sku,
+            @NotBlank String status,
+            @Valid List<Variation> variations
+    ){}
+
+    public record Variation(
+            @NotBlank String optionName,
+            @NotBlank String optionId,
+            @NotBlank String typeId,
+            @NotBlank String typeName
+    ){}
+
 }

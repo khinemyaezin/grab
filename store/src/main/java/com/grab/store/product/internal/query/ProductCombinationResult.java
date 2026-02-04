@@ -5,30 +5,39 @@ import com.grab.framework.id.Id;
 import java.util.List;
 
 public record ProductCombinationResult(
-        List<VariantType> requestedTypes,
-        List<VariantCombination> combinations,
-        int totalCount
+        Product product,
+        List<VariantType> variantTypes
 ) {
-    public record VariantType(
-            Id typeId,
-            String typeName,
-            List<VariantOption> options
-    ) {}
 
-    public record VariantOption(
-            Id optionId,
-            String optionName
+    public record Product(
+            Id id,
+            String name,
+            Id categoryId,
+            List<Variant> variants
     ){}
 
-    public record VariantCombination(
-            Id combinationId,
-            List<Variation> variations
+    public record VariantType(
+            String typeId,
+            String typeName,
+            List<VariantOption> options
+    ){}
+
+    public record VariantOption(
+            String optionId,
+            String optionName
     ) {}
 
+    public record Variant(
+            String id,
+            String sku,
+            String status,
+            List<Variation> variations
+    ){}
+
     public record Variation(
-            Id optionId,
             String optionName,
-            Id typeId,
+            String optionId,
+            String typeId,
             String typeName
-    ) {}
+    ){}
 }

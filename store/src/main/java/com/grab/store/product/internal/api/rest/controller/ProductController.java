@@ -1,12 +1,10 @@
 package com.grab.store.product.internal.api.rest.controller;
 
-import com.grab.store.product.internal.api.rest.dto.request.BuildProductRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
-import com.grab.store.product.internal.api.rest.dto.response.BuildProductResponse;
+import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.GetAllProductsResponse;
-import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,29 +30,15 @@ public class ProductController {
     }
 
     @PostMapping(
-            value = "/combinations",
+            value = "/combination",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<EntityModel<ProductCombinationResponse>> generateCombinations(
+    public ResponseEntity<EntityModel<ProductCombinationResponse>> getProductVariationCombination(
             @Valid @RequestBody ProductCombinationRequest request) {
 
         EntityModel<ProductCombinationResponse> response =
-                productFacadeService.generateCombinations(request);
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping(
-            value = "/build",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<EntityModel<BuildProductResponse>> buildProduct(
-            @Valid @RequestBody BuildProductRequest request) {
-
-        EntityModel<BuildProductResponse> response =
-                productFacadeService.buildProduct(request);
+                productFacadeService.getProductCombination(request);
 
         return ResponseEntity.ok(response);
     }

@@ -52,7 +52,7 @@ public class ProductVariantDuplicateTest {
         size.addOption(new VariantOption(new CommonId("medium"), "Medium", size));
 
         // Create product
-        product = new Product(new CommonId("product-1"), "T-Shirt", new CommonId("clothing"));
+        product =  Product.create(new CommonId("product-1"), "T-Shirt", new CommonId("clothing"));
     }
 
     @Test

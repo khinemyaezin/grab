@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
 public class DomainConfig {
 
     @Bean
-    public VariantCombination variantCombination() {
-        return new VariantCombinationServiceImpl();
+    public VariantCombinationService variantCombination() {
+        return new DefaultVariantCombinationService();
     }
     @Bean
     public VariantDeletionStrategy variantDeletionStrategy() {
@@ -30,7 +30,7 @@ public class DomainConfig {
         return new DefaultVariantSorter(variantKeyGenerator);
     }
     @Bean
-    public ProductVariantSynchronizer productVariantSynchronizer(VariantCombination variantCombination, IdGenerator idGenerator,
+    public ProductVariantSynchronizer productVariantSynchronizer(VariantCombinationService variantCombination, IdGenerator idGenerator,
                                                                  SkuGenerator skuGenerator, VariantDeletionStrategy deletionStrategy,
                                                                  VariantInputsFactory variantInputsFactory, VariantSorter variantSorter,
                                                                  VariantKeyGenerator variantKeyGenerator) {
@@ -43,5 +43,15 @@ public class DomainConfig {
                 variantSorter,
                 variantKeyGenerator
         );
+    }
+
+    @Bean
+    public VariationKeyGenerator variationKeyGenerator() {
+        return new DefaultVariationKeyGenerator();
+    }
+
+    @Bean
+    public VariationCombinationManager variantCombinationManager(VariationKeyGenerator variationKeyGenerator){
+        return new DefaultVariationCombinationManager(variationKeyGenerator);
     }
 }

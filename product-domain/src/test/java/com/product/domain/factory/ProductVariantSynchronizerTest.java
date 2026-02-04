@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.product.domain.factory.ProductTestData.*;
@@ -51,7 +52,7 @@ public class ProductVariantSynchronizerTest {
         productVariantSynchronizer = new DefaultProductVariantSynchronizer(
                 idGenerator,
                 skuGenerator,
-                new VariantCombinationServiceImpl(),
+                new DefaultVariantCombinationService(),
                 new FullOptionHardDeleteStrategy(),
                 new DefaultVariantInputsFactory(keyFactory),
                 new DefaultVariantSorter(keyFactory),
@@ -137,13 +138,7 @@ public class ProductVariantSynchronizerTest {
     @Test
     public void shouldGeneratesCombinationsInSpecifiedOrder_whenAddVariantOptionAtLastOrder() {
         when(idGenerator.generateId()).thenReturn(id);
-        doAnswer(invocationOnMock -> {
-            SkuGenerator.Context context = invocationOnMock.getArgument(0);
-            if (context.collisionIndex() > 0) {
-                return String.join("-", context.baseSku(), ""+context.collisionIndex());
-            }
-            return context.baseSku();
-        }).when(skuGenerator).generate(any(SkuGenerator.Context.class));
+        doAnswer(invocationOnMock -> UUID.randomUUID().toString()).when(skuGenerator).generate(any(SkuGenerator.Context.class));
 
         Product FULL_PRODUCT = fullProduct();
         List<VariantType> desiredTypes = List.of(
@@ -179,13 +174,7 @@ public class ProductVariantSynchronizerTest {
     @Test
     public void shouldGeneratesCombinationsInSpecifiedOrder_whenAddManyVariantOptionAtLastOrder() {
         when(idGenerator.generateId()).thenReturn(id);
-        doAnswer(invocationOnMock -> {
-            SkuGenerator.Context context = invocationOnMock.getArgument(0);
-            if (context.collisionIndex() > 0) {
-                return String.join("-", context.baseSku(), ""+context.collisionIndex());
-            }
-            return context.baseSku();
-        }).when(skuGenerator).generate(any(SkuGenerator.Context.class));
+        doAnswer(invocationOnMock -> UUID.randomUUID().toString()).when(skuGenerator).generate(any(SkuGenerator.Context.class));
 
         Product FULL_PRODUCT = fullProduct();
         List<VariantType> desiredTypes = List.of(
@@ -238,13 +227,7 @@ public class ProductVariantSynchronizerTest {
     @Test
     public void shouldGeneratesCombinationsInSpecifiedOrder_whenAddVariantOptionAtFirstOrder() {
         when(idGenerator.generateId()).thenReturn(id);
-        doAnswer(invocationOnMock -> {
-            SkuGenerator.Context context = invocationOnMock.getArgument(0);
-            if (context.collisionIndex() > 0) {
-                return String.join("-", context.baseSku(), ""+context.collisionIndex());
-            }
-            return context.baseSku();
-        }).when(skuGenerator).generate(any(SkuGenerator.Context.class));
+        doAnswer(invocationOnMock -> UUID.randomUUID().toString()).when(skuGenerator).generate(any(SkuGenerator.Context.class));
 
         Product FULL_PRODUCT = fullProduct();
         List<VariantType> desiredTypes = List.of(
@@ -305,14 +288,7 @@ public class ProductVariantSynchronizerTest {
     @Test
     public void shouldGeneratesCombinationsInSpecifiedOrder_whenAddVariantTypes() {
         when(idGenerator.generateId()).thenReturn(id);
-        doAnswer(invocationOnMock -> {
-            SkuGenerator.Context context = invocationOnMock.getArgument(0);
-            String sku = context.baseSku() == null ? getSku(context.orderedVariations()) : context.baseSku();
-            if (context.collisionIndex() > 0) {
-                return String.join("-", sku, "" + context.collisionIndex());
-            }
-            return sku;
-        }).when(skuGenerator).generate(any(SkuGenerator.Context.class));
+        doAnswer(invocationOnMock -> UUID.randomUUID().toString()).when(skuGenerator).generate(any(SkuGenerator.Context.class));
 
         Product PRODUCT = emptyVariationProduct();
         List<VariantType> desiredTypes = List.of(
