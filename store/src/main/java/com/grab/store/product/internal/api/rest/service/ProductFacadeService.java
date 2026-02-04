@@ -1,7 +1,7 @@
 package com.grab.store.product.internal.api.rest.service;
 
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.product.internal.api.rest.assembler.BuildProductModelAssembler;
+import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.DeleteProductModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.GetAllProductsModelAssembler;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
@@ -38,7 +38,7 @@ public class ProductFacadeService {
     private final ProductCombinationDtoMapper combinationDtoMapper;
 
     private final ProductCombinationDtoMapper productCombinationDtoMapper;
-    private final BuildProductModelAssembler buildProductModelAssembler;
+    private final ProductCombinationModelAssembler productCombinationModelAssembler;
 
     private final SaveProductDtoMapper saveProductDtoMapper;
 
@@ -58,7 +58,7 @@ public class ProductFacadeService {
 
         ProductCombinationResponse response = productCombinationDtoMapper.toResponse(result);
 
-        return buildProductModelAssembler.toModel(response);
+        return productCombinationModelAssembler.toModel(response);
     }
 
     public String saveProduct(SaveProductRequest request) {

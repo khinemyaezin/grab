@@ -30,11 +30,11 @@ public class ProductController {
     }
 
     @PostMapping(
-            value = "/build",
+            value = "/combination",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<EntityModel<ProductCombinationResponse>> buildProduct(
+    public ResponseEntity<EntityModel<ProductCombinationResponse>> getProductVariationCombination(
             @Valid @RequestBody ProductCombinationRequest request) {
 
         EntityModel<ProductCombinationResponse> response =

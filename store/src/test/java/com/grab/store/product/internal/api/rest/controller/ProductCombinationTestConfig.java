@@ -1,0 +1,153 @@
+package com.grab.store.product.internal.api.rest.controller;
+
+import com.grab.framework.id.IdGenerator;
+import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
+import com.grab.store.product.internal.api.rest.assembler.DeleteProductModelAssembler;
+import com.grab.store.product.internal.api.rest.assembler.GetAllProductsModelAssembler;
+import com.grab.store.product.internal.api.rest.mapper.GetAllProductsDtoMapper;
+import com.grab.store.product.internal.api.rest.mapper.IdConverter;
+import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
+import com.grab.store.product.internal.api.rest.mapper.SaveProductDtoMapper;
+import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
+import com.grab.store.product.internal.cqrs.command.CommandBus;
+import com.grab.store.product.internal.cqrs.command.CommandHandler;
+import com.grab.store.product.internal.cqrs.command.impl.SimpleCommandBus;
+import com.grab.store.product.internal.cqrs.query.QueryBus;
+import com.grab.store.product.internal.cqrs.query.QueryHandler;
+import com.grab.store.product.internal.cqrs.query.impl.SimpleQueryBus;
+import com.grab.store.product.internal.query.handler.ProductCombinationQueryHandler;
+import com.grab.store.product.internal.util.ProductSKUGenerator;
+import com.grab.store.product.internal.util.UuidGenerator;
+import com.product.domain.service.SkuGenerator;
+import com.product.domain.service.VariantCombinationService;
+import com.product.domain.service.VariantDeletionStrategy;
+import com.product.domain.service.VariationCombinationManager;
+import com.product.domain.service.VariationKeyGenerator;
+import com.product.domain.service.impl.DefaultVariantCombinationService;
+import com.product.domain.service.impl.DefaultVariationCombinationManager;
+import com.product.domain.service.impl.DefaultVariationKeyGenerator;
+import com.product.domain.service.impl.FullOptionHardDeleteStrategy;
+import org.mapstruct.factory.Mappers;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+
+import java.util.List;
+
+@TestConfiguration
+public class ProductCombinationTestConfig {
+    @Bean
+    public IdGenerator idGenerator() {
+        return new UuidGenerator();
+    }
+
+    @Bean
+    public SkuGenerator skuGenerator() {
+        return new ProductSKUGenerator();
+    }
+
+    @Bean
+    public VariantCombinationService variantCombinationService() {
+        return new DefaultVariantCombinationService();
+    }
+
+    @Bean
+    public VariantDeletionStrategy variantDeletionStrategy() {
+        return new FullOptionHardDeleteStrategy();
+    }
+
+    @Bean
+    public VariationKeyGenerator variationKeyGenerator() {
+        return new DefaultVariationKeyGenerator();
+    }
+
+    @Bean
+    public VariationCombinationManager variationCombinationManager(VariationKeyGenerator variationKeyGenerator) {
+        return new DefaultVariationCombinationManager(variationKeyGenerator);
+    }
+
+    @Bean
+    public ProductCombinationQueryHandler productCombinationQueryHandler(
+            IdGenerator idGenerator,
+            VariationCombinationManager variationCombinationManager,
+            VariantCombinationService variantCombinationService,
+            VariantDeletionStrategy variantDeletionStrategy,
+            SkuGenerator skuGenerator) {
+        return new ProductCombinationQueryHandler(
+                idGenerator,
+                variationCombinationManager,
+                variantCombinationService,
+                variantDeletionStrategy,
+                skuGenerator);
+    }
+
+    // ========== CQRS Infrastructure ==========
+
+    @Bean
+    public QueryBus queryBus(List<QueryHandler<?, ?>> queryHandlers) {
+        return new SimpleQueryBus(queryHandlers);
+    }
+
+    @Bean
+    public CommandBus commandBus(List<CommandHandler<?, ?>> commandHandlers) {
+        return new SimpleCommandBus(commandHandlers);
+    }
+
+    @Bean
+    public IdConverter idConverter(IdGenerator idGenerator) {
+        return new IdConverter(idGenerator);
+    }
+
+    @Bean
+    public ProductCombinationDtoMapper productCombinationDtoMapper() {
+        return Mappers.getMapper(ProductCombinationDtoMapper.class);
+    }
+
+    @Bean
+    public SaveProductDtoMapper saveProductDtoMapper() {
+        return Mappers.getMapper(SaveProductDtoMapper.class);
+    }
+
+    @Bean
+    public GetAllProductsDtoMapper getAllProductsDtoMapper() {
+        return Mappers.getMapper(GetAllProductsDtoMapper.class);
+    }
+
+    @Bean
+    public ProductCombinationModelAssembler buildProductModelAssembler() {
+        return new ProductCombinationModelAssembler();
+    }
+
+    @Bean
+    public GetAllProductsModelAssembler getAllProductsModelAssembler() {
+        return new GetAllProductsModelAssembler();
+    }
+
+    @Bean
+    public DeleteProductModelAssembler deleteProductModelAssembler() {
+        return new DeleteProductModelAssembler();
+    }
+
+    @Bean
+    public ProductFacadeService productFacadeService(
+            CommandBus commandBus,
+            QueryBus queryBus,
+            ProductCombinationDtoMapper productCombinationDtoMapper,
+            ProductCombinationModelAssembler productCombinationModelAssembler,
+            SaveProductDtoMapper saveProductDtoMapper,
+            GetAllProductsDtoMapper getAllProductsDtoMapper,
+            GetAllProductsModelAssembler getAllProductsModelAssembler,
+            DeleteProductModelAssembler deleteProductModelAssembler,
+            IdGenerator idGenerator) {
+        return new ProductFacadeService(
+                commandBus,
+                queryBus,
+                productCombinationDtoMapper,
+                productCombinationDtoMapper,
+                productCombinationModelAssembler,
+                saveProductDtoMapper,
+                getAllProductsDtoMapper,
+                getAllProductsModelAssembler,
+                deleteProductModelAssembler,
+                idGenerator);
+    }
+}

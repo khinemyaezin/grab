@@ -2,7 +2,6 @@ package com.grab.store.product.internal.query.handler;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.grab.framework.specification.CompositeSpecification;
 import com.grab.store.product.internal.cqrs.query.QueryHandler;
 import com.grab.store.product.internal.query.ProductCombinationQuery;
 import com.grab.store.product.internal.query.ProductCombinationResult;
@@ -29,13 +28,10 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
     private final VariantCombinationService variantCombinationService;
     private final VariantDeletionStrategy variantDeletionStrategy;
     private final SkuGenerator skuGenerator;
-    private final CompositeSpecification<ProductCombinationQuery> buildProductSpec;
 
     @Override
     public ProductCombinationResult handle(ProductCombinationQuery query) {
         log.debug("Handling BuildProductQuery for product: {}", query.product().name());
-
-        validateQuery(query);
 
         List<VariantType> variantTypes = query.variantTypes().stream()
                 .map(this::mapToDomainProductVariantTypes)
@@ -55,12 +51,6 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
 
     private Id generateProductId(Id existingId) {
         return Objects.nonNull(existingId) ? existingId : idGenerator.generateId();
-    }
-
-    private void validateQuery(ProductCombinationQuery query) {
-        if (!buildProductSpec.isSatisfiedBy(query)) {
-            throw new IllegalArgumentException("BuildProductQuery validation failed");
-        }
     }
 
     private List<ProductVariant> generateNewVariants(Id productId, String productName, List<VariantType> variantTypes) {

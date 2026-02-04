@@ -7,15 +7,14 @@ import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BuildProductModelAssembler
+public class ProductCombinationModelAssembler
         implements RepresentationModelAssembler<ProductCombinationResponse, EntityModel<ProductCombinationResponse>> {
 
     @Override
     public EntityModel<ProductCombinationResponse> toModel(ProductCombinationResponse response) {
         return EntityModel.of(response,
-                Link.of("/api/v1/products/build").withSelfRel(),
-                Link.of("/api/v1/products").withRel("products"),
-                Link.of("/api/v1/products/combinations").withRel("combinations")
+                Link.of("/api/v1/products/combination").withSelfRel(),
+                Link.of("/api/v1/products").withRel("products")
         );
     }
 }
