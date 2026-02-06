@@ -1,11 +1,8 @@
 package com.product.domain.specification;
 
 import com.grab.framework.id.Id;
-import com.product.domain.aggregate.product.Product;
-import com.product.domain.aggregate.product.ProductVariant;
+import com.product.domain.aggregate.product.*;
 import com.product.domain.valueobject.ProductVariation;
-import com.product.domain.aggregate.product.VariantOption;
-import com.product.domain.aggregate.product.VariantType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -58,13 +55,13 @@ public class ProductVariantDuplicateTest {
     @Test
     void shouldNotAddDuplicateVariantWithSameSKU() {
         // Create first variant
-        var variant1 = new ProductVariant(new CommonId("v1"), product.getId(), "SKU001", List.of(
+        var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));
 
         // Create duplicate variant with same SKU but different ID
-        var variant2 = new ProductVariant(new CommonId("v2"), product.getId(), "SKU001", List.of(
+        var variant2 = new ProductVariant(new CommonId("v2"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));
@@ -77,13 +74,13 @@ public class ProductVariantDuplicateTest {
     @Test
     void testAdded_sameVariations_returnFalse() {
         // Create first variant
-        var variant1 = new ProductVariant(new CommonId("v1"), product.getId(), "SKU001", List.of(
+        var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));
 
         // Create duplicate variant with different SKU but same variations
-        var variant2 = new ProductVariant(new CommonId("v2"), product.getId(), "SKU002", List.of(
+        var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));
@@ -95,13 +92,13 @@ public class ProductVariantDuplicateTest {
     @Test
     void shouldNotAddDuplicateVariantWithSameVariationsInDifferentOrder() {
         // Create first variant
-        var variant1 = new ProductVariant(new CommonId("v1"), product.getId(), "SKU001", List.of(
+        var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));
 
         // Create duplicate variant with variations in different order
-        var variant2 = new ProductVariant(new CommonId("v2"), product.getId(), "SKU002", List.of(
+        var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size")),
                 new ProductVariation("Red", new CommonId("red"), "Color", new CommonId("color"))
         ));
@@ -113,13 +110,13 @@ public class ProductVariantDuplicateTest {
     @Test
     void shouldNotAddDuplicateVariantWithSameSku() {
         // Create first variant
-        var variant1 = new ProductVariant(new CommonId("v1"), product.getId(), "SKU001", List.of(
+        var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));
 
         // Create duplicate variant with variations in different order
-        var variant2 = new ProductVariant(new CommonId("v2"), product.getId(), "SKU001", List.of(
+        var variant2 = new ProductVariant(new CommonId("v2"),  "SKU001",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size")),
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color"))
         ));
@@ -133,13 +130,13 @@ public class ProductVariantDuplicateTest {
     @Test
     void shouldAddVariantWithDifferentVariations() {
         // Create first variant
-        var variant1 = new ProductVariant(new CommonId("v1"), product.getId(), "SKU001", List.of(
+        var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));
 
         // Create second variant with different color
-        var variant2 = new ProductVariant(new CommonId("v2"), product.getId(), "SKU002", List.of(
+        var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation("Blue", new CommonId("blue"), "Color",   new CommonId("color")),
                 new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
         ));

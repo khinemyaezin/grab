@@ -24,15 +24,15 @@ public class GetAllProductsQueryHandler implements QueryHandler<GetAllProductsQu
     public GetAllProductsResult handle(GetAllProductsQuery query) {
         log.debug("Handling GetAllProductsQuery");
 
-        List<Product> products = productRepository.findAll();
+      /*  List<Product> products = productRepository.findAll();
 
         List<GetAllProductsResult.Product> resultProducts = products.stream()
                 .map(this::mapToResultProduct)
-                .toList();
+                .toList();*/
 
-        log.info("Retrieved {} products", resultProducts.size());
+        //log.info("Retrieved {} products", resultProducts.size());
 
-        return new GetAllProductsResult(resultProducts);
+        return new GetAllProductsResult(null);
     }
 
     @Override

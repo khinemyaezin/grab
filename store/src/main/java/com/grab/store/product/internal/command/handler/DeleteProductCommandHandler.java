@@ -5,6 +5,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.store.product.internal.command.DeleteProductCommand;
 import com.grab.store.product.internal.command.DeleteProductResult;
 import com.grab.store.product.internal.cqrs.command.CommandHandler;
+import com.product.domain.aggregate.product.Product;
 import com.product.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,15 +24,13 @@ public class DeleteProductCommandHandler implements CommandHandler<DeleteProduct
     @Transactional
     public DeleteProductResult handle(DeleteProductCommand command) {
         log.debug("Handling DeleteProductCommand for product: {}", command.productId());
-
-        Id productId = idGenerator.generateId(command.productId());
-
-        if (!productRepository.exists(productId)) {
+        Product product = productRepository.find(command.productId());
+        if (product == null) {
             log.warn("Product not found for deletion: {}", command.productId());
             return new DeleteProductResult(false);
         }
 
-        productRepository.delete(productId);
+        productRepository.delete(product);
 
         log.info("Product deleted successfully: {}", command.productId());
 

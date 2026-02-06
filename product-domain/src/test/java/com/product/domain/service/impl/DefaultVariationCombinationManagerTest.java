@@ -2,6 +2,7 @@ package com.product.domain.service.impl;
 
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.ProductVariant;
+import com.product.domain.aggregate.product.ProductVariantStatus;
 import com.product.domain.service.VariationCombinationManager;
 import com.product.domain.valueobject.ProductVariation;
 import com.product.domain.valueobject.VariantCombination;
@@ -21,7 +22,7 @@ class DefaultVariationCombinationManagerTest {
     private static final Id PRODUCT_ID = new CommonId("prod-1");
     private VariationCombinationManager variationCombinationManager;
 
-    /*
+    /**
     productId    | sku      | size    | color   | gender
     -------------|----------|---------|---------|----------
     product-1    | SKU-LYM  | Large   | Yellow  | Male
@@ -33,52 +34,52 @@ class DefaultVariationCombinationManagerTest {
     product-1    | SKU-SRM  | Small   | Red     | Male
     product-1    | SKU-SRF  | Small   | Red     | Female
     */
-    private List<ProductVariant> getProductVariation(Id productId) {
+    private List<ProductVariant> getProductVariation() {
         return List.of(
-                variant("1", productId, "SKU-LYM",
+                variant("1", "SKU-LYM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
 
-                variant("2", productId, "SKU-LYF",
+                variant("2",  "SKU-LYF",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
 
-                variant("3", productId, "SKU-LRM",
+                variant("3",  "SKU-LRM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
 
-                variant("4", productId, "SKU-LRF",
+                variant("4",  "SKU-LRF",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
 
-                variant("5", productId, "SKU-SYM",
+                variant("5",  "SKU-SYM",
                         variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
 
-                variant("6", productId, "SKU-SYF",
+                variant("6",  "SKU-SYF",
                         variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
 
-                variant("7", productId, "SKU-SRM",
+                variant("7",  "SKU-SRM",
                         variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
 
-                variant("8", productId, "SKU-SRF",
+                variant("8",  "SKU-SRF",
                         variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
                         variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
         );
     }
 
-    protected static ProductVariant variant(String variantId, Id productId, String sku, ProductVariation... variations) {
-        return new ProductVariant(new CommonId(variantId), productId, sku, List.of(variations));
+    protected static ProductVariant variant(String variantId, String sku, ProductVariation... variations) {
+        return new ProductVariant(new CommonId(variantId), sku, ProductVariantStatus.ACTIVE, List.of(variations));
     }
 
     protected static ProductVariation variation(Id optionId, String optionName,Id typeId, String typeName) {
@@ -159,7 +160,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtFirst_returnCombinationInOrder() {
-        List<ProductVariant> existingVariants = getProductVariation(PRODUCT_ID);
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
@@ -188,7 +189,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtMiddle_returnCombinationInOrder() {
-        List<ProductVariant> existingVariants = getProductVariation(PRODUCT_ID);
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
@@ -220,7 +221,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtLast_returnCombinationInOrder() {
-        List<ProductVariant> existingVariants = getProductVariation(PRODUCT_ID);
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
@@ -252,7 +253,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_addVariantTypeAtLast_returnCombinationsInOrder_() {
-        List<ProductVariant> existingVariants = getProductVariation(PRODUCT_ID);
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
@@ -375,19 +376,19 @@ class DefaultVariationCombinationManagerTest {
     @Test
     public void syncCombinations_addVariantOption_returnCombinationsInOrder() {
         List<ProductVariant> existingVariants = List.of(
-                variant("1", PRODUCT_ID, "SKU-LYM",
+                variant("1",  "SKU-LYM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
 
-                variant("3", PRODUCT_ID, "SKU-LRM",
+                variant("3",  "SKU-LRM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color")),
 
-                variant("5", PRODUCT_ID, "SKU-SYM",
+                variant("5",  "SKU-SYM",
                         variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
 
-                variant("7", PRODUCT_ID, "SKU-SRM",
+                variant("7",  "SKU-SRM",
                         variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"))
         );
@@ -433,11 +434,11 @@ class DefaultVariationCombinationManagerTest {
     @Test
     public void syncCombinations_removeVariantOption_returnCombinationsInOrder() {
         List<ProductVariant> existingVariants = List.of(
-                variant("1", PRODUCT_ID, "SKU-LYM",
+                variant("1",  "SKU-LYM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
 
-                variant("3", PRODUCT_ID, "SKU-LRM",
+                variant("3",  "SKU-LRM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"))
         );
@@ -459,12 +460,12 @@ class DefaultVariationCombinationManagerTest {
     @Test
     public void syncCombinations_changeVariantOptionOrder_returnCombinationsInOrder() {
         List<ProductVariant> existingVariants = List.of(
-                variant("1", PRODUCT_ID, "SKU-LYM",
+                variant("1",  "SKU-LYM",
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size")),
 
 
-                variant("3", PRODUCT_ID, "SKU-LRM",
+                variant("3",  "SKU-LRM",
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"))
         );

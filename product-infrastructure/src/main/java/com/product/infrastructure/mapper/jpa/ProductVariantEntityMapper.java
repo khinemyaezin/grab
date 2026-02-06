@@ -1,4 +1,4 @@
-package com.product.infrastructure.mapper.product;
+package com.product.infrastructure.mapper.jpa;
 
 import com.grab.framework.mapper.CommonMapper;
 import com.product.domain.aggregate.product.ProductVariant;
@@ -9,7 +9,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(config = CentralMapperConfig.class,uses = CommonMapper.class)
+@Mapper(config = CentralMapperConfig.class,uses = {CommonMapper.class})
 public interface ProductVariantEntityMapper {
     @Mapping(ignore = true, target = ProductEntity_.ID)
     @Mapping(source = "id", target = "uuid")

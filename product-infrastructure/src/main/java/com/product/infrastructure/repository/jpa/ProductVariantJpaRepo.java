@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface ProductVariantJpaRepository extends EntityRepository<ProductVariantEntity, Long>, JpaRepository<ProductVariantEntity, Long> {
+public interface ProductVariantJpaRepo extends EntityRepository<ProductVariantEntity, Long>, JpaRepository<ProductVariantEntity, Long> {
     Optional<ProductVariantEntity> findByUuid(String uuid);
 }
