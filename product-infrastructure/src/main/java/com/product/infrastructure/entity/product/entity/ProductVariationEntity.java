@@ -4,6 +4,7 @@ package com.product.infrastructure.entity.product.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 @Builder
@@ -12,39 +13,43 @@ import java.util.Objects;
 @Getter
 @Setter
 @Entity
-@Table(name = "product_variant_option",
-        uniqueConstraints = @UniqueConstraint(
-        name = "uk_variant_option_value",
-        columnNames = {"variant_option_id", "variant_option_value"}
-))
+@Table(name = "product_variant_option")
 public class ProductVariationEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
-    @Column(name = "uuid", unique = true)
-    private String uuid;
+    @EmbeddedId
+    private ProductVariationId id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "variant_id")
     private ProductVariantEntity productVariant;
-    
-    @ManyToOne
-    @JoinColumn(name = "variant_type_id")
-    private VariantTypeEntity variantType;
-    
-    @ManyToOne
-    @JoinColumn(name = "variant_option_id")
-    private VariantOptionEntity variantOption;
+
+    @Column(name = "variant_option_value")
+    private String variantOptionValue;
+
+    @Column(name = "variant_type_value")
+    private String variantTypeValue;
+
+    @Embeddable
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ProductVariationId implements Serializable {
+        @Column(name = "variant_option_id")
+        private String variantOptionUuid;
+
+        @Column(name = "variant_type_id")
+        private String variantTypeUuid;
+    }
 
     @Override
     public boolean equals(Object o) {
+        if (this == o) return true;
         if (!(o instanceof ProductVariationEntity that)) return false;
-        return Objects.equals(variantOption, that.variantOption) && Objects.equals(variantType, that.variantType);
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(variantOption, variantType);
+        return Objects.hash(id);
     }
 }

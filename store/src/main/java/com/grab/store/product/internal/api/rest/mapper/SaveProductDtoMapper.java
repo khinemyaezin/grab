@@ -14,8 +14,4 @@ public abstract class SaveProductDtoMapper {
     protected abstract SaveProductCommand.Variant toCommandVariant(SaveProductRequest.Variant variant);
 
     protected abstract SaveProductCommand.Variation toCommandVariation(SaveProductRequest.Variation variation);
-
-    protected abstract SaveProductCommand.VariantType toCommandVariantType(SaveProductRequest.VariantType variantType);
-
-    protected abstract SaveProductCommand.VariantOption toCommandVariantOption(SaveProductRequest.VariantOption option);
 }

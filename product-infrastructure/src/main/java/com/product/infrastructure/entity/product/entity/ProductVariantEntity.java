@@ -23,6 +23,10 @@ public class ProductVariantEntity {
     private String uuid;
 
     @Setter
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @Setter
     @ManyToOne
     @JoinColumn(name = "product_id")
     private ProductEntity product;
@@ -43,7 +47,7 @@ public class ProductVariantEntity {
     @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<ProductFeatureEntity> productFeatures = new ArrayList<>();
 
-    public void addProductVariantOption(ProductVariationEntity entity) {
+    public void addProductVariation(ProductVariationEntity entity) {
         entity.setProductVariant(this);
         this.productVariations.add(entity);
     }

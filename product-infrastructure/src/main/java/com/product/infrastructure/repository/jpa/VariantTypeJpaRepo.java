@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface VariantTypeJpaRepository extends JpaRepository<VariantTypeEntity, Long> {
+public interface VariantTypeJpaRepo extends JpaRepository<VariantTypeEntity, Long> {
     Optional<VariantTypeEntity> findByUuid(String uuid);
 }

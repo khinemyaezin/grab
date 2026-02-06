@@ -34,9 +34,8 @@ public class ProductTestData {
                 variations.add(new ProductVariation(color.getName(),color.getId(), colorType.getName(), colorType.getId()));
                 variations.add(new ProductVariation(size.getName(), size.getId(), sizeType.getName(), sizeType.getId()));
 
-                ProductVariant variant = new ProductVariant(
+                ProductVariant variant = ProductVariant.create(
                     id(UUID.randomUUID().toString()),
-                    product.getId(),
                     sku,
                     variations
                 );

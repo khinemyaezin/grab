@@ -1,34 +1,23 @@
 package com.grab.store.product.internal.command;
 
+import com.grab.framework.id.Id;
 import com.grab.store.product.internal.cqrs.command.Command;
 
 import java.util.List;
 
 public record SaveProductCommand(
-        Product product,
-        List<VariantType> variantTypes
+        Product product
 ) implements Command<SaveProductResult> {
 
     public record Product(
-            String id,
+            Id id,
             String name,
-            String categoryId,
+            Id categoryId,
             List<Variant> variants
     ) {}
 
-    public record VariantType(
-            String typeId,
-            String typeName,
-            List<VariantOption> options
-    ) {}
-
-    public record VariantOption(
-            String optionId,
-            String optionName
-    ) {}
-
     public record Variant(
-            String id,
+            Id id,
             String sku,
             String status,
             List<Variation> variations
@@ -36,8 +25,8 @@ public record SaveProductCommand(
 
     public record Variation(
             String optionName,
-            String optionId,
-            String typeId,
+            Id optionId,
+            Id typeId,
             String typeName
     ) {}
 }

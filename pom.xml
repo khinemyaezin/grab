@@ -16,8 +16,8 @@
         <module>category-infrastructure</module>
         <module>product-domain</module>
         <module>product-infrastructure</module>
-        <module>inventory-domain</module>
-        <module>inventory-infrastructure</module>
+<!--        <module>inventory-domain</module>-->
+<!--        <module>inventory-infrastructure</module>-->
         <module>store</module>
     </modules>
 

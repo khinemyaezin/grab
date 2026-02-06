@@ -1,4 +1,4 @@
-package com.product.infrastructure.mapper.product;
+package com.product.infrastructure.mapper.jpa;
 
 import com.grab.framework.mapper.CommonMapper;
 import com.product.domain.aggregate.product.Product;
@@ -9,12 +9,12 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(config = CentralMapperConfig.class, uses = CommonMapper.class)
-public interface ProductEntityMapper {
-
+@Mapper(config = CentralMapperConfig.class, uses = {CommonMapper.class})
+public abstract class ProductEntityMapper {
     @Mapping(ignore = true, target = ProductEntity_.ID)
     @Mapping(source = "source.id", target = ProductEntity_.UUID)
     @Mapping(source = "source.name", target = ProductEntity_.NAME)
     @Mapping(source = "source.categoryId", target = ProductEntity_.CATEGORY_ENTITY)
-    void map(Product source, @MappingTarget ProductEntity destination);
+    public abstract void toEntity(Product source, @MappingTarget ProductEntity destination);
+
 }

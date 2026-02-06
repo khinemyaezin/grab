@@ -86,7 +86,7 @@ public class ProductFacadeService {
     public EntityModel<DeleteProductResponse> deleteProduct(String productId) {
         log.info("Deleting product: {}", productId);
 
-        DeleteProductCommand command = new DeleteProductCommand(productId);
+        DeleteProductCommand command = new DeleteProductCommand(idGenerator.generateId(productId));
 
         DeleteProductResult result = commandBus.dispatch(command);
 

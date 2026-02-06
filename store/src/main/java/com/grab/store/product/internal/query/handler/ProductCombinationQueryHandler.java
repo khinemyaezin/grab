@@ -85,7 +85,6 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
         }
         return new ProductVariant(
                 idGenerator.generateId(),
-                productId,
                 generateSku(productName, result.variantCombination().getVariations()),
                 ProductVariantStatus.ACTIVE,
                 result.variantCombination().getVariations()
@@ -96,7 +95,6 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
         List<ProductVariation> variations = mapOptionsToVariations(options);
         return new ProductVariant(
                 idGenerator.generateId(),
-                productId,
                 generateSku(productName, variations),
                 ProductVariantStatus.ACTIVE,
                 variations
@@ -125,7 +123,7 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
                 : idGenerator.generateId(variant.id());
         ProductVariantStatus status = mapToDomainProductVariantStatus(variant.status());
         List<ProductVariation> variations = mapToDomainProductVariations(variant.variations());
-        return new ProductVariant(variantId, productId, variant.sku(), status, variations);
+        return new ProductVariant(variantId, variant.sku(), status, variations);
     }
 
     private ProductVariantStatus mapToDomainProductVariantStatus(String status) {
