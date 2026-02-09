@@ -1,10 +1,11 @@
 package com.grab.store.product.internal.api.rest.controller;
 
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
+import com.grab.store.product.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.dto.response.DeleteProductResponse;
-import com.grab.store.product.internal.api.rest.dto.response.GetAllProductsResponse;
+import com.grab.store.product.internal.api.rest.dto.response.ProductSummaryResponse;
 import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -23,9 +25,14 @@ public class ProductController {
 
     private final ProductFacadeService productFacadeService;
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<GetAllProductsResponse>> getAllProducts() {
-        EntityModel<GetAllProductsResponse> response = productFacadeService.getAllProducts();
+    @PostMapping(
+            value = "/search",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<EntityModel<ProductSummaryResponse>> getProducts(@Valid @RequestBody ProductSummaryRequest request) {
+        EntityModel<ProductSummaryResponse> response = productFacadeService.getProductSummary(request);
+
         return ResponseEntity.ok(response);
     }
 

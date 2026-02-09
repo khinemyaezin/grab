@@ -1,4 +1,4 @@
-package com.product.infrastructure.repository.jpa;
+package com.product.infrastructure.repository.jpa.impl;
 
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.Product;
@@ -6,6 +6,7 @@ import com.product.domain.repository.ProductRepository;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.event.DomainEventProducer;
 import com.product.infrastructure.mapper.jpa.ProductJpaAssembler;
+import com.product.infrastructure.repository.jpa.ProductJpaRepo;
 import lombok.AllArgsConstructor;
 
 import java.util.*;
@@ -41,13 +42,14 @@ public class ProductJpaRepository implements ProductRepository {
     }
 
     @Override
-    public Product find(Id productId) {
+    public Optional<Product> find(Id productId) {
         Optional<ProductEntity> productEntity = this.productJpaRepo.findByUuid(productId.getValue());
         if(productEntity.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         ProductEntity entity = productEntity.get();
-        return productJpaAssembler.toFullDomainGraph(entity);
+        Product product = productJpaAssembler.toFullDomainGraph(entity);
+        return Optional.of(product);
     }
 }

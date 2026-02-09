@@ -11,6 +11,7 @@ public class ProductVariantEntity_ {
     public static volatile SingularAttribute<ProductVariantEntity, Long> id;
     public static volatile SingularAttribute<ProductVariantEntity, String> sku;
     public static volatile SingularAttribute<ProductVariantEntity, String> uuid;
+    public static volatile SingularAttribute<ProductVariantEntity, String> status;
     public static volatile SingularAttribute<ProductVariantEntity, ProductEntity> product;
 
 
@@ -24,9 +25,10 @@ public class ProductVariantEntity_ {
     public static final String ID = "id";
     public static final String SKU = "sku";
     public static final String UUID = "uuid";
+    public static final String STATUS = "status";
     public static final String PRODUCT = "product";
     public static final String MEDIAS = "medias";
     public static final String DESCRIPTIONS = "descriptions";
-    public static final String PRODUCT_VARIANT_OPTIONS = "productVariantOptions";
+    public static final String PRODUCT_VARIATIONS = "productVariations";
     public static final String PRODUCT_FEATURES = "productFeatures";
 }

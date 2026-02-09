@@ -4,11 +4,11 @@ import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
-import com.product.domain.aggregate.product.ProductVariantStatus;
 import com.product.domain.valueobject.ProductVariation;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.event.DomainEventProducer;
 import com.product.infrastructure.mapper.jpa.ProductJpaAssembler;
+import com.product.infrastructure.repository.jpa.impl.ProductJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -134,7 +134,7 @@ class ProductJpaRepositoryTest {
 
         repository.delete(product);
 
-        verify(productJpaRepo, never()).delete(any());
+        verify(productJpaRepo, never()).delete((ProductEntity) any());
         verify(domainEventProducer, never()).produce(anyList());
     }
 

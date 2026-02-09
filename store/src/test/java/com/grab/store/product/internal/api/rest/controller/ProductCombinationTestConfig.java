@@ -3,11 +3,8 @@ package com.grab.store.product.internal.api.rest.controller;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.DeleteProductModelAssembler;
-import com.grab.store.product.internal.api.rest.assembler.GetAllProductsModelAssembler;
-import com.grab.store.product.internal.api.rest.mapper.GetAllProductsDtoMapper;
-import com.grab.store.product.internal.api.rest.mapper.IdConverter;
-import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
-import com.grab.store.product.internal.api.rest.mapper.SaveProductDtoMapper;
+import com.grab.store.product.internal.api.rest.assembler.ProductSummaryModelAssembler;
+import com.grab.store.product.internal.api.rest.mapper.*;
 import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
 import com.grab.store.product.internal.cqrs.command.CommandBus;
 import com.grab.store.product.internal.cqrs.command.CommandHandler;
@@ -108,18 +105,23 @@ public class ProductCombinationTestConfig {
     }
 
     @Bean
-    public GetAllProductsDtoMapper getAllProductsDtoMapper() {
-        return Mappers.getMapper(GetAllProductsDtoMapper.class);
-    }
-
-    @Bean
     public ProductCombinationModelAssembler buildProductModelAssembler() {
         return new ProductCombinationModelAssembler();
     }
 
     @Bean
-    public GetAllProductsModelAssembler getAllProductsModelAssembler() {
-        return new GetAllProductsModelAssembler();
+    public ProductSummaryModelAssembler buildProductSummaryModelAssembler() {
+        return new ProductSummaryModelAssembler();
+    }
+
+    @Bean
+    public ProductSummaryQueryMapper productSummaryQueryMapper() {
+        return Mappers.getMapper(ProductSummaryQueryMapper.class);
+    }
+
+    @Bean
+    public ProductSummaryDtoMapper productSummaryDtoMapper() {
+        return Mappers.getMapper(ProductSummaryDtoMapper.class);
     }
 
     @Bean
@@ -127,27 +129,28 @@ public class ProductCombinationTestConfig {
         return new DeleteProductModelAssembler();
     }
 
-    @Bean
-    public ProductFacadeService productFacadeService(
-            CommandBus commandBus,
-            QueryBus queryBus,
-            ProductCombinationDtoMapper productCombinationDtoMapper,
-            ProductCombinationModelAssembler productCombinationModelAssembler,
-            SaveProductDtoMapper saveProductDtoMapper,
-            GetAllProductsDtoMapper getAllProductsDtoMapper,
-            GetAllProductsModelAssembler getAllProductsModelAssembler,
-            DeleteProductModelAssembler deleteProductModelAssembler,
-            IdGenerator idGenerator) {
-        return new ProductFacadeService(
-                commandBus,
-                queryBus,
-                productCombinationDtoMapper,
-                productCombinationDtoMapper,
-                productCombinationModelAssembler,
-                saveProductDtoMapper,
-                getAllProductsDtoMapper,
-                getAllProductsModelAssembler,
-                deleteProductModelAssembler,
-                idGenerator);
-    }
+ @Bean
+ public ProductFacadeService productFacadeService(
+         CommandBus commandBus,
+         QueryBus queryBus,
+         ProductCombinationDtoMapper productCombinationDtoMapper,
+         ProductCombinationModelAssembler productCombinationModelAssembler,
+         ProductSummaryModelAssembler productSummaryModelAssembler,
+         ProductSummaryQueryMapper productSummaryQueryMapper,
+         SaveProductDtoMapper saveProductDtoMapper,
+         DeleteProductModelAssembler deleteProductModelAssembler,
+         ProductSummaryDtoMapper productSummaryDtoMapper,
+         IdGenerator idGenerator) {
+     return new ProductFacadeService(
+             commandBus,
+             queryBus,
+             productCombinationDtoMapper,
+             productCombinationModelAssembler,
+             productSummaryModelAssembler,
+             productSummaryQueryMapper,
+             saveProductDtoMapper,
+             deleteProductModelAssembler,
+             productSummaryDtoMapper,
+             idGenerator);
+ }
 }
