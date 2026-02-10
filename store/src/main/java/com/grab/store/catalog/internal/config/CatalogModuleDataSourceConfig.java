@@ -31,8 +31,8 @@ import java.util.Map;
 )
 @EnableJpaRepositories(
         basePackages = {"com.catalog.infrastructure.repository"},
-        entityManagerFactoryRef = "productEntityManagerFactory",
-        transactionManagerRef = "productTransactionManager"
+        entityManagerFactoryRef = "catalogEntityManagerFactory",
+        transactionManagerRef = "catalogTransactionManager"
 )
 @EnableTransactionManagement
 public class CatalogModuleDataSourceConfig {
