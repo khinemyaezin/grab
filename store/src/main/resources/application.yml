@@ -1,15 +1,15 @@
-product:
+catalog:
   datasource:
-    url: ${PRODUCT_DATASOURCE_URL:jdbc:postgresql://localhost:5432/product}
-    username: ${PRODUCT_DATASOURCE_USERNAME:admin}
-    password: ${PRODUCT_DATASOURCE_PASSWORD:123}
+    url: ${CATALOG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/catalog}
+    username: ${CATALOG_DATASOURCE_USERNAME:admin}
+    password: ${CATALOG_DATASOURCE_PASSWORD:123}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      dialect: ${PRODUCT_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      dialect: ${CATALOG_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
-        auto: ${PRODUCT_JPA_DDL_AUTO:update}
-      show_sql: ${PRODUCT_JPA_SHOW_SQL:true}
+        auto: ${CATALOG_JPA_DDL_AUTO:update}
+      show_sql: ${CATALOG_JPA_SHOW_SQL:true}
       format_sql: true
 
 logging:

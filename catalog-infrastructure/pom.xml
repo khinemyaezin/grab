@@ -30,6 +30,10 @@
             <version>${catalog-domain.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.github.khinemyaezin.nested-set</groupId>
+            <artifactId>nested-set</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.17.0</version>

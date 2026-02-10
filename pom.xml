@@ -12,12 +12,8 @@
 
     <modules>
         <module>framework</module>
-        <module>category-domain</module>
-        <module>category-infrastructure</module>
         <module>catalog-domain</module>
         <module>catalog-infrastructure</module>
-<!--        <module>inventory-domain</module>-->
-<!--        <module>inventory-infrastructure</module>-->
         <module>store</module>
     </modules>
 

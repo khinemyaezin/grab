@@ -7,8 +7,6 @@ COPY .mvn .mvn
 COPY mvnw .
 
 COPY framework/pom.xml framework/
-COPY category-domain/pom.xml category-domain/
-COPY category-infrastructure/pom.xml category-infrastructure/
 COPY catalog-domain/pom.xml catalog-domain/
 COPY catalog-infrastructure/pom.xml catalog-infrastructure/
 COPY store/pom.xml store/
@@ -16,8 +14,6 @@ COPY store/pom.xml store/
 RUN mvn dependency:go-offline -B
 
 COPY framework/src framework/src
-COPY category-domain/src category-domain/src
-COPY category-infrastructure/src category-infrastructure/src
 COPY catalog-domain/src catalog-domain/src
 COPY catalog-infrastructure/src catalog-infrastructure/src
 COPY store/src store/src
