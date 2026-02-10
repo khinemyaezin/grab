@@ -14,11 +14,11 @@ services:
       - "5005:5005"
     environment:
       - SPRING_PROFILES_ACTIVE=default
-      - PRODUCT_DATASOURCE_URL=jdbc:postgresql://postgres:5432/product
-      - PRODUCT_DATASOURCE_USERNAME=admin
-      - PRODUCT_DATASOURCE_PASSWORD=123
-      - PRODUCT_DATASOURCE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
-      - PRODUCT_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - CATALOG_DATASOURCE_URL=jdbc:postgresql://postgres:5432/catalog
+      - CATALOG_DATASOURCE_USERNAME=admin
+      - CATALOG_DATASOURCE_PASSWORD=123
+      - CATALOG_DATASOURCE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - CATALOG_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
       - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     depends_on:
       postgres:
@@ -36,13 +36,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=product
+      - POSTGRES_DB=catalog
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=123
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d product"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d catalog"]
       interval: 10s
       timeout: 5s
       retries: 5
