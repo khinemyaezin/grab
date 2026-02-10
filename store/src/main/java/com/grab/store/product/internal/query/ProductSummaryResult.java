@@ -1,10 +1,8 @@
 package com.grab.store.product.internal.query;
 
 import com.grab.framework.cqrs.PageInfo;
-import com.product.infrastructure.specification.jpa.ProductSummary;
 
 import java.util.List;
-import java.util.Map;
 
 public record ProductSummaryResult(
         List<Product> products,
@@ -18,6 +16,18 @@ public record ProductSummaryResult(
 
     public record VariantSummary(
             boolean available,
-            Map<String, List<String>> options
+            List<VariantType> types
     ) {}
+
+    public record VariantType(
+            String typeId,
+            String typeName,
+            List<VariantOption> options
+    ){}
+
+    public record VariantOption(
+            String optionId,
+            String optionName
+    ) {}
+
 }

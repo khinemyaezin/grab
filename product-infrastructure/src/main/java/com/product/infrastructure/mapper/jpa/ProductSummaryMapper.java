@@ -10,10 +10,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Mapper(config = CentralMapperConfig.class,uses = {CommonMapper.class})
@@ -21,7 +18,7 @@ public interface ProductSummaryMapper {
 
     @Mapping(source = "uuid", target = "id")
     @Mapping(source = "name", target = "name")
-    @Mapping(source = "productVariants", target = "variants", qualifiedByName = "VariantSummary")
+    @Mapping(source = "productVariants", target = "variantSummary", qualifiedByName = "VariantSummary")
     ProductSummary toProductSummary(ProductEntity productEntity);
 
     @Named("VariantSummary")
@@ -29,26 +26,24 @@ public interface ProductSummaryMapper {
         boolean available = variants.stream()
                 .anyMatch(v -> "ACTIVE".equals(v.getStatus()));
 
-        Map<String, List<String>> options = variants.stream()
+        List<ProductSummary.VariantType> types = variants.stream()
                 .flatMap(v -> v.getProductVariations().stream())
                 .collect(Collectors.groupingBy(
                         v -> v.getId().getVariantTypeUuid(),
                         LinkedHashMap::new,
                         Collectors.mapping(
-                                v-> v.getId().getVariantOptionUuid(),
-                                Collectors.collectingAndThen(
-                                        Collectors.toCollection(LinkedHashSet::new),
-                                        LinkedHashSet::stream
-                                )
+                                v -> v.getId().getVariantOptionUuid(),
+                                Collectors.toCollection(LinkedHashSet::new)
                         )
                 ))
                 .entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue().collect(Collectors.toList()),
-                        (a, b) -> a,
-                        LinkedHashMap::new
-                ));
-        return new ProductSummary.VariantSummary(available, options);
+                .map(e -> new ProductSummary.VariantType(
+                        e.getKey(),
+                        e.getValue().stream()
+                                .map(ProductSummary.VariantOption::new)
+                                .toList()
+                ))
+                .toList();
+        return new ProductSummary.VariantSummary(available, types);
     }
 }

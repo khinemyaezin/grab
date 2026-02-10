@@ -19,21 +19,6 @@ public class DomainConfig {
     }
 
     @Bean
-    public VariantKeyGenerator variantKeyGenerator() {
-        return new DefaultVariantKeyGenerator();
-    }
-
-    @Bean
-    public VariantInputsFactory variantInputsFactory(VariantKeyGenerator variantKeyGenerator) {
-        return new DefaultVariantInputsFactory(variantKeyGenerator);
-    }
-
-    @Bean
-    public VariantSorter variantSorter(VariantKeyGenerator variantKeyGenerator) {
-        return new DefaultVariantSorter(variantKeyGenerator);
-    }
-
-    @Bean
     public VariationKeyGenerator variationKeyGenerator() {
         return new DefaultVariationKeyGenerator();
     }

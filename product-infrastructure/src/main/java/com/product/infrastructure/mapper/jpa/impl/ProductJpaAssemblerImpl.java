@@ -19,7 +19,7 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
     private final ProductVariantMapper productVariantMapper;
     private final ProductVariationMapper productVariationMapper;
 
-    public ProductEntity toFullEntityGraph(Product product, ProductEntity entity) {
+    public ProductEntity buildFullEntityGraph(Product product, ProductEntity entity) {
         if(entity == null) {
             // Create new entity
             entity = toProductEntity(product);
@@ -63,7 +63,8 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
         return new ProductVariationEntity(
                 new ProductVariationEntity.ProductVariationId(
                         productVariation.getOptionId().getValue(),
-                        productVariation.getTypeId().getValue()
+                        productVariation.getTypeId().getValue(),
+                        null
                 ),
                 null,
                 productVariation.getOptionName(),
@@ -83,12 +84,8 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
             ProductVariantEntity variantEntity = existingByUuid.get(uuid);
 
             if (variantEntity != null) {
-                variantEntity.getProductVariations().clear();
                 mergeProductVariantEntity(variantEntity, variantDomain);
-                for(ProductVariation variation: variantDomain.getVariations()) {
-                    ProductVariationEntity variationEntity = toProductVariationEntity(variation);
-                    variantEntity.addProductVariation(variationEntity);
-                }
+                mergeVariations(variantEntity, variantDomain.getVariations());
                 processedUuids.add(uuid);
                 resultVariants.add(variantEntity);
             } else {
@@ -106,6 +103,38 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
         resultVariants.stream()
                 .filter(e -> !existingByUuid.containsKey(e.getUuid()))
                 .forEach(productEntity::addVariant);
+    }
+
+    private void mergeVariations(ProductVariantEntity variantEntity, Set<ProductVariation> domainVariations) {
+        Map<String, ProductVariationEntity> existingByKey = variantEntity.getProductVariations().stream()
+                .collect(Collectors.toMap(
+                        v -> variationKey(v.getId().getVariantOptionUuid(), v.getId().getVariantTypeUuid()),
+                        Function.identity()
+                ));
+
+        Set<String> domainKeys = new HashSet<>();
+
+        for (ProductVariation variation : domainVariations) {
+            String key = variationKey(variation.getOptionId().getValue(), variation.getTypeId().getValue());
+            domainKeys.add(key);
+            ProductVariationEntity existingEntity = existingByKey.get(key);
+
+            if (existingEntity != null) {
+                existingEntity.setVariantOptionValue(variation.getOptionName());
+                existingEntity.setVariantTypeValue(variation.getTypeName());
+            } else {
+                ProductVariationEntity newEntity = toProductVariationEntity(variation);
+                variantEntity.addProductVariation(newEntity);
+            }
+        }
+
+        variantEntity.getProductVariations().removeIf(v ->
+                !domainKeys.contains(variationKey(v.getId().getVariantOptionUuid(), v.getId().getVariantTypeUuid()))
+        );
+    }
+
+    private String variationKey(String optionId, String typeId) {
+        return optionId + "::" + typeId;
     }
 
     public Product toFullDomainGraph(ProductEntity productJpaEntity){

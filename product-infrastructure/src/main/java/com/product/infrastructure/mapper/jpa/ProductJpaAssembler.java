@@ -12,7 +12,7 @@ public interface ProductJpaAssembler {
       * @param entity the existing ProductEntity to update, or null to create a new instance
       * @return the resulting ProductEntity populated from the aggregate
       */
-    ProductEntity toFullEntityGraph(Product product, ProductEntity entity);
+    ProductEntity buildFullEntityGraph(Product product, ProductEntity entity);
 
     /**
      * Reconstruct the full Product domain aggregate from the provided JPA entity,

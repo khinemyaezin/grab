@@ -1,16 +1,23 @@
 package com.product.infrastructure.specification.jpa;
 
 import java.util.List;
-import java.util.Map;
 
 public record ProductSummary(
         String id,
         String name,
-        VariantSummary variants
+        VariantSummary variantSummary
 ) {
 
     public record VariantSummary(
             boolean available,
-            Map<String, List<String>> options
+            List<VariantType> types
+    ) {}
+    public record VariantType(
+            String typeId,
+            List<VariantOption> options
+    ){}
+
+    public record VariantOption(
+            String optionId
     ) {}
 }

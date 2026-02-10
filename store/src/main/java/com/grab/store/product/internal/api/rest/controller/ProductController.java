@@ -3,6 +3,7 @@ package com.grab.store.product.internal.api.rest.controller;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.product.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
+import com.grab.store.product.internal.api.rest.dto.response.GetProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductSummaryResponse;
@@ -24,6 +25,12 @@ import java.util.List;
 public class ProductController {
 
     private final ProductFacadeService productFacadeService;
+
+    @GetMapping(value = "/{productId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<GetProductResponse>> getProduct(@PathVariable("productId") String productId) {
+        EntityModel<GetProductResponse> response = productFacadeService.getProduct(productId);
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping(
             value = "/search",

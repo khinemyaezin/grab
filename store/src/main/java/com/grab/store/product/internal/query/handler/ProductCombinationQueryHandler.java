@@ -73,13 +73,13 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
                 variationCombinationManager.syncCombinations(existingVariants, newVariantCombinations);
 
         return results.stream()
-                .map(result -> mapVariantCombinationResult(result, productId, query.product().name()))
+                .map(result -> mapVariantCombinationResult(result, query.product().name()))
                 .toList();
     }
 
     private ProductVariant mapVariantCombinationResult(
             VariationCombinationManager.VariantCombinationResult result,
-            Id productId, String productName) {
+            String productName) {
         if (result.matchedType() == VariationCombinationManager.VariantCombinationResult.MatchedType.UNCHANGED) {
             return result.matchedVariant();
         }

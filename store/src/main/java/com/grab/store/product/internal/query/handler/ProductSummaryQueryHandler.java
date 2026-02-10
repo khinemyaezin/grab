@@ -34,21 +34,38 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                 .build();
 
         Page<ProductSummary> page = productQueryRepository.search(criteria, PageRequest.of(query.page(), query.size()));
-
-        List<ProductSummaryResult.Product> products = page.getContent().stream()
-                .map(summary -> new ProductSummaryResult.Product(
-                        summary.id(),
-                        summary.name(),
-                        new ProductSummaryResult.VariantSummary(
-                                summary.variants().available(),
-                                summary.variants().options()
-                        )
-                ))
-                .toList();
+        List<ProductSummaryResult.Product> products = mapToResultProducts(page.getContent());
 
         return new ProductSummaryResult(
                 products,
                 PageInfoMapper.fromPage(page));
+    }
+
+    private List<ProductSummaryResult.Product> mapToResultProducts(List<ProductSummary> summaries) {
+        return summaries.stream()
+                .map(summary -> new ProductSummaryResult.Product(
+                        summary.id(),
+                        summary.name(),
+                        new ProductSummaryResult.VariantSummary(
+                                summary.variantSummary().available(),
+                                extractVariantTypes(summary.variantSummary())
+                        )
+                ))
+                .toList();
+    }
+
+    private List<ProductSummaryResult.VariantType> extractVariantTypes(ProductSummary.VariantSummary variantSummary) {
+        return variantSummary.types().stream()
+                .map(type -> new ProductSummaryResult.VariantType(
+                        type.typeId(),
+                        "",
+                        type.options().stream().map(
+                                option -> new ProductSummaryResult.VariantOption(
+                                        option.optionId(),
+                                        ""
+                        )).toList()
+                ))
+                .toList();
     }
 
     @Override

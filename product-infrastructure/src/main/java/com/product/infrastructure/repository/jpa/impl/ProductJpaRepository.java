@@ -23,9 +23,9 @@ public class ProductJpaRepository implements ProductRepository {
         ProductEntity entity;
 
         if(productEntity.isPresent()) {
-            entity = productJpaAssembler.toFullEntityGraph(product, productEntity.get());
+            entity = productJpaAssembler.buildFullEntityGraph(product, productEntity.get());
         } else {
-            entity = productJpaAssembler.toFullEntityGraph(product, null);
+            entity = productJpaAssembler.buildFullEntityGraph(product, null);
         }
 
         productJpaRepo.save(entity);

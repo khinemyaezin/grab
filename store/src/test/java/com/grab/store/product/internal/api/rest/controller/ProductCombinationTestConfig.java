@@ -1,6 +1,7 @@
 package com.grab.store.product.internal.api.rest.controller;
 
 import com.grab.framework.id.IdGenerator;
+import com.grab.store.product.internal.api.rest.assembler.GetProductModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.DeleteProductModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.ProductSummaryModelAssembler;
@@ -129,28 +130,42 @@ public class ProductCombinationTestConfig {
         return new DeleteProductModelAssembler();
     }
 
- @Bean
- public ProductFacadeService productFacadeService(
-         CommandBus commandBus,
-         QueryBus queryBus,
-         ProductCombinationDtoMapper productCombinationDtoMapper,
-         ProductCombinationModelAssembler productCombinationModelAssembler,
-         ProductSummaryModelAssembler productSummaryModelAssembler,
-         ProductSummaryQueryMapper productSummaryQueryMapper,
-         SaveProductDtoMapper saveProductDtoMapper,
-         DeleteProductModelAssembler deleteProductModelAssembler,
-         ProductSummaryDtoMapper productSummaryDtoMapper,
-         IdGenerator idGenerator) {
-     return new ProductFacadeService(
-             commandBus,
-             queryBus,
-             productCombinationDtoMapper,
-             productCombinationModelAssembler,
-             productSummaryModelAssembler,
-             productSummaryQueryMapper,
-             saveProductDtoMapper,
-             deleteProductModelAssembler,
-             productSummaryDtoMapper,
-             idGenerator);
- }
+    @Bean
+    public GetProductDtoMapper getProductDtoMapper() {
+        return Mappers.getMapper(GetProductDtoMapper.class);
+    }
+
+    @Bean
+    public GetProductModelAssembler getProductModelAssembler() {
+        return new GetProductModelAssembler();
+    }
+
+    @Bean
+    public ProductFacadeService productFacadeService(
+            CommandBus commandBus,
+            QueryBus queryBus,
+            GetProductDtoMapper getProductDtoMapper,
+            GetProductModelAssembler getProductModelAssembler,
+            ProductCombinationDtoMapper productCombinationDtoMapper,
+            ProductCombinationModelAssembler productCombinationModelAssembler,
+            ProductSummaryModelAssembler productSummaryModelAssembler,
+            ProductSummaryQueryMapper productSummaryQueryMapper,
+            SaveProductDtoMapper saveProductDtoMapper,
+            DeleteProductModelAssembler deleteProductModelAssembler,
+            ProductSummaryDtoMapper productSummaryDtoMapper,
+            IdGenerator idGenerator) {
+        return new ProductFacadeService(
+                commandBus,
+                queryBus,
+                getProductDtoMapper,
+                getProductModelAssembler,
+                productCombinationDtoMapper,
+                productCombinationModelAssembler,
+                productSummaryModelAssembler,
+                productSummaryQueryMapper,
+                saveProductDtoMapper,
+                deleteProductModelAssembler,
+                productSummaryDtoMapper,
+                idGenerator);
+    }
 }
