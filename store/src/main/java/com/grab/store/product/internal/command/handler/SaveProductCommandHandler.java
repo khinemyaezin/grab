@@ -34,7 +34,7 @@ public class SaveProductCommandHandler implements CommandHandler<SaveProductComm
 
         productRepository.save(product);
 
-        log.info("Product saved successfully with {} variants", product.getVariants().size());
+        log.info("Product saved successfully with {} variantSummary", product.getVariants().size());
 
         return new SaveProductResult(product.getId().getValue());
     }

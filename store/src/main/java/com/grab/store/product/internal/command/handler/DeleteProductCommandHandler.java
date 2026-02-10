@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,13 +26,14 @@ public class DeleteProductCommandHandler implements CommandHandler<DeleteProduct
     @Transactional
     public DeleteProductResult handle(DeleteProductCommand command) {
         log.debug("Handling DeleteProductCommand for product: {}", command.productId());
-        Product product = productRepository.find(command.productId());
-        if (product == null) {
+
+        Optional<Product> product = productRepository.find(command.productId());
+        if (product.isEmpty()) {
             log.warn("Product not found for deletion: {}", command.productId());
             return new DeleteProductResult(false);
         }
 
-        productRepository.delete(product);
+        productRepository.delete(product.get());
 
         log.info("Product deleted successfully: {}", command.productId());
 

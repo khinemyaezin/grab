@@ -1,13 +1,11 @@
 package com.grab.store.product.internal.api.rest.controller;
 
 import com.grab.framework.id.IdGenerator;
+import com.grab.store.product.internal.api.rest.assembler.GetProductModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.DeleteProductModelAssembler;
-import com.grab.store.product.internal.api.rest.assembler.GetAllProductsModelAssembler;
-import com.grab.store.product.internal.api.rest.mapper.GetAllProductsDtoMapper;
-import com.grab.store.product.internal.api.rest.mapper.IdConverter;
-import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
-import com.grab.store.product.internal.api.rest.mapper.SaveProductDtoMapper;
+import com.grab.store.product.internal.api.rest.assembler.ProductSummaryModelAssembler;
+import com.grab.store.product.internal.api.rest.mapper.*;
 import com.grab.store.product.internal.api.rest.service.ProductFacadeService;
 import com.grab.store.product.internal.cqrs.command.CommandBus;
 import com.grab.store.product.internal.cqrs.command.CommandHandler;
@@ -108,18 +106,23 @@ public class ProductCombinationTestConfig {
     }
 
     @Bean
-    public GetAllProductsDtoMapper getAllProductsDtoMapper() {
-        return Mappers.getMapper(GetAllProductsDtoMapper.class);
-    }
-
-    @Bean
     public ProductCombinationModelAssembler buildProductModelAssembler() {
         return new ProductCombinationModelAssembler();
     }
 
     @Bean
-    public GetAllProductsModelAssembler getAllProductsModelAssembler() {
-        return new GetAllProductsModelAssembler();
+    public ProductSummaryModelAssembler buildProductSummaryModelAssembler() {
+        return new ProductSummaryModelAssembler();
+    }
+
+    @Bean
+    public ProductSummaryQueryMapper productSummaryQueryMapper() {
+        return Mappers.getMapper(ProductSummaryQueryMapper.class);
+    }
+
+    @Bean
+    public ProductSummaryDtoMapper productSummaryDtoMapper() {
+        return Mappers.getMapper(ProductSummaryDtoMapper.class);
     }
 
     @Bean
@@ -128,26 +131,41 @@ public class ProductCombinationTestConfig {
     }
 
     @Bean
+    public GetProductDtoMapper getProductDtoMapper() {
+        return Mappers.getMapper(GetProductDtoMapper.class);
+    }
+
+    @Bean
+    public GetProductModelAssembler getProductModelAssembler() {
+        return new GetProductModelAssembler();
+    }
+
+    @Bean
     public ProductFacadeService productFacadeService(
             CommandBus commandBus,
             QueryBus queryBus,
+            GetProductDtoMapper getProductDtoMapper,
+            GetProductModelAssembler getProductModelAssembler,
             ProductCombinationDtoMapper productCombinationDtoMapper,
             ProductCombinationModelAssembler productCombinationModelAssembler,
+            ProductSummaryModelAssembler productSummaryModelAssembler,
+            ProductSummaryQueryMapper productSummaryQueryMapper,
             SaveProductDtoMapper saveProductDtoMapper,
-            GetAllProductsDtoMapper getAllProductsDtoMapper,
-            GetAllProductsModelAssembler getAllProductsModelAssembler,
             DeleteProductModelAssembler deleteProductModelAssembler,
+            ProductSummaryDtoMapper productSummaryDtoMapper,
             IdGenerator idGenerator) {
         return new ProductFacadeService(
                 commandBus,
                 queryBus,
-                productCombinationDtoMapper,
+                getProductDtoMapper,
+                getProductModelAssembler,
                 productCombinationDtoMapper,
                 productCombinationModelAssembler,
+                productSummaryModelAssembler,
+                productSummaryQueryMapper,
                 saveProductDtoMapper,
-                getAllProductsDtoMapper,
-                getAllProductsModelAssembler,
                 deleteProductModelAssembler,
+                productSummaryDtoMapper,
                 idGenerator);
     }
 }

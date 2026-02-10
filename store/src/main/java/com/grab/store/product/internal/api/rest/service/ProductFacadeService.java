@@ -1,16 +1,21 @@
 package com.grab.store.product.internal.api.rest.service;
 
 import com.grab.framework.id.IdGenerator;
+import com.grab.store.product.internal.api.rest.assembler.GetProductModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.product.internal.api.rest.assembler.DeleteProductModelAssembler;
-import com.grab.store.product.internal.api.rest.assembler.GetAllProductsModelAssembler;
+import com.grab.store.product.internal.api.rest.assembler.ProductSummaryModelAssembler;
 import com.grab.store.product.internal.api.rest.dto.request.ProductCombinationRequest;
+import com.grab.store.product.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.product.internal.api.rest.dto.request.SaveProductRequest;
+import com.grab.store.product.internal.api.rest.dto.response.GetProductResponse;
 import com.grab.store.product.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.product.internal.api.rest.dto.response.DeleteProductResponse;
-import com.grab.store.product.internal.api.rest.dto.response.GetAllProductsResponse;
+import com.grab.store.product.internal.api.rest.dto.response.ProductSummaryResponse;
+import com.grab.store.product.internal.api.rest.mapper.GetProductDtoMapper;
 import com.grab.store.product.internal.api.rest.mapper.ProductCombinationDtoMapper;
-import com.grab.store.product.internal.api.rest.mapper.GetAllProductsDtoMapper;
+import com.grab.store.product.internal.api.rest.mapper.ProductSummaryDtoMapper;
+import com.grab.store.product.internal.api.rest.mapper.ProductSummaryQueryMapper;
 import com.grab.store.product.internal.api.rest.mapper.SaveProductDtoMapper;
 import com.grab.store.product.internal.command.DeleteProductCommand;
 import com.grab.store.product.internal.command.DeleteProductResult;
@@ -20,8 +25,10 @@ import com.grab.store.product.internal.cqrs.command.CommandBus;
 import com.grab.store.product.internal.cqrs.query.QueryBus;
 import com.grab.store.product.internal.query.ProductCombinationQuery;
 import com.grab.store.product.internal.query.ProductCombinationResult;
-import com.grab.store.product.internal.query.GetAllProductsQuery;
-import com.grab.store.product.internal.query.GetAllProductsResult;
+import com.grab.store.product.internal.query.GetProductQuery;
+import com.grab.store.product.internal.query.GetProductResult;
+import com.grab.store.product.internal.query.ProductSummaryQuery;
+import com.grab.store.product.internal.query.ProductSummaryResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;
@@ -35,19 +42,25 @@ public class ProductFacadeService {
     private final CommandBus commandBus;
     private final QueryBus queryBus;
 
-    private final ProductCombinationDtoMapper combinationDtoMapper;
-
+    private final GetProductDtoMapper getProductDtoMapper;
+    private final GetProductModelAssembler getProductModelAssembler;
     private final ProductCombinationDtoMapper productCombinationDtoMapper;
     private final ProductCombinationModelAssembler productCombinationModelAssembler;
-
+    private final ProductSummaryModelAssembler productSummaryModelAssembler;
+    private final ProductSummaryQueryMapper productSummaryQueryMapper;
     private final SaveProductDtoMapper saveProductDtoMapper;
-
-    private final GetAllProductsDtoMapper getAllProductsDtoMapper;
-    private final GetAllProductsModelAssembler getAllProductsModelAssembler;
-
     private final DeleteProductModelAssembler deleteProductModelAssembler;
-
+    private final ProductSummaryDtoMapper productSummaryDtoMapper;
     private final IdGenerator idGenerator;
+
+    public EntityModel<GetProductResponse> getProduct(String productId) {
+        log.info("Getting product: {}", productId);
+
+        GetProductQuery query = new GetProductQuery(productId);
+        GetProductResult result = queryBus.dispatch(query);
+        GetProductResponse response = getProductDtoMapper.toResponse(result);
+        return getProductModelAssembler.toModel(response);
+    }
 
     public EntityModel<ProductCombinationResponse> getProductCombination(ProductCombinationRequest request) {
         log.info("Product combination: {}", request.product().name());
@@ -71,16 +84,21 @@ public class ProductFacadeService {
         return result.productId();
     }
 
-    public EntityModel<GetAllProductsResponse> getAllProducts() {
-        log.info("Getting all products");
+    public EntityModel<ProductSummaryResponse> getProductSummary(ProductSummaryRequest request) {
+        log.info("Searching products");
 
-        GetAllProductsQuery query = new GetAllProductsQuery();
+        ProductSummaryQuery query = productSummaryQueryMapper.toQuery(
+                request.productName(),
+                request.sku(),
+                request.variantStatus(),
+                request.variations(),
+                request.page(),
+                request.size()
+        );
 
-        GetAllProductsResult result = queryBus.dispatch(query);
-
-        GetAllProductsResponse response = getAllProductsDtoMapper.toResponse(result);
-
-        return getAllProductsModelAssembler.toModel(response);
+        ProductSummaryResult result = queryBus.dispatch(query);
+        ProductSummaryResponse response = productSummaryDtoMapper.toResponse(result);
+        return productSummaryModelAssembler.toModel(response);
     }
 
     public EntityModel<DeleteProductResponse> deleteProduct(String productId) {

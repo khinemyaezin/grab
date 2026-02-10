@@ -7,7 +7,10 @@ import com.product.infrastructure.event.DomainEventProducer;
 import com.product.infrastructure.mapper.jpa.*;
 import com.product.infrastructure.mapper.jpa.impl.ProductJpaAssemblerImpl;
 import com.product.infrastructure.repository.jpa.ProductJpaRepo;
-import com.product.infrastructure.repository.jpa.ProductJpaRepository;
+import com.product.infrastructure.repository.jpa.ProductQueryRepository;
+import com.product.infrastructure.repository.jpa.impl.ProductQueryJpqlRepository;
+import com.product.infrastructure.repository.jpa.impl.ProductJpaRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,5 +48,13 @@ public class ProductInfraConfig {
         return new ProductJpaRepository(
                 jpaAssembler, productJpaRepo, domainEventProducer
         );
+    }
+
+    @Bean
+    public ProductQueryRepository productQueryRepository(
+            EntityManager entityManager,
+            ProductSummaryMapper productSummaryMapper
+    ) {
+        return new ProductQueryJpqlRepository(entityManager, productSummaryMapper);
     }
 }

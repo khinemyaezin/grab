@@ -4,11 +4,11 @@ import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.product.domain.aggregate.product.Product;
 import com.product.domain.aggregate.product.ProductVariant;
-import com.product.domain.aggregate.product.ProductVariantStatus;
 import com.product.domain.valueobject.ProductVariation;
 import com.product.infrastructure.entity.product.entity.ProductEntity;
 import com.product.infrastructure.event.DomainEventProducer;
 import com.product.infrastructure.mapper.jpa.ProductJpaAssembler;
+import com.product.infrastructure.repository.jpa.impl.ProductJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,11 +41,11 @@ class ProductJpaRepositoryTest {
         ProductEntity newEntity = new ProductEntity();
 
         when(productJpaRepo.findByUuid(product.getId().getValue())).thenReturn(Optional.empty());
-        when(productJpaAssembler.toFullEntityGraph(product, null)).thenReturn(newEntity);
+        when(productJpaAssembler.buildFullEntityGraph(product, null)).thenReturn(newEntity);
 
         repository.save(product);
 
-        verify(productJpaAssembler).toFullEntityGraph(product, null);
+        verify(productJpaAssembler).buildFullEntityGraph(product, null);
         verify(productJpaRepo).save(newEntity);
     }
 
@@ -57,11 +57,11 @@ class ProductJpaRepositoryTest {
         ProductEntity mergedEntity = new ProductEntity();
 
         when(productJpaRepo.findByUuid(product.getId().getValue())).thenReturn(Optional.of(existingEntity));
-        when(productJpaAssembler.toFullEntityGraph(product, existingEntity)).thenReturn(mergedEntity);
+        when(productJpaAssembler.buildFullEntityGraph(product, existingEntity)).thenReturn(mergedEntity);
 
         repository.save(product);
 
-        verify(productJpaAssembler).toFullEntityGraph(product, existingEntity);
+        verify(productJpaAssembler).buildFullEntityGraph(product, existingEntity);
         verify(productJpaRepo).save(mergedEntity);
     }
 
@@ -71,7 +71,7 @@ class ProductJpaRepositoryTest {
         product.changeCategory(id("new-category"));
 
         when(productJpaRepo.findByUuid(product.getId().getValue())).thenReturn(Optional.empty());
-        when(productJpaAssembler.toFullEntityGraph(eq(product), isNull())).thenReturn(new ProductEntity());
+        when(productJpaAssembler.buildFullEntityGraph(eq(product), isNull())).thenReturn(new ProductEntity());
 
         repository.save(product);
 
@@ -86,7 +86,7 @@ class ProductJpaRepositoryTest {
         Product product = createProduct();
 
         when(productJpaRepo.findByUuid(product.getId().getValue())).thenReturn(Optional.empty());
-        when(productJpaAssembler.toFullEntityGraph(eq(product), isNull())).thenReturn(new ProductEntity());
+        when(productJpaAssembler.buildFullEntityGraph(eq(product), isNull())).thenReturn(new ProductEntity());
 
         repository.save(product);
 
@@ -102,12 +102,12 @@ class ProductJpaRepositoryTest {
         ProductEntity entity = new ProductEntity();
 
         when(productJpaRepo.findByUuid(product.getId().getValue())).thenReturn(Optional.empty());
-        when(productJpaAssembler.toFullEntityGraph(product, null)).thenReturn(entity);
+        when(productJpaAssembler.buildFullEntityGraph(product, null)).thenReturn(entity);
 
         repository.save(product);
 
         var inOrder = inOrder(productJpaAssembler, productJpaRepo, domainEventProducer);
-        inOrder.verify(productJpaAssembler).toFullEntityGraph(product, null);
+        inOrder.verify(productJpaAssembler).buildFullEntityGraph(product, null);
         inOrder.verify(productJpaRepo).save(entity);
         inOrder.verify(domainEventProducer).produce(product.getEvents());
     }
@@ -134,7 +134,7 @@ class ProductJpaRepositoryTest {
 
         repository.delete(product);
 
-        verify(productJpaRepo, never()).delete(any());
+        verify(productJpaRepo, never()).delete((ProductEntity) any());
         verify(domainEventProducer, never()).produce(anyList());
     }
 

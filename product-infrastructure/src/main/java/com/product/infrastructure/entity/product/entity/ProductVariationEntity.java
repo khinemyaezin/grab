@@ -19,6 +19,7 @@ public class ProductVariationEntity {
     @EmbeddedId
     private ProductVariationId id;
 
+    @MapsId("variantId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "variant_id")
     private ProductVariantEntity productVariant;
@@ -39,6 +40,8 @@ public class ProductVariationEntity {
 
         @Column(name = "variant_type_id")
         private String variantTypeUuid;
+
+        private Long variantId;
     }
 
     @Override
