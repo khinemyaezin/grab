@@ -9,7 +9,7 @@
         <version>0.0.1</version>
     </parent>
 
-    <artifactId>product-domain</artifactId>
+    <artifactId>catalog-domain</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
 

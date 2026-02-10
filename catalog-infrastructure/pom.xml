@@ -9,7 +9,7 @@
         <version>0.0.1</version>
     </parent>
 
-    <artifactId>product-infrastructure</artifactId>
+    <artifactId>catalog-infrastructure</artifactId>
     <version>0.0.1</version>
     <packaging>jar</packaging>
 
@@ -17,7 +17,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <product-domain.version>0.0.1</product-domain.version>
+        <catalog-domain.version>0.0.1</catalog-domain.version>
     </properties>
     <dependencies>
         <dependency>
@@ -26,8 +26,8 @@
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>product-domain</artifactId>
-            <version>${product-domain.version}</version>
+            <artifactId>catalog-domain</artifactId>
+            <version>${catalog-domain.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -16,7 +16,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <inventory-infrastructure.version>0.0.1</inventory-infrastructure.version>
-        <product-infrastructure.version>0.0.1</product-infrastructure.version>
+        <catalog-infrastructure.version>0.0.1</catalog-infrastructure.version>
         <category-infrastructure.version>0.0.1</category-infrastructure.version>
     </properties>
 
@@ -73,8 +73,8 @@
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>product-infrastructure</artifactId>
-            <version>${product-infrastructure.version}</version>
+            <artifactId>catalog-infrastructure</artifactId>
+            <version>${catalog-infrastructure.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
