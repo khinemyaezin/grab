@@ -9,8 +9,8 @@ COPY mvnw .
 COPY framework/pom.xml framework/
 COPY category-domain/pom.xml category-domain/
 COPY category-infrastructure/pom.xml category-infrastructure/
-COPY product-domain/pom.xml product-domain/
-COPY product-infrastructure/pom.xml product-infrastructure/
+COPY catalog-domain/pom.xml catalog-domain/
+COPY catalog-infrastructure/pom.xml catalog-infrastructure/
 COPY store/pom.xml store/
 
 RUN mvn dependency:go-offline -B
@@ -18,8 +18,8 @@ RUN mvn dependency:go-offline -B
 COPY framework/src framework/src
 COPY category-domain/src category-domain/src
 COPY category-infrastructure/src category-infrastructure/src
-COPY product-domain/src product-domain/src
-COPY product-infrastructure/src product-infrastructure/src
+COPY catalog-domain/src catalog-domain/src
+COPY catalog-infrastructure/src catalog-infrastructure/src
 COPY store/src store/src
 
 RUN mvn clean package -DskipTests -Dmaven.javadoc.skip=true -B
