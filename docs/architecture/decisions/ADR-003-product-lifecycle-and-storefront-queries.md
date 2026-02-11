@@ -1,4 +1,4 @@
-# ADR-002: Product Lifecycle Status, Slug, and Storefront Query Support
+# ADR-003: Product Lifecycle Status, Slug, and Storefront Query Support
 
 ## Status
 Proposed
