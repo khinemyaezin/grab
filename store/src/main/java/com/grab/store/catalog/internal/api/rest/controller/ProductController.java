@@ -4,12 +4,15 @@ import com.grab.store.catalog.internal.api.rest.dto.request.ProductCombinationRe
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveProductRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductStatusRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateVariantRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.GetProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteProductResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.DeleteVariantResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductSummaryResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductStatusResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.UpdateVariantResponse;
 import com.grab.store.catalog.internal.api.rest.service.ProductFacadeService;
 import jakarta.validation.Valid;
@@ -108,5 +111,30 @@ public class ProductController {
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @PatchMapping(value = "/{productId}/status", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<UpdateProductStatusResponse>> updateProductStatus(
+            @PathVariable("productId") String productId,
+            @Valid @RequestBody UpdateProductStatusRequest request) {
+        EntityModel<UpdateProductStatusResponse> response = productFacadeService.updateProductStatus(productId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping(value = "/{productId}/variants/{variantId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<DeleteVariantResponse>> deleteVariant(
+            @PathVariable("productId") String productId,
+            @PathVariable("variantId") String variantId) {
+        EntityModel<DeleteVariantResponse> response = productFacadeService.deleteVariant(productId, variantId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/category/{categoryId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<ProductSummaryResponse>> getProductsByCategory(
+            @PathVariable("categoryId") String categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        EntityModel<ProductSummaryResponse> response = productFacadeService.getProductsByCategory(categoryId, page, size);
+        return ResponseEntity.ok(response);
     }
 }

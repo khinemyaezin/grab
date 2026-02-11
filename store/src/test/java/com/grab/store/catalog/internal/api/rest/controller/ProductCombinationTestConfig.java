@@ -1,12 +1,7 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.catalog.internal.api.rest.assembler.GetProductModelAssembler;
-import com.grab.store.catalog.internal.api.rest.assembler.ProductCombinationModelAssembler;
-import com.grab.store.catalog.internal.api.rest.assembler.DeleteProductModelAssembler;
-import com.grab.store.catalog.internal.api.rest.assembler.ProductSummaryModelAssembler;
-import com.grab.store.catalog.internal.api.rest.assembler.UpdateProductModelAssembler;
-import com.grab.store.catalog.internal.api.rest.assembler.UpdateVariantModelAssembler;
+import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
 import com.grab.store.catalog.internal.api.rest.service.ProductFacadeService;
 import com.grab.store.catalog.internal.cqrs.command.CommandBus;
@@ -163,6 +158,26 @@ public class ProductCombinationTestConfig {
     }
 
     @Bean
+    public UpdateProductStatusDtoMapper getUpdateProductStatusDtoMapper(){
+        return Mappers.getMapper(UpdateProductStatusDtoMapper.class);
+    }
+
+    @Bean
+    public DeleteVariantDtoMapper getDeleteVariantDtoMapper(){
+        return Mappers.getMapper(DeleteVariantDtoMapper.class);
+    }
+
+    @Bean
+    public UpdateProductStatusModelAssembler updateProductStatusModelAssembler() {
+        return new UpdateProductStatusModelAssembler();
+    }
+
+    @Bean
+    public DeleteVariantModelAssembler deleteVariantModelAssembler() {
+        return new DeleteVariantModelAssembler();
+    }
+
+    @Bean
     public ProductFacadeService productFacadeService(
             CommandBus commandBus,
             QueryBus queryBus,
@@ -176,10 +191,15 @@ public class ProductCombinationTestConfig {
             DeleteProductModelAssembler deleteProductModelAssembler,
             ProductSummaryDtoMapper productSummaryDtoMapper,
             UpdateProductDtoMapper updateProductDtoMapper,
+            UpdateProductStatusDtoMapper updateProductStatusDtoMapper,
             UpdateVariantDtoMapper updateVariantDtoMapper,
+            DeleteVariantDtoMapper deleteVariantDtoMapper,
             UpdateProductModelAssembler updateProductModelAssembler,
+            UpdateProductStatusModelAssembler updateProductStatusModelAssembler,
             UpdateVariantModelAssembler updateVariantModelAssembler,
-            IdGenerator idGenerator) {
+            DeleteVariantModelAssembler deleteVariantModelAssembler,
+            IdGenerator idGenerator
+    ) {
         return new ProductFacadeService(
                 commandBus,
                 queryBus,
@@ -193,9 +213,14 @@ public class ProductCombinationTestConfig {
                 deleteProductModelAssembler,
                 productSummaryDtoMapper,
                 updateProductDtoMapper,
+                updateProductStatusDtoMapper,
                 updateVariantDtoMapper,
+                deleteVariantDtoMapper,
                 updateProductModelAssembler,
+                updateProductStatusModelAssembler,
                 updateVariantModelAssembler,
-                idGenerator);
+                deleteVariantModelAssembler,
+                idGenerator
+        );
     }
 }

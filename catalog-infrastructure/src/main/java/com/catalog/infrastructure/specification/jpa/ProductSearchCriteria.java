@@ -9,5 +9,8 @@ public record ProductSearchCriteria(
     String productName,
     String sku,
     String variantStatus,
+    String categoryId,
+    String productStatus,
+    Boolean feature,
     List<String> variations){
 }

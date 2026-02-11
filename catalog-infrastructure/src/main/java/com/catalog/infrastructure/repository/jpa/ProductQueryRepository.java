@@ -7,4 +7,8 @@ import org.springframework.data.domain.Pageable;
 
 public interface ProductQueryRepository {
     Page<ProductSummary> search(ProductSearchCriteria criteria, Pageable pageable);
+
+    Page<ProductSummary> findByCategory(String categoryId, Pageable pageable);
+
+    Page<ProductSummary> findFeatured(Pageable pageable);
 }
