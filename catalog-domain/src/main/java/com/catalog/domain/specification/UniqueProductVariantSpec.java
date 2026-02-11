@@ -8,6 +8,12 @@ import java.util.Objects;
 
 public class UniqueProductVariantSpec extends CompositeSpecification<Product> {
     private final ProductVariant productVariant;
+    private int ignoredVariantIndex = -1;
+
+    public UniqueProductVariantSpec(ProductVariant productVariant, int ignoredVariantIndex) {
+        this.productVariant = productVariant;
+        this.ignoredVariantIndex = ignoredVariantIndex;
+    }
 
     public UniqueProductVariantSpec(ProductVariant productVariant) {
         this.productVariant = productVariant;
@@ -15,7 +21,15 @@ public class UniqueProductVariantSpec extends CompositeSpecification<Product> {
 
     @Override
     public boolean isSatisfiedBy(Product product) {
-        return product.getVariants().stream()
-                .noneMatch(variant -> Objects.equals(variant, this.productVariant));
+        var variants = product.getVariants();
+        for (int i = 0; i < variants.size(); i++) {
+            if (ignoredVariantIndex >= 0 && i == ignoredVariantIndex) {
+                continue;
+            }
+            if (Objects.equals(variants.get(i), this.productVariant)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

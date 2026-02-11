@@ -5,6 +5,9 @@ import java.util.List;
 public record ProductSummary(
         String id,
         String name,
+        String status,
+        String slug,
+        boolean featured,
         VariantSummary variantSummary
 ) {
 

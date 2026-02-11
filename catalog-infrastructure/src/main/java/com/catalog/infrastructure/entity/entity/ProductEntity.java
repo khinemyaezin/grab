@@ -1,5 +1,6 @@
 package com.catalog.infrastructure.entity.entity;
 
+import com.catalog.domain.aggregate.ProductStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,6 +40,19 @@ public class ProductEntity implements Serializable {
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "product", orphanRemoval = true)
     private List<ProductVariantEntity> productVariants = new ArrayList<>();
+
+    @Setter
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ProductStatus status = ProductStatus.DRAFT;
+
+    @Setter
+    @Column(name = "slug", unique = true)
+    private String slug;
+
+    @Setter
+    @Column(name = "featured", nullable = false)
+    private boolean featured = false;
 
     public void addProductDescription(ProductDescriptionEntity productDescriptionEntity) {
         productDescriptionEntity.setProduct(this);

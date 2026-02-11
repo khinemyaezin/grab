@@ -11,6 +11,9 @@ public record ProductSummaryResponse(
     public record Product(
             String id,
             String name,
+            String status,
+            String slug,
+            boolean featured,
             VariantSummary variants
     ) {}
 

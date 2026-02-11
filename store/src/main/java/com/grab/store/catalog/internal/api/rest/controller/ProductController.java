@@ -3,10 +3,14 @@ package com.grab.store.catalog.internal.api.rest.controller;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveProductRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.UpdateVariantRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.GetProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductSummaryResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.UpdateVariantResponse;
 import com.grab.store.catalog.internal.api.rest.service.ProductFacadeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,28 @@ public class ProductController {
     @GetMapping(value = "/{productId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<GetProductResponse>> getProduct(@PathVariable("productId") String productId) {
         EntityModel<GetProductResponse> response = productFacadeService.getProduct(productId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/{productId}/full", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<GetProductResponse>> getProductFull(@PathVariable("productId") String productId) {
+        // Delegate to existing getProduct which already returns full product with new fields
+        EntityModel<GetProductResponse> response = productFacadeService.getProduct(productId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping(value = "/{productId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<UpdateProductResponse>> updateProduct(@PathVariable("productId") String productId,
+                                                                             @Valid @RequestBody UpdateProductRequest request) {
+        EntityModel<UpdateProductResponse> response = productFacadeService.updateProduct(productId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping(value = "/{productId}/variants/{variantId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<UpdateVariantResponse>> updateVariant(@PathVariable("productId") String productId,
+                                                                             @PathVariable("variantId") String variantId,
+                                                                             @Valid @RequestBody UpdateVariantRequest request) {
+        EntityModel<UpdateVariantResponse> response = productFacadeService.updateVariant(productId, variantId, request);
         return ResponseEntity.ok(response);
     }
 

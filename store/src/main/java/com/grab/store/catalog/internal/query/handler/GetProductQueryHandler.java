@@ -51,6 +51,9 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId().getValue(),
+                product.getStatus().name(),
+                product.getSlug(),
+                product.isFeatured(),
                 variants,
                 variantTypes
         );

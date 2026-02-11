@@ -6,6 +6,9 @@ public record GetProductResult(
         String id,
         String name,
         String categoryId,
+        String status,
+        String slug,
+        boolean featured,
         List<Variant> variants,
         List<VariantType> variantTypes
 ) {

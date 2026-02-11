@@ -5,22 +5,34 @@ import com.grab.store.catalog.internal.api.rest.assembler.GetProductModelAssembl
 import com.grab.store.catalog.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.DeleteProductModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.ProductSummaryModelAssembler;
+import com.grab.store.catalog.internal.api.rest.assembler.UpdateProductModelAssembler;
+import com.grab.store.catalog.internal.api.rest.assembler.UpdateVariantModelAssembler;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveProductRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.UpdateVariantRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.GetProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductSummaryResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.UpdateVariantResponse;
 import com.grab.store.catalog.internal.api.rest.mapper.GetProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.ProductCombinationDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.ProductSummaryDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.ProductSummaryQueryMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveProductDtoMapper;
+import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductDtoMapper;
+import com.grab.store.catalog.internal.api.rest.mapper.UpdateVariantDtoMapper;
 import com.grab.store.catalog.internal.command.DeleteProductCommand;
 import com.grab.store.catalog.internal.command.DeleteProductResult;
 import com.grab.store.catalog.internal.command.SaveProductCommand;
 import com.grab.store.catalog.internal.command.SaveProductResult;
+import com.grab.store.catalog.internal.command.UpdateProductCommand;
+import com.grab.store.catalog.internal.command.UpdateProductResult;
+import com.grab.store.catalog.internal.command.UpdateVariantCommand;
+import com.grab.store.catalog.internal.command.UpdateVariantResult;
 import com.grab.store.catalog.internal.cqrs.command.CommandBus;
 import com.grab.store.catalog.internal.cqrs.query.QueryBus;
 import com.grab.store.catalog.internal.query.ProductCombinationQuery;
@@ -51,6 +63,10 @@ public class ProductFacadeService {
     private final SaveProductDtoMapper saveProductDtoMapper;
     private final DeleteProductModelAssembler deleteProductModelAssembler;
     private final ProductSummaryDtoMapper productSummaryDtoMapper;
+    private final UpdateProductDtoMapper updateProductDtoMapper;
+    private final UpdateVariantDtoMapper updateVariantDtoMapper;
+    private final UpdateProductModelAssembler updateProductModelAssembler;
+    private final UpdateVariantModelAssembler updateVariantModelAssembler;
     private final IdGenerator idGenerator;
 
     public EntityModel<GetProductResponse> getProduct(String productId) {
@@ -111,5 +127,25 @@ public class ProductFacadeService {
         DeleteProductResponse response = new DeleteProductResponse(productId, result.deleted());
 
         return deleteProductModelAssembler.toModel(response);
+    }
+
+    public EntityModel<UpdateProductResponse> updateProduct(String productId, UpdateProductRequest request) {
+        log.info("Updating product: {}", productId);
+
+        UpdateProductCommand command = updateProductDtoMapper.toCommand(productId, request);
+        UpdateProductResult result = commandBus.dispatch(command);
+        UpdateProductResponse response = updateProductDtoMapper.toResponse(result);
+
+        return updateProductModelAssembler.toModel(response);
+    }
+
+    public EntityModel<UpdateVariantResponse> updateVariant(String productId, String variantId, UpdateVariantRequest request) {
+        log.info("Updating variant: {} for product: {}", variantId, productId);
+
+        UpdateVariantCommand command = updateVariantDtoMapper.toCommand(productId, variantId, request);
+        UpdateVariantResult result = commandBus.dispatch(command);
+        UpdateVariantResponse response = updateVariantDtoMapper.toResponse(result);
+
+        return updateVariantModelAssembler.toModel(response);
     }
 }
