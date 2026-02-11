@@ -52,4 +52,16 @@ public class ProductJpaRepository implements ProductRepository {
         Product product = productJpaAssembler.toFullDomainGraph(entity);
         return Optional.of(product);
     }
+
+    @Override
+    public Optional<Product> findBySlug(String slug) {
+        Optional<ProductEntity> productEntity = this.productJpaRepo.findBySlug(slug);
+        if(productEntity.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ProductEntity entity = productEntity.get();
+        Product product = productJpaAssembler.toFullDomainGraph(entity);
+        return Optional.of(product);
+    }
 }

@@ -2,10 +2,9 @@ package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariation;
-import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
-import com.grab.store.catalog.internal.query.GetProductQuery;
-import com.grab.store.catalog.internal.query.GetProductResult;
+import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
+import com.grab.store.catalog.internal.query.GetProductBySlugResult;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,34 +19,33 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class GetProductQueryHandler implements QueryHandler<GetProductQuery, GetProductResult> {
+public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySlugQuery, GetProductBySlugResult> {
 
     private final ProductRepository productRepository;
-    private final IdGenerator idGenerator;
 
     @Override
-    public GetProductResult handle(GetProductQuery query) {
-        log.debug("Handling GetProductQuery for productId: {}", query.productId());
+    public GetProductBySlugResult handle(GetProductBySlugQuery query) {
+        log.debug("Handling GetProductBySlugQuery for slug: {}", query.slug());
 
-        Product product = productRepository.find(idGenerator.generateId(query.productId()))
-                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + query.productId()));
+        Product product = productRepository.findBySlug(query.slug())
+                .orElseThrow(() -> new IllegalArgumentException("Product not found for slug: " + query.slug()));
 
-        return mapToResult(product);
+        return mapToSlugResult(product);
     }
 
     @Override
-    public Class<GetProductQuery> getQueryType() {
-        return GetProductQuery.class;
+    public Class<GetProductBySlugQuery> getQueryType() {
+        return GetProductBySlugQuery.class;
     }
 
-    public  GetProductResult mapToResult(Product product) {
-        List<GetProductResult.Variant> variants = product.getVariants().stream()
-                .map(this::mapToResultVariant)
+    public GetProductBySlugResult mapToSlugResult(Product product) {
+        List<GetProductBySlugResult.Variant> variants = product.getVariants().stream()
+                .map(this::mapToSlugResultVariant)
                 .toList();
 
-        List<GetProductResult.VariantType> variantTypes = extractVariantTypes(product);
+        List<GetProductBySlugResult.VariantType> variantTypes = extractSlugVariantTypes(product);
 
-        return new GetProductResult(
+        return new GetProductBySlugResult(
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId().getValue(),
@@ -59,8 +57,8 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         );
     }
 
-    private List<GetProductResult.VariantType> extractVariantTypes(Product product) {
-        Map<String, List<GetProductResult.VariantOption>> typeOptionsMap = new LinkedHashMap<>();
+    private List<GetProductBySlugResult.VariantType> extractSlugVariantTypes(Product product) {
+        Map<String, List<GetProductBySlugResult.VariantOption>> typeOptionsMap = new LinkedHashMap<>();
         Map<String, String> typeNameMap = new LinkedHashMap<>();
 
         for (ProductVariant variant : product.getVariants()) {
@@ -69,12 +67,12 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 typeNameMap.putIfAbsent(typeId, variation.getTypeName());
 
                 typeOptionsMap.computeIfAbsent(typeId, k -> new ArrayList<>());
-                List<GetProductResult.VariantOption> options = typeOptionsMap.get(typeId);
+                List<GetProductBySlugResult.VariantOption> options = typeOptionsMap.get(typeId);
 
                 boolean exists = options.stream()
                         .anyMatch(o -> o.optionId().equals(variation.getOptionId().getValue()));
                 if (!exists) {
-                    options.add(new GetProductResult.VariantOption(
+                    options.add(new GetProductBySlugResult.VariantOption(
                             variation.getOptionId().getValue(),
                             variation.getOptionName()
                     ));
@@ -83,7 +81,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         }
 
         return typeOptionsMap.entrySet().stream()
-                .map(entry -> new GetProductResult.VariantType(
+                .map(entry -> new GetProductBySlugResult.VariantType(
                         entry.getKey(),
                         typeNameMap.get(entry.getKey()),
                         entry.getValue()
@@ -91,12 +89,12 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 .toList();
     }
 
-    private GetProductResult.Variant mapToResultVariant(ProductVariant variant) {
-        List<GetProductResult.Variation> variations = variant.getVariations().stream()
-                .map(this::mapToResultVariation)
+    private GetProductBySlugResult.Variant mapToSlugResultVariant(ProductVariant variant) {
+        List<GetProductBySlugResult.Variation> variations = variant.getVariations().stream()
+                .map(this::mapToSlugResultVariation)
                 .toList();
 
-        return new GetProductResult.Variant(
+        return new GetProductBySlugResult.Variant(
                 variant.getId().getValue(),
                 variant.getSku(),
                 variant.getStatus().name(),
@@ -104,8 +102,8 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         );
     }
 
-    private GetProductResult.Variation mapToResultVariation(ProductVariation variation) {
-        return new GetProductResult.Variation(
+    private GetProductBySlugResult.Variation mapToSlugResultVariation(ProductVariation variation) {
+        return new GetProductBySlugResult.Variation(
                 variation.getOptionId().getValue(),
                 variation.getOptionName(),
                 variation.getTypeId().getValue(),
