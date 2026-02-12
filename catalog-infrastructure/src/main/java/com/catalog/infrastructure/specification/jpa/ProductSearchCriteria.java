@@ -1,5 +1,6 @@
 package com.catalog.infrastructure.specification.jpa;
 
+import com.catalog.domain.aggregate.ProductStatus;
 import lombok.Builder;
 
 import java.util.List;
@@ -10,7 +11,7 @@ public record ProductSearchCriteria(
     String sku,
     String variantStatus,
     String categoryId,
-    String productStatus,
+    ProductStatus productStatus,
     Boolean feature,
     List<String> variations){
 }

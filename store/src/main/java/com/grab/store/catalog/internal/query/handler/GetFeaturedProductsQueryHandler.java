@@ -29,7 +29,7 @@ public class GetFeaturedProductsQueryHandler implements QueryHandler<GetFeatured
 
         ProductSearchCriteria criteria = ProductSearchCriteria.builder()
                 .feature(true)
-                .productStatus(ProductStatus.ACTIVE.name())
+                .productStatus(ProductStatus.ACTIVE)
                 .build();
 
         Page<ProductSummary> page = productQueryRepository.search(

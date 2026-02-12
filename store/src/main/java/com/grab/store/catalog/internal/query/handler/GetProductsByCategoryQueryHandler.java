@@ -29,7 +29,7 @@ public class GetProductsByCategoryQueryHandler implements QueryHandler<GetProduc
 
         ProductSearchCriteria criteria = ProductSearchCriteria.builder()
                 .categoryId(query.categoryId())
-                .productStatus(ProductStatus.ACTIVE.name())
+                .productStatus(ProductStatus.ACTIVE)
                 .build();
 
         Page<ProductSummary> page = productQueryRepository.search(
