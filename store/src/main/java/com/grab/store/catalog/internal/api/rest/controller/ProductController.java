@@ -42,7 +42,6 @@ public class ProductController {
 
     @GetMapping(value = "/{productId}/full", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<GetProductResponse>> getProductFull(@PathVariable("productId") String productId) {
-        // Delegate to existing getProduct which already returns full product with new fields
         EntityModel<GetProductResponse> response = productFacadeService.getProduct(productId);
         return ResponseEntity.ok(response);
     }
@@ -134,8 +133,8 @@ public class ProductController {
     @GetMapping(value = "/category/{categoryId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<ProductSummaryResponse>> getProductsByCategory(
             @PathVariable("categoryId") String categoryId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(value = "page", defaultValue = "0") Integer page,
+            @RequestParam(value = "size", defaultValue = "20") Integer size) {
         EntityModel<ProductSummaryResponse> response = productFacadeService.getProductsByCategory(categoryId, page, size);
         return ResponseEntity.ok(response);
     }
@@ -156,8 +155,8 @@ public class ProductController {
 
     @GetMapping(value = "/featured", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<ProductSummaryResponse>> getFeaturedProducts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
         EntityModel<ProductSummaryResponse> response = productFacadeService.getFeaturedProducts(page, size);
         return ResponseEntity.ok(response);
     }

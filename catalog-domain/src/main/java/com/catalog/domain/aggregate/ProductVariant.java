@@ -17,15 +17,15 @@ public class ProductVariant extends Entity<Id> {
     private final Set<ProductVariation> variations ;
     private ProductVariantStatus status;
 
-    public ProductVariant(Id id, String sku, ProductVariantStatus status, List<ProductVariation> variants) {
+    public ProductVariant(Id id, String sku, ProductVariantStatus status, List<ProductVariation> variations) {
         super(id);
         this.sku = sku;
         this.status = status;
-        this.variations = new LinkedHashSet<>(variants);
+        this.variations = new LinkedHashSet<>(variations);
     }
 
-    public static ProductVariant create(Id id, String sku,  List<ProductVariation> variants) {
-        return new ProductVariant(id, sku, ProductVariantStatus.ACTIVE, variants);
+    public static ProductVariant create(Id id, String sku,  List<ProductVariation> variations) {
+        return new ProductVariant(id, sku, ProductVariantStatus.ACTIVE, variations);
     }
 
     public void markAsDeleted() {
