@@ -17,6 +17,9 @@ public interface ProductSummaryMapper {
 
     @Mapping(source = "uuid", target = "id")
     @Mapping(source = "name", target = "name")
+    @Mapping(source = "status", target = "status")
+    @Mapping(source = "slug", target = "slug")
+    @Mapping(source = "featured", target = "featured")
     @Mapping(source = "productVariants", target = "variantSummary", qualifiedByName = "VariantSummary")
     ProductSummary toProductSummary(ProductEntity productEntity);
 

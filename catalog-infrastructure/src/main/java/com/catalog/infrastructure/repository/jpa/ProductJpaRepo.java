@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface ProductJpaRepo extends EntityRepository<ProductEntity, Long>, JpaRepository<ProductEntity, Long>, JpaSpecificationExecutor<ProductEntity> {
     Optional<ProductEntity> findByUuid(@Param("uuid") String uuid);
 
+    Optional<ProductEntity> findBySlug(@Param("slug") String slug);
+
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProductEntity p WHERE p.uuid = :uuid")
     boolean existsById(@Param("uuid") String uuid);
 }

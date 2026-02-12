@@ -1,13 +1,13 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.query.GetProductQuery;
 import com.grab.store.catalog.internal.query.GetProductResult;
 import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
-import com.catalog.domain.valueobject.ProductVariation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -40,7 +40,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         return GetProductQuery.class;
     }
 
-    private GetProductResult mapToResult(Product product) {
+    public  GetProductResult mapToResult(Product product) {
         List<GetProductResult.Variant> variants = product.getVariants().stream()
                 .map(this::mapToResultVariant)
                 .toList();
@@ -51,6 +51,9 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId().getValue(),
+                product.getStatus().name(),
+                product.getSlug(),
+                product.isFeatured(),
                 variants,
                 variantTypes
         );

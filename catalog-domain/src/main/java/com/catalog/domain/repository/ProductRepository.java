@@ -9,4 +9,5 @@ public interface ProductRepository{
     void save(Product product);
     void delete(Product product);
     Optional<Product> find(Id productId);
+    Optional<Product> findBySlug(String slug);
 }

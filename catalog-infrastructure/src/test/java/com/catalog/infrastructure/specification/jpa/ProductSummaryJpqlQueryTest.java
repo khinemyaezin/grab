@@ -204,6 +204,31 @@ class ProductSummaryJpqlQueryTest {
         assertEquals(1, page.getContent().size());
     }
 
+    @Test
+    void search_withCategoryId_returnProductsUnderGivenCategoryId() {
+        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .categoryId("cat-2")
+                .build();
+
+        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
+                entityManager, criteria, PageRequest.of(0, 10));
+
+        assertEquals(1, page.getTotalElements());
+        assertEquals("Slim Fit Jeans", page.getContent().getFirst().getName());
+    }
+
+    @Test
+    void search_withNoFeatured_returnProductsUnderGivenCategoryId() {
+        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .feature(false)
+                .build();
+
+        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
+                entityManager, criteria, PageRequest.of(0, 10));
+
+        assertEquals(3, page.getTotalElements());
+    }
+
 
     private void persistProduct(String name, String categoryId, VariantData... variants) {
         ProductEntity product = new ProductEntity();
@@ -242,6 +267,7 @@ class ProductSummaryJpqlQueryTest {
     }
 
     private record VariantData(String sku, String status, List<VariationData> variations) {}
+
     private record VariationData(String optionId, String typeId,
                                  String optionValue, String typeValue) {}
 

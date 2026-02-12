@@ -11,7 +11,7 @@ public class ResourceNotFoundException extends DomainException {
     }
 
     record ResourceNotFoundError() implements MessageSource {
-        private static final String CODE = "exception.product.infrastructure.resource_not_found_error";
+        private static final String CODE = "exception.catalog.infrastructure.resource_not_found_error";
         @Override
         public String code() {
             return CODE;

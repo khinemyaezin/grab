@@ -8,6 +8,10 @@ public class UniqueProductVariantCompositeSpec extends CompositeSpecification<Pr
 
     private final CompositeSpecification<Product> combinationSpec;
 
+    public UniqueProductVariantCompositeSpec(ProductVariant productVariant, int ignoredVariantIndex) {
+        this.combinationSpec = new UniqueProductVariantSpec(productVariant, ignoredVariantIndex);
+    }
+
     public UniqueProductVariantCompositeSpec(ProductVariant productVariant) {
         this.combinationSpec = new UniqueProductVariantSpec(productVariant);
     }

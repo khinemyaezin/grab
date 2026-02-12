@@ -1,18 +1,24 @@
 package com.catalog.domain.aggregate;
 
+import com.catalog.domain.exception.InvalidProductStatusTransitionException;
+import com.catalog.domain.exception.ProductActivationRequiresActiveVariantsException;
 import com.grab.framework.domain.Entity;
 import com.grab.framework.id.Id;
 import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.specification.CompositeSpecification;
 import com.catalog.domain.event.CategoryChangedEvent;
 import com.catalog.domain.event.ProductDeletedEvent;
+import com.catalog.domain.event.ProductUpdatedEvent;
+import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.event.ProductVariantChangeEvent;
 import com.catalog.domain.event.ProductVariantDeletedEvent;
+import com.catalog.domain.event.ProductVariantRestoredEvent;
 import com.catalog.domain.specification.UniqueProductVariantCompositeSpec;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.*;
+import java.util.Locale;
 
 /**
  * A product has list of variants. Variant order can be neglect.
@@ -26,17 +32,39 @@ public class Product extends AggregateRoot<Id> {
     @Getter
     private Id categoryId;
 
+    @Getter
+    private ProductStatus status;
+
+    @Getter
+    private String slug;
+
+    @Getter
+    private boolean featured;
+
     private Product(Id id, String name, Id categoryId) {
         super(id);
         this.name = Objects.requireNonNull(name);
         this.categoryId = Objects.requireNonNull(categoryId);
+        this.status = ProductStatus.DRAFT;
+        this.slug = generateSlug(name);
+        this.featured = false;
     }
 
-    public Product(Id id, String name, Id categoryId, List<ProductVariant> variants) {
+    public Product(
+            Id id,
+            String name,
+            Id categoryId,
+            ProductStatus status,
+            String slug,
+            boolean featured,
+            List<ProductVariant> variants) {
         super(id);
         this.name = Objects.requireNonNull(name);
         this.categoryId = Objects.requireNonNull(categoryId);
-        this.variants.addAll(variants);
+        if (variants != null) this.variants.addAll(variants);
+        this.status = status == null ? ProductStatus.DRAFT : status;
+        this.slug = slug == null ? generateSlug(name) : slug;
+        this.featured = featured;
     }
 
     public static Product create(Id id, String name, Id categoryId) {
@@ -85,6 +113,7 @@ public class Product extends AggregateRoot<Id> {
                 .filter(ProductVariant::isDeleted)
                 .map(v -> {
                     v.activate();
+                    super.addEvent(new ProductVariantRestoredEvent(this.getId(), v.getId()));
                     return true;
                 })
                 .orElse(false);
@@ -101,11 +130,15 @@ public class Product extends AggregateRoot<Id> {
         return true;
     }
 
-    public boolean updateVariant(ProductVariant variant) {
-        int index = variants.indexOf(variant);
+    public boolean updateVariant(ProductVariant existing, ProductVariant newVariant) {
+        int index = variants.indexOf(existing);
         if(index == -1) return false;
-        variants.set(index, variant);
-        super.addEvent(new ProductVariantChangeEvent(variant.getSku()));
+
+        CompositeSpecification<Product> spec = new UniqueProductVariantCompositeSpec(newVariant, index);
+        if (!spec.isSatisfiedBy(this)) return false;
+
+        variants.set(index, newVariant);
+        super.addEvent(new ProductVariantChangeEvent(newVariant.getSku()));
         return true;
     }
 
@@ -115,10 +148,6 @@ public class Product extends AggregateRoot<Id> {
             super.addEvent(new ProductVariantDeletedEvent(this.getId(),this.getCategoryId(), id));
         }
         return removed;
-    }
-
-    public void sortVariants(Comparator<ProductVariant> comparator) {
-        this.variants.sort(comparator);
     }
 
     public void applySoftDeleteVariants(Collection<Id> variantIds) {
@@ -136,6 +165,50 @@ public class Product extends AggregateRoot<Id> {
         }
     }
 
+    public void update(String name, Id categoryId) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(categoryId);
+
+        boolean nameChanged = !Objects.equals(this.name, name);
+        boolean categoryChanged = !Objects.equals(this.categoryId, categoryId);
+
+        if (!nameChanged && !categoryChanged) return;
+
+        if (nameChanged) {
+            this.name = name;
+            this.slug = generateSlug(name);
+        }
+
+        if (categoryChanged) {
+            changeCategory(categoryId);
+        }
+
+        super.addEvent(new ProductUpdatedEvent(this.getId(), this.name, this.categoryId));
+    }
+
+    public void changeStatus(ProductStatus newStatus) {
+        Objects.requireNonNull(newStatus);
+        if (Objects.equals(this.status, newStatus)) return;
+
+        if (!this.status.canTransitionTo(newStatus)) {
+            throw new InvalidProductStatusTransitionException(this.status, newStatus);
+        }
+
+        if (newStatus == ProductStatus.ACTIVE && this.getActiveVariants().isEmpty()) {
+            throw new ProductActivationRequiresActiveVariantsException();
+        }
+
+        ProductStatus old = this.status;
+        this.status = newStatus;
+        super.addEvent(new ProductStatusChangedEvent(this.getId(), old.name(), newStatus.name()));
+    }
+
+    private static String generateSlug(String name) {
+        if (name == null) return null;
+        String s = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+        s = s.replaceAll("(^-+)|(-+$)", "");
+        return s;
+    }
 
     @Override
     public String toString() {

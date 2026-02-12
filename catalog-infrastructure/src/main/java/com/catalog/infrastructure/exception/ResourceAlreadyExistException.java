@@ -10,7 +10,7 @@ public class ResourceAlreadyExistException extends DomainException {
         super(new ResourceAlreadyExistError(), "Resource already exists.");
     }
     record ResourceAlreadyExistError() implements MessageSource {
-        private static final String CODE = "exception.product.infrastructure.resource_already_exist_error";
+        private static final String CODE = "exception.catalog.infrastructure.resource_already_exist_error";
         @Override
         public String code() {
             return CODE;
