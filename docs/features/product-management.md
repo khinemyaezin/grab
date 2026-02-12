@@ -362,13 +362,13 @@ ALTER TABLE product ADD COLUMN featured BOOLEAN NOT NULL DEFAULT FALSE;
 
 ## 15. Definition of Done
 
-- [ ] All invariants enforced in domain
-- [ ] Status transitions validated in aggregate
-- [ ] Slug uniqueness enforced
-- [ ] Repositories handle new fields
-- [ ] CQRS commands and queries implemented
-- [ ] REST endpoints with validation
-- [ ] Domain events published for state changes
-- [ ] Unit tests for domain logic
-- [ ] Integration tests for persistence
+- [x] All invariants enforced in domain
+- [x] Status transitions validated in aggregate
+- [x] Slug uniqueness enforced
+- [x] Repositories handle new fields
+- [x] CQRS commands and queries implemented
+- [x] REST endpoints with validation
+- [x] Domain events published for state changes
+- [x] Unit tests for domain logic
+- [x] Integration tests for persistence
 - [ ] API integration tests

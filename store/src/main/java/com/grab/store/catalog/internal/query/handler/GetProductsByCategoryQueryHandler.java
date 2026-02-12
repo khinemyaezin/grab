@@ -1,5 +1,7 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.domain.aggregate.ProductStatus;
+import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.query.GetProductsByCategoryQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
@@ -25,9 +27,15 @@ public class GetProductsByCategoryQueryHandler implements QueryHandler<GetProduc
     public ProductSummaryResult handle(GetProductsByCategoryQuery query) {
         log.debug("Handling GetProductsByCategoryQuery for categoryId={}", query.categoryId());
 
-        Page<ProductSummary> page = productQueryRepository.findByCategory(
-                query.categoryId(),
-                PageRequest.of(query.page(), query.size()));
+        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .categoryId(query.categoryId())
+                .productStatus(ProductStatus.ACTIVE.name())
+                .build();
+
+        Page<ProductSummary> page = productQueryRepository.search(
+                criteria,
+                PageRequest.of(query.page(), query.size())
+        );
 
         List<ProductSummaryResult.Product> products = mapToResultProducts(page.getContent());
 
