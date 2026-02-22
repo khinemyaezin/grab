@@ -11,9 +11,11 @@ import com.grab.store.catalog.internal.api.rest.assembler.UpdateProductStatusMod
 import com.grab.store.catalog.internal.api.rest.assembler.UpdateVariantModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.DeleteVariantModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.RestoreVariantModelAssembler;
+import com.grab.store.catalog.internal.api.rest.assembler.SyncVariantsModelAssembler;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveProductRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.SyncVariantsRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductStatusRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateVariantRequest;
@@ -22,6 +24,7 @@ import com.grab.store.catalog.internal.api.rest.dto.response.GetProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductCombinationResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductSummaryResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.SyncVariantsResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductStatusResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.UpdateVariantResponse;
@@ -35,6 +38,7 @@ import com.grab.store.catalog.internal.api.rest.mapper.ProductSummaryQueryMapper
 import com.grab.store.catalog.internal.api.rest.mapper.SaveProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductStatusDtoMapper;
+import com.grab.store.catalog.internal.api.rest.mapper.SyncVariantsDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.DeleteVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.RestoreVariantDtoMapper;
@@ -52,6 +56,8 @@ import com.grab.store.catalog.internal.command.DeleteVariantCommand;
 import com.grab.store.catalog.internal.command.DeleteVariantResult;
 import com.grab.store.catalog.internal.command.RestoreVariantCommand;
 import com.grab.store.catalog.internal.command.RestoreVariantResult;
+import com.grab.store.catalog.internal.command.SyncVariantsCommand;
+import com.grab.store.catalog.internal.command.SyncVariantsResult;
 import com.grab.store.catalog.internal.cqrs.command.CommandBus;
 import com.grab.store.catalog.internal.cqrs.query.QueryBus;
 import com.grab.store.catalog.internal.query.ProductCombinationQuery;
@@ -93,11 +99,13 @@ public class ProductFacadeService {
     private final UpdateVariantDtoMapper updateVariantDtoMapper;
     private final DeleteVariantDtoMapper deleteVariantDtoMapper;
     private final RestoreVariantDtoMapper restoreVariantDtoMapper;
+    private final SyncVariantsDtoMapper syncVariantsDtoMapper;
     private final UpdateProductModelAssembler updateProductModelAssembler;
     private final UpdateProductStatusModelAssembler updateProductStatusModelAssembler;
     private final UpdateVariantModelAssembler updateVariantModelAssembler;
     private final DeleteVariantModelAssembler deleteVariantModelAssembler;
     private final RestoreVariantModelAssembler restoreVariantModelAssembler;
+    private final SyncVariantsModelAssembler syncVariantsModelAssembler;
     private final IdGenerator idGenerator;
 
     public EntityModel<GetProductResponse> getProduct(String productId) {
@@ -218,6 +226,16 @@ public class ProductFacadeService {
         RestoreVariantResponse response = restoreVariantDtoMapper.toResponse(result);
 
         return restoreVariantModelAssembler.toModel(response);
+    }
+
+    public EntityModel<SyncVariantsResponse> syncVariants(String productId, SyncVariantsRequest request) {
+        log.info("Syncing variants for product: {}", productId);
+
+        SyncVariantsCommand command = syncVariantsDtoMapper.toCommand(productId, request);
+        SyncVariantsResult result = commandBus.dispatch(command);
+        SyncVariantsResponse response = syncVariantsDtoMapper.toResponse(result);
+
+        return syncVariantsModelAssembler.toModel(response);
     }
 
     public EntityModel<GetProductBySlugResponse> getProductBySlug(String slug) {

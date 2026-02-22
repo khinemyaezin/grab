@@ -47,7 +47,7 @@ class SyncVariantsCommandHandlerTest {
     }
 
     @Test
-    void handle_trustsRequestVariantSkuAndId_forNewAndExistingCombinations() {
+    void handle_withOldVariants_shouldMergeNewVariants() {
         Id productId = new CommonId("product-1");
         Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
 
@@ -120,7 +120,7 @@ class SyncVariantsCommandHandlerTest {
     }
 
     @Test
-    void handle_removesDbVariantsNotInDesiredCombinationStructure() {
+    void handle_withNewVariants_shouldReplaceOldVariants() {
         Id productId = new CommonId("product-2");
         Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
 
@@ -169,8 +169,8 @@ class SyncVariantsCommandHandlerTest {
         Product saved = productRepository.getLastSaved();
 
         assertThat(saved.getVariants()).hasSize(1);
-        assertThat(saved.getVariants().get(0).getId().getValue()).isEqualTo("var-red");
-        assertThat(saved.getVariants().get(0).getSku()).isEqualTo("SKU-RED-NEW");
+        assertThat(saved.getVariants().getFirst().getId().getValue()).isEqualTo("var-red");
+        assertThat(saved.getVariants().getFirst().getSku()).isEqualTo("SKU-RED-NEW");
         assertThat(result.variants()).hasSize(1);
     }
 

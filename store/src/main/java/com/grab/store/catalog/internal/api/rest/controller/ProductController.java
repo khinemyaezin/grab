@@ -3,6 +3,7 @@ package com.grab.store.catalog.internal.api.rest.controller;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveProductRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.SyncVariantsRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductStatusRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.UpdateVariantRequest;
@@ -12,6 +13,7 @@ import com.grab.store.catalog.internal.api.rest.dto.response.ProductCombinationR
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteVariantResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductSummaryResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.SyncVariantsResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductStatusResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.RestoreVariantResponse;
@@ -58,6 +60,13 @@ public class ProductController {
                                                                              @PathVariable("variantId") String variantId,
                                                                              @Valid @RequestBody UpdateVariantRequest request) {
         EntityModel<UpdateVariantResponse> response = productFacadeService.updateVariant(productId, variantId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping(value = "/{productId}/variants", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<SyncVariantsResponse>> syncVariants(@PathVariable("productId") String productId,
+                                                                          @Valid @RequestBody SyncVariantsRequest request) {
+        EntityModel<SyncVariantsResponse> response = productFacadeService.syncVariants(productId, request);
         return ResponseEntity.ok(response);
     }
 
