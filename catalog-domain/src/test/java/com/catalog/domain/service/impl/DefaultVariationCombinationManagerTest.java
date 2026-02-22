@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultVariationCombinationManagerTest {
-    private static final Id PRODUCT_ID = new CommonId("prod-1");
     private VariationCombinationManager variationCombinationManager;
 
     /**
@@ -125,7 +124,7 @@ class DefaultVariationCombinationManagerTest {
 
     @BeforeEach
     public void init() {
-        var keyFactory = new DefaultVariationKeyGenerator();
+        var keyFactory = new DefaultVariationKeyGenerator(new ProductVariationComparator());
         variationCombinationManager = new DefaultVariationCombinationManager(keyFactory);
     }
 

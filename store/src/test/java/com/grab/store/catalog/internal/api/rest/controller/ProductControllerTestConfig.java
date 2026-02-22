@@ -1,5 +1,7 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
+import com.catalog.domain.service.impl.*;
+import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
@@ -13,23 +15,27 @@ import com.grab.store.catalog.internal.cqrs.query.impl.SimpleQueryBus;
 import com.grab.store.catalog.internal.query.handler.ProductCombinationQueryHandler;
 import com.grab.store.catalog.internal.util.ProductSKUGenerator;
 import com.grab.store.catalog.internal.util.UuidGenerator;
+import com.grab.store.catalog.internal.command.handler.SyncVariantsCommandHandler;
 import com.catalog.domain.service.SkuGenerator;
 import com.catalog.domain.service.VariantCombinationService;
 import com.catalog.domain.service.VariantDeletionStrategy;
 import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.service.VariationKeyGenerator;
-import com.catalog.domain.service.impl.DefaultVariantCombinationService;
-import com.catalog.domain.service.impl.DefaultVariationCombinationManager;
-import com.catalog.domain.service.impl.DefaultVariationKeyGenerator;
-import com.catalog.domain.service.impl.FullOptionHardDeleteStrategy;
+import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.aggregate.Product;
+import com.grab.framework.id.Id;
 import org.mapstruct.factory.Mappers;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @TestConfiguration
-public class ProductCombinationTestConfig {
+public class ProductControllerTestConfig {
     @Bean
     public IdGenerator idGenerator() {
         return new UuidGenerator();
@@ -51,13 +57,40 @@ public class ProductCombinationTestConfig {
     }
 
     @Bean
-    public VariationKeyGenerator variationKeyGenerator() {
-        return new DefaultVariationKeyGenerator();
+    public Comparator<ProductVariation> getVariationComparator() {
+        return new ProductVariationComparator();
+    }
+
+    @Bean
+    public VariationKeyGenerator variationKeyGenerator(Comparator<ProductVariation> getVariationComparator) {
+        return new DefaultVariationKeyGenerator(getVariationComparator);
     }
 
     @Bean
     public VariationCombinationManager variationCombinationManager(VariationKeyGenerator variationKeyGenerator) {
         return new DefaultVariationCombinationManager(variationKeyGenerator);
+    }
+
+    @Bean
+    public InMemoryProductRepository productRepository() {
+        return new InMemoryProductRepository();
+    }
+
+    @Bean
+    public SyncVariantsCommandHandler syncVariantsCommandHandler(
+            ProductRepository productRepository,
+            VariantCombinationService variantCombinationService,
+            VariationCombinationManager variationCombinationManager,
+            VariationKeyGenerator variationKeyGenerator,
+            VariantDeletionStrategy variantDeletionStrategy
+    ) {
+        return new SyncVariantsCommandHandler(
+                productRepository,
+                variantCombinationService,
+                variationCombinationManager,
+                variationKeyGenerator,
+                variantDeletionStrategy
+        );
     }
 
     @Bean
@@ -198,6 +231,16 @@ public class ProductCombinationTestConfig {
     }
 
     @Bean
+    public SyncVariantsDtoMapper  syncVariantsDtoMapper() {
+        return Mappers.getMapper(SyncVariantsDtoMapper.class);
+    }
+
+    @Bean
+    public SyncVariantsModelAssembler syncVariantsModelAssembler() {
+        return new SyncVariantsModelAssembler();
+    }
+
+    @Bean
     public ProductFacadeService productFacadeService(
             CommandBus commandBus,
             QueryBus queryBus,
@@ -217,11 +260,13 @@ public class ProductCombinationTestConfig {
             UpdateVariantDtoMapper updateVariantDtoMapper,
             DeleteVariantDtoMapper deleteVariantDtoMapper,
             RestoreVariantDtoMapper restoreVariantDtoMapper,
+            SyncVariantsDtoMapper syncVariantsDtoMapper,
             UpdateProductModelAssembler updateProductModelAssembler,
             UpdateProductStatusModelAssembler updateProductStatusModelAssembler,
             UpdateVariantModelAssembler updateVariantModelAssembler,
             DeleteVariantModelAssembler deleteVariantModelAssembler,
             RestoreVariantModelAssembler restoreVariantModelAssembler,
+            SyncVariantsModelAssembler syncVariantsModelAssembler,
             IdGenerator idGenerator
     ) {
         return new ProductFacadeService(
@@ -243,12 +288,44 @@ public class ProductCombinationTestConfig {
                 updateVariantDtoMapper,
                 deleteVariantDtoMapper,
                 restoreVariantDtoMapper,
+                syncVariantsDtoMapper,
                 updateProductModelAssembler,
                 updateProductStatusModelAssembler,
                 updateVariantModelAssembler,
                 deleteVariantModelAssembler,
                 restoreVariantModelAssembler,
+                syncVariantsModelAssembler,
                 idGenerator
         );
+    }
+
+    public static class InMemoryProductRepository implements ProductRepository {
+        private final Map<String, Product> storage = new ConcurrentHashMap<>();
+
+        public void put(Product product) {
+            storage.put(product.getId().getValue(), product);
+        }
+
+        @Override
+        public void save(Product product) {
+            storage.put(product.getId().getValue(), product);
+        }
+
+        @Override
+        public void delete(Product product) {
+            storage.remove(product.getId().getValue());
+        }
+
+        @Override
+        public Optional<Product> find(Id productId) {
+            return Optional.ofNullable(storage.get(productId.getValue()));
+        }
+
+        @Override
+        public Optional<Product> findBySlug(String slug) {
+            return storage.values().stream()
+                    .filter(product -> slug.equals(product.getSlug()))
+                    .findFirst();
+        }
     }
 }

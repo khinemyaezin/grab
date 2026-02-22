@@ -12,9 +12,6 @@ import java.util.*;
 
 @RequiredArgsConstructor
 public class DefaultVariationCombinationManager implements VariationCombinationManager {
-    private static final Comparator<ProductVariation> VARIATION_COMPARATOR =
-            Comparator.comparing(v -> v.getTypeId().getValue(), Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER));
-
     private final VariationKeyGenerator keyGenerator;
 
     @Override
@@ -87,7 +84,6 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
     private String generateSortedKey(List<ProductVariation> variations, Set<Id> commonTypeIds) {
         List<ProductVariation> filtered = variations.stream()
                 .filter(v -> commonTypeIds.contains(v.getTypeId()))
-                .sorted(VARIATION_COMPARATOR)
                 .toList();
         return keyGenerator.generateVariationKey(filtered);
     }
