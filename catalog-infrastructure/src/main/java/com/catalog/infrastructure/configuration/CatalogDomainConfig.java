@@ -4,12 +4,12 @@ import com.catalog.domain.service.VariantCombinationService;
 import com.catalog.domain.service.VariantDeletionStrategy;
 import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.service.VariationKeyGenerator;
-import com.catalog.domain.service.impl.DefaultVariantCombinationService;
-import com.catalog.domain.service.impl.DefaultVariationCombinationManager;
-import com.catalog.domain.service.impl.DefaultVariationKeyGenerator;
-import com.catalog.domain.service.impl.FullOptionHardDeleteStrategy;
+import com.catalog.domain.service.impl.*;
+import com.catalog.domain.valueobject.ProductVariation;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Comparator;
 
 @Configuration
 public class CatalogDomainConfig {
@@ -25,8 +25,13 @@ public class CatalogDomainConfig {
     }
 
     @Bean
-    public VariationKeyGenerator variationKeyGenerator() {
-        return new DefaultVariationKeyGenerator();
+    public Comparator<ProductVariation> getVariationComparator() {
+        return new ProductVariationComparator();
+    }
+
+    @Bean
+    public VariationKeyGenerator variationKeyGenerator(Comparator<ProductVariation> getVariationComparator) {
+        return new DefaultVariationKeyGenerator(getVariationComparator);
     }
 
     @Bean

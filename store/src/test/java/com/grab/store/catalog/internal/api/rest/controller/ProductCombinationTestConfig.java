@@ -1,5 +1,7 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
+import com.catalog.domain.service.impl.*;
+import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
@@ -18,14 +20,11 @@ import com.catalog.domain.service.VariantCombinationService;
 import com.catalog.domain.service.VariantDeletionStrategy;
 import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.service.VariationKeyGenerator;
-import com.catalog.domain.service.impl.DefaultVariantCombinationService;
-import com.catalog.domain.service.impl.DefaultVariationCombinationManager;
-import com.catalog.domain.service.impl.DefaultVariationKeyGenerator;
-import com.catalog.domain.service.impl.FullOptionHardDeleteStrategy;
 import org.mapstruct.factory.Mappers;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
+import java.util.Comparator;
 import java.util.List;
 
 @TestConfiguration
@@ -51,8 +50,13 @@ public class ProductCombinationTestConfig {
     }
 
     @Bean
-    public VariationKeyGenerator variationKeyGenerator() {
-        return new DefaultVariationKeyGenerator();
+    public Comparator<ProductVariation> getVariationComparator() {
+        return new ProductVariationComparator();
+    }
+
+    @Bean
+    public VariationKeyGenerator variationKeyGenerator(Comparator<ProductVariation> getVariationComparator) {
+        return new DefaultVariationKeyGenerator(getVariationComparator);
     }
 
     @Bean
