@@ -5,7 +5,10 @@ import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
+import com.grab.store.catalog.internal.api.rest.service.ProductCommandService;
 import com.grab.store.catalog.internal.api.rest.service.ProductFacadeService;
+import com.grab.store.catalog.internal.api.rest.service.ProductQueryService;
+import com.grab.store.catalog.internal.api.rest.service.VariantCommandService;
 import com.grab.store.catalog.internal.cqrs.command.CommandBus;
 import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.cqrs.command.impl.SimpleCommandBus;
@@ -241,8 +244,7 @@ public class ProductControllerTestConfig {
     }
 
     @Bean
-    public ProductFacadeService productFacadeService(
-            CommandBus commandBus,
+    public ProductQueryService productQueryService(
             QueryBus queryBus,
             GetProductDtoMapper getProductDtoMapper,
             GetProductBySlugDtoMapper getProductBySlugDtoMapper,
@@ -252,25 +254,9 @@ public class ProductControllerTestConfig {
             ProductCombinationModelAssembler productCombinationModelAssembler,
             ProductSummaryModelAssembler productSummaryModelAssembler,
             ProductSummaryQueryMapper productSummaryQueryMapper,
-            SaveProductDtoMapper saveProductDtoMapper,
-            DeleteProductModelAssembler deleteProductModelAssembler,
-            ProductSummaryDtoMapper productSummaryDtoMapper,
-            UpdateProductDtoMapper updateProductDtoMapper,
-            UpdateProductStatusDtoMapper updateProductStatusDtoMapper,
-            UpdateVariantDtoMapper updateVariantDtoMapper,
-            DeleteVariantDtoMapper deleteVariantDtoMapper,
-            RestoreVariantDtoMapper restoreVariantDtoMapper,
-            SyncVariantsDtoMapper syncVariantsDtoMapper,
-            UpdateProductModelAssembler updateProductModelAssembler,
-            UpdateProductStatusModelAssembler updateProductStatusModelAssembler,
-            UpdateVariantModelAssembler updateVariantModelAssembler,
-            DeleteVariantModelAssembler deleteVariantModelAssembler,
-            RestoreVariantModelAssembler restoreVariantModelAssembler,
-            SyncVariantsModelAssembler syncVariantsModelAssembler,
-            IdGenerator idGenerator
+            ProductSummaryDtoMapper productSummaryDtoMapper
     ) {
-        return new ProductFacadeService(
-                commandBus,
+        return new ProductQueryService(
                 queryBus,
                 getProductDtoMapper,
                 getProductBySlugDtoMapper,
@@ -280,23 +266,65 @@ public class ProductControllerTestConfig {
                 productCombinationModelAssembler,
                 productSummaryModelAssembler,
                 productSummaryQueryMapper,
+                productSummaryDtoMapper
+        );
+    }
+
+    @Bean
+    public ProductCommandService productCommandService(
+            CommandBus commandBus,
+            SaveProductDtoMapper saveProductDtoMapper,
+            DeleteProductModelAssembler deleteProductModelAssembler,
+            UpdateProductDtoMapper updateProductDtoMapper,
+            UpdateProductStatusDtoMapper updateProductStatusDtoMapper,
+            UpdateProductModelAssembler updateProductModelAssembler,
+            UpdateProductStatusModelAssembler updateProductStatusModelAssembler,
+            IdGenerator idGenerator
+    ) {
+        return new ProductCommandService(
+                commandBus,
                 saveProductDtoMapper,
                 deleteProductModelAssembler,
-                productSummaryDtoMapper,
                 updateProductDtoMapper,
                 updateProductStatusDtoMapper,
+                updateProductModelAssembler,
+                updateProductStatusModelAssembler,
+                idGenerator
+        );
+    }
+
+    @Bean
+    public VariantCommandService variantCommandService(
+            CommandBus commandBus,
+            UpdateVariantDtoMapper updateVariantDtoMapper,
+            DeleteVariantDtoMapper deleteVariantDtoMapper,
+            RestoreVariantDtoMapper restoreVariantDtoMapper,
+            SyncVariantsDtoMapper syncVariantsDtoMapper,
+            UpdateVariantModelAssembler updateVariantModelAssembler,
+            DeleteVariantModelAssembler deleteVariantModelAssembler,
+            RestoreVariantModelAssembler restoreVariantModelAssembler,
+            SyncVariantsModelAssembler syncVariantsModelAssembler
+    ) {
+        return new VariantCommandService(
+                commandBus,
                 updateVariantDtoMapper,
                 deleteVariantDtoMapper,
                 restoreVariantDtoMapper,
                 syncVariantsDtoMapper,
-                updateProductModelAssembler,
-                updateProductStatusModelAssembler,
                 updateVariantModelAssembler,
                 deleteVariantModelAssembler,
                 restoreVariantModelAssembler,
-                syncVariantsModelAssembler,
-                idGenerator
+                syncVariantsModelAssembler
         );
+    }
+
+    @Bean
+    public ProductFacadeService productFacadeService(
+            ProductQueryService productQueryService,
+            ProductCommandService productCommandService,
+            VariantCommandService variantCommandService
+    ) {
+        return new ProductFacadeService(productQueryService, productCommandService, variantCommandService);
     }
 
     public static class InMemoryProductRepository implements ProductRepository {
