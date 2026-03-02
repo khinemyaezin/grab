@@ -29,7 +29,7 @@ public class CategoryJpaRepository implements CategoryRepository {
         } else {
             entity = categoryJpaAssembler.buildFullEntityGraph(category, null);
 
-            if(category.isRoot()) {
+            if(category.getParentId().isEmpty()) {
                 nodeRepository.insertAsFirstRoot(entity);
             } else {
                 Optional<CategoryEntity> parentEntity = categoryJpaRepository.findByUuid(category.getParentId().get().getValue());
