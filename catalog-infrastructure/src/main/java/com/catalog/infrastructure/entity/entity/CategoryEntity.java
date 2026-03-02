@@ -36,4 +36,16 @@ public class CategoryEntity implements NestedSet<Long>, ICategory {
 
     @Column
     private Boolean active;
+
+//    public CategoryEntity(Long id, String name, Integer lft, Integer rgt, Integer depth) {
+//        this.id = id;
+//        this.name = name;
+//        this.lft = lft;
+//        this.rgt = rgt;
+//        this.depth = depth;
+//    }
+
+    public CategoryEntity() {
+
+    }
 }

@@ -19,7 +19,7 @@ public class CategoryJpaAssemblerImpl implements CategoryJpaAssembler {
         if(categoryEntity == null) {
             categoryEntity = createCategoryEntity(category);
         } else {
-            categoryEntity = mergeCategoryEntity(category, categoryEntity);
+            mergeCategoryEntity(category, categoryEntity);
         }
         return categoryEntity;
     }
@@ -30,9 +30,8 @@ public class CategoryJpaAssemblerImpl implements CategoryJpaAssembler {
         return categoryEntity;
     }
 
-    private CategoryEntity mergeCategoryEntity(Category category, CategoryEntity categoryEntity) {
+    private void mergeCategoryEntity(Category category, CategoryEntity categoryEntity) {
         categoryEntityMapper.toEntity(category, categoryEntity);
-        return categoryEntity;
     }
 
     @Override
