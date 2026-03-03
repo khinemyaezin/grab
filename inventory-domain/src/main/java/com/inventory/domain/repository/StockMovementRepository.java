@@ -10,6 +10,7 @@ import java.util.Optional;
 
 public interface StockMovementRepository {
 
+    void save(StockMovement movement);
     Optional<StockMovement> findById(Id id);
     List<StockMovement> findByInventoryItemId(Id inventoryItemId);
     List<StockMovement> findByInventoryItemIdAndDateRange(Id inventoryItemId, LocalDateTime from,LocalDateTime to);

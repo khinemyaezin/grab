@@ -12,6 +12,7 @@ import org.mapstruct.Mapping;
 public abstract class StockMovementMapper {
 
     @Mapping(source = "entity." + StockMovementEntity_.UUID, target = "id")
+    @Mapping(source = "entity." + StockMovementEntity_.INVENTORY_ITEM_UUID, target = "inventoryItemId")
     @Mapping(source = "entity." + StockMovementEntity_.TYPE, target = "type")
     @Mapping(source = "entity." + StockMovementEntity_.QUANTITY, target = "quantity")
     @Mapping(source = "entity." + StockMovementEntity_.QUANTITY_BEFORE, target = "quantityBefore")

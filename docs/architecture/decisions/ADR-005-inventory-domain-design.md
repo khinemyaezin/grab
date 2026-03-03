@@ -23,8 +23,8 @@ We will implement a Domain-Driven Design (DDD) approach for the inventory domain
 **InventoryItem as Aggregate Root**
 - Each `InventoryItem` represents stock for a specific product at a specific location
 - Unique constraint on (SKU, Location) combination
-- Encapsulates all stock movements as child entities
 - Enforces business rules through aggregate boundaries
+- Mutation methods return `StockMovement` records that are persisted independently
 
 ```java
 InventoryItem (Aggregate Root)
@@ -34,21 +34,33 @@ InventoryItem (Aggregate Root)
 ├── locationId: Id
 ├── quantity: InventoryQuantity (Value Object)
 ├── reorderConfig: ReorderConfig (Value Object)
-├── status: InventoryStatus
-└── movements: List<StockMovement> (Entities)
+└── status: InventoryStatus
+
+StockMovement (Entity)
+├── id: Id
+├── inventoryItemId: Id
+├── type: StockMovementType
+├── quantity: int
+├── quantityBefore: int
+├── quantityAfter: int
+├── referenceId: String
+├── createdAt: LocalDateTime
+└── createdBy: Id
 ```
 
 **Rationale**:
 - Ensures transactional consistency for inventory changes
-- Stock movements always belong to an inventory item
-- Aggregate boundary aligns with business invariants
-- Prevents orphaned stock movements
+- Aggregate boundary aligns with business invariants (InventoryQuantity holds all state)
+- StockMovement is decoupled from the aggregate to avoid unbounded growth
+- Movements are append-only audit records — no business logic reads them from the aggregate
+- Each movement references its parent via `inventoryItemId`
 
 ### 2. Stock Movement Lifecycle
 
-**Immutable Movement Records**
+**Immutable Movement Records (Independently Persisted)**
 - Stock movements are created once and never modified
-- Each movement records: type, quantity, before/after amounts, timestamp, reference
+- Each movement records: type, quantity, before/after amounts, timestamp, reference, and `inventoryItemId`
+- Mutations on `InventoryItem` return a `StockMovement` which is saved via `StockMovementRepository`
 - Corrections require compensating movements
 - Movement types categorized by direction:
   - **Inbound**: PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK
@@ -134,26 +146,22 @@ InventoryQuantity {
 - More code than simple CRUD
 - Developers need DDD knowledge
 - Assembler pattern adds indirection
+- Callers must remember to save returned `StockMovement` via `StockMovementRepository`
 
 ❌ **Storage**
 - Movement history grows over time
 - May need archival strategy
 - More storage than snapshot approach
 
-❌ **Performance**
-- Loading full aggregate can be expensive
-- Many movements = large object graph
-- May need pagination for movements
-
 ### Mitigation Strategies
 
 1. **Movement History Management**
-   - Implement movement pagination
-   - Archive old movements to separate table
-   - Provide summary queries
+   - Movements are decoupled from the aggregate — no performance impact on inventory reads
+   - `StockMovementRepository` supports paginated and date-range queries
+   - Archive old movements to separate table when needed
 
 2. **Performance Optimization**
-   - Lazy load movements when not needed
+   - Inventory reads never load movements (decoupled by design)
    - Use projections for list queries
    - Cache frequently accessed inventory
 
@@ -164,17 +172,8 @@ InventoryQuantity {
 
 ## Alternatives Considered
 
-### Alternative 1: Single Inventory Table with Location Column
-**Rejected**: Would require complex queries for transfers and make movement tracking harder.
-
-### Alternative 2: Event Sourcing for Stock Movements
-**Deferred**: Added complexity not justified for MVP. Consider for future if advanced time-travel queries needed.
-
-### Alternative 3: CQRS with Separate Read/Write Models
+### Alternative 1: CQRS with Separate Read/Write Models
 **Deferred**: Current design sufficient for expected load. Revisit if query performance becomes issue.
-
-### Alternative 4: Snapshot + Events Pattern
-**Rejected**: Movement history already serves as events. Snapshots add complexity without clear benefit.
 
 
 ## References

@@ -5,7 +5,6 @@ import com.inventory.infrastructure.entity.InventoryItemEntity;
 
 public interface InventoryJpaAssembler {
     /**
-     * Convert an InventoryItem domain aggregate into a persistable InventoryItemEntity, including all related entities.
      * If `entity` is null a new InventoryItemEntity instance will be created; otherwise the provided `entity` is updated.
      *
      * @param inventoryItem the full InventoryItem aggregate to persist

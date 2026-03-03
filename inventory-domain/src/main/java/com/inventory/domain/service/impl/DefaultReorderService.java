@@ -73,14 +73,12 @@ public class DefaultReorderService implements ReorderService {
         if (available <= reorderPoint) {
             return ReorderPriority.HIGH;
         }
-        // Within 20% of reorder point
         if (available <= reorderPoint * 1.2) {
             return ReorderPriority.MEDIUM;
         }
         return ReorderPriority.LOW;
     }
 
-    // Only suggest for CRITICAL, HIGH, and MEDIUM priorities
     private boolean shouldSuggestReorder(InventoryItem item) {
         ReorderPriority priority = calculatePriority(item);
         return priority != ReorderPriority.LOW;

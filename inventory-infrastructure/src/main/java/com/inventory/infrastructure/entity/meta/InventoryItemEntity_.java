@@ -2,8 +2,6 @@ package com.inventory.infrastructure.entity.meta;
 
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.infrastructure.entity.InventoryItemEntity;
-import com.inventory.infrastructure.entity.StockMovementEntity;
-import jakarta.persistence.metamodel.ListAttribute;
 import jakarta.persistence.metamodel.SingularAttribute;
 import jakarta.persistence.metamodel.StaticMetamodel;
 
@@ -26,7 +24,6 @@ public class InventoryItemEntity_ {
     public static volatile SingularAttribute<InventoryItemEntity, Integer> maxStock;
     public static volatile SingularAttribute<InventoryItemEntity, InventoryStatus> status;
     public static volatile SingularAttribute<InventoryItemEntity, LocalDateTime> lastUpdated;
-    public static volatile ListAttribute<InventoryItemEntity, StockMovementEntity> movements;
 
     public static final String ID = "id";
     public static final String UUID = "uuid";
@@ -43,5 +40,4 @@ public class InventoryItemEntity_ {
     public static final String MAX_STOCK = "maxStock";
     public static final String STATUS = "status";
     public static final String LAST_UPDATED = "lastUpdated";
-    public static final String MOVEMENT_ENTITIES = "movements";
 }

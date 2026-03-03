@@ -2,7 +2,6 @@ package com.inventory.domain.exception;
 
 import com.grab.framework.exception.DomainException;
 import com.grab.framework.service.MessageSource;
-import com.inventory.domain.config.SystemProperties;
 import com.inventory.domain.enums.StockMovementType;
 import lombok.Getter;
 

@@ -14,6 +14,7 @@ public abstract class StockMovementEntityMapper {
 
     @Mapping(ignore = true, target = StockMovementEntity_.ID)
     @Mapping(source = "id", target = StockMovementEntity_.UUID)
+    @Mapping(source = "inventoryItemId", target = StockMovementEntity_.INVENTORY_ITEM_UUID)
     @Mapping(source = "type", target = StockMovementEntity_.TYPE)
     @Mapping(source = "quantity", target = StockMovementEntity_.QUANTITY)
     @Mapping(source = "quantityBefore", target = StockMovementEntity_.QUANTITY_BEFORE)
@@ -21,6 +22,5 @@ public abstract class StockMovementEntityMapper {
     @Mapping(source = "referenceId", target = StockMovementEntity_.REFERENCE_ID)
     @Mapping(source = "createdAt", target = StockMovementEntity_.CREATED_AT)
     @Mapping(source = "createdBy", target = StockMovementEntity_.CREATED_BY)
-    @Mapping(ignore = true, target = StockMovementEntity_.INVENTORY_ITEM)
     public abstract void toEntity(StockMovement source, @MappingTarget StockMovementEntity destination);
 }

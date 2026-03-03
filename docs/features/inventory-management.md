@@ -7,7 +7,7 @@
 ## Domain Context (DDD)
 - **Bounded Context:** Inventory
 - **Primary Aggregate:** `InventoryItem` (unique per SKU + Location)
-- **Key Entities:** `StockMovement` (immutable child of `InventoryItem`), `Location`, `Bin`, `Zone`
+- **Key Entities:** `StockMovement` (independently persisted, linked by `inventoryItemId`), `Location`, `Bin`, `Zone`
 - **Value Objects:** `InventoryQuantity` (onHand, reserved, inTransit, damaged), `ReorderConfig`, `Address`
 - **New/Modified Rules:**
   - SKU + Location combination must be unique
@@ -41,16 +41,16 @@
 | Query movements | `GET /api/inventories/{id}/movements` | `StockMovementRepository` |
 
 ### Core Logic
-- **Aggregate:** `InventoryItem` encapsulates all mutations; every mutation creates an immutable `StockMovement` child entity recording type, quantity, before/after, reference, timestamp, and user.
+- **Aggregate:** `InventoryItem` encapsulates all mutations; every mutation returns an immutable `StockMovement` (recording type, quantity, before/after, reference, timestamp, and user) that is saved independently via `StockMovementRepository`.
 - **Quantity calculation:** `StockMovement.calculateQuantityAfter()` derives `quantityAfter` from movement type direction.
 - **Allocation:** `DefaultInventoryAllocationService` finds available inventory by SKU across locations and reserves stock.
 - **Reorder:** `DefaultReorderService` evaluates `ReorderConfig` thresholds to recommend replenishment.
 
 ### Persistence
 - `InventoryRepository` — CRUD for `InventoryItem` (with UNIQUE constraint on `sku + location_id`)
-- `StockMovementRepository` — read-only queries (by inventory item, date range, type, reference)
+- `StockMovementRepository` — save and query (by inventory item, date range, type, reference)
 - `LocationRepository` — location lookup
-- Movements cascade-deleted with their parent `InventoryItem`
+- Movements are independently persisted and not cascade-deleted with `InventoryItem`
 
 ## Acceptance Criteria
 
@@ -80,11 +80,3 @@
 ### Allocation
 - [ ] `InventoryAllocationService.allocateStock()` reserves across locations and returns `AllocationResult`
 - [ ] Allocation fails with `AllocationError` when insufficient stock exists globally
-
-## Out of Scope
-- Event sourcing / CQRS (deferred — see ADR-005)
-- Time-based reservation expiry and priority queuing (Phase 2)
-- Demand forecasting, ABC analysis, seasonal trends (Phase 3)
-- Bulk CSV import and batch operations (Phase 4)
-- Real-time WebSocket / push notifications (Phase 5)
-- Serial number, lot/batch, expiration, and multi-UOM tracking (Phase 6)

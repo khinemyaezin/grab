@@ -3,8 +3,10 @@ package com.inventory.domain.service.impl;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
+import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.exception.AllocationError;
 import com.inventory.domain.repository.InventoryRepository;
+import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.service.InventoryAllocationService;
 
 import java.util.ArrayList;
@@ -15,10 +17,16 @@ import java.util.Optional;
 public class DefaultInventoryAllocationService implements InventoryAllocationService {
 
     private final InventoryRepository inventoryRepository;
+    private final StockMovementRepository stockMovementRepository;
     private final IdGenerator idGenerator;
 
-    public DefaultInventoryAllocationService(InventoryRepository inventoryRepository, IdGenerator idGenerator) {
+    public DefaultInventoryAllocationService(
+            InventoryRepository inventoryRepository,
+            StockMovementRepository stockMovementRepository,
+            IdGenerator idGenerator
+    ) {
         this.inventoryRepository = inventoryRepository;
+        this.stockMovementRepository = stockMovementRepository;
         this.idGenerator = idGenerator;
     }
 
@@ -49,8 +57,9 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
 
             int toAllocate = Math.min(remaining, item.getAvailableQuantity());
             if (toAllocate > 0) {
-                item.reserveStock(toAllocate, orderId, createdBy, idGenerator.generateId());
+                StockMovement movement = item.reserveStock(toAllocate, orderId, createdBy, idGenerator.generateId());
                 inventoryRepository.save(item);
+                stockMovementRepository.save(movement);
 
                 allocations.add(new AllocationDetail(item.getId(), item.getLocationId(), toAllocate));
                 remaining -= toAllocate;
@@ -79,8 +88,9 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
                         new AllocationError.InsufficientStock(item.getAvailableQuantity(), quantity));
             }
 
-            item.reserveStock(quantity, orderId, createdBy, idGenerator.generateId());
+            StockMovement movement = item.reserveStock(quantity, orderId, createdBy, idGenerator.generateId());
             inventoryRepository.save(item);
+            stockMovementRepository.save(movement);
 
             List<AllocationDetail> allocations = List.of(
                     new AllocationDetail(item.getId(), locationId, quantity)
@@ -103,8 +113,9 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
             int reserved = item.getQuantity().reserved();
             if (reserved > 0) {
                 int toRelease = Math.min(remaining, reserved);
-                item.releaseReservation(toRelease, orderId, initiatedBy, idGenerator.generateId());
+                StockMovement movement = item.releaseReservation(toRelease, orderId, initiatedBy, idGenerator.generateId());
                 inventoryRepository.save(item);
+                stockMovementRepository.save(movement);
                 remaining -= toRelease;
             }
         }

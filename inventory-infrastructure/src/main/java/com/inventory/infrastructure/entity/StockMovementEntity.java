@@ -24,9 +24,8 @@ public class StockMovementEntity {
     @Column(unique = true, nullable = false)
     private String uuid;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "inventory_item_id", nullable = false)
-    private InventoryItemEntity inventoryItem;
+    @Column(name = "inventory_item_uuid", nullable = false)
+    private String inventoryItemUuid;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
