@@ -19,16 +19,12 @@ public class Bin extends Entity<Id> {
     @Setter
     private boolean active;
 
-    public Bin(Id id, String code, String name, Integer maxCapacity) {
+    public Bin(Id id, String code, String name, Integer maxCapacity, boolean active) {
         super(id);
         this.code = Objects.requireNonNull(code, "code is required");
         this.name = name;
         this.maxCapacity = maxCapacity;
-        this.active = true;
-    }
-
-    public Bin(Id id, String code, String name) {
-        this(id, code, name, null);
+        this.active = active;
     }
 
     public boolean hasCapacityLimit() {

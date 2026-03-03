@@ -1,6 +1,7 @@
 package com.catalog.infrastructure.event;
 
 import com.grab.framework.domain.Event;
+import com.grab.framework.event.DomainEventProducer;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 

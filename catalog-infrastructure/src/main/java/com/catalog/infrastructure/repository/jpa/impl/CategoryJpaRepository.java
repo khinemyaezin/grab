@@ -5,7 +5,7 @@ import com.nestedset.app.NestedSetNodeRepository;
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
-import com.catalog.infrastructure.event.DomainEventProducer;
+import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.mapper.jpa.CategoryJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import lombok.AllArgsConstructor;

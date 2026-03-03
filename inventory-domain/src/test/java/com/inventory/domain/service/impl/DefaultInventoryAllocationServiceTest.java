@@ -15,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -226,7 +228,9 @@ class DefaultInventoryAllocationServiceTest {
                 id(locationId),
                 InventoryQuantity.withOnHand(onHand),
                 null,
-                status
+                status,
+                new ArrayList<>(),
+                LocalDateTime.now()
         );
     }
 

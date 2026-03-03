@@ -47,7 +47,9 @@ public class InventoryItem extends AggregateRoot<Id> {
             Id locationId,
             InventoryQuantity quantity,
             ReorderConfig reorderConfig,
-            InventoryStatus status
+            InventoryStatus status,
+            List<StockMovement> movements,
+            LocalDateTime lastUpdated
     ) {
         super(id);
         this.sku = Objects.requireNonNull(sku, "sku is required");
@@ -56,8 +58,8 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.quantity = quantity != null ? quantity : InventoryQuantity.zero();
         this.reorderConfig = reorderConfig != null ? reorderConfig : ReorderConfig.defaultConfig();
         this.status = status != null ? status : InventoryStatus.ACTIVE;
-        this.movements = new ArrayList<>();
-        this.lastUpdated = LocalDateTime.now();
+        this.movements = new ArrayList<>(movements);
+        this.lastUpdated = lastUpdated;
     }
 
     public static InventoryItem create(
@@ -72,7 +74,9 @@ public class InventoryItem extends AggregateRoot<Id> {
                 id, sku, productVariantId, locationId,
                 InventoryQuantity.withOnHand(initialQuantity),
                 reorderConfig,
-                InventoryStatus.ACTIVE
+                InventoryStatus.ACTIVE,
+                new ArrayList<>(),
+                LocalDateTime.now()
         );
 
         if (initialQuantity > 0) {

@@ -4,7 +4,7 @@ import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
-import com.catalog.infrastructure.event.DomainEventProducer;
+import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.mapper.jpa.ProductJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.ProductJpaRepo;
 import lombok.AllArgsConstructor;

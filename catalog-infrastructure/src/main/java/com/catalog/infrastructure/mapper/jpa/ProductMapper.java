@@ -1,6 +1,5 @@
 package com.catalog.infrastructure.mapper.jpa;
 
-import com.catalog.domain.aggregate.ProductStatus;
 import com.grab.framework.id.IdGenerator;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;

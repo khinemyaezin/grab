@@ -10,7 +10,7 @@ import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.event.ApplicationDomainEventProducer;
-import com.catalog.infrastructure.event.DomainEventProducer;
+import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.factory.CategoryComponentFactory;
 import com.catalog.infrastructure.mapper.jpa.impl.CategoryJpaAssemblerImpl;
 import com.catalog.infrastructure.mapper.jpa.impl.ProductJpaAssemblerImpl;

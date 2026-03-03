@@ -28,7 +28,7 @@ public interface InventoryRepository {
 
     List<InventoryItem> findAll();
 
-    InventoryItem save(InventoryItem item);
+    void save(InventoryItem item);
 
     void delete(Id id);
 
