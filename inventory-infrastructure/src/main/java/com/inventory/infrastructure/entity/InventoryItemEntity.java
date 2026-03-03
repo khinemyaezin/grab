@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -65,14 +63,6 @@ public class InventoryItemEntity {
 
     @Column(name = "last_updated", nullable = false)
     private LocalDateTime lastUpdated;
-
-    @OneToMany(mappedBy = "inventoryItem", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<StockMovementEntity> movements = new ArrayList<>();
-
-    public void addMovement(StockMovementEntity movement) {
-        movement.setInventoryItem(this);
-        movements.add(movement);
-    }
 
     @PrePersist
     @PreUpdate

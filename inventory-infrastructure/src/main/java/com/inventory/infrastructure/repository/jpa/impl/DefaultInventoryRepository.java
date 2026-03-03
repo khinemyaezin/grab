@@ -1,10 +1,12 @@
-package com.inventory.infrastructure.repository.facade;
+package com.inventory.infrastructure.repository.jpa.impl;
 
+import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.infrastructure.mapper.InventoryItemMapper;
+import com.inventory.infrastructure.entity.InventoryItemEntity;
+import com.inventory.infrastructure.mapper.jpa.InventoryJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -14,34 +16,35 @@ import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
-public class InventoryRepositoryImpl implements InventoryRepository {
+public class DefaultInventoryRepository implements InventoryRepository {
 
     private final InventoryItemJpaRepository jpaRepository;
-    private final InventoryItemMapper mapper;
+    private final InventoryJpaAssembler mapper;
+    private final DomainEventProducer domainEventProducer;
 
     @Override
     public Optional<InventoryItem> findById(Id id) {
         return jpaRepository.findByUuid(id.getValue())
-                .map(mapper::toDomain);
+                .map(mapper::toFullDomainGraph);
     }
 
     @Override
     public List<InventoryItem> findBySku(String sku) {
         return jpaRepository.findAllBySku(sku).stream()
-                .map(mapper::toDomain)
+                .map(mapper::toFullDomainGraph)
                 .toList();
     }
 
     @Override
     public Optional<InventoryItem> findBySkuAndLocation(String sku, Id locationId) {
         return jpaRepository.findBySkuAndLocationId(sku, locationId.getValue())
-                .map(mapper::toDomain);
+                .map(mapper::toFullDomainGraph);
     }
 
     @Override
     public List<InventoryItem> findByLocation(Id locationId) {
         return jpaRepository.findAllByLocationId(locationId.getValue()).stream()
-                .map(mapper::toDomain)
+                .map(mapper::toFullDomainGraph)
                 .toList();
     }
 
@@ -49,14 +52,14 @@ public class InventoryRepositoryImpl implements InventoryRepository {
     public List<InventoryItem> findByProductVariantId(String productVariantId) {
         return jpaRepository.findAll().stream()
                 .filter(e -> productVariantId.equals(e.getProductVariantId()))
-                .map(mapper::toDomain)
+                .map(mapper::toFullDomainGraph)
                 .toList();
     }
 
     @Override
     public List<InventoryItem> findLowStock() {
         return jpaRepository.findAll().stream()
-                .map(mapper::toDomain)
+                .map(mapper::toFullDomainGraph)
                 .filter(InventoryItem::isLowStock)
                 .toList();
     }
@@ -64,7 +67,7 @@ public class InventoryRepositoryImpl implements InventoryRepository {
     @Override
     public List<InventoryItem> findNeedsReorder() {
         return jpaRepository.findItemsBelowReorderPoint().stream()
-                .map(mapper::toDomain)
+                .map(mapper::toFullDomainGraph)
                 .toList();
     }
 
@@ -72,7 +75,7 @@ public class InventoryRepositoryImpl implements InventoryRepository {
     public List<InventoryItem> findOutOfStock() {
         return jpaRepository.findAll().stream()
                 .filter(e -> e.getStatus() == InventoryStatus.OUT_OF_STOCK)
-                .map(mapper::toDomain)
+                .map(mapper::toFullDomainGraph)
                 .toList();
     }
 
@@ -86,13 +89,23 @@ public class InventoryRepositoryImpl implements InventoryRepository {
     @Override
     public List<InventoryItem> findAll() {
         return jpaRepository.findAll().stream()
-                .map(mapper::toDomain)
+                .map(mapper::toFullDomainGraph)
                 .toList();
     }
 
     @Override
-    public InventoryItem save(InventoryItem item) {
-        return null;
+    public void save(InventoryItem item) {
+        Optional<InventoryItemEntity> existingEntity = jpaRepository.findByUuid(item.getId().getValue());
+        InventoryItemEntity entity;
+
+        if(existingEntity.isPresent()) {
+            entity = mapper.buildFullEntityGraph(item, existingEntity.get());
+        } else {
+            entity = mapper.buildFullEntityGraph(item, null);
+        }
+
+        jpaRepository.save(entity);
+        domainEventProducer.produce(item.getEvents());
     }
 
     @Override

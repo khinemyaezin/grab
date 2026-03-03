@@ -6,7 +6,7 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
-import com.catalog.infrastructure.event.DomainEventProducer;
+import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.mapper.jpa.ProductJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
 import org.junit.jupiter.api.BeforeEach;

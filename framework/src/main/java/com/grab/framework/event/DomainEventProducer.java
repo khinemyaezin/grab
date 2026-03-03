@@ -1,4 +1,4 @@
-package com.catalog.infrastructure.event;
+package com.grab.framework.event;
 
 import com.grab.framework.domain.Event;
 

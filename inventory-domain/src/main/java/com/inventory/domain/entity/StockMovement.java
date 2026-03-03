@@ -11,6 +11,7 @@ import java.util.Objects;
 @Getter
 public class StockMovement extends Entity<Id> {
 
+    private final Id inventoryItemId;
     private final StockMovementType type;
     private final int quantity;
     private final int quantityBefore;
@@ -21,6 +22,7 @@ public class StockMovement extends Entity<Id> {
 
     public StockMovement(
             Id id,
+            Id inventoryItemId,
             StockMovementType type,
             int quantity,
             int quantityBefore,
@@ -30,6 +32,7 @@ public class StockMovement extends Entity<Id> {
             Id createdBy
     ) {
         super(id);
+        this.inventoryItemId = Objects.requireNonNull(inventoryItemId, "inventoryItemId is required");
         this.type = Objects.requireNonNull(type, "type is required");
         this.quantity = quantity;
         this.quantityBefore = quantityBefore;
@@ -41,6 +44,7 @@ public class StockMovement extends Entity<Id> {
 
     public static StockMovement create(
             Id id,
+            Id inventoryItemId,
             StockMovementType type,
             int quantity,
             int quantityBefore,
@@ -49,7 +53,7 @@ public class StockMovement extends Entity<Id> {
     ) {
         int quantityAfter = calculateQuantityAfter(type, quantityBefore, quantity);
         return new StockMovement(
-                id, type, quantity, quantityBefore, quantityAfter,
+                id, inventoryItemId, type, quantity, quantityBefore, quantityAfter,
                 referenceId, LocalDateTime.now(), createdBy
         );
     }

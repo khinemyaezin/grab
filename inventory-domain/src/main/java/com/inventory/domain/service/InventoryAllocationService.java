@@ -7,6 +7,13 @@ import com.inventory.domain.exception.AllocationError;
 
 import java.util.List;
 
+/** Service for allocating inventory to orders.
+ * <p>This service handles the logic for reserving stock for orders, 
+ * ensuring that inventory is allocated in a way that prevents overselling and maintains accurate stock levels.
+ * </p>
+ * <p>Feature documentation:
+ * See docs/features/inventory-allocation.md
+ **/
 public interface InventoryAllocationService {
 
     record AllocationResult(

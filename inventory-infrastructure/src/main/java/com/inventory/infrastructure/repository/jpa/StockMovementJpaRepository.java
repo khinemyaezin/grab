@@ -18,18 +18,23 @@ public interface StockMovementJpaRepository extends JpaRepository<StockMovementE
 
     Optional<StockMovementEntity> findByUuid(String uuid);
 
-    List<StockMovementEntity> findAllByInventoryItemId(Long inventoryItemId);
+    List<StockMovementEntity> findAllByInventoryItemUuid(String inventoryItemUuid);
 
     List<StockMovementEntity> findAllByReferenceId(String referenceId);
 
     List<StockMovementEntity> findAllByType(StockMovementType type);
 
-    @Query("SELECT m FROM StockMovementEntity m WHERE m.inventoryItem.id = :inventoryItemId " +
+    @Query("SELECT m FROM StockMovementEntity m WHERE m.inventoryItemUuid = :inventoryItemUuid " +
             "AND m.createdAt BETWEEN :startDate AND :endDate ORDER BY m.createdAt DESC")
-    List<StockMovementEntity> findByInventoryItemIdAndDateRange(
-            @Param("inventoryItemId") Long inventoryItemId,
+    List<StockMovementEntity> findByInventoryItemUuidAndDateRange(
+            @Param("inventoryItemUuid") String inventoryItemUuid,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
-    Page<StockMovementEntity> findAllByInventoryItemIdOrderByCreatedAtDesc(Long inventoryItemId, Pageable pageable);
+    Page<StockMovementEntity> findAllByInventoryItemUuidOrderByCreatedAtDesc(String inventoryItemUuid, Pageable pageable);
+
+    int countByInventoryItemUuidAndType(String inventoryItemUuid, StockMovementType type);
+
+    @Query("SELECT m FROM StockMovementEntity m WHERE m.createdAt >= :since ORDER BY m.createdAt DESC")
+    List<StockMovementEntity> findRecentMovements(@Param("since") LocalDateTime since);
 }
