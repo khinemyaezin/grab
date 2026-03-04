@@ -11,9 +11,10 @@ import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.InventoryReservationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.valueobject.ReorderConfig;
+import com.grab.store.inventory.internal.config.InventoryReadTransactional;
+import com.grab.store.inventory.internal.config.InventoryTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,7 +28,7 @@ public class InventoryApplicationService {
     private final InventoryReservationRepository inventoryReservationRepository;
     private final IdGenerator idGenerator;
 
-    @Transactional("inventoryTransactionManager")
+    @InventoryTransactional
     public InventoryItem createInventory(
             String sku,
             String productVariantId,
@@ -77,7 +78,7 @@ public class InventoryApplicationService {
         return item;
     }
 
-    @Transactional("inventoryTransactionManager")
+    @InventoryTransactional
     public InventoryItem receiveStock(String inventoryItemId, int quantity, StockMovementType type, String referenceId, String createdBy) {
         InventoryItem item = getInventoryOrThrow(inventoryItemId);
         StockMovement movement = item.receiveStock(
@@ -93,7 +94,7 @@ public class InventoryApplicationService {
         return item;
     }
 
-    @Transactional("inventoryTransactionManager")
+    @InventoryTransactional
     public InventoryReservation reserveStock(
             String inventoryItemId,
             int quantity,
@@ -132,7 +133,7 @@ public class InventoryApplicationService {
         return reservation;
     }
 
-    @Transactional("inventoryTransactionManager")
+    @InventoryTransactional
     public InventoryReservation releaseReservation(String inventoryItemId, String reservationId, String createdBy) {
         InventoryItem item = getInventoryOrThrow(inventoryItemId);
         InventoryReservation reservation = inventoryReservationRepository.findById(idGenerator.generateId(reservationId))
@@ -154,7 +155,7 @@ public class InventoryApplicationService {
         return reservation;
     }
 
-    @Transactional("inventoryTransactionManager")
+    @InventoryTransactional
     public InventoryReservation shipReservation(String inventoryItemId, String reservationId, String createdBy) {
         InventoryItem item = getInventoryOrThrow(inventoryItemId);
         InventoryReservation reservation = inventoryReservationRepository.findById(idGenerator.generateId(reservationId))
@@ -176,7 +177,7 @@ public class InventoryApplicationService {
         return reservation;
     }
 
-    @Transactional("inventoryTransactionManager")
+    @InventoryTransactional
     public InventoryItem adjustStock(String inventoryItemId, int newOnHandQuantity, AdjustmentReason reason, String createdBy) {
         InventoryItem item = getInventoryOrThrow(inventoryItemId);
         StockMovement movement = item.adjustStock(
@@ -191,14 +192,17 @@ public class InventoryApplicationService {
         return item;
     }
 
+    @InventoryReadTransactional
     public InventoryItem getInventory(String inventoryItemId) {
         return getInventoryOrThrow(inventoryItemId);
     }
 
+    @InventoryReadTransactional
     public List<StockMovement> getMovements(String inventoryItemId) {
         return stockMovementRepository.findByInventoryItemId(idGenerator.generateId(inventoryItemId));
     }
 
+    @InventoryReadTransactional
     public List<InventoryReservation> getReservations(String inventoryItemId) {
         return inventoryReservationRepository.findByInventoryItemId(idGenerator.generateId(inventoryItemId));
     }

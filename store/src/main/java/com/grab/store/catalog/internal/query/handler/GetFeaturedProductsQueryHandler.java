@@ -3,6 +3,7 @@ package com.grab.store.catalog.internal.query.handler;
 import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.GetFeaturedProductsQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
 import com.grab.store.catalog.internal.query.SpringPageInfoFactory;
@@ -24,6 +25,7 @@ public class GetFeaturedProductsQueryHandler implements QueryHandler<GetFeatured
     private final ProductQueryRepository productQueryRepository;
 
     @Override
+    @CatalogReadTransactional
     public ProductSummaryResult handle(GetFeaturedProductsQuery query) {
         log.debug("Handling GetFeaturedProductsQuery");
 

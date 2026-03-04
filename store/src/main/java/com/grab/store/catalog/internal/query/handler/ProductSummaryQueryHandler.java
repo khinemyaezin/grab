@@ -1,6 +1,7 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.ProductSummaryQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
 import com.grab.store.catalog.internal.query.SpringPageInfoFactory;
@@ -23,6 +24,7 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
     private final ProductQueryRepository productQueryRepository;
 
     @Override
+    @CatalogReadTransactional
     public ProductSummaryResult handle(ProductSummaryQuery query) {
         log.debug("Handling ProductSummaryQuery");
 

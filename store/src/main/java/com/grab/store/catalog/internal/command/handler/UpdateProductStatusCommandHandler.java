@@ -3,13 +3,13 @@ package com.grab.store.catalog.internal.command.handler;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateProductStatusCommand;
 import com.grab.store.catalog.internal.command.UpdateProductStatusResult;
+import com.grab.store.catalog.internal.config.CatalogTransactional;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -21,7 +21,7 @@ public class UpdateProductStatusCommandHandler implements CommandHandler<UpdateP
     private final ProductRepository productRepository;
 
     @Override
-    @Transactional
+    @CatalogTransactional
     public UpdateProductStatusResult handle(UpdateProductStatusCommand command) {
         log.debug("Handling UpdateProductStatusCommand for productId={}, status={}", command.productId(), command.status());
 

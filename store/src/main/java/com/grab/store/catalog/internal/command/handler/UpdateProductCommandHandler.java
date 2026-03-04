@@ -3,13 +3,13 @@ package com.grab.store.catalog.internal.command.handler;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
+import com.grab.store.catalog.internal.config.CatalogTransactional;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -22,7 +22,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     private final UniqueSlugResolver uniqueSlugResolver;
 
     @Override
-    @Transactional
+    @CatalogTransactional
     public UpdateProductResult handle(UpdateProductCommand command) {
         log.debug("Handling UpdateProductCommand for productId={}", command.productId());
 

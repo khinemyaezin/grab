@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
 WORKDIR /app
@@ -13,7 +15,8 @@ COPY inventory-domain/pom.xml inventory-domain/
 COPY inventory-infrastructure/pom.xml inventory-infrastructure/
 COPY store/pom.xml store/
 
-RUN mvn dependency:go-offline -B
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -pl store -am dependency:go-offline -B -ntp
 
 COPY framework/src framework/src
 COPY catalog-domain/src catalog-domain/src
@@ -22,7 +25,8 @@ COPY inventory-domain/src inventory-domain/src
 COPY inventory-infrastructure/src inventory-infrastructure/src
 COPY store/src store/src
 
-RUN mvn clean package -DskipTests -Dmaven.javadoc.skip=true -B
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -pl store -am package -DskipTests -Dmaven.javadoc.skip=true -B -ntp
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 

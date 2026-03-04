@@ -4,6 +4,7 @@ import com.grab.framework.id.Id;
 import com.grab.store.catalog.internal.command.SaveProductCommand;
 import com.grab.store.catalog.internal.command.SaveProductResult;
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.store.catalog.internal.config.CatalogTransactional;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
@@ -13,7 +14,6 @@ import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ public class SaveProductCommandHandler implements CommandHandler<SaveProductComm
     private final UniqueSlugResolver uniqueSlugResolver;
 
     @Override
-    @Transactional
+    @CatalogTransactional
     public SaveProductResult handle(SaveProductCommand command) {
         log.debug("Handling SaveProductCommand for product: {}", command.product().name());
 

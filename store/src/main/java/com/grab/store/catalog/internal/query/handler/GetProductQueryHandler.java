@@ -4,6 +4,7 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.GetProductQuery;
 import com.grab.store.catalog.internal.query.GetProductResult;
 import com.catalog.domain.aggregate.Product;
@@ -26,6 +27,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     private final IdGenerator idGenerator;
 
     @Override
+    @CatalogReadTransactional
     public GetProductResult handle(GetProductQuery query) {
         log.debug("Handling GetProductQuery for productId: {}", query.productId());
 

@@ -13,10 +13,10 @@ import com.grab.framework.id.Id;
 import com.grab.store.catalog.internal.command.SyncVariantsCommand;
 import com.grab.store.catalog.internal.command.SyncVariantsResult;
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.store.catalog.internal.config.CatalogTransactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
     private final VariantDeletionStrategy variantDeletionStrategy;
 
     @Override
-    @Transactional
+    @CatalogTransactional
     public SyncVariantsResult handle(SyncVariantsCommand command) {
         log.debug("Handling SyncVariantsCommand for productId={}", command.productId());
 

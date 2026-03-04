@@ -4,6 +4,7 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
 import com.catalog.domain.aggregate.Product;
@@ -25,6 +26,7 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
     private final ProductRepository productRepository;
 
     @Override
+    @CatalogReadTransactional
     public GetProductBySlugResult handle(GetProductBySlugQuery query) {
         log.debug("Handling GetProductBySlugQuery for slug: {}", query.slug());
 
