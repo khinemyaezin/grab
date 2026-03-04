@@ -4,7 +4,7 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.catalog.infrastructure.entity.meta.ProductVariantEntity_;
-import com.catalog.infrastructure.mapper.IdMapper;
+import com.grab.framework.mapper.IdMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;

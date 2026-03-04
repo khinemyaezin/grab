@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.query;
 
 import com.grab.framework.id.Id;
-import com.grab.store.catalog.internal.cqrs.query.Query;
+import com.grab.framework.cqrs.query.Query;
 
 import java.util.List;
 

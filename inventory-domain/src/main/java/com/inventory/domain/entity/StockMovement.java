@@ -16,6 +16,10 @@ public class StockMovement extends Entity<Id> {
     private final int quantity;
     private final int quantityBefore;
     private final int quantityAfter;
+    private final int onHandBefore;
+    private final int onHandAfter;
+    private final int reservedBefore;
+    private final int reservedAfter;
     private final String referenceId;
     private final LocalDateTime createdAt;
     private final Id createdBy;
@@ -27,6 +31,10 @@ public class StockMovement extends Entity<Id> {
             int quantity,
             int quantityBefore,
             int quantityAfter,
+            int onHandBefore,
+            int onHandAfter,
+            int reservedBefore,
+            int reservedAfter,
             String referenceId,
             LocalDateTime createdAt,
             Id createdBy
@@ -37,6 +45,10 @@ public class StockMovement extends Entity<Id> {
         this.quantity = quantity;
         this.quantityBefore = quantityBefore;
         this.quantityAfter = quantityAfter;
+        this.onHandBefore = onHandBefore;
+        this.onHandAfter = onHandAfter;
+        this.reservedBefore = reservedBefore;
+        this.reservedAfter = reservedAfter;
         this.referenceId = referenceId;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
         this.createdBy = createdBy;
@@ -54,6 +66,28 @@ public class StockMovement extends Entity<Id> {
         int quantityAfter = calculateQuantityAfter(type, quantityBefore, quantity);
         return new StockMovement(
                 id, inventoryItemId, type, quantity, quantityBefore, quantityAfter,
+                quantityBefore, quantityAfter, 0, 0,
+                referenceId, LocalDateTime.now(), createdBy
+        );
+    }
+
+    public static StockMovement create(
+            Id id,
+            Id inventoryItemId,
+            StockMovementType type,
+            int quantity,
+            int quantityBefore,
+            int onHandBefore,
+            int reservedBefore,
+            String referenceId,
+            Id createdBy
+    ) {
+        int quantityAfter = calculateQuantityAfter(type, quantityBefore, quantity);
+        int onHandAfter = calculateOnHandAfter(type, onHandBefore, quantity);
+        int reservedAfter = calculateReservedAfter(type, reservedBefore, quantity);
+        return new StockMovement(
+                id, inventoryItemId, type, quantity, quantityBefore, quantityAfter,
+                onHandBefore, onHandAfter, reservedBefore, reservedAfter,
                 referenceId, LocalDateTime.now(), createdBy
         );
     }
@@ -66,6 +100,32 @@ public class StockMovement extends Entity<Id> {
                     before - quantity;
             case CYCLE_COUNT_ADJUSTMENT, DAMAGE_ADJUSTMENT, SHRINKAGE ->
                     before + quantity;
+        };
+    }
+
+    private static int calculateOnHandAfter(StockMovementType type, int before, int quantity) {
+        return switch (type) {
+            case PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK ->
+                    before + quantity;
+            case SALE, TRANSFER_OUT, RETURN_TO_VENDOR, WRITE_OFF ->
+                    before - quantity;
+            case CYCLE_COUNT_ADJUSTMENT, DAMAGE_ADJUSTMENT, SHRINKAGE ->
+                    before + quantity;
+            case RESERVATION, RESERVATION_RELEASE ->
+                    before;
+        };
+    }
+
+    private static int calculateReservedAfter(StockMovementType type, int before, int quantity) {
+        return switch (type) {
+            case RESERVATION ->
+                    before + quantity;
+            case RESERVATION_RELEASE, SALE ->
+                    before - quantity;
+            case PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK,
+                    TRANSFER_OUT, RETURN_TO_VENDOR, WRITE_OFF,
+                    CYCLE_COUNT_ADJUSTMENT, DAMAGE_ADJUSTMENT, SHRINKAGE ->
+                    before;
         };
     }
 

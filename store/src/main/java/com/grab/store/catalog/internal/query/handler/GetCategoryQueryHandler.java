@@ -3,7 +3,8 @@ package com.grab.store.catalog.internal.query.handler;
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.CategoryResult;
 import com.grab.store.catalog.internal.query.GetCategoryQuery;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class GetCategoryQueryHandler implements QueryHandler<GetCategoryQuery, C
     private final IdGenerator idGenerator;
 
     @Override
+    @CatalogReadTransactional
     public CategoryResult handle(GetCategoryQuery query) {
         log.debug("Handling GetCategoryQuery for categoryId: {}", query.categoryId());
 

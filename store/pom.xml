@@ -16,6 +16,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <catalog-infrastructure.version>0.0.1</catalog-infrastructure.version>
+        <inventory-infrastructure.version>0.0.1</inventory-infrastructure.version>
     </properties>
 
     <dependencies>
@@ -75,8 +76,9 @@
             <version>${catalog-infrastructure.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.modulith</groupId>
-            <artifactId>spring-modulith-starter-jpa</artifactId>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>inventory-infrastructure</artifactId>
+            <version>${inventory-infrastructure.version}</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

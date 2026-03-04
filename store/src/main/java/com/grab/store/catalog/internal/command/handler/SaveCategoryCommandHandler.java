@@ -6,11 +6,11 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.command.SaveCategoryCommand;
 import com.grab.store.catalog.internal.command.SaveCategoryResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.store.catalog.internal.config.CatalogTransactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Component
@@ -21,7 +21,7 @@ public class SaveCategoryCommandHandler implements CommandHandler<SaveCategoryCo
     private final IdGenerator idGenerator;
 
     @Override
-    @Transactional
+    @CatalogTransactional
     public SaveCategoryResult handle(SaveCategoryCommand command) {
         log.debug("Handling SaveCategoryCommand for category name: {}", command.name());
 

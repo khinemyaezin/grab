@@ -64,4 +64,14 @@ public class ProductJpaRepository implements ProductRepository {
         Product product = productJpaAssembler.toFullDomainGraph(entity);
         return Optional.of(product);
     }
+
+    @Override
+    public boolean isSlugTaken(String slug, String excludeProductUuid) {
+        return productJpaRepo.isSlugTaken(slug, excludeProductUuid);
+    }
+
+    @Override
+    public Optional<Integer> findMaxSlugSuffix(String baseSlug) {
+        return productJpaRepo.findMaxSlugSuffix(baseSlug);
+    }
 }

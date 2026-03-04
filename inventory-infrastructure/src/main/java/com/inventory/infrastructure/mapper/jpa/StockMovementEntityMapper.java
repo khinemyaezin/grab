@@ -1,10 +1,10 @@
 package com.inventory.infrastructure.mapper.jpa;
 
+import com.grab.framework.mapper.IdMapper;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.infrastructure.entity.StockMovementEntity;
 import com.inventory.infrastructure.entity.meta.StockMovementEntity_;
 import com.inventory.infrastructure.mapper.CentralMapperConfig;
-import com.inventory.infrastructure.mapper.IdMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -19,6 +19,10 @@ public abstract class StockMovementEntityMapper {
     @Mapping(source = "quantity", target = StockMovementEntity_.QUANTITY)
     @Mapping(source = "quantityBefore", target = StockMovementEntity_.QUANTITY_BEFORE)
     @Mapping(source = "quantityAfter", target = StockMovementEntity_.QUANTITY_AFTER)
+    @Mapping(source = "onHandBefore", target = StockMovementEntity_.ON_HAND_BEFORE)
+    @Mapping(source = "onHandAfter", target = StockMovementEntity_.ON_HAND_AFTER)
+    @Mapping(source = "reservedBefore", target = StockMovementEntity_.RESERVED_BEFORE)
+    @Mapping(source = "reservedAfter", target = StockMovementEntity_.RESERVED_AFTER)
     @Mapping(source = "referenceId", target = StockMovementEntity_.REFERENCE_ID)
     @Mapping(source = "createdAt", target = StockMovementEntity_.CREATED_AT)
     @Mapping(source = "createdBy", target = StockMovementEntity_.CREATED_BY)

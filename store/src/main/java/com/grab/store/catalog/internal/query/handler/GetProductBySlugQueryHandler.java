@@ -1,8 +1,10 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
 import com.catalog.domain.aggregate.Product;
@@ -24,11 +26,17 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
     private final ProductRepository productRepository;
 
     @Override
+    @CatalogReadTransactional
     public GetProductBySlugResult handle(GetProductBySlugQuery query) {
         log.debug("Handling GetProductBySlugQuery for slug: {}", query.slug());
 
         Product product = productRepository.findBySlug(query.slug())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found for slug: " + query.slug()));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Product not found for slug: " + query.slug()));
+
+        if (!product.isVisibleOnStorefront()) {
+            throw new IllegalArgumentException("Product not found for slug: " + query.slug());
+        }
 
         return mapToSlugResult(product);
     }
@@ -40,6 +48,7 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
 
     public GetProductBySlugResult mapToSlugResult(Product product) {
         List<GetProductBySlugResult.Variant> variants = product.getVariants().stream()
+                .filter(ProductVariant::isActive)
                 .map(this::mapToSlugResultVariant)
                 .toList();
 
@@ -62,6 +71,9 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
         Map<String, String> typeNameMap = new LinkedHashMap<>();
 
         for (ProductVariant variant : product.getVariants()) {
+            if (variant.getStatus() != ProductVariantStatus.ACTIVE) {
+                continue;
+            }
             for (ProductVariation variation : variant.getVariations()) {
                 String typeId = variation.getTypeId().getValue();
                 typeNameMap.putIfAbsent(typeId, variation.getTypeName());

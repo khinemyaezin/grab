@@ -49,14 +49,12 @@ public class ProductVariant extends Entity<Id> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ProductVariant that = (ProductVariant) o;
-        return super.equals(that.getId())
-                || sku.equalsIgnoreCase(that.sku)
-                || variations.equals(that.variations);
+        return Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.getId(), sku);
+        return Objects.hashCode(getId());
     }
 
     @Override

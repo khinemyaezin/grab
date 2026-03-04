@@ -34,6 +34,10 @@ public class ProductFacadeService {
         return productQueryService.getProduct(productId);
     }
 
+    public EntityModel<GetProductResponse> getStorefrontProduct(String productId) {
+        return productQueryService.getStorefrontProduct(productId);
+    }
+
     public EntityModel<ProductCombinationResponse> getProductCombination(ProductCombinationRequest request) {
         return productQueryService.getProductCombination(request);
     }

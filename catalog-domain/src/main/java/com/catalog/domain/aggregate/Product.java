@@ -71,6 +71,15 @@ public class Product extends AggregateRoot<Id> {
         return new Product(id, name, categoryId);
     }
 
+    public static Product create(Id id, String name, Id categoryId, boolean featured, String slug) {
+        Product product = new Product(id, name, categoryId);
+        product.featured = featured;
+        if (slug != null && !slug.isBlank()) {
+            product.slug = slug;
+        }
+        return product;
+    }
+
     public void changeCategory(Id categoryId) {
         if (Objects.equals(this.categoryId, categoryId)) return;
 
@@ -165,25 +174,35 @@ public class Product extends AggregateRoot<Id> {
         }
     }
 
-    public void update(String name, Id categoryId) {
+    public void update(String name, Id categoryId, boolean featured, String slug) {
         Objects.requireNonNull(name);
         Objects.requireNonNull(categoryId);
 
         boolean nameChanged = !Objects.equals(this.name, name);
         boolean categoryChanged = !Objects.equals(this.categoryId, categoryId);
+        boolean featuredChanged = this.featured != featured;
+        boolean slugChanged = slug != null && !slug.isBlank() && !Objects.equals(this.slug, slug);
 
-        if (!nameChanged && !categoryChanged) return;
+        if (!nameChanged && !categoryChanged && !featuredChanged && !slugChanged) return;
 
         if (nameChanged) {
             this.name = name;
-            this.slug = generateSlug(name);
+            this.slug = slug != null && !slug.isBlank() ? slug : generateSlug(name);
+        } else if (slugChanged) {
+            this.slug = slug;
         }
 
         if (categoryChanged) {
             changeCategory(categoryId);
         }
 
+        this.featured = featured;
+
         super.addEvent(new ProductUpdatedEvent(this.getId(), this.name, this.categoryId));
+    }
+
+    public boolean isVisibleOnStorefront() {
+        return this.status == ProductStatus.ACTIVE;
     }
 
     public void changeStatus(ProductStatus newStatus) {

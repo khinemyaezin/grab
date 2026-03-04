@@ -26,7 +26,10 @@ public class UniqueProductVariantSpec extends CompositeSpecification<Product> {
             if (ignoredVariantIndex >= 0 && i == ignoredVariantIndex) {
                 continue;
             }
-            if (Objects.equals(variants.get(i), this.productVariant)) {
+            ProductVariant existing = variants.get(i);
+            boolean duplicateSku = existing.getSku().equalsIgnoreCase(this.productVariant.getSku());
+            boolean duplicateCombination = Objects.equals(existing.getVariations(), this.productVariant.getVariations());
+            if (duplicateSku || duplicateCombination) {
                 return false;
             }
         }

@@ -1,3 +1,8 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 catalog:
   datasource:
     url: ${CATALOG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/catalog}
@@ -10,6 +15,20 @@ catalog:
       hbm2ddl:
         auto: ${CATALOG_JPA_DDL_AUTO:update}
       show_sql: ${CATALOG_JPA_SHOW_SQL:true}
+      format_sql: true
+
+inventory:
+  datasource:
+    url: ${INVENTORY_DATASOURCE_URL:${CATALOG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/inventory}}
+    username: ${INVENTORY_DATASOURCE_USERNAME:${CATALOG_DATASOURCE_USERNAME:admin}}
+    password: ${INVENTORY_DATASOURCE_PASSWORD:${CATALOG_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${INVENTORY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${INVENTORY_DATASOURCE_DIALECT:${CATALOG_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}}
+      hbm2ddl:
+        auto: ${INVENTORY_JPA_DDL_AUTO:${CATALOG_JPA_DDL_AUTO:update}}
+      show_sql: ${INVENTORY_JPA_SHOW_SQL:${CATALOG_JPA_SHOW_SQL:true}}
       format_sql: true
 
 logging:

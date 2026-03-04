@@ -2,10 +2,11 @@ package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.GetFeaturedProductsQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
-import com.grab.store.catalog.internal.util.PageInfoMapper;
+import com.grab.store.catalog.internal.query.SpringPageInfoFactory;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.view.ProductSummary;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class GetFeaturedProductsQueryHandler implements QueryHandler<GetFeatured
     private final ProductQueryRepository productQueryRepository;
 
     @Override
+    @CatalogReadTransactional
     public ProductSummaryResult handle(GetFeaturedProductsQuery query) {
         log.debug("Handling GetFeaturedProductsQuery");
 
@@ -38,7 +40,7 @@ public class GetFeaturedProductsQueryHandler implements QueryHandler<GetFeatured
 
         List<ProductSummaryResult.Product> products = mapToResultProducts(page.getContent());
 
-        return new ProductSummaryResult(products, PageInfoMapper.fromPage(page));
+        return new ProductSummaryResult(products, SpringPageInfoFactory.toPageInfo(page));
     }
 
     private List<ProductSummaryResult.Product> mapToResultProducts(List<ProductSummary> summaries) {

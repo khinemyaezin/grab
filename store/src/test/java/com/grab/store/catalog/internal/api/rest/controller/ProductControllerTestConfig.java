@@ -9,15 +9,16 @@ import com.grab.store.catalog.internal.api.rest.service.ProductCommandService;
 import com.grab.store.catalog.internal.api.rest.service.ProductFacadeService;
 import com.grab.store.catalog.internal.api.rest.service.ProductQueryService;
 import com.grab.store.catalog.internal.api.rest.service.VariantCommandService;
-import com.grab.store.catalog.internal.cqrs.command.CommandBus;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
-import com.grab.store.catalog.internal.cqrs.command.impl.SimpleCommandBus;
-import com.grab.store.catalog.internal.cqrs.query.QueryBus;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
-import com.grab.store.catalog.internal.cqrs.query.impl.SimpleQueryBus;
+import com.grab.store.catalog.internal.command.handler.InMemoryProductRepositoryTest;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
+import com.grab.framework.cqrs.query.QueryBus;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
 import com.grab.store.catalog.internal.query.handler.ProductCombinationQueryHandler;
 import com.grab.store.catalog.internal.util.ProductSKUGenerator;
-import com.grab.store.catalog.internal.util.UuidGenerator;
+import com.grab.framework.id.impl.UuidGenerator;
 import com.grab.store.catalog.internal.command.handler.SyncVariantsCommandHandler;
 import com.catalog.domain.service.SkuGenerator;
 import com.catalog.domain.service.VariantCombinationService;
@@ -25,17 +26,12 @@ import com.catalog.domain.service.VariantDeletionStrategy;
 import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.service.VariationKeyGenerator;
 import com.catalog.domain.repository.ProductRepository;
-import com.catalog.domain.aggregate.Product;
-import com.grab.framework.id.Id;
 import org.mapstruct.factory.Mappers;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @TestConfiguration
 public class ProductControllerTestConfig {
@@ -75,8 +71,8 @@ public class ProductControllerTestConfig {
     }
 
     @Bean
-    public InMemoryProductRepository productRepository() {
-        return new InMemoryProductRepository();
+    public InMemoryProductRepositoryTest productRepository() {
+        return new InMemoryProductRepositoryTest();
     }
 
     @Bean
@@ -115,12 +111,12 @@ public class ProductControllerTestConfig {
 
     @Bean
     public QueryBus queryBus(List<QueryHandler<?, ?>> queryHandlers) {
-        return new SimpleQueryBus(queryHandlers);
+        return new DefaultQueryBus(queryHandlers);
     }
 
     @Bean
     public CommandBus commandBus(List<CommandHandler<?, ?>> commandHandlers) {
-        return new SimpleCommandBus(commandHandlers);
+        return new DefaultCommandBus(commandHandlers);
     }
 
     @Bean
@@ -325,35 +321,5 @@ public class ProductControllerTestConfig {
             VariantCommandService variantCommandService
     ) {
         return new ProductFacadeService(productQueryService, productCommandService, variantCommandService);
-    }
-
-    public static class InMemoryProductRepository implements ProductRepository {
-        private final Map<String, Product> storage = new ConcurrentHashMap<>();
-
-        public void put(Product product) {
-            storage.put(product.getId().getValue(), product);
-        }
-
-        @Override
-        public void save(Product product) {
-            storage.put(product.getId().getValue(), product);
-        }
-
-        @Override
-        public void delete(Product product) {
-            storage.remove(product.getId().getValue());
-        }
-
-        @Override
-        public Optional<Product> find(Id productId) {
-            return Optional.ofNullable(storage.get(productId.getValue()));
-        }
-
-        @Override
-        public Optional<Product> findBySlug(String slug) {
-            return storage.values().stream()
-                    .filter(product -> slug.equals(product.getSlug()))
-                    .findFirst();
-        }
     }
 }

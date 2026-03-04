@@ -18,17 +18,17 @@ import com.grab.store.catalog.internal.api.rest.mapper.SaveCategoryDtoMapper;
 import com.grab.store.catalog.internal.api.rest.service.CategoryFacadeService;
 import com.grab.store.catalog.internal.command.handler.DeleteCategoryCommandHandler;
 import com.grab.store.catalog.internal.command.handler.SaveCategoryCommandHandler;
-import com.grab.store.catalog.internal.cqrs.command.CommandBus;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
-import com.grab.store.catalog.internal.cqrs.command.impl.SimpleCommandBus;
-import com.grab.store.catalog.internal.cqrs.query.QueryBus;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
-import com.grab.store.catalog.internal.cqrs.query.impl.SimpleQueryBus;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
+import com.grab.framework.cqrs.query.QueryBus;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
 import com.grab.store.catalog.internal.query.handler.GetCategoryChildrenQueryHandler;
 import com.grab.store.catalog.internal.query.handler.GetCategoryParentQueryHandler;
 import com.grab.store.catalog.internal.query.handler.GetCategoryQueryHandler;
 import com.grab.store.catalog.internal.query.handler.GetCategoryTreeQueryHandler;
-import com.grab.store.catalog.internal.util.UuidGenerator;
+import com.grab.framework.id.impl.UuidGenerator;
 import com.nestedset.app.NestedSetNodeRepository;
 import com.nestedset.library.model.NodeComponent;
 import com.catalog.infrastructure.view.CategoryComposite;
@@ -143,12 +143,12 @@ public class CategoryControllerTestConfig {
 
     @Bean
     public QueryBus queryBus(List<QueryHandler<?, ?>> queryHandlers) {
-        return new SimpleQueryBus(queryHandlers);
+        return new DefaultQueryBus(queryHandlers);
     }
 
     @Bean
     public CommandBus commandBus(List<CommandHandler<?, ?>> commandHandlers) {
-        return new SimpleCommandBus(commandHandlers);
+        return new DefaultCommandBus(commandHandlers);
     }
 
     @Bean

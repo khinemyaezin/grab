@@ -1,8 +1,9 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateVariantCommand;
 import com.grab.store.catalog.internal.command.UpdateVariantResult;
+import com.grab.store.catalog.internal.config.CatalogTransactional;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
@@ -10,7 +11,6 @@ import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -22,7 +22,7 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
     private final ProductRepository productRepository;
 
     @Override
-    @Transactional
+    @CatalogTransactional
     public UpdateVariantResult handle(UpdateVariantCommand command) {
         log.debug("Handling UpdateVariantCommand for productId={} variantId={}", command.productId(), command.variantId());
 

@@ -16,4 +16,10 @@ public interface ProductJpaRepo extends EntityRepository<ProductEntity, Long>, J
 
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProductEntity p WHERE p.uuid = :uuid")
     boolean existsById(@Param("uuid") String uuid);
+
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProductEntity p WHERE p.slug = :slug AND (:excludeUuid IS NULL OR p.uuid <> :excludeUuid)")
+    boolean isSlugTaken(@Param("slug") String slug, @Param("excludeUuid") String excludeUuid);
+
+    @Query("SELECT COALESCE(MAX(CAST(SUBSTRING(p.slug, LENGTH(:baseSlug) + 2) AS INTEGER)), 0) FROM ProductEntity p WHERE p.slug LIKE CONCAT(:baseSlug, '-%')")
+    Optional<Integer> findMaxSlugSuffix(@Param("baseSlug") String baseSlug);
 }

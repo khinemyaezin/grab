@@ -57,6 +57,9 @@ public class InventoryItemEntity {
     @Column(name = "max_stock")
     private Integer maxStock= 0;
 
+    @Version
+    private Long version;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private InventoryStatus status;

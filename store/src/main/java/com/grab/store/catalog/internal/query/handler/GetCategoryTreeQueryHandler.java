@@ -2,7 +2,8 @@ package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.CategoryNodeResult;
 import com.grab.store.catalog.internal.query.GetCategoryTreeQuery;
 import com.nestedset.app.NestedSetNodeRepository;
@@ -23,6 +24,7 @@ public class GetCategoryTreeQueryHandler implements QueryHandler<GetCategoryTree
     private final NestedSetNodeRepository<CategoryEntity, Long> nodeRepository;
 
     @Override
+    @CatalogReadTransactional
     public CategoryNodeResult handle(GetCategoryTreeQuery query) {
         log.debug("Handling GetCategoryTreeQuery for categoryId: {}", query.categoryId());
 

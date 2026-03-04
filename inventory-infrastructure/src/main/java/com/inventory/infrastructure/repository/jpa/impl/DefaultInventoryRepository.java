@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 @RequiredArgsConstructor
 public class DefaultInventoryRepository implements InventoryRepository {
 
@@ -82,7 +81,7 @@ public class DefaultInventoryRepository implements InventoryRepository {
     @Override
     public int getTotalAvailableQuantityBySku(String sku) {
         return jpaRepository.findAllBySku(sku).stream()
-                .mapToInt(e -> e.getOnHand() - e.getReserved())
+                .mapToInt(e -> Math.max(0, e.getOnHand() - e.getReserved() - e.getDamaged()))
                 .sum();
     }
 

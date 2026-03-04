@@ -1,6 +1,5 @@
 package com.catalog.infrastructure.configuration;
 
-import com.catalog.infrastructure.mapper.IdMapper;
 import com.catalog.infrastructure.mapper.jpa.*;
 import com.nestedset.app.NestedSetNodeRepository;
 import com.nestedset.app.config.NestedSetRepositoryConfiguration;
@@ -9,6 +8,7 @@ import com.nestedset.app.service.TreeBuilderImpl;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
+import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.event.ApplicationDomainEventProducer;
 import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.factory.CategoryComponentFactory;
@@ -20,7 +20,6 @@ import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.repository.jpa.impl.CategoryJpaRepository;
 import com.catalog.infrastructure.repository.jpa.impl.ProductQueryJpqlRepository;
 import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
-import jakarta.persistence.EntityManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,10 +29,6 @@ import org.springframework.data.jpa.repository.JpaContext;
 @Configuration
 @Import(CatalogDomainConfig.class)
 public class CatalogInfraConfig {
-    @Bean
-    public IdMapper idMapper() {
-        return new IdMapper();
-    }
 
     @Bean
     public DomainEventProducer domainEventProducer(ApplicationEventPublisher applicationEventPublisher) {
@@ -63,10 +58,13 @@ public class CatalogInfraConfig {
 
     @Bean
     public ProductQueryRepository productQueryRepository(
-            EntityManager entityManager,
+            JpaContext context,
             ProductSummaryMapper productSummaryMapper
     ) {
-        return new ProductQueryJpqlRepository(entityManager, productSummaryMapper);
+        return new ProductQueryJpqlRepository(
+                context.getEntityManagerByManagedType(ProductEntity.class),
+                productSummaryMapper
+        );
     }
 
     @Bean

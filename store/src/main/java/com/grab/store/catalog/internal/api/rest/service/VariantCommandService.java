@@ -22,7 +22,7 @@ import com.grab.store.catalog.internal.command.SyncVariantsCommand;
 import com.grab.store.catalog.internal.command.SyncVariantsResult;
 import com.grab.store.catalog.internal.command.UpdateVariantCommand;
 import com.grab.store.catalog.internal.command.UpdateVariantResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.command.CommandBus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;

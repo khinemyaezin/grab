@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -30,7 +29,7 @@ import java.util.Map;
         )
 )
 @EnableJpaRepositories(
-        basePackages = {"com.catalog.infrastructure.repository"},
+        basePackages = {"com.catalog.infrastructure.repository.jpa"},
         entityManagerFactoryRef = "catalogEntityManagerFactory",
         transactionManagerRef = "catalogTransactionManager"
 )
@@ -42,7 +41,6 @@ public class CatalogModuleDataSourceConfig {
         this.environment = environment;
     }
 
-    @Primary
     @Bean("catalogDataSourceProperties")
     @ConfigurationProperties("catalog.datasource")
     public DataSourceProperties catalogDataSourceProperties() {
@@ -55,7 +53,6 @@ public class CatalogModuleDataSourceConfig {
     }
 
     @Bean("catalogEntityManagerFactory")
-    @Primary
     public LocalContainerEntityManagerFactoryBean catalogEntityManagerFactory(@Qualifier("catalogDataSource")DataSource catalogDataSource) {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
 
@@ -63,14 +60,15 @@ public class CatalogModuleDataSourceConfig {
         factory.setJpaVendorAdapter(vendorAdapter);
         factory.setPackagesToScan("com.catalog.infrastructure");
         factory.setDataSource(catalogDataSource);
+        factory.setPersistenceUnitName("catalog");
         factory.setJpaPropertyMap(hibernateProperties());
 
         return factory;
     }
 
     @Bean("catalogTransactionManager")
-    @Primary
-    public PlatformTransactionManager catalogTransactionManager( @Qualifier("catalogEntityManagerFactory") EntityManagerFactory catalogEntityManagerFactory) {
+    public PlatformTransactionManager catalogTransactionManager(
+            @Qualifier("catalogEntityManagerFactory") EntityManagerFactory catalogEntityManagerFactory) {
         return new JpaTransactionManager(catalogEntityManagerFactory);
     }
 

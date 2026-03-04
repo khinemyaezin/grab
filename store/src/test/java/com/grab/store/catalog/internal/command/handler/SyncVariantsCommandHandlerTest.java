@@ -9,7 +9,7 @@ import com.catalog.domain.service.impl.*;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.catalog.internal.assembler.CommonId;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.SyncVariantsCommand;
 import com.grab.store.catalog.internal.command.SyncVariantsResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SyncVariantsCommandHandlerTest {
 
-    private InMemoryProductRepository productRepository;
+    private InMemoryProductRepositoryTest productRepository;
     private SyncVariantsCommandHandler handler;
 
     private final VariantDeletionStrategy variantDeletionStrategy = new FullOptionHardDeleteStrategy();
@@ -36,7 +36,7 @@ class SyncVariantsCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        productRepository = new InMemoryProductRepository();
+        productRepository = new InMemoryProductRepositoryTest();
         handler = new SyncVariantsCommandHandler(
                 productRepository,
                 variantCombinationService,
@@ -274,39 +274,5 @@ class SyncVariantsCommandHandlerTest {
         return new SyncVariantsCommand.Variation(optionName, new CommonId(optionId), new CommonId(typeId), typeName);
     }
 
-    private static class InMemoryProductRepository implements ProductRepository {
-        private final Map<String, Product> storage = new ConcurrentHashMap<>();
-        private Product lastSaved;
 
-        void put(Product product) {
-            storage.put(product.getId().getValue(), product);
-        }
-
-        Product getLastSaved() {
-            return lastSaved;
-        }
-
-        @Override
-        public void save(Product product) {
-            lastSaved = product;
-            storage.put(product.getId().getValue(), product);
-        }
-
-        @Override
-        public void delete(Product product) {
-            storage.remove(product.getId().getValue());
-        }
-
-        @Override
-        public Optional<Product> find(Id productId) {
-            return Optional.ofNullable(storage.get(productId.getValue()));
-        }
-
-        @Override
-        public Optional<Product> findBySlug(String slug) {
-            return storage.values().stream()
-                    .filter(product -> slug.equals(product.getSlug()))
-                    .findFirst();
-        }
-    }
 }
