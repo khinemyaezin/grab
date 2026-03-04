@@ -16,6 +16,11 @@ catalog:
         auto: ${CATALOG_JPA_DDL_AUTO:update}
       show_sql: ${CATALOG_JPA_SHOW_SQL:true}
       format_sql: true
+  outbox:
+    fixed-delay-ms: ${CATALOG_OUTBOX_FIXED_DELAY_MS:5000}
+    batch-size: ${CATALOG_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${CATALOG_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${CATALOG_OUTBOX_CLAIM_TIMEOUT_MS:120000}
 
 inventory:
   datasource:
@@ -30,6 +35,11 @@ inventory:
         auto: ${INVENTORY_JPA_DDL_AUTO:${CATALOG_JPA_DDL_AUTO:update}}
       show_sql: ${INVENTORY_JPA_SHOW_SQL:${CATALOG_JPA_SHOW_SQL:true}}
       format_sql: true
+  outbox:
+    fixed-delay-ms: ${INVENTORY_OUTBOX_FIXED_DELAY_MS:5000}
+    batch-size: ${INVENTORY_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${INVENTORY_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${INVENTORY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
 
 logging:
   level:

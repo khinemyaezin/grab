@@ -1,0 +1,109 @@
+package com.inventory.infrastructure.outbox;
+
+import com.grab.framework.outbox.OutboxStatus;
+import com.grab.framework.outbox.SerializedEvent;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "inventory_outbox_event", indexes = {
+        @Index(name = "idx_inventory_outbox_status_available", columnList = "status, available_at"),
+        @Index(name = "idx_inventory_outbox_claimed_at", columnList = "claimed_at"),
+        @Index(name = "idx_inventory_outbox_aggregate", columnList = "aggregate_type, aggregate_id"),
+        @Index(name = "idx_inventory_outbox_published_at", columnList = "published_at")
+})
+public class InventoryOutboxEvent {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "aggregate_type", nullable = false)
+    private String aggregateType;
+
+    @Column(name = "aggregate_id", nullable = false)
+    private String aggregateId;
+
+    @Column(name = "event_type", nullable = false)
+    private String eventType;
+
+    @Lob
+    @Column(name = "payload", nullable = false)
+    private String payload;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OutboxStatus status = OutboxStatus.NEW;
+
+    @Column(name = "attempt_count", nullable = false)
+    private int attemptCount = 0;
+
+    @Column(name = "occurred_at", nullable = false)
+    private LocalDateTime occurredAt;
+
+    @Column(name = "available_at", nullable = false)
+    private LocalDateTime availableAt;
+
+    @Column(name = "claimed_at")
+    private LocalDateTime claimedAt;
+
+    @Column(name = "published_at")
+    private LocalDateTime publishedAt;
+
+    @Lob
+    @Column(name = "last_error")
+    private String lastError;
+
+    public static InventoryOutboxEvent pending(
+            String aggregateType,
+            String aggregateId,
+            SerializedEvent serializedEvent,
+            LocalDateTime now
+    ) {
+        InventoryOutboxEvent event = new InventoryOutboxEvent();
+        event.aggregateType = aggregateType;
+        event.aggregateId = aggregateId;
+        event.eventType = serializedEvent.eventType();
+        event.payload = serializedEvent.payload();
+        event.occurredAt = now;
+        event.availableAt = now;
+        event.status = OutboxStatus.NEW;
+        return event;
+    }
+
+    public void markProcessing(LocalDateTime now) {
+        status = OutboxStatus.PROCESSING;
+        claimedAt = now;
+        lastError = null;
+        attemptCount += 1;
+    }
+
+    public void markPublished(LocalDateTime now) {
+        status = OutboxStatus.PUBLISHED;
+        publishedAt = now;
+        claimedAt = null;
+        lastError = null;
+    }
+
+    public void markFailed(LocalDateTime now, String error, Duration retryDelay) {
+        status = OutboxStatus.FAILED;
+        availableAt = now.plus(retryDelay);
+        claimedAt = null;
+        lastError = error;
+    }
+}

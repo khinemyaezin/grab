@@ -12,12 +12,7 @@ public class ApplicationDomainEventProducer implements DomainEventProducer {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public void produce(Event event) {
-        applicationEventPublisher.publishEvent(event);
-    }
-
-    @Override
-    public void produce(List<Event> events) {
+    public void produce(String aggregateType, String aggregateId, List<Event> events) {
         for (Event e: events) {
             applicationEventPublisher.publishEvent(e);
         }

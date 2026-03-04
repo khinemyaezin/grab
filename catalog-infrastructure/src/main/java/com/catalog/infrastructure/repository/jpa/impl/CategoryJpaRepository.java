@@ -40,7 +40,11 @@ public class CategoryJpaRepository implements CategoryRepository {
                 }
             }
         }
-        domainEventProducer.produce(category.getEvents());
+        domainEventProducer.produce(
+                category.getClass().getSimpleName(),
+                category.getId().getValue(),
+                category.pullEvents());
+
     }
 
     @Override
