@@ -2,7 +2,7 @@ package com.grab.store.catalog.internal.query.handler;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.query.ProductCombinationQuery;
 import com.grab.store.catalog.internal.query.ProductCombinationResult;
 import com.catalog.domain.aggregate.ProductVariant;

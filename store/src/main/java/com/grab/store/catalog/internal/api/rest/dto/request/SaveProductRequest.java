@@ -16,6 +16,8 @@ public record SaveProductRequest(
             String id,
             @NotBlank String name,
             @NotBlank String categoryId,
+            String slug,
+            Boolean featured,
             @Valid List<Variant> variants
     ) {}
 

@@ -4,18 +4,15 @@ import com.grab.framework.id.Id;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.service.ReorderService;
+import lombok.AllArgsConstructor;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
+@AllArgsConstructor
 public class DefaultReorderService implements ReorderService {
-
     private final InventoryRepository inventoryRepository;
-
-    public DefaultReorderService(InventoryRepository inventoryRepository) {
-        this.inventoryRepository = inventoryRepository;
-    }
 
     @Override
     public List<ReorderSuggestion> calculateReorderSuggestions() {

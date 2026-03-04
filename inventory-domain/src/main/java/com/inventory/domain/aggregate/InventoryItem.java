@@ -92,7 +92,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, getId(), type, qty, before, referenceId, userId
+                movementId, getId(), type, qty, before, before, quantity.reserved(), referenceId, userId
         );
 
         addEvent(new StockReceivedEvent(getId(), sku, qty, locationId, LocalDateTime.now()));
@@ -113,7 +113,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, getId(), StockMovementType.RESERVATION, qty, before, orderId, userId
+                movementId, getId(), StockMovementType.RESERVATION, qty, before, before, quantity.reserved() - qty, orderId, userId
         );
 
         addEvent(new StockReservedEvent(getId(), sku, qty, orderId, LocalDateTime.now()));
@@ -132,7 +132,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, getId(), StockMovementType.RESERVATION_RELEASE, qty, before, orderId, userId
+                movementId, getId(), StockMovementType.RESERVATION_RELEASE, qty, before, before, quantity.reserved() + qty, orderId, userId
         );
 
         checkAndRaiseLowStockAlert();
@@ -151,7 +151,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, getId(), StockMovementType.SALE, qty, before, orderId, userId
+                movementId, getId(), StockMovementType.SALE, qty, before, before, quantity.reserved() + qty, orderId, userId
         );
 
         addEvent(new StockShippedEvent(getId(), sku, qty, orderId, LocalDateTime.now()));
@@ -175,6 +175,7 @@ public class InventoryItem extends AggregateRoot<Id> {
 
         StockMovement movement = StockMovement.create(
                 movementId, getId(), StockMovementType.CYCLE_COUNT_ADJUSTMENT, adjustment, before,
+                before, quantity.reserved(),
                 reason.name(), userId
         );
 
@@ -194,6 +195,7 @@ public class InventoryItem extends AggregateRoot<Id> {
 
         StockMovement movement = StockMovement.create(
                 movementId, getId(), StockMovementType.DAMAGE_ADJUSTMENT, -qty, before,
+                before, quantity.reserved(),
                 AdjustmentReason.DAMAGED.name(), userId
         );
 
@@ -214,7 +216,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         this.lastUpdated = LocalDateTime.now();
 
         StockMovement movement = StockMovement.create(
-                movementId, getId(), StockMovementType.WRITE_OFF, qty, before, reason, userId
+                movementId, getId(), StockMovementType.WRITE_OFF, qty, before, before, quantity.reserved(), reason, userId
         );
 
         checkAndRaiseLowStockAlert();

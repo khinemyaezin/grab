@@ -2,9 +2,9 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.DeleteCategoryCommand;
 import com.grab.store.catalog.internal.command.DeleteCategoryResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

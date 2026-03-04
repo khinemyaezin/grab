@@ -4,5 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record UpdateProductRequest(
         @NotBlank String name,
-        @NotBlank String categoryId
+        @NotBlank String categoryId,
+        String slug,
+        Boolean featured
 ) {}

@@ -1,6 +1,7 @@
 package com.grab.store.catalog.internal.query;
 
-import com.grab.store.catalog.internal.cqrs.query.Query;
+
+import com.grab.framework.cqrs.query.Query;
 
 public record GetCategoryChildrenQuery(
         String categoryId

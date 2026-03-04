@@ -6,7 +6,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.command.SaveCategoryCommand;
 import com.grab.store.catalog.internal.command.SaveCategoryResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

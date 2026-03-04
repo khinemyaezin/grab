@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(name = "stock_movement", indexes = {
-        @Index(name = "idx_movement_inventory", columnList = "inventory_item_id"),
+        @Index(name = "idx_movement_inventory", columnList = "inventory_item_uuid"),
         @Index(name = "idx_movement_reference", columnList = "reference_id"),
         @Index(name = "idx_movement_created_at", columnList = "created_at")
 })
@@ -39,6 +39,18 @@ public class StockMovementEntity {
 
     @Column(name = "quantity_after", nullable = false)
     private int quantityAfter;
+
+    @Column(name = "on_hand_before", nullable = false)
+    private int onHandBefore;
+
+    @Column(name = "on_hand_after", nullable = false)
+    private int onHandAfter;
+
+    @Column(name = "reserved_before", nullable = false)
+    private int reservedBefore;
+
+    @Column(name = "reserved_after", nullable = false)
+    private int reservedAfter;
 
     @Column(name = "reference_id")
     private String referenceId;

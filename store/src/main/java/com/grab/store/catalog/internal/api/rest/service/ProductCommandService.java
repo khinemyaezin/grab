@@ -21,7 +21,7 @@ import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
 import com.grab.store.catalog.internal.command.UpdateProductStatusCommand;
 import com.grab.store.catalog.internal.command.UpdateProductStatusResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.command.CommandBus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;

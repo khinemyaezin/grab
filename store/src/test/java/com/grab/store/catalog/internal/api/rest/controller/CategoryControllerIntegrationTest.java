@@ -6,7 +6,7 @@ import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenRes
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryNodeResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteCategoryResponse;
-import com.grab.store.catalog.internal.assembler.CommonId;
+import com.grab.framework.id.impl.CommonId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

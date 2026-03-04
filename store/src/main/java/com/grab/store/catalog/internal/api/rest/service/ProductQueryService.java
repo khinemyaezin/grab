@@ -15,7 +15,7 @@ import com.grab.store.catalog.internal.api.rest.mapper.GetProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.ProductCombinationDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.ProductSummaryDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.ProductSummaryQueryMapper;
-import com.grab.store.catalog.internal.cqrs.query.QueryBus;
+import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.store.catalog.internal.query.GetFeaturedProductsQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
@@ -53,6 +53,32 @@ public class ProductQueryService {
         GetProductQuery query = new GetProductQuery(productId);
         GetProductResult result = queryBus.dispatch(query);
         GetProductResponse response = getProductDtoMapper.toResponse(result);
+        return getProductModelAssembler.toModel(response);
+    }
+
+    public EntityModel<GetProductResponse> getStorefrontProduct(String productId) {
+        log.info("Getting storefront product: {}", productId);
+
+        GetProductQuery query = new GetProductQuery(productId);
+        GetProductResult result = queryBus.dispatch(query);
+        if (!"ACTIVE".equalsIgnoreCase(result.status())) {
+            throw new IllegalArgumentException("Product not found: " + productId);
+        }
+
+        GetProductResult storefrontResult = new GetProductResult(
+                result.id(),
+                result.name(),
+                result.categoryId(),
+                result.status(),
+                result.slug(),
+                result.featured(),
+                result.variants().stream()
+                        .filter(variant -> "ACTIVE".equalsIgnoreCase(variant.status()))
+                        .toList(),
+                result.variantTypes()
+        );
+
+        GetProductResponse response = getProductDtoMapper.toResponse(storefrontResult);
         return getProductModelAssembler.toModel(response);
     }
 

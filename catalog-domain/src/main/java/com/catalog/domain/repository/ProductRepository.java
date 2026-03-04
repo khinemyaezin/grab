@@ -10,4 +10,6 @@ public interface ProductRepository{
     void delete(Product product);
     Optional<Product> find(Id productId);
     Optional<Product> findBySlug(String slug);
+    boolean isSlugTaken(String slug, String excludeProductUuid);
+    Optional<Integer> findMaxSlugSuffix(String baseSlug);
 }

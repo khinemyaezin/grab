@@ -1,8 +1,9 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
+import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.Optional;
 public class UpdateProductCommandHandler implements CommandHandler<UpdateProductCommand, UpdateProductResult> {
 
     private final ProductRepository productRepository;
+    private final UniqueSlugResolver uniqueSlugResolver;
 
     @Override
     @Transactional
@@ -31,7 +33,14 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
 
         Product product = hasProduct.get();
 
-        product.update(command.name(), command.categoryId());
+        String slug = uniqueSlugResolver.resolve(command.slug(), command.name(), product.getId().getValue());
+        boolean featured = command.featured() != null ? command.featured() : product.isFeatured();
+        product.update(
+                command.name(),
+                command.categoryId(),
+                featured,
+                slug
+        );
 
         productRepository.save(product);
 

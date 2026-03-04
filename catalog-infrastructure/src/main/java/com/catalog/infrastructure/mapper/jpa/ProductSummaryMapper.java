@@ -1,10 +1,10 @@
 package com.catalog.infrastructure.mapper.jpa;
 
-import com.catalog.infrastructure.mapper.IdMapper;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.mapper.CentralMapperConfig;
 import com.catalog.infrastructure.view.ProductSummary;
+import com.grab.framework.mapper.IdMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;

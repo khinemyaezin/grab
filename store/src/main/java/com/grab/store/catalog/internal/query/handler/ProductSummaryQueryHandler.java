@@ -1,9 +1,9 @@
 package com.grab.store.catalog.internal.query.handler;
 
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.query.ProductSummaryQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
-import com.grab.store.catalog.internal.util.PageInfoMapper;
+import com.grab.store.catalog.internal.query.SpringPageInfoFactory;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.view.ProductSummary;
@@ -38,7 +38,7 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
 
         return new ProductSummaryResult(
                 products,
-                PageInfoMapper.fromPage(page));
+                SpringPageInfoFactory.toPageInfo(page));
     }
 
     private List<ProductSummaryResult.Product> mapToResultProducts(List<ProductSummary> summaries) {

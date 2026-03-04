@@ -6,7 +6,7 @@ import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.Id;
-import com.grab.store.catalog.internal.assembler.CommonId;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.RestoreVariantCommand;
 import com.grab.store.catalog.internal.command.RestoreVariantResult;
 import org.junit.jupiter.api.BeforeEach;

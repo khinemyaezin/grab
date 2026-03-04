@@ -1,6 +1,6 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateVariantCommand;
 import com.grab.store.catalog.internal.command.UpdateVariantResult;
 import com.catalog.domain.aggregate.Product;

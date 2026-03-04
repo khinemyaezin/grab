@@ -1,10 +1,10 @@
 package com.inventory.infrastructure.mapper.jpa;
 
+import com.grab.framework.mapper.IdMapper;
 import com.inventory.domain.entity.Bin;
 import com.inventory.infrastructure.entity.BinEntity;
 import com.inventory.infrastructure.entity.meta.BinEntity_;
 import com.inventory.infrastructure.mapper.CentralMapperConfig;
-import com.inventory.infrastructure.mapper.IdMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;

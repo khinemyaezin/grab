@@ -2,7 +2,7 @@ package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
-import com.grab.store.catalog.internal.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.query.CategoryResult;
 import com.grab.store.catalog.internal.query.GetCategoryParentQuery;
 import com.nestedset.app.NestedSetNodeRepository;

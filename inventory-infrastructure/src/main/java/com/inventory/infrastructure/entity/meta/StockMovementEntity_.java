@@ -15,6 +15,10 @@ public class StockMovementEntity_ {
     public static volatile SingularAttribute<StockMovementEntity, Integer> quantity;
     public static volatile SingularAttribute<StockMovementEntity, Integer> quantityBefore;
     public static volatile SingularAttribute<StockMovementEntity, Integer> quantityAfter;
+    public static volatile SingularAttribute<StockMovementEntity, Integer> onHandBefore;
+    public static volatile SingularAttribute<StockMovementEntity, Integer> onHandAfter;
+    public static volatile SingularAttribute<StockMovementEntity, Integer> reservedBefore;
+    public static volatile SingularAttribute<StockMovementEntity, Integer> reservedAfter;
     public static volatile SingularAttribute<StockMovementEntity, String> referenceId;
     public static volatile SingularAttribute<StockMovementEntity, LocalDateTime> createdAt;
     public static volatile SingularAttribute<StockMovementEntity, String> createdBy;
@@ -26,6 +30,10 @@ public class StockMovementEntity_ {
     public static final String QUANTITY = "quantity";
     public static final String QUANTITY_BEFORE = "quantityBefore";
     public static final String QUANTITY_AFTER = "quantityAfter";
+    public static final String ON_HAND_BEFORE = "onHandBefore";
+    public static final String ON_HAND_AFTER = "onHandAfter";
+    public static final String RESERVED_BEFORE = "reservedBefore";
+    public static final String RESERVED_AFTER = "reservedAfter";
     public static final String REFERENCE_ID = "referenceId";
     public static final String CREATED_AT = "createdAt";
     public static final String CREATED_BY = "createdBy";

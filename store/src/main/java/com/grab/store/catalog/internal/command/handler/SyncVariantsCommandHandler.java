@@ -12,7 +12,7 @@ import com.catalog.domain.valueobject.VariantCombination;
 import com.grab.framework.id.Id;
 import com.grab.store.catalog.internal.command.SyncVariantsCommand;
 import com.grab.store.catalog.internal.command.SyncVariantsResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -22,10 +22,10 @@ public interface InventoryItemJpaRepository extends JpaRepository<InventoryItemE
 
     List<InventoryItemEntity> findAllByLocationId(String locationId);
 
-    @Query("SELECT i FROM InventoryItemEntity i WHERE i.sku = :sku AND i.onHand - i.reserved > 0")
+    @Query("SELECT i FROM InventoryItemEntity i WHERE i.sku = :sku AND i.onHand - i.reserved - i.damaged > 0")
     List<InventoryItemEntity> findAvailableInventoryBySku(@Param("sku") String sku);
 
-    @Query("SELECT i FROM InventoryItemEntity i WHERE i.onHand - i.reserved <= i.reorderPoint")
+    @Query("SELECT i FROM InventoryItemEntity i WHERE i.onHand - i.reserved - i.damaged <= i.reorderPoint")
     List<InventoryItemEntity> findItemsBelowReorderPoint();
 
     boolean existsBySkuAndLocationId(String sku, String locationId);

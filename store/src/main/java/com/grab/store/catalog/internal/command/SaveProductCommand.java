@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command;
 
 import com.grab.framework.id.Id;
-import com.grab.store.catalog.internal.cqrs.command.Command;
+import com.grab.framework.cqrs.command.Command;
 
 import java.util.List;
 
@@ -13,6 +13,8 @@ public record SaveProductCommand(
             Id id,
             String name,
             Id categoryId,
+            String slug,
+            Boolean featured,
             List<Variant> variants
     ) {}
 

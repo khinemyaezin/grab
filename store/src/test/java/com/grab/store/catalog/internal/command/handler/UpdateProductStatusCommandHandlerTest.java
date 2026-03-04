@@ -9,7 +9,7 @@ import com.catalog.domain.exception.ProductActivationRequiresActiveVariantsExcep
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.Id;
-import com.grab.store.catalog.internal.assembler.CommonId;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.UpdateProductStatusCommand;
 import com.grab.store.catalog.internal.command.UpdateProductStatusResult;
 import org.junit.jupiter.api.BeforeEach;

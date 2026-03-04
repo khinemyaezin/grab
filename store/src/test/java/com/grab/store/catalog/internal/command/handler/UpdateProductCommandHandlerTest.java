@@ -4,9 +4,10 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.id.Id;
-import com.grab.store.catalog.internal.assembler.CommonId;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
+import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,8 @@ class UpdateProductCommandHandlerTest {
 
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private UniqueSlugResolver uniqueSlugResolver;
 
     @Captor
     private ArgumentCaptor<Product> productCaptor;
@@ -39,7 +42,7 @@ class UpdateProductCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new UpdateProductCommandHandler(productRepository);
+        handler = new UpdateProductCommandHandler(productRepository, uniqueSlugResolver);
     }
 
     @Test
@@ -50,8 +53,9 @@ class UpdateProductCommandHandlerTest {
 
         Product existing = Product.create(productId, "Old Name", categoryId);
         when(productRepository.find(productId)).thenReturn(Optional.of(existing));
+        when(uniqueSlugResolver.resolve(null, "New Name", PRODUCT_ID)).thenReturn("new-name");
 
-        UpdateProductCommand command = new UpdateProductCommand(productId, "New Name", newCategoryId);
+        UpdateProductCommand command = new UpdateProductCommand(productId, "New Name", newCategoryId, null, null);
         UpdateProductResult result = handler.handle(command);
 
         verify(productRepository).save(productCaptor.capture());
@@ -74,7 +78,7 @@ class UpdateProductCommandHandlerTest {
         Id productId = new CommonId(PRODUCT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
 
-        UpdateProductCommand command = new UpdateProductCommand(productId, "Name", new CommonId(CATEGORY_ID));
+        UpdateProductCommand command = new UpdateProductCommand(productId, "Name", new CommonId(CATEGORY_ID), null, null);
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(IllegalArgumentException.class);

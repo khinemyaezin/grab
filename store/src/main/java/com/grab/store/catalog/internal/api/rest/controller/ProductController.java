@@ -44,7 +44,7 @@ public class ProductController {
 
     @GetMapping(value = "/{productId}/full", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<GetProductResponse>> getProductFull(@PathVariable("productId") String productId) {
-        EntityModel<GetProductResponse> response = productFacadeService.getProduct(productId);
+        EntityModel<GetProductResponse> response = productFacadeService.getStorefrontProduct(productId);
         return ResponseEntity.ok(response);
     }
 

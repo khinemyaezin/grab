@@ -1,8 +1,9 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.grab.framework.id.Id;
-import com.grab.store.catalog.internal.assembler.CommonId;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.SaveProductCommand;
+import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.repository.ProductRepository;
@@ -24,6 +25,8 @@ import static org.mockito.Mockito.*;
 class SaveProductCommandHandlerTest {
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private UniqueSlugResolver uniqueSlugResolver;
 
     @Captor
     private ArgumentCaptor<Product> productCaptor;
@@ -38,7 +41,7 @@ class SaveProductCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new SaveProductCommandHandler(productRepository);
+        handler = new SaveProductCommandHandler(productRepository, uniqueSlugResolver);
     }
 
     @Test
@@ -60,7 +63,11 @@ class SaveProductCommandHandlerTest {
                         productId,
                         "Product with Variants",
                         categoryId,
+                        null,
+                        false,
                         List.of(variant)));
+
+        when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
 
         handler.handle(command);
 
@@ -68,6 +75,7 @@ class SaveProductCommandHandlerTest {
         Product savedProduct = productCaptor.getValue();
 
         assertThat(savedProduct.getVariants()).hasSize(1);
+        assertThat(savedProduct.getSlug()).isEqualTo("product-with-variants");
         assertThat(savedProduct.getVariants().getFirst().getSku()).isEqualTo("SKU-RED-001");
         assertThat(savedProduct.getVariants().getFirst().getStatus()).isEqualTo(ProductVariantStatus.ACTIVE);
     }

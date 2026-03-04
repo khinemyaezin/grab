@@ -3,12 +3,13 @@ package com.grab.store.catalog.internal.command.handler;
 import com.grab.framework.id.Id;
 import com.grab.store.catalog.internal.command.SaveProductCommand;
 import com.grab.store.catalog.internal.command.SaveProductResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SaveProductCommandHandler implements CommandHandler<SaveProductCommand, SaveProductResult> {
     private final ProductRepository productRepository;
+    private final UniqueSlugResolver uniqueSlugResolver;
 
     @Override
     @Transactional
@@ -47,7 +49,14 @@ public class SaveProductCommandHandler implements CommandHandler<SaveProductComm
     }
 
     private Product mapToDomainProduct(SaveProductCommand.Product product) {
-        return Product.create(product.id(), product.name(), product.categoryId());
+        String slug = uniqueSlugResolver.resolve(product.slug(), product.name(), null);
+        return Product.create(
+                product.id(),
+                product.name(),
+                product.categoryId(),
+                Boolean.TRUE.equals(product.featured()),
+                slug
+        );
     }
 
     private ProductVariant mapToDomainVariant(SaveProductCommand.Variant variant, Id productId) {

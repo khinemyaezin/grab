@@ -3,7 +3,7 @@ package com.grab.store.catalog.internal.command.handler;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.command.DeleteProductCommand;
 import com.grab.store.catalog.internal.command.DeleteProductResult;
-import com.grab.store.catalog.internal.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;

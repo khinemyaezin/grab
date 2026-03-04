@@ -3,7 +3,8 @@ package com.grab.store.catalog.internal.api.rest.controller;
 import com.catalog.domain.aggregate.Product;
 import com.grab.store.catalog.internal.api.rest.dto.request.SyncVariantsRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.SyncVariantsResponse;
-import com.grab.store.catalog.internal.assembler.CommonId;
+import com.grab.framework.id.impl.CommonId;
+import com.grab.store.catalog.internal.command.handler.InMemoryProductRepositoryTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -34,7 +35,7 @@ class SyncVariantsControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private ProductControllerTestConfig.InMemoryProductRepository productRepository;
+    private InMemoryProductRepositoryTest productRepository;
 
     @Test
     void syncVariants_updatesProductVariants() throws Exception {

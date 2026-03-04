@@ -31,7 +31,7 @@ public record InventoryQuantity(
     }
 
     public int sellable() {
-        return onHand - damaged;
+        return Math.max(0, onHand - damaged);
     }
 
     public InventoryQuantity addOnHand(int quantity) {
