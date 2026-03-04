@@ -199,6 +199,10 @@ Key characteristics:
 This replaces direct in-process-only event publishing and ensures events
 survive process failure.
 
+The detailed comparison between a shared outbox table and a module-scoped
+outbox, plus the proposed concrete design for this repository, is captured in
+[ADR-007: Module-Scoped Transactional Outbox](ADR-007-module-scoped-outbox.md).
+
 ### 7. Prefer tailored read models over aggregate loading for queries
 
 The read side is allowed to bypass aggregate loading when a projection is a
