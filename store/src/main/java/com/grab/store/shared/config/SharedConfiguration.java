@@ -9,12 +9,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SharedConfiguration {
     @Bean
-    public IdMapper idMapper() {
-        return new IdMapper();
+    public IdGenerator idGenerator() {
+        return new UuidGenerator();
     }
 
     @Bean
-    public IdGenerator idGenerator() {
-        return new UuidGenerator();
+    public IdMapper idMapper(IdGenerator idGenerator) {
+        return new IdMapper(idGenerator);
     }
 }

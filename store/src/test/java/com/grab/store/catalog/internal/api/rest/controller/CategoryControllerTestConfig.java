@@ -6,6 +6,7 @@ import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryChildrenModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryNodeModelAssembler;
@@ -13,7 +14,6 @@ import com.grab.store.catalog.internal.api.rest.assembler.DeleteCategoryModelAss
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryChildrenDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryNodeDtoMapper;
-import com.grab.store.catalog.internal.api.rest.mapper.IdConverter;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveCategoryDtoMapper;
 import com.grab.store.catalog.internal.api.rest.service.CategoryFacadeService;
 import com.grab.store.catalog.internal.command.handler.DeleteCategoryCommandHandler;
@@ -137,8 +137,8 @@ public class CategoryControllerTestConfig {
     }
 
     @Bean
-    public IdConverter idConverter(IdGenerator idGenerator) {
-        return new IdConverter(idGenerator);
+    public IdMapper idMapper(IdGenerator idGenerator) {
+        return new IdMapper(idGenerator);
     }
 
     @Bean
