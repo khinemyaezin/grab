@@ -20,7 +20,9 @@ public class JavaSerializationOutboxEventSerializer implements OutboxEventSerial
             objectStream.flush();
             return new SerializedEvent(
                     event.getClass().getName(),
-                    Base64.getEncoder().encodeToString(output.toByteArray())
+                    Base64.getEncoder().encodeToString(output.toByteArray()),
+                    1,
+                    "{}"
             );
         } catch (IOException exception) {
             throw new UncheckedIOException("Failed to serialize outbox event " + event.getClass().getName(), exception);

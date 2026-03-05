@@ -1,6 +1,7 @@
 package com.catalog.infrastructure.outbox;
 
 import com.grab.framework.outbox.OutboxStatus;
+import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.SerializedEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,7 +28,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_catalog_outbox_aggregate", columnList = "aggregate_type, aggregate_id"),
         @Index(name = "idx_catalog_outbox_published_at", columnList = "published_at")
 })
-public class CatalogOutboxEvent {
+public class CatalogOutboxEvent implements OutboxEntry<Long> {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,6 +42,13 @@ public class CatalogOutboxEvent {
 
     @Column(name = "event_type", nullable = false)
     private String eventType;
+
+    @Column(name = "event_version", nullable = false)
+    private int eventVersion;
+
+    @Lob
+    @Column(name = "headers", nullable = false)
+    private String headers;
 
     @Lob
     @Column(name = "payload", nullable = false)
@@ -62,6 +70,9 @@ public class CatalogOutboxEvent {
     @Column(name = "claimed_at")
     private LocalDateTime claimedAt;
 
+    @Column(name = "claim_token")
+    private String claimToken;
+
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
@@ -79,6 +90,8 @@ public class CatalogOutboxEvent {
         event.aggregateType = aggregateType;
         event.aggregateId = aggregateId;
         event.eventType = serializedEvent.eventType();
+        event.eventVersion = serializedEvent.eventVersion();
+        event.headers = serializedEvent.headers();
         event.payload = serializedEvent.payload();
         event.occurredAt = now;
         event.availableAt = now;
@@ -86,24 +99,30 @@ public class CatalogOutboxEvent {
         return event;
     }
 
-    public void markProcessing(LocalDateTime now) {
+    @Override
+    public void markProcessing(LocalDateTime now, String claimToken) {
         status = OutboxStatus.PROCESSING;
         claimedAt = now;
+        this.claimToken = claimToken;
         lastError = null;
         attemptCount += 1;
     }
 
+    @Override
     public void markPublished(LocalDateTime now) {
         status = OutboxStatus.PUBLISHED;
         publishedAt = now;
         claimedAt = null;
+        claimToken = null;
         lastError = null;
     }
 
+    @Override
     public void markFailed(LocalDateTime now, String error, Duration retryDelay) {
         status = OutboxStatus.FAILED;
         availableAt = now.plus(retryDelay);
         claimedAt = null;
+        claimToken = null;
         lastError = error;
     }
 }

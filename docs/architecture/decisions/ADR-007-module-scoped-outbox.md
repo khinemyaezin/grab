@@ -1,7 +1,7 @@
 # ADR-007: Module-Scoped Transactional Outbox
 
 ## Status
-Proposed
+Accepted (implemented on March 5, 2026)
 
 ## Context
 
@@ -55,7 +55,8 @@ Each module will:
 - run one logical outbox processor that polls, claims, publishes, retries, and
   marks records as delivered
 
-Shared behavior will live in `framework/outbox`, but the outbox data itself
+Shared contracts live in `framework/outbox`. Spring/JPA implementation details
+live in the reusable `outbox-infrastructure` module. Outbox data still
 belongs to the module that produced it.
 
 If modules share the same physical database, they should still use
@@ -163,36 +164,44 @@ same rule instead of reintroducing a shared persistence hotspot.
 
 ## Proposed Design
 
-### 1. Shared framework abstractions
+### 1. Framework contracts (`framework/outbox`)
 
-Create a `framework/outbox` package for the mechanics that should not be
-rewritten per module:
+Keep framework contracts Spring-free so they can move with domain code during
+future extraction:
 
-- `OutboxMessage`
+- `OutboxEntry`
+- `OutboxEventSerializer`
+- `OutboxEventDispatcher`
+- `OutboxStatus`
+- `SerializedEvent`
+- `ClaimedOutboxEvent`
+
+### 2. Shared Spring adapter (`infrastructure-outbox-spring`)
+
+Centralize reusable Spring/JPA outbox mechanics in one infra module:
+
 - `OutboxStore`
-- `OutboxSerializer`
-- `OutboxDispatcher`
-- `OutboxProcessor`
-- `OutboxProcessingResult`
-- `OutboxCleanupPolicy`
+- `JpaOutboxStore`
+- `OutboxRowFactory`
+- `JpaOutboxDomainEventProducer`
+- `AbstractOutboxProcessor`
 
-The framework package should not own concrete JPA entities for all modules.
-Instead, it should define contracts and reusable processing logic.
+This keeps catalog/inventory infrastructure thin while avoiding duplicated
+processor and producer implementations.
 
-### 2. Module-owned infrastructure
+### 3. Module-owned infrastructure wrappers
 
-Each infrastructure module owns its own outbox persistence:
+Each module still owns:
 
-- outbox data entity
-- a repository
-- serializer/mapper wiring
-- processor bean bound to the module's transaction manager
+- outbox entity/table shape
+- module-specific scheduler wrapper
+- module transaction manager and persistence wiring
 
 Example ownership split:
 
 - `{module_name}-infrastructure/.../outbox/*`
 
-### 3. Write path
+### 4. Write path
 
 When an aggregate is saved:
 
@@ -204,7 +213,7 @@ When an aggregate is saved:
 This replaces direct repository-time publication through
 `ApplicationEventPublisher`.
 
-### 4. Read and dispatch path
+### 5. Read and dispatch path
 
 Each module has one logical outbox processor that:
 
@@ -219,21 +228,21 @@ The processor may publish:
 - in-process through `ApplicationEventPublisher`
 - to an external broker later through a different `OutboxDispatcher`
 
-### 5. Scheduler model
+### 6. Scheduler model
 
 Use one logical processor per module, but not one completely separate
 framework per module.
 
 Recommended shape:
 
-- one shared scheduling mechanism
-- one `OutboxProcessor` bean per module
-- each processor configured with the module's repository, transaction manager,
-  batch size, retry policy, and dispatcher
+- one processor wrapper bean per module (`@Scheduled`)
+- one shared processor implementation (`AbstractOutboxProcessor`)
+- each wrapper configured with the module's `OutboxStore`,
+  transaction manager, batch size, retry policy, and dispatcher
 
 This preserves module ownership while avoiding duplicated scheduling code.
 
-### 6. Table shape
+### 7. Table shape
 
 Minimum outbox fields:
 
@@ -247,6 +256,7 @@ Minimum outbox fields:
 - `occurred_at`
 - `available_at`
 - `claimed_at`
+- `claim_token`
 - `published_at`
 - `status`
 - `attempt_count`
@@ -259,13 +269,28 @@ Recommended indexes:
 - `(aggregate_type, aggregate_id)`
 - `(published_at)` for retention cleanup
 
-### 7. Delivery semantics
+### 8. Delivery semantics
 
 The design provides at-least-once delivery.
 
 Consumers must therefore be idempotent. If a consumer updates another module's
 state and cannot safely re-run, that consumer should persist a processed-event
 record or inbox entry on its own side.
+
+### 9. Microservice migration guardrails
+
+- Keep framework contracts independent of Spring so service extraction does not
+  force contract rewrites.
+- Keep event envelope fields (`event_type`, `event_version`, `headers`,
+  `payload`) stable and backward-compatible.
+- Treat serializer choice as a replaceable adapter. Current Java serialization
+  works in monolith runtime; broker-based service extraction should switch to a
+  schema-based format (for example JSON/Avro/Protobuf) via
+  `OutboxEventSerializer`.
+- Treat dispatcher choice as a replaceable adapter.
+  `ApplicationEventPublisher` is monolith-local; extracted services should use
+  a broker-backed `OutboxEventDispatcher`.
+- Preserve at-least-once semantics and idempotent consumers after extraction.
 
 ---
 
@@ -289,7 +314,8 @@ record or inbox entry on its own side.
 
 ### Mitigations
 
-- keep polling and dispatch logic in `framework/outbox`
+- keep contracts in `framework/outbox` and reusable Spring/JPA mechanics in
+  `outbox-infrastructure-outbox`
 - standardize table columns and naming conventions across modules
 - expose common metrics for backlog size, retry count, and publish latency
 - keep one operational runbook for all processors even though storage is
@@ -309,3 +335,10 @@ Suggested rollout:
 
 During rollout, avoid a hybrid design where some events are published directly
 and some are written to the outbox from the same aggregate save path.
+
+For service extraction:
+
+1. keep module outbox table and processor inside the extracted service
+2. replace in-process dispatcher with broker-backed dispatcher
+3. replace Java serialization with a service-safe wire format
+4. keep idempotency checks on consuming side

@@ -18,6 +18,7 @@
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <inventory-domain.version>0.0.1</inventory-domain.version>
+        <outbox-infrastructure.version>0.0.1</outbox-infrastructure.version>
     </properties>
 
     <dependencies>
@@ -72,6 +73,11 @@
             <artifactId>inventory-domain</artifactId>
             <version>${inventory-domain.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>outbox-infrastructure</artifactId>
+            <version>${outbox-infrastructure.version}</version>
         </dependency>
     </dependencies>
 

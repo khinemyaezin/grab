@@ -13,45 +13,48 @@ The design assumes:
 
 ```mermaid
 flowchart TB
-    subgraph Module["Module"]
+    subgraph Module["Infrastructure Module"]
         Handler["Command Handler"]
-        Repo["Repository"]
-        Data["tables"]
-        Outbox[".outbox_event"]
-        Processor["Outbox Processor"]
+        
+        subgraph Transaction["Transaction Boundary"]
+            Repo["Repository"]
+            Data["Module Business Tables"]
+            Outbox["Module Outbox Table"]
+        end
+  
+        Wrapper["OutboxEventProcessor"]
     end
 
-    subgraph Framework["Shared Outbox Framework"]
-        Scheduler["Shared Scheduler"]
-        Serializer["Outbox Serializer"]
-        Dispatcher["Outbox Dispatcher"]
-        Retry["Retry / Cleanup Policy"]
+    subgraph Adapter["Outbox module"]
+        Producer["DomainEventProducer"]
+        Store["OutboxStore"]
+        Processor["AbstractOutboxProcessor"]
+        Dispatcher["OutboxEventDispatcher"]
     end
 
-    subgraph Delivery["Delivery Targets"]
+    subgraph Delivery["Delivery Adapters"]
         InProcess["ApplicationEventPublisher"]
-        Broker["Future Broker Adapter"]
-        Consumers["Listeners / Integrations"]
     end
 
-    CQRS --> Handler
+    subgraph Consumers["Consumers"]
+        Listener["Listeners / Integrations"]
+    end
 
-    Handler -- "Transaction" --> Repo
+
+    Handler --> Repo
     Repo --> Data
-    Repo -- "append outbox row\nin same transaction" --> Outbox
-
-    Scheduler --> Processor
-    Serializer --> Processor
-    
-    Retry --> Processor
-    
-    Processor --> Outbox
+    Repo -- "append outbox row" --> Outbox
+    Repo --> Producer
+    Producer --> Store
+    Store --> Outbox
+    Wrapper --> Processor
     Processor -- "claim / deserialize / publish" --> Dispatcher
+    Processor --> Store
+    Dispatcher --> Processor
 
     Dispatcher --> InProcess
-    Dispatcher --> Broker
-    InProcess --> Consumers
-    Broker --> Consumers
+
+    InProcess --> Listener
 ```
 
 ## Publish Lifecycle
@@ -81,8 +84,32 @@ sequenceDiagram
 
 ## Notes
 
-- Each module owns its outbox table and repository.
-- Scheduler infrastructure can be shared even though processors are
-  module-specific.
+- `framework` contains Spring-free outbox contracts.
+- `infrastructure-outbox-spring` contains reusable Spring/JPA outbox mechanics.
+- Each module owns its outbox table and scheduler wrapper bean.
 - If modules still share one physical database, prefer separate schemas or
   table prefixes to preserve ownership boundaries.
+
+## Extraction Path
+
+```mermaid
+flowchart LR
+    subgraph CatalogService["Catalog Service"]
+        COutbox["catalog_outbox_event"]
+        CProc["Catalog Outbox Processor"]
+    end
+
+    subgraph InventoryService["Inventory Service"]
+        IOutbox["inventory_outbox_event"]
+        IProc["Inventory Outbox Processor"]
+    end
+
+    Broker["Message Broker"]
+    Downstream["Downstream Consumers"]
+
+    CProc --> COutbox
+    IProc --> IOutbox
+    CProc -- "publish" --> Broker
+    IProc -- "publish" --> Broker
+    Broker --> Downstream
+```

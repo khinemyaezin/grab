@@ -9,16 +9,18 @@ import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
+import com.catalog.infrastructure.outbox.CatalogOutboxEvent;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProcessor;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProducer;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JavaSerializationOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.outbox.infrastructure.OutboxStore;
 import com.catalog.infrastructure.factory.CategoryComponentFactory;
 import com.catalog.infrastructure.mapper.jpa.impl.CategoryJpaAssemblerImpl;
 import com.catalog.infrastructure.mapper.jpa.impl.ProductJpaAssemblerImpl;
-import com.catalog.infrastructure.repository.jpa.CatalogOutboxEventJpaRepository;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.catalog.infrastructure.repository.jpa.ProductJpaRepo;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
@@ -52,30 +54,40 @@ public class CatalogInfraConfig {
 
     @Bean("catalogDomainEventProducer")
     public DomainEventProducer catalogDomainEventProducer(
-            CatalogOutboxEventJpaRepository catalogOutboxEventJpaRepository,
+            @Qualifier("catalogOutboxStore") OutboxStore<CatalogOutboxEvent, Long> outboxStore,
             @Qualifier("catalogOutboxEventSerializer") OutboxEventSerializer serializer
     ) {
-        return new CatalogOutboxEventProducer(catalogOutboxEventJpaRepository, serializer);
+        return new CatalogOutboxEventProducer(outboxStore, serializer);
+    }
+
+    @Bean("catalogOutboxStore")
+    public OutboxStore<CatalogOutboxEvent, Long> catalogOutboxStore(JpaContext context) {
+        return new JpaOutboxStore<>(
+                context.getEntityManagerByManagedType(CatalogOutboxEvent.class),
+                CatalogOutboxEvent.class
+        );
     }
 
     @Bean
     public CatalogOutboxEventProcessor catalogOutboxEventProcessor(
-            CatalogOutboxEventJpaRepository catalogOutboxEventJpaRepository,
+            @Qualifier("catalogOutboxStore") OutboxStore<CatalogOutboxEvent, Long> outboxStore,
             @Qualifier("catalogOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("catalogOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager,
             @Value("${catalog.outbox.batch-size:20}") int batchSize,
             @Value("${catalog.outbox.retry-delay-ms:30000}") long retryDelayMs,
-            @Value("${catalog.outbox.claim-timeout-ms:120000}") long claimTimeoutMs
+            @Value("${catalog.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
+            @Value("${catalog.outbox.retention-ms:604800000}") long retentionMs
     ) {
         return new CatalogOutboxEventProcessor(
-                catalogOutboxEventJpaRepository,
+                outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
                 batchSize,
                 Duration.ofMillis(retryDelayMs),
-                Duration.ofMillis(claimTimeoutMs)
+                Duration.ofMillis(claimTimeoutMs),
+                Duration.ofMillis(retentionMs)
         );
     }
 

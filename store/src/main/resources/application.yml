@@ -18,9 +18,11 @@ catalog:
       format_sql: true
   outbox:
     fixed-delay-ms: ${CATALOG_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${CATALOG_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
     batch-size: ${CATALOG_OUTBOX_BATCH_SIZE:20}
     retry-delay-ms: ${CATALOG_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${CATALOG_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${CATALOG_OUTBOX_RETENTION_MS:604800000}
 
 inventory:
   datasource:
@@ -37,9 +39,11 @@ inventory:
       format_sql: true
   outbox:
     fixed-delay-ms: ${INVENTORY_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${INVENTORY_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
     batch-size: ${INVENTORY_OUTBOX_BATCH_SIZE:20}
     retry-delay-ms: ${INVENTORY_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${INVENTORY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${INVENTORY_OUTBOX_RETENTION_MS:604800000}
 
 logging:
   level:

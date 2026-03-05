@@ -6,11 +6,10 @@ import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.outbox.SerializedEvent;
+import com.grab.outbox.infrastructure.OutboxStore;
 import com.inventory.domain.event.StockReceivedEvent;
-import com.inventory.infrastructure.repository.jpa.InventoryOutboxEventJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -31,28 +30,30 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class InventoryOutboxEventProcessorTest {
 
-    private InventoryOutboxEventJpaRepository repository;
+    private OutboxStore<InventoryOutboxEvent, Long> outboxStore;
     private OutboxEventSerializer serializer;
     private OutboxEventDispatcher dispatcher;
     private InventoryOutboxEventProcessor processor;
 
     @BeforeEach
     void setUp() {
-        repository = mock(InventoryOutboxEventJpaRepository.class);
+        outboxStore = mock(OutboxStore.class);
         serializer = mock(OutboxEventSerializer.class);
         dispatcher = mock(OutboxEventDispatcher.class);
         processor = new InventoryOutboxEventProcessor(
-                repository,
+                outboxStore,
                 serializer,
                 dispatcher,
                 new NoOpTransactionManager(),
                 10,
                 Duration.ofSeconds(30),
-                Duration.ofMinutes(2)
+                Duration.ofMinutes(2),
+                Duration.ofDays(7)
         );
     }
 
@@ -61,17 +62,17 @@ class InventoryOutboxEventProcessorTest {
         Event payload = new StockReceivedEvent(id("inventory-1"), "SKU-1", 10, id("location-1"), LocalDateTime.now());
         InventoryOutboxEvent outboxEvent = pendingEvent(1L, "event-type", "payload");
 
-        when(repository.findBatchForProcessing(
+        when(outboxStore.findBatchForProcessing(
                 eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
                 eq(OutboxStatus.PROCESSING),
                 any(LocalDateTime.class),
                 any(LocalDateTime.class),
-                any(Pageable.class)
+                eq(10)
         )).thenReturn(List.of(outboxEvent));
-        when(repository.findById(1L)).thenReturn(Optional.of(outboxEvent));
+        when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize("event-type", "payload")).thenReturn(payload);
 
-        processor.processAvailableEvents();
+        processor.processAvailableEventsOnSchedule();
 
         verify(dispatcher).dispatch(payload);
         assertEquals(OutboxStatus.PUBLISHED, outboxEvent.getStatus());
@@ -86,18 +87,18 @@ class InventoryOutboxEventProcessorTest {
         Event payload = new StockReceivedEvent(id("inventory-1"), "SKU-1", 10, id("location-1"), LocalDateTime.now());
         InventoryOutboxEvent outboxEvent = pendingEvent(1L, "event-type", "payload");
 
-        when(repository.findBatchForProcessing(
+        when(outboxStore.findBatchForProcessing(
                 eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
                 eq(OutboxStatus.PROCESSING),
                 any(LocalDateTime.class),
                 any(LocalDateTime.class),
-                any(Pageable.class)
+                eq(10)
         )).thenReturn(List.of(outboxEvent));
-        when(repository.findById(1L)).thenReturn(Optional.of(outboxEvent));
+        when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize("event-type", "payload")).thenReturn(payload);
         doThrow(new IllegalStateException("dispatcher failed")).when(dispatcher).dispatch(payload);
 
-        processor.processAvailableEvents();
+        processor.processAvailableEventsOnSchedule();
 
         assertEquals(OutboxStatus.FAILED, outboxEvent.getStatus());
         assertEquals(1, outboxEvent.getAttemptCount());
@@ -106,11 +107,39 @@ class InventoryOutboxEventProcessorTest {
         assertTrue(outboxEvent.getAvailableAt().isAfter(outboxEvent.getOccurredAt()));
     }
 
+    @Test
+    void processAvailableEvents_whenClaimTokenChanges_skipsDispatch() {
+        InventoryOutboxEvent pendingEvent = pendingEvent(1L, "event-type", "payload");
+        InventoryOutboxEvent reclaimedEvent = pendingEvent(1L, "event-type", "payload");
+        reclaimedEvent.markProcessing(LocalDateTime.now(), "different-claim-token");
+
+        when(outboxStore.findBatchForProcessing(
+                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
+                eq(OutboxStatus.PROCESSING),
+                any(LocalDateTime.class),
+                any(LocalDateTime.class),
+                eq(10)
+        )).thenReturn(List.of(pendingEvent));
+        when(outboxStore.findById(1L)).thenReturn(Optional.of(reclaimedEvent));
+
+        processor.processAvailableEventsOnSchedule();
+
+        verifyNoInteractions(dispatcher);
+        assertEquals(OutboxStatus.PROCESSING, pendingEvent.getStatus());
+    }
+
+    @Test
+    void cleanupPublishedEvents_deletesExpiredRows() {
+        processor.cleanupPublishedEventsOnSchedule();
+
+        verify(outboxStore).deletePublishedOlderThan(any(LocalDateTime.class));
+    }
+
     private static InventoryOutboxEvent pendingEvent(Long id, String eventType, String payload) {
         InventoryOutboxEvent outboxEvent = InventoryOutboxEvent.pending(
                 "InventoryItem",
                 "inventory-1",
-                new SerializedEvent(eventType, payload),
+                new SerializedEvent(eventType, payload, 1, "{}"),
                 LocalDateTime.now().minusMinutes(1)
         );
         outboxEvent.setId(id);

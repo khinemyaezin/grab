@@ -46,7 +46,7 @@ flowchart TB
 ## Write and Read Flow
 
 ```mermaid
-flowchart LR
+flowchart TB
     Request["HTTP Request"] --> Controller["Controller"]
     Controller --> Facade["Facade Service"]
     Facade --> Bus["CommandBus or QueryBus"]
