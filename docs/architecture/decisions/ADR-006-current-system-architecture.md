@@ -192,12 +192,15 @@ Key characteristics:
 
 - events are written atomically with the business state change
 - delivery is decoupled from the write transaction
-- the `framework/outbox/` package provides the shared outbox abstractions
 - each module's infrastructure wires its own outbox table against its own
   datasource and transaction manager
 
 This replaces direct in-process-only event publishing and ensures events
 survive process failure.
+
+The detailed comparison between a shared outbox table and a module-scoped
+outbox, plus the proposed concrete design for this repository, is captured in
+[ADR-007: Module-Scoped Transactional Outbox](ADR-007-module-scoped-outbox.md).
 
 ### 7. Prefer tailored read models over aggregate loading for queries
 
@@ -241,9 +244,9 @@ See the standalone diagram in
 - Every module must declare explicit transaction boundaries
 - Shared defaults such as a single `EntityManager` or `TransactionManager` are
   no longer safe
-- In-process domain events are not durable across process failure
-- Some module integration concerns are deferred until an outbox or async event
-  model is introduced
+- Outbox processors and cleanup jobs add operational overhead
+- Event payload format and broker adapter choices must be governed for future
+  service extraction
 
 ---
 

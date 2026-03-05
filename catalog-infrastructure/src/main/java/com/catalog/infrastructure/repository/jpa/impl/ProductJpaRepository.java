@@ -1,5 +1,6 @@
 package com.catalog.infrastructure.repository.jpa.impl;
 
+import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
@@ -29,15 +30,19 @@ public class ProductJpaRepository implements ProductRepository {
         }
 
         productJpaRepo.save(entity);
-        domainEventProducer.produce(product.getEvents());
+
+        List<Event> events = product.pullEvents();
+        domainEventProducer.produce(product.getClass().getSimpleName(), product.getId().getValue(), events);
     }
 
     @Override
     public void delete(Product product) {
         Optional<ProductEntity> productEntity = this.productJpaRepo.findByUuid(product.getId().getValue());
+
         if(productEntity.isPresent()) {
             productJpaRepo.delete(productEntity.get());
-            domainEventProducer.produce(product.getEvents());
+            List<Event> events = product.pullEvents();
+            domainEventProducer.produce(product.getClass().getSimpleName(), product.getId().getValue(), events);
         }
     }
 

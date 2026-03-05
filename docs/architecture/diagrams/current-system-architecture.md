@@ -46,7 +46,7 @@ flowchart TB
 ## Write and Read Flow
 
 ```mermaid
-flowchart LR
+flowchart TB
     Request["HTTP Request"] --> Controller["Controller"]
     Controller --> Facade["Facade Service"]
     Facade --> Bus["CommandBus or QueryBus"]
@@ -77,4 +77,4 @@ flowchart LR
 - Each module's write transaction inserts domain events into a per-module **outbox table** within the same database transaction, guaranteeing at-least-once delivery.
 - Each **outbox scheduler** periodically polls outbox tables per module for unpublished events, publishes them (in-process or to an external broker), and marks them as delivered.
 - This outbox pattern ensures reliable event propagation without two-phase commits across module boundaries.
-
+- The concrete outbox comparison and proposed implementation shape are documented in [ADR-007](../decisions/ADR-007-module-scoped-outbox.md) and [module-scoped-outbox.md](module-scoped-outbox.md).

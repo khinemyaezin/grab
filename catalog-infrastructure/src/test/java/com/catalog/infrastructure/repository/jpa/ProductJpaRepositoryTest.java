@@ -77,12 +77,13 @@ class ProductJpaRepositoryTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Event>> eventsCaptor = ArgumentCaptor.forClass(List.class);
-        verify(domainEventProducer).produce(eventsCaptor.capture());
+        verify(domainEventProducer).produce(eq("Product"), eq(product.getId().getValue()), eventsCaptor.capture());
         assertFalse(eventsCaptor.getValue().isEmpty());
+        assertTrue(product.getEvents().isEmpty());
     }
 
     @Test
-    void save_productWithNoEvents_publishesEmptyList() {
+    void save_productWithNoEvents_skipsPublishing() {
         Product product = createProduct();
 
         when(productJpaRepo.findByUuid(product.getId().getValue())).thenReturn(Optional.empty());
@@ -90,10 +91,7 @@ class ProductJpaRepositoryTest {
 
         repository.save(product);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<Event>> eventsCaptor = ArgumentCaptor.forClass(List.class);
-        verify(domainEventProducer).produce(eventsCaptor.capture());
-        assertTrue(eventsCaptor.getValue().isEmpty());
+        verify(domainEventProducer).produce(anyString(), anyString(), anyList());
     }
 
     @Test
@@ -106,10 +104,11 @@ class ProductJpaRepositoryTest {
 
         repository.save(product);
 
-        var inOrder = inOrder(productJpaAssembler, productJpaRepo, domainEventProducer);
+        var inOrder = inOrder(productJpaAssembler, productJpaRepo);
         inOrder.verify(productJpaAssembler).buildFullEntityGraph(product, null);
         inOrder.verify(productJpaRepo).save(entity);
-        inOrder.verify(domainEventProducer).produce(product.getEvents());
+        verify(domainEventProducer).produce(anyString(), anyString(), anyList());
+        assertTrue(product.getEvents().isEmpty());
     }
 
     @Test
@@ -123,7 +122,8 @@ class ProductJpaRepositoryTest {
         repository.delete(product);
 
         verify(productJpaRepo).delete(existingEntity);
-        verify(domainEventProducer).produce(product.getEvents());
+        verify(domainEventProducer).produce(eq("Product"), eq(product.getId().getValue()), anyList());
+        assertTrue(product.getEvents().isEmpty());
     }
 
     @Test
@@ -135,7 +135,7 @@ class ProductJpaRepositoryTest {
         repository.delete(product);
 
         verify(productJpaRepo, never()).delete((ProductEntity) any());
-        verify(domainEventProducer, never()).produce(anyList());
+        verify(domainEventProducer, never()).produce(anyString(), anyString(), anyList());
     }
 
     private Product createProduct() {

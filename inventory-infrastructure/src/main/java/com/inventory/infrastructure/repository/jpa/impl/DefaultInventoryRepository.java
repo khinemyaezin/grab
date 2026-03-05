@@ -1,5 +1,6 @@
 package com.inventory.infrastructure.repository.jpa.impl;
 
+import com.grab.framework.domain.Event;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
 import com.inventory.domain.aggregate.InventoryItem;
@@ -9,7 +10,6 @@ import com.inventory.infrastructure.entity.InventoryItemEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -104,7 +104,10 @@ public class DefaultInventoryRepository implements InventoryRepository {
         }
 
         jpaRepository.save(entity);
-        domainEventProducer.produce(item.getEvents());
+
+        List<Event> events = item.pullEvents();
+        domainEventProducer.produce(item.getClass().getSimpleName(), item.getId().getValue(), events);
+
     }
 
     @Override
