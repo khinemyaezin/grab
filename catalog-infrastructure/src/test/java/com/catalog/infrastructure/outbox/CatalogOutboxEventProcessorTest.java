@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -70,7 +71,7 @@ class CatalogOutboxEventProcessorTest {
                 eq(10)
         )).thenReturn(List.of(outboxEvent));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
-        when(serializer.deserialize("event-type", "payload")).thenReturn(payload);
+        when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
 
         processor.processAvailableEventsOnSchedule();
 
@@ -95,7 +96,7 @@ class CatalogOutboxEventProcessorTest {
                 eq(10)
         )).thenReturn(List.of(outboxEvent));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
-        when(serializer.deserialize("event-type", "payload")).thenReturn(payload);
+        when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
         doThrow(new IllegalStateException("dispatcher failed")).when(dispatcher).dispatch(payload);
 
         processor.processAvailableEventsOnSchedule();
@@ -135,11 +136,59 @@ class CatalogOutboxEventProcessorTest {
         verify(outboxStore).deletePublishedOlderThan(any(LocalDateTime.class));
     }
 
+    @Test
+    void processAvailableEvents_supportsLegacyAndJsonRowsInSameBatch() {
+        Event legacyPayload = new ProductUpdatedEvent(id("product-1"), "Legacy name", id("category-1"));
+        Event jsonPayload = new ProductUpdatedEvent(id("product-1"), "Json name", id("category-2"));
+        CatalogOutboxEvent legacyEvent = pendingEvent(1L, "event-type-legacy", "legacy-payload", "{}");
+        CatalogOutboxEvent jsonEvent = pendingEvent(
+                2L,
+                "event-type-json",
+                "{\"newName\":\"Json name\"}",
+                "{\"contentType\":\"application/json\"}"
+        );
+
+        when(outboxStore.findBatchForProcessing(
+                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
+                eq(OutboxStatus.PROCESSING),
+                any(LocalDateTime.class),
+                any(LocalDateTime.class),
+                eq(10)
+        )).thenReturn(List.of(legacyEvent, jsonEvent));
+        when(outboxStore.findById(1L)).thenReturn(Optional.of(legacyEvent));
+        when(outboxStore.findById(2L)).thenReturn(Optional.of(jsonEvent));
+        when(serializer.deserialize(argThat(serialized ->
+                serialized != null
+                        && serialized.eventType().equals("event-type-legacy")
+                        && serialized.payload().equals("legacy-payload")
+                        && serialized.eventVersion() == 1
+                        && serialized.headers().equals("{}")
+        ))).thenReturn(legacyPayload);
+        when(serializer.deserialize(argThat(serialized ->
+                serialized != null
+                        && serialized.eventType().equals("event-type-json")
+                        && serialized.payload().equals("{\"newName\":\"Json name\"}")
+                        && serialized.eventVersion() == 1
+                        && serialized.headers().equals("{\"contentType\":\"application/json\"}")
+        ))).thenReturn(jsonPayload);
+
+        processor.processAvailableEventsOnSchedule();
+
+        verify(dispatcher).dispatch(legacyPayload);
+        verify(dispatcher).dispatch(jsonPayload);
+        assertEquals(OutboxStatus.PUBLISHED, legacyEvent.getStatus());
+        assertEquals(OutboxStatus.PUBLISHED, jsonEvent.getStatus());
+    }
+
     private static CatalogOutboxEvent pendingEvent(Long id, String eventType, String payload) {
+        return pendingEvent(id, eventType, payload, "{}");
+    }
+
+    private static CatalogOutboxEvent pendingEvent(Long id, String eventType, String payload, String headers) {
         CatalogOutboxEvent outboxEvent = CatalogOutboxEvent.pending(
                 "Product",
                 "product-1",
-                new SerializedEvent(eventType, payload, 1, "{}"),
+                new SerializedEvent(eventType, payload, 1, headers),
                 LocalDateTime.now().minusMinutes(1)
         );
         outboxEvent.setId(id);

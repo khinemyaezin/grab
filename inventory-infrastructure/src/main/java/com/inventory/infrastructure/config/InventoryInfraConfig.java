@@ -1,7 +1,7 @@
 package com.inventory.infrastructure.config;
 
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.outbox.JavaSerializationOutboxEventSerializer;
+import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.id.IdGenerator;
@@ -41,7 +41,7 @@ public class InventoryInfraConfig {
 
     @Bean("inventoryOutboxEventSerializer")
     public OutboxEventSerializer inventoryOutboxEventSerializer() {
-        return new JavaSerializationOutboxEventSerializer();
+        return new JsonOutboxEventSerializer();
     }
 
     @Bean("inventoryOutboxEventDispatcher")

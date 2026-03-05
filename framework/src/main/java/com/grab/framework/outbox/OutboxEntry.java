@@ -10,6 +10,10 @@ public interface OutboxEntry<ID> {
 
     String getPayload();
 
+    int getEventVersion();
+
+    String getHeaders();
+
     OutboxStatus getStatus();
 
     String getClaimToken();

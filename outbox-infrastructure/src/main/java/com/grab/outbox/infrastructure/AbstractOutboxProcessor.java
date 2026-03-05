@@ -6,6 +6,7 @@ import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxStatus;
+import com.grab.framework.outbox.SerializedEvent;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -97,7 +98,12 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
                 .filter(event -> claimedEvent.claimToken().equals(event.getClaimToken()))
                 .ifPresent(event -> {
                     try {
-                        Event payload = serializer.deserialize(event.getEventType(), event.getPayload());
+                        Event payload = serializer.deserialize(new SerializedEvent(
+                                event.getEventType(),
+                                event.getPayload(),
+                                event.getEventVersion(),
+                                event.getHeaders()
+                        ));
                         dispatcher.dispatch(payload);
                         event.markPublished(LocalDateTime.now());
                     } catch (RuntimeException exception) {

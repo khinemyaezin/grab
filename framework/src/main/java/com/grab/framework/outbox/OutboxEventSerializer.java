@@ -5,5 +5,5 @@ import com.grab.framework.domain.Event;
 public interface OutboxEventSerializer {
     SerializedEvent serialize(Event event);
 
-    Event deserialize(String eventType, String payload);
+    Event deserialize(SerializedEvent serializedEvent);
 }

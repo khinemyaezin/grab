@@ -70,7 +70,7 @@ class InventoryOutboxEventProcessorTest {
                 eq(10)
         )).thenReturn(List.of(outboxEvent));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
-        when(serializer.deserialize("event-type", "payload")).thenReturn(payload);
+        when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
 
         processor.processAvailableEventsOnSchedule();
 
@@ -95,7 +95,7 @@ class InventoryOutboxEventProcessorTest {
                 eq(10)
         )).thenReturn(List.of(outboxEvent));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
-        when(serializer.deserialize("event-type", "payload")).thenReturn(payload);
+        when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
         doThrow(new IllegalStateException("dispatcher failed")).when(dispatcher).dispatch(payload);
 
         processor.processAvailableEventsOnSchedule();

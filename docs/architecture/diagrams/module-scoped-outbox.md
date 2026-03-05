@@ -85,7 +85,7 @@ sequenceDiagram
 ## Notes
 
 - `framework` contains Spring-free outbox contracts.
-- `infrastructure-outbox-spring` contains reusable Spring/JPA outbox mechanics.
+- `outbox-infrastructure` contains reusable Spring/JPA outbox mechanics.
 - Each module owns its outbox table and scheduler wrapper bean.
 - If modules still share one physical database, prefer separate schemas or
   table prefixes to preserve ownership boundaries.

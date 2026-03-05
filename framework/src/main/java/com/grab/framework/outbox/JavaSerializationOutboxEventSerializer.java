@@ -30,8 +30,9 @@ public class JavaSerializationOutboxEventSerializer implements OutboxEventSerial
     }
 
     @Override
-    public Event deserialize(String eventType, String payload) {
-        byte[] bytes = Base64.getDecoder().decode(payload);
+    public Event deserialize(SerializedEvent serializedEvent) {
+        String eventType = serializedEvent.eventType();
+        byte[] bytes = Base64.getDecoder().decode(serializedEvent.payload());
 
         try (ByteArrayInputStream input = new ByteArrayInputStream(bytes);
              ObjectInputStream objectStream = new ObjectInputStream(input)) {

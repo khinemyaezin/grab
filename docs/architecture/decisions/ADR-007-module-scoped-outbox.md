@@ -176,7 +176,7 @@ future extraction:
 - `SerializedEvent`
 - `ClaimedOutboxEvent`
 
-### 2. Shared Spring adapter (`infrastructure-outbox-spring`)
+### 2. Shared Spring adapter (`outbox-infrastructure`)
 
 Centralize reusable Spring/JPA outbox mechanics in one infra module:
 
@@ -315,7 +315,7 @@ record or inbox entry on its own side.
 ### Mitigations
 
 - keep contracts in `framework/outbox` and reusable Spring/JPA mechanics in
-  `outbox-infrastructure-outbox`
+  `outbox-infrastructure`
 - standardize table columns and naming conventions across modules
 - expose common metrics for backlog size, retry count, and publish latency
 - keep one operational runbook for all processors even though storage is

@@ -13,7 +13,7 @@ import com.catalog.infrastructure.outbox.CatalogOutboxEvent;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProcessor;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProducer;
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.outbox.JavaSerializationOutboxEventSerializer;
+import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
@@ -44,7 +44,7 @@ public class CatalogInfraConfig {
 
     @Bean("catalogOutboxEventSerializer")
     public OutboxEventSerializer catalogOutboxEventSerializer() {
-        return new JavaSerializationOutboxEventSerializer();
+        return new JsonOutboxEventSerializer();
     }
 
     @Bean("catalogOutboxEventDispatcher")
