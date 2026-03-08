@@ -33,13 +33,13 @@ public class InventoryController {
     }
 
     @GetMapping("/{inventoryItemId}")
-    public ResponseEntity<EntityModel<InventoryResponse>> getInventory(@PathVariable String inventoryItemId) {
+    public ResponseEntity<EntityModel<InventoryResponse>> getInventory(@PathVariable("inventoryItemId") String inventoryItemId) {
         return ResponseEntity.ok(inventoryFacadeService.getInventory(inventoryItemId));
     }
 
     @PostMapping("/{inventoryItemId}/receive")
     public ResponseEntity<EntityModel<InventoryResponse>> receiveStock(
-            @PathVariable String inventoryItemId,
+            @PathVariable("inventoryItemId") String inventoryItemId,
             @Valid @RequestBody ReceiveStockRequest request,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
     ) {
@@ -48,7 +48,7 @@ public class InventoryController {
 
     @PostMapping("/{inventoryItemId}/reserve")
     public ResponseEntity<EntityModel<InventoryReservationResponse>> reserveStock(
-            @PathVariable String inventoryItemId,
+            @PathVariable("inventoryItemId") String inventoryItemId,
             @Valid @RequestBody ReserveStockRequest request,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
@@ -59,8 +59,8 @@ public class InventoryController {
 
     @PostMapping("/{inventoryItemId}/reservations/{reservationId}/release")
     public ResponseEntity<EntityModel<InventoryReservationResponse>> releaseReservation(
-            @PathVariable String inventoryItemId,
-            @PathVariable String reservationId,
+            @PathVariable("inventoryItemId") String inventoryItemId,
+            @PathVariable("reservationId") String reservationId,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
     ) {
         return ResponseEntity.ok(
@@ -69,8 +69,8 @@ public class InventoryController {
 
     @PostMapping("/{inventoryItemId}/reservations/{reservationId}/ship")
     public ResponseEntity<EntityModel<InventoryReservationResponse>> shipReservation(
-            @PathVariable String inventoryItemId,
-            @PathVariable String reservationId,
+            @PathVariable("inventoryItemId") String inventoryItemId,
+            @PathVariable("reservationId") String reservationId,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
     ) {
         return ResponseEntity.ok(
@@ -79,7 +79,7 @@ public class InventoryController {
 
     @PostMapping("/{inventoryItemId}/adjust")
     public ResponseEntity<EntityModel<InventoryResponse>> adjustStock(
-            @PathVariable String inventoryItemId,
+            @PathVariable("inventoryItemId") String inventoryItemId,
             @Valid @RequestBody AdjustStockRequest request,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
     ) {
@@ -87,12 +87,12 @@ public class InventoryController {
     }
 
     @GetMapping("/{inventoryItemId}/movements")
-    public ResponseEntity<EntityModel<InventoryMovementsResponse>> getMovements(@PathVariable String inventoryItemId) {
+    public ResponseEntity<EntityModel<InventoryMovementsResponse>> getMovements(@PathVariable("inventoryItemId") String inventoryItemId) {
         return ResponseEntity.ok(inventoryFacadeService.getMovements(inventoryItemId));
     }
 
     @GetMapping("/{inventoryItemId}/reservations")
-    public ResponseEntity<EntityModel<InventoryReservationsResponse>> getReservations(@PathVariable String inventoryItemId) {
+    public ResponseEntity<EntityModel<InventoryReservationsResponse>> getReservations(@PathVariable("inventoryItemId") String inventoryItemId) {
         return ResponseEntity.ok(inventoryFacadeService.getReservations(inventoryItemId));
     }
 }

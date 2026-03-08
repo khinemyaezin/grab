@@ -3,9 +3,11 @@ package com.grab.store.inventory.internal.command.handler;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
+import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.enums.StockMovementType;
 import com.inventory.domain.repository.InventoryRepository;
+import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.valueobject.ReorderConfig;
 import com.grab.store.inventory.internal.command.CreateInventoryCommand;
@@ -20,11 +22,18 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
 
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
+    private final LocationRepository locationRepository;
     private final IdGenerator idGenerator;
 
     @Override
     @InventoryTransactional
     public InventoryItemResult handle(CreateInventoryCommand command) {
+        Location location = locationRepository.findById(command.locationId())
+                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+        if (!location.isActive()) {
+            throw new IllegalArgumentException("Location is not active: " + command.locationId().getValue());
+        }
+
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
             throw new IllegalArgumentException("Inventory already exists for sku/location");
         }
