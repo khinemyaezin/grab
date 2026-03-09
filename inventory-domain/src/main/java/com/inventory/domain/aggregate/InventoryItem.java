@@ -11,7 +11,8 @@ import com.inventory.domain.event.StockAdjustedEvent;
 import com.inventory.domain.event.StockReceivedEvent;
 import com.inventory.domain.event.StockReservedEvent;
 import com.inventory.domain.event.StockShippedEvent;
-import com.inventory.domain.exception.InsufficientQuantityException;
+import com.inventory.domain.exception.InventoryDomainError;
+import com.inventory.domain.exception.InventoryDomainValidationException;
 import com.inventory.domain.valueobject.InventoryQuantity;
 import com.inventory.domain.valueobject.ReorderConfig;
 import lombok.Getter;
@@ -105,7 +106,9 @@ public class InventoryItem extends AggregateRoot<Id> {
     public StockMovement reserveStock(int qty, String orderId, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > getAvailableQuantity()) {
-            throw new InsufficientQuantityException(getAvailableQuantity(), qty);
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
+                    "Cannot reserve " + qty + " units. Only " + getAvailableQuantity() + " available.");
         }
 
         int before = quantity.onHand();
@@ -124,7 +127,9 @@ public class InventoryItem extends AggregateRoot<Id> {
     public StockMovement releaseReservation(int qty, String orderId, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > quantity.reserved()) {
-            throw new InsufficientQuantityException(quantity.reserved(), qty);
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
+                    "Cannot reserve " + qty + " units. Only " + getAvailableQuantity() + " available.");
         }
 
         int before = quantity.onHand();
@@ -143,7 +148,9 @@ public class InventoryItem extends AggregateRoot<Id> {
     public StockMovement shipStock(int qty, String orderId, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > quantity.reserved()) {
-            throw new InsufficientQuantityException(quantity.reserved(), qty);
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
+                    "Cannot reserve " + qty + " units. Only " + getAvailableQuantity() + " available.");
         }
 
         int before = quantity.onHand();
@@ -208,7 +215,9 @@ public class InventoryItem extends AggregateRoot<Id> {
     public StockMovement writeOff(int qty, String reason, String notes, Id userId, Id movementId) {
         validatePositiveQuantity(qty);
         if (qty > getAvailableQuantity()) {
-            throw new InsufficientQuantityException(getAvailableQuantity(), qty);
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
+                    "Cannot reserve " + qty + " units. Only " + getAvailableQuantity() + " available.");
         }
 
         int before = quantity.onHand();

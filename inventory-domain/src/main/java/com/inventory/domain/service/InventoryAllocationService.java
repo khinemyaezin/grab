@@ -1,9 +1,9 @@
 package com.inventory.domain.service;
 
-import com.grab.framework.service.MessageSource;
+import com.grab.framework.exception.MessageSource;
 import com.grab.framework.id.Id;
 import com.inventory.domain.aggregate.InventoryItem;
-import com.inventory.domain.exception.AllocationError;
+import com.inventory.domain.exception.InventoryDomainError;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ public interface InventoryAllocationService {
             return new AllocationResult(true, sku, quantity, quantity, allocations, null);
         }
 
-        public static AllocationResult failure(String sku, int quantity, AllocationError error) {
+        public static AllocationResult failure(String sku, int quantity, InventoryDomainError error) {
             return new AllocationResult(false, sku, quantity, 0, List.of(), error);
         }
     }

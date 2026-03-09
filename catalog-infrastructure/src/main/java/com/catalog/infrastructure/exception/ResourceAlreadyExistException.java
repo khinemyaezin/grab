@@ -1,7 +1,7 @@
 package com.catalog.infrastructure.exception;
 
 import com.grab.framework.exception.DomainException;
-import com.grab.framework.service.MessageSource;
+import com.grab.framework.exception.MessageSource;
 
 import java.util.Map;
 

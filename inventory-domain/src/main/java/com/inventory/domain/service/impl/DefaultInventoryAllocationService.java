@@ -4,7 +4,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.entity.StockMovement;
-import com.inventory.domain.exception.AllocationError;
+import com.inventory.domain.exception.InventoryDomainError;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.service.InventoryAllocationService;
@@ -33,12 +33,12 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
     @Override
     public AllocationResult allocateStock(String sku, int quantity, String orderId, Id createdBy) {
         if (quantity <= 0) {
-            return AllocationResult.failure(sku, quantity, new AllocationError.QuantityNotPositive());
+            return AllocationResult.failure(sku, quantity, new InventoryDomainError.QuantityNotPositive());
         }
 
         List<InventoryItem> availableItems = findAvailableInventory(sku);
         if (availableItems.isEmpty()) {
-            return AllocationResult.failure(sku, quantity, new AllocationError.NoAvailableInventory(sku));
+            return AllocationResult.failure(sku, quantity, new InventoryDomainError.NoAvailableInventory(sku));
         }
 
         int totalAvailable = availableItems.stream()
@@ -46,7 +46,7 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
                 .sum();
 
         if (totalAvailable < quantity) {
-            return AllocationResult.failure(sku, quantity, new AllocationError.InsufficientStock(totalAvailable, quantity));
+            return AllocationResult.failure(sku, quantity, new InventoryDomainError.InsufficientStock(totalAvailable, quantity));
         }
 
         List<AllocationDetail> allocations = new ArrayList<>();
@@ -72,7 +72,7 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
     @Override
     public AllocationResult allocateStockFromLocation(String sku, Id locationId, int quantity, String orderId, Id createdBy) {
         if (quantity <= 0) {
-            return AllocationResult.failure(sku, quantity, new AllocationError.QuantityNotPositive());
+            return AllocationResult.failure(sku, quantity, new InventoryDomainError.QuantityNotPositive());
         }
 
         Optional<InventoryItem> inventoryItem = inventoryRepository.findBySkuAndLocation(sku, locationId);
@@ -81,11 +81,11 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
             InventoryItem item = inventoryItem.get();
 
             if (!item.isActive()) {
-                return AllocationResult.failure(sku, quantity, new AllocationError.InventoryItemNotActive(sku));
+                return AllocationResult.failure(sku, quantity, new InventoryDomainError.InventoryItemNotActive(sku));
             }
             if (item.getAvailableQuantity() < quantity) {
                 return AllocationResult.failure(sku, quantity,
-                        new AllocationError.InsufficientStock(item.getAvailableQuantity(), quantity));
+                        new InventoryDomainError.InsufficientStock(item.getAvailableQuantity(), quantity));
             }
 
             StockMovement movement = item.reserveStock(quantity, orderId, createdBy, idGenerator.generateId());
@@ -98,7 +98,7 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
             return AllocationResult.success(sku, quantity, allocations);
         } else {
             return AllocationResult.failure(sku, quantity,
-                    new AllocationError.InventoryNotFoundAtLocation(sku, locationId.getValue()));
+                    new InventoryDomainError.InventoryNotFoundAtLocation(sku, locationId.getValue()));
         }
     }
 

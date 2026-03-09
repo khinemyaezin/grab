@@ -3,8 +3,8 @@ package com.inventory.domain.service.impl;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
-import com.inventory.domain.exception.AllocationError;
 import com.inventory.domain.enums.InventoryStatus;
+import com.inventory.domain.exception.InventoryDomainError;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.service.InventoryAllocationService.AllocationResult;
@@ -51,8 +51,8 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.NoAvailableInventory.class);
-        AllocationError.NoAvailableInventory error = (AllocationError.NoAvailableInventory) result.error();
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.NoAvailableInventory.class);
+        InventoryDomainError.NoAvailableInventory error = (InventoryDomainError.NoAvailableInventory) result.error();
         assertThat(error.sku()).isEqualTo("SKU-001");
         assertThat(result.allocatedQuantity()).isZero();
     }
@@ -65,7 +65,7 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", idGenerator.generateId());
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.NoAvailableInventory.class);
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.NoAvailableInventory.class);
     }
 
     @Test
@@ -76,7 +76,7 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.NoAvailableInventory.class);
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.NoAvailableInventory.class);
     }
 
     @Test
@@ -88,8 +88,8 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.InsufficientStock.class);
-        AllocationError.InsufficientStock error = (AllocationError.InsufficientStock) result.error();
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.InsufficientStock.class);
+        InventoryDomainError.InsufficientStock error = (InventoryDomainError.InsufficientStock) result.error();
         assertThat(error.available()).isEqualTo(8);
         assertThat(error.requested()).isEqualTo(10);
         assertThat(result.allocatedQuantity()).isZero();
@@ -177,7 +177,7 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStock("SKU-001", -5, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.QuantityNotPositive.class);
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.QuantityNotPositive.class);
         verifyNoInteractions(inventoryRepository);
     }
 
@@ -186,7 +186,7 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStock("SKU-001", 0, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.QuantityNotPositive.class);
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.QuantityNotPositive.class);
         verifyNoInteractions(inventoryRepository);
     }
 
@@ -216,8 +216,8 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", locationId, 10, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.InventoryNotFoundAtLocation.class);
-        AllocationError.InventoryNotFoundAtLocation error = (AllocationError.InventoryNotFoundAtLocation) result.error();
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.InventoryNotFoundAtLocation.class);
+        InventoryDomainError.InventoryNotFoundAtLocation error = (InventoryDomainError.InventoryNotFoundAtLocation) result.error();
         assertThat(error.sku()).isEqualTo("SKU-001");
         assertThat(result.allocatedQuantity()).isZero();
     }
@@ -230,8 +230,8 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", item.getLocationId(), 10, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.InventoryItemNotActive.class);
-        AllocationError.InventoryItemNotActive error = (AllocationError.InventoryItemNotActive) result.error();
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.InventoryItemNotActive.class);
+        InventoryDomainError.InventoryItemNotActive error = (InventoryDomainError.InventoryItemNotActive) result.error();
         assertThat(error.sku()).isEqualTo("SKU-001");
         verify(inventoryRepository, never()).save(any());
     }
@@ -244,8 +244,8 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", item.getLocationId(), 10, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.InsufficientStock.class);
-        AllocationError.InsufficientStock error = (AllocationError.InsufficientStock) result.error();
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.InsufficientStock.class);
+        InventoryDomainError.InsufficientStock error = (InventoryDomainError.InsufficientStock) result.error();
         assertThat(error.available()).isEqualTo(5);
         assertThat(error.requested()).isEqualTo(10);
         verify(inventoryRepository, never()).save(any());
@@ -257,7 +257,7 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", locationId, -5, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.QuantityNotPositive.class);
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.QuantityNotPositive.class);
         verifyNoInteractions(inventoryRepository);
     }
 
@@ -267,7 +267,7 @@ class DefaultInventoryAllocationServiceTest {
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", locationId, 0, "order-1", userId);
 
         assertThat(result.success()).isFalse();
-        assertThat(result.error()).isInstanceOf(AllocationError.QuantityNotPositive.class);
+        assertThat(result.error()).isInstanceOf(InventoryDomainError.QuantityNotPositive.class);
         verifyNoInteractions(inventoryRepository);
     }
 

@@ -1,4 +1,4 @@
-package com.grab.framework.service;
+package com.grab.framework.exception;
 
 import java.util.Map;
 

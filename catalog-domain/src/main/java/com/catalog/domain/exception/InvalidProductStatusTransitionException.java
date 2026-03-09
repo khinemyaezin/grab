@@ -2,7 +2,7 @@ package com.catalog.domain.exception;
 
 import com.catalog.domain.aggregate.ProductStatus;
 import com.grab.framework.exception.DomainException;
-import com.grab.framework.service.MessageSource;
+import com.grab.framework.exception.MessageSource;
 
 import java.util.Map;
 
