@@ -2,6 +2,8 @@ package com.catalog.domain.service.impl;
 
 import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
+import com.catalog.domain.exception.CatalogDomainError;
+import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.service.VariantCombinationService;
 
 import java.util.ArrayList;
@@ -29,8 +31,10 @@ public class DefaultVariantCombinationService implements VariantCombinationServi
 
             // Safety check for combinatorial explosion
             if (totalCombinations > 100_000) {
-                throw new IllegalArgumentException(
-                        "Too many combinations: " + totalCombinations + ". Consider filtering options.");
+                throw new CatalogDomainValidationException(
+                        new CatalogDomainError.TooManyVariantCombinations(totalCombinations, 100_000),
+                        "Too many combinations: " + totalCombinations + ". Consider filtering options."
+                );
             }
         }
 

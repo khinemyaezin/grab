@@ -1,7 +1,7 @@
 package com.catalog.domain.aggregate;
 
-import com.catalog.domain.exception.InvalidProductStatusTransitionException;
-import com.catalog.domain.exception.ProductActivationRequiresActiveVariantsException;
+import com.catalog.domain.exception.CatalogDomainError;
+import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.grab.framework.domain.Entity;
 import com.grab.framework.id.Id;
 import com.grab.framework.domain.AggregateRoot;
@@ -210,11 +210,17 @@ public class Product extends AggregateRoot<Id> {
         if (Objects.equals(this.status, newStatus)) return;
 
         if (!this.status.canTransitionTo(newStatus)) {
-            throw new InvalidProductStatusTransitionException(this.status, newStatus);
+            throw new CatalogDomainValidationException(
+                    new CatalogDomainError.InvalidProductStatusTransition(this.status.name(), newStatus.name()),
+                    "Invalid status transition from " + this.status + " to " + newStatus + "."
+            );
         }
 
         if (newStatus == ProductStatus.ACTIVE && this.getActiveVariants().isEmpty()) {
-            throw new ProductActivationRequiresActiveVariantsException();
+            throw new CatalogDomainValidationException(
+                    new CatalogDomainError.ProductActivationRequiresActiveVariants(),
+                    "Cannot activate product without active variants."
+            );
         }
 
         ProductStatus old = this.status;

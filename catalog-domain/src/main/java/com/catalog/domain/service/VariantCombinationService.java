@@ -2,6 +2,7 @@ package com.catalog.domain.service;
 
 import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
+import com.catalog.domain.exception.CatalogDomainValidationException;
 
 import java.util.List;
 
@@ -31,7 +32,7 @@ public interface VariantCombinationService {
      * @param variantTypes ordered list of variant types where position determines
      *                    combination structure. Order is preserved.
      * @return combinations that strictly maintain input ordering
-     * @throws IllegalArgumentException if requirement R4 (100,000 limit) is violated
+     * @throws CatalogDomainValidationException if requirement R4 (100,000 limit) is violated
      */
     List<List<VariantOption>> generateCombinations(List<VariantType> variantTypes);
 }
