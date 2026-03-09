@@ -3,6 +3,7 @@ package com.grab.store.catalog.internal.api.rest.controller;
 import com.catalog.domain.service.impl.*;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
 import com.grab.store.catalog.internal.api.rest.service.ProductCommandService;
@@ -120,8 +121,8 @@ public class ProductControllerTestConfig {
     }
 
     @Bean
-    public IdConverter idConverter(IdGenerator idGenerator) {
-        return new IdConverter(idGenerator);
+    public IdMapper idMapper(IdGenerator idGenerator) {
+        return new IdMapper(idGenerator);
     }
 
     @Bean

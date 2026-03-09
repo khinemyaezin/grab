@@ -71,6 +71,11 @@
             <artifactId>spring-boot-starter-hateoas</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>catalog-infrastructure</artifactId>
             <version>${catalog-infrastructure.version}</version>

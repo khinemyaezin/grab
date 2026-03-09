@@ -4,7 +4,6 @@ import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
-import com.grab.framework.id.IdGenerator;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.inventory.domain.repository.InventoryRepository;
@@ -13,6 +12,9 @@ import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.infrastructure.mapper.jpa.*;
 import com.inventory.infrastructure.mapper.jpa.impl.InventoryJpaAssemblerImpl;
+import com.inventory.infrastructure.mapper.jpa.impl.LocationJpaAssemblerImpl;
+import com.inventory.infrastructure.mapper.jpa.impl.InventoryReservationJpaAssemblerImpl;
+import com.inventory.infrastructure.mapper.jpa.impl.StockMovementJpaAssemblerImpl;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
 import com.inventory.infrastructure.repository.jpa.InventoryReservationJpaRepository;
 import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
@@ -98,6 +100,47 @@ public class InventoryInfraConfig {
     }
 
     @Bean
+    public InventoryReservationJpaAssembler inventoryReservationJpaAssembler(
+            InventoryReservationEntityMapper inventoryReservationEntityMapper,
+            InventoryReservationMapper inventoryReservationMapper
+    ) {
+        return new InventoryReservationJpaAssemblerImpl(
+                inventoryReservationEntityMapper,
+                inventoryReservationMapper
+        );
+    }
+
+    @Bean
+    public LocationJpaAssembler locationJpaAssembler(
+            LocationEntityMapper locationEntityMapper,
+            ZoneEntityMapper zoneEntityMapper,
+            BinEntityMapper binEntityMapper,
+            LocationMapper locationMapper,
+            ZoneMapper zoneMapper,
+            BinMapper binMapper
+    ) {
+        return new LocationJpaAssemblerImpl(
+                locationEntityMapper,
+                zoneEntityMapper,
+                binEntityMapper,
+                locationMapper,
+                zoneMapper,
+                binMapper
+        );
+    }
+
+    @Bean
+    public StockMovementJpaAssembler stockMovementJpaAssembler(
+            StockMovementEntityMapper stockMovementEntityMapper,
+            StockMovementMapper stockMovementMapper
+    ) {
+        return new StockMovementJpaAssemblerImpl(
+                stockMovementEntityMapper,
+                stockMovementMapper
+        );
+    }
+
+    @Bean
     public InventoryRepository inventoryRepository(InventoryItemJpaRepository jpaRepository,
                                                    InventoryJpaAssembler mapper,
                                                    @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer) {
@@ -110,22 +153,19 @@ public class InventoryInfraConfig {
 
     @Bean
     public InventoryReservationRepository inventoryReservationRepository(InventoryReservationJpaRepository jpaRepository,
-                                                                         IdGenerator idGenerator) {
-        return new DefaultInventoryReservationRepository(jpaRepository, idGenerator);
+                                                                         InventoryReservationJpaAssembler mapper) {
+        return new DefaultInventoryReservationRepository(jpaRepository, mapper);
     }
 
     @Bean
     public LocationRepository locationRepository(LocationJpaRepository jpaRepository,
-                                                 LocationMapper locationMapper,
-                                                 ZoneMapper zoneMapper,
-                                                 BinMapper binMapper) {
-        return new DefaultLocationRepository(jpaRepository, locationMapper, zoneMapper, binMapper);
+                                                 LocationJpaAssembler mapper) {
+        return new DefaultLocationRepository(jpaRepository, mapper);
     }
 
     @Bean
     public StockMovementRepository stockMovementRepository(StockMovementJpaRepository jpaRepository,
-                                                           StockMovementEntityMapper entityMapper,
-                                                           StockMovementMapper domainMapper) {
-        return new DefaultStockMovementRepository(jpaRepository, entityMapper, domainMapper);
+                                                           StockMovementJpaAssembler mapper) {
+        return new DefaultStockMovementRepository(jpaRepository, mapper);
     }
 }

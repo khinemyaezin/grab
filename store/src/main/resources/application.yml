@@ -49,3 +49,11 @@ logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
     org.springframework.web: ${LOG_LEVEL_WEB:TRACE}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
