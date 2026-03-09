@@ -7,6 +7,8 @@ import com.inventory.domain.valueobject.Address;
 import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.command.UpdateLocationCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,11 +23,11 @@ public class UpdateLocationCommandHandler implements CommandHandler<UpdateLocati
     @InventoryTransactional
     public LocationResult handle(UpdateLocationCommand command) {
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
 
         if (command.code() != null && !command.code().isBlank() && !command.code().equals(location.getCode())) {
             if (locationRepository.existsByCode(command.code())) {
-                throw new IllegalArgumentException("Location already exists for code: " + command.code());
+                throw new InventoryServiceException(new InventoryServiceError.LocationAlreadyExists(command.code()));
             }
             location.setCode(command.code());
         }
@@ -60,7 +62,7 @@ public class UpdateLocationCommandHandler implements CommandHandler<UpdateLocati
         String country = command.country() != null ? command.country() : existingValue(existing, 6);
 
         if (country == null || country.isBlank()) {
-            throw new IllegalArgumentException("Address country is required");
+            throw new InventoryServiceException(new InventoryServiceError.AddressCountryRequired());
         }
 
         return new Address(line1, line2, city, state, postalCode, country);

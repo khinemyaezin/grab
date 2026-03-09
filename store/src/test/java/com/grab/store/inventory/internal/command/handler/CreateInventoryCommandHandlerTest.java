@@ -10,6 +10,7 @@ import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.valueobject.Address;
 import com.grab.store.inventory.internal.command.CreateInventoryCommand;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +52,7 @@ class CreateInventoryCommandHandlerTest {
         when(locationRepository.findById(command.locationId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Location not found");
 
         verify(inventoryRepository, never()).save(any());
@@ -73,7 +74,7 @@ class CreateInventoryCommandHandlerTest {
         when(locationRepository.findById(command.locationId())).thenReturn(Optional.of(inactiveLocation));
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Location is not active");
 
         verify(inventoryRepository, never()).save(any());

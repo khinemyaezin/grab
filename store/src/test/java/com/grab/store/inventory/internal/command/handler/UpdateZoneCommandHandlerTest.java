@@ -9,6 +9,7 @@ import com.inventory.domain.enums.ZoneType;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.valueobject.Address;
 import com.grab.store.inventory.internal.command.LocationResult;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.command.UpdateZoneCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,7 +82,7 @@ class UpdateZoneCommandHandlerTest {
         );
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Zone already exists for code");
 
         verify(locationRepository, never()).save(any(Location.class));

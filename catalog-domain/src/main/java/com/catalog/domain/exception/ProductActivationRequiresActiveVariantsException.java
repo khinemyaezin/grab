@@ -1,6 +1,7 @@
 package com.catalog.domain.exception;
 
 import com.grab.framework.exception.DomainException;
+import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.exception.MessageSource;
 
 import java.util.Map;
@@ -13,6 +14,11 @@ public class ProductActivationRequiresActiveVariantsException extends DomainExce
     }
     record ProductActivationRequiresActiveVariantsError() implements MessageSource {
         private static final String CODE = "exception.catalog.domain.product_activation_requires_active_variants_error";
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
         @Override
         public String code() {
             return CODE;

@@ -8,6 +8,8 @@ import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.command.DeactivateLocationCommand;
 import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,14 +25,13 @@ public class DeactivateLocationCommandHandler implements CommandHandler<Deactiva
     @InventoryTransactional
     public LocationResult handle(DeactivateLocationCommand command) {
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
 
         boolean hasInventory = inventoryRepository.findByLocation(command.locationId()).stream()
                 .anyMatch(this::hasRemainingStockOrReservations);
 
         if (hasInventory) {
-            throw new IllegalArgumentException(
-                    "Cannot deactivate location with dependent inventory: " + command.locationId().getValue());
+            throw new InventoryServiceException(new InventoryServiceError.LocationHasDependentInventory(command.locationId().getValue()));
         }
 
         location.deactivate();

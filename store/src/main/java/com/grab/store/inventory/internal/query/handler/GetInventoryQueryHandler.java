@@ -4,6 +4,8 @@ import com.grab.framework.cqrs.query.QueryHandler;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.repository.InventoryRepository;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.query.GetInventoryQuery;
 import com.grab.store.inventory.internal.query.GetInventoryResult;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +21,7 @@ public class GetInventoryQueryHandler implements QueryHandler<GetInventoryQuery,
     @InventoryReadTransactional
     public GetInventoryResult handle(GetInventoryQuery query) {
         InventoryItem item = inventoryRepository.findById(query.inventoryItemId())
-                .orElseThrow(() -> new IllegalArgumentException("Inventory not found: " + query.inventoryItemId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.InventoryNotFound(query.inventoryItemId().getValue())));
         return mapToResult(item);
     }
 

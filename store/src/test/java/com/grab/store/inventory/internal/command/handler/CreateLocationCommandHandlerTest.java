@@ -7,6 +7,7 @@ import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.enums.LocationType;
 import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.command.CreateLocationCommand;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.command.LocationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +67,7 @@ class CreateLocationCommandHandlerTest {
         when(locationRepository.existsByCode("WH-01")).thenReturn(true);
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Location already exists for code");
 
         verify(locationRepository, never()).save(any(Location.class));

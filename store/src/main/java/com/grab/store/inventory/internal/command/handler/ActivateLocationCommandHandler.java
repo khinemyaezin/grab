@@ -6,6 +6,8 @@ import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.command.ActivateLocationCommand;
 import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -20,7 +22,7 @@ public class ActivateLocationCommandHandler implements CommandHandler<ActivateLo
     @InventoryTransactional
     public LocationResult handle(ActivateLocationCommand command) {
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
 
         location.activate();
         Location saved = locationRepository.save(location);

@@ -4,6 +4,7 @@ import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.inventory.domain.repository.InventoryRepository;
@@ -26,6 +27,7 @@ import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryReposito
 import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryReservationRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultLocationRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultStockMovementRepository;
+import com.inventory.infrastructure.repository.jpa.support.InventoryPersistenceExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -140,32 +142,42 @@ public class InventoryInfraConfig {
         );
     }
 
+    @Bean("inventoryPersistenceExecutor")
+    public PersistenceExecutor inventoryPersistenceExecutor() {
+        return new InventoryPersistenceExecutor();
+    }
+
     @Bean
     public InventoryRepository inventoryRepository(InventoryItemJpaRepository jpaRepository,
                                                    InventoryJpaAssembler mapper,
-                                                   @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer) {
+                                                   @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                                   @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new DefaultInventoryRepository(
                 jpaRepository,
                 mapper,
-                domainEventProducer
+                domainEventProducer,
+                executor
         );
     }
 
     @Bean
     public InventoryReservationRepository inventoryReservationRepository(InventoryReservationJpaRepository jpaRepository,
-                                                                         InventoryReservationJpaAssembler mapper) {
-        return new DefaultInventoryReservationRepository(jpaRepository, mapper);
+                                                                         InventoryReservationJpaAssembler mapper,
+                                                                         @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultInventoryReservationRepository(jpaRepository, mapper, executor);
     }
 
     @Bean
     public LocationRepository locationRepository(LocationJpaRepository jpaRepository,
-                                                 LocationJpaAssembler mapper) {
-        return new DefaultLocationRepository(jpaRepository, mapper);
+                                                 LocationJpaAssembler mapper,
+                                                 @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultLocationRepository(jpaRepository, mapper, executor);
     }
 
     @Bean
     public StockMovementRepository stockMovementRepository(StockMovementJpaRepository jpaRepository,
-                                                           StockMovementJpaAssembler mapper) {
-        return new DefaultStockMovementRepository(jpaRepository, mapper);
+                                                           StockMovementJpaAssembler mapper,
+                                                           @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor){
+        return new DefaultStockMovementRepository(jpaRepository, mapper, executor);
     }
 }

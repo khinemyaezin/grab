@@ -2,6 +2,7 @@ package com.catalog.domain.exception;
 
 import com.catalog.domain.aggregate.ProductStatus;
 import com.grab.framework.exception.DomainException;
+import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.exception.MessageSource;
 
 import java.util.Map;
@@ -15,6 +16,11 @@ public class InvalidProductStatusTransitionException extends DomainException {
     }
     record InvalidProductStatusTransitionError(ProductStatus status, ProductStatus newStatus) implements MessageSource {
         private static final String CODE = "exception.catalog.domain.invalid_product_status_transaction_error";
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
         @Override
         public String code() {
             return CODE;

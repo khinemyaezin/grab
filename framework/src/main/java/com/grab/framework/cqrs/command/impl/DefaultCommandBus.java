@@ -3,6 +3,8 @@ package com.grab.framework.cqrs.command.impl;
 import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.exception.FrameworkError;
+import com.grab.framework.exception.FrameworkException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,8 +33,10 @@ public class DefaultCommandBus implements CommandBus {
                 (CommandHandler<Command<R>, R>) handlers.get(command.getClass());
 
         if (handler == null) {
-            throw new IllegalArgumentException(
-                    "No handler registered for command: " + command.getClass().getName());
+            throw new FrameworkException(
+                    new FrameworkError.CqrsHandlerMissing("command", command.getClass().getName()),
+                    "No handler registered for command: " + command.getClass().getName()
+            );
         }
 
 //        log.debug("Dispatching command: {} to handler: {}",

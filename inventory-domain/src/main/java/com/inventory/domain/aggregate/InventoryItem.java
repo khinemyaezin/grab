@@ -279,12 +279,20 @@ public class InventoryItem extends AggregateRoot<Id> {
                 && type != StockMovementType.CUSTOMER_RETURN
                 && type != StockMovementType.TRANSFER_IN
                 && type != StockMovementType.INITIAL_STOCK) {
-            throw new IllegalArgumentException("Invalid Stock Movement Type");
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InvalidStockMovementType(type.name()),
+                    "Invalid Stock Movement Type"
+            );
         }
     }
 
     private void validatePositiveQuantity(int qty) {
-        if(qty < 0) throw new IllegalArgumentException("Qty cannot be negative");
+        if (qty < 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.NegativeQuantity(qty),
+                    "Qty cannot be negative"
+            );
+        }
     }
 
     private void checkAndRaiseLowStockAlert() {

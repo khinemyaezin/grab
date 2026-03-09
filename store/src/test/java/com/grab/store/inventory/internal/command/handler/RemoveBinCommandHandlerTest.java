@@ -10,6 +10,7 @@ import com.inventory.domain.enums.ZoneType;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.valueobject.Address;
 import com.grab.store.inventory.internal.command.LocationResult;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.command.RemoveBinCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,7 @@ class RemoveBinCommandHandlerTest {
         when(locationRepository.findById(id("loc-1"))).thenReturn(Optional.of(location));
 
         assertThatThrownBy(() -> handler.handle(new RemoveBinCommand(id("loc-1"), id("zone-1"), id("bin-x"), id("actor-1"))))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Bin not found");
 
         verify(locationRepository, never()).save(any(Location.class));

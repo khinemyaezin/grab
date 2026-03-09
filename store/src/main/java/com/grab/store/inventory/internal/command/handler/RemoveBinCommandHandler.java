@@ -7,6 +7,8 @@ import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.command.RemoveBinCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,14 +23,14 @@ public class RemoveBinCommandHandler implements CommandHandler<RemoveBinCommand,
     @InventoryTransactional
     public LocationResult handle(RemoveBinCommand command) {
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
 
         Zone zone = location.findZoneById(command.zoneId())
-                .orElseThrow(() -> new IllegalArgumentException("Zone not found: " + command.zoneId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.ZoneNotFound(command.zoneId().getValue())));
 
         boolean removed = zone.removeBin(command.binId());
         if (!removed) {
-            throw new IllegalArgumentException("Bin not found: " + command.binId().getValue());
+            throw new InventoryServiceException(new InventoryServiceError.BinNotFound(command.binId().getValue()));
         }
 
         Location saved = locationRepository.save(location);

@@ -8,6 +8,8 @@ import com.inventory.domain.valueobject.Address;
 import com.grab.store.inventory.internal.command.CreateLocationCommand;
 import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,7 +25,7 @@ public class CreateLocationCommandHandler implements CommandHandler<CreateLocati
     @InventoryTransactional
     public LocationResult handle(CreateLocationCommand command) {
         if (locationRepository.existsByCode(command.code())) {
-            throw new IllegalArgumentException("Location already exists for code: " + command.code());
+            throw new InventoryServiceException(new InventoryServiceError.LocationAlreadyExists(command.code()));
         }
 
         Location location = new Location(

@@ -7,4 +7,8 @@ public abstract class DomainException extends RuntimeException {
         super(defaultMessage);
         this.messageSource = messageSource;
     }
+
+    public MessageSource getMessageSource() {
+        return messageSource;
+    }
 }

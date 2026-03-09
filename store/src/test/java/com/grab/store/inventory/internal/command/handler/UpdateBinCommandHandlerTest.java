@@ -10,6 +10,7 @@ import com.inventory.domain.enums.ZoneType;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.valueobject.Address;
 import com.grab.store.inventory.internal.command.LocationResult;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.command.UpdateBinCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,7 +84,7 @@ class UpdateBinCommandHandlerTest {
         );
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Bin already exists for code");
 
         verify(locationRepository, never()).save(any(Location.class));

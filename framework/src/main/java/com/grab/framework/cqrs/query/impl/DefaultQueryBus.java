@@ -3,6 +3,8 @@ package com.grab.framework.cqrs.query.impl;
 import com.grab.framework.cqrs.query.Query;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.exception.FrameworkError;
+import com.grab.framework.exception.FrameworkException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +35,10 @@ public class DefaultQueryBus implements QueryBus {
                 (QueryHandler<Query<R>, R>) handlers.get(query.getClass());
 
         if (handler == null) {
-            throw new IllegalArgumentException(
-                    "No handler registered for query: " + query.getClass().getName());
+            throw new FrameworkException(
+                    new FrameworkError.CqrsHandlerMissing("query", query.getClass().getName()),
+                    "No handler registered for query: " + query.getClass().getName()
+            );
         }
 
 //        log.debug("Dispatching query: {} to handler: {}",

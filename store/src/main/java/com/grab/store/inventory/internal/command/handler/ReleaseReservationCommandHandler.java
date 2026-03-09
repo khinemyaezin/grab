@@ -11,6 +11,8 @@ import com.inventory.domain.repository.StockMovementRepository;
 import com.grab.store.inventory.internal.command.InventoryReservationResult;
 import com.grab.store.inventory.internal.command.ReleaseReservationCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -27,13 +29,13 @@ public class ReleaseReservationCommandHandler implements CommandHandler<ReleaseR
     @InventoryTransactional
     public InventoryReservationResult handle(ReleaseReservationCommand command) {
         InventoryItem item = inventoryRepository.findById(command.inventoryItemId())
-                .orElseThrow(() -> new IllegalArgumentException("Inventory not found: " + command.inventoryItemId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.InventoryNotFound(command.inventoryItemId().getValue())));
 
         InventoryReservation reservation = inventoryReservationRepository.findById(command.reservationId())
-                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + command.reservationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.ReservationNotFound(command.reservationId().getValue())));
 
         if (!item.getId().equals(reservation.getInventoryItemId())) {
-            throw new IllegalArgumentException("Reservation does not belong to inventory item: " + command.inventoryItemId().getValue());
+            throw new InventoryServiceException(new InventoryServiceError.ReservationInventoryMismatch(command.reservationId().getValue(), command.inventoryItemId().getValue()));
         }
 
         if (!reservation.isActive()) {
