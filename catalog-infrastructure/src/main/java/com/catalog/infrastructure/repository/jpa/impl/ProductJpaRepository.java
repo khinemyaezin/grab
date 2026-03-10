@@ -6,6 +6,7 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.support.PersistenceExecutor;
 import com.catalog.infrastructure.mapper.jpa.ProductJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.ProductJpaRepo;
 import lombok.AllArgsConstructor;
@@ -17,66 +18,59 @@ public class ProductJpaRepository implements ProductRepository {
     private final ProductJpaAssembler productJpaAssembler;
     private final ProductJpaRepo productJpaRepo;
     private final DomainEventProducer domainEventProducer;
+    private final PersistenceExecutor executor;
 
     @Override
     public void save(Product product) {
-        Optional<ProductEntity> productEntity = productJpaRepo.findByUuid(product.getId().getValue());
-        ProductEntity entity;
+        executor.command("Product", () -> {
+            Optional<ProductEntity> productEntity = productJpaRepo.findByUuid(product.getId().getValue());
+            ProductEntity entity;
 
-        if(productEntity.isPresent()) {
-            entity = productJpaAssembler.buildFullEntityGraph(product, productEntity.get());
-        } else {
-            entity = productJpaAssembler.buildFullEntityGraph(product, null);
-        }
+            if (productEntity.isPresent()) {
+                entity = productJpaAssembler.buildFullEntityGraph(product, productEntity.get());
+            } else {
+                entity = productJpaAssembler.buildFullEntityGraph(product, null);
+            }
 
-        productJpaRepo.save(entity);
+            productJpaRepo.save(entity);
 
-        List<Event> events = product.pullEvents();
-        domainEventProducer.produce(product.getClass().getSimpleName(), product.getId().getValue(), events);
+            List<Event> events = product.pullEvents();
+            domainEventProducer.produce(product.getClass().getSimpleName(), product.getId().getValue(), events);
+        });
     }
 
     @Override
     public void delete(Product product) {
-        Optional<ProductEntity> productEntity = this.productJpaRepo.findByUuid(product.getId().getValue());
+        executor.command("Product", () -> {
+            Optional<ProductEntity> productEntity = productJpaRepo.findByUuid(product.getId().getValue());
 
-        if(productEntity.isPresent()) {
-            productJpaRepo.delete(productEntity.get());
-            List<Event> events = product.pullEvents();
-            domainEventProducer.produce(product.getClass().getSimpleName(), product.getId().getValue(), events);
-        }
+            if (productEntity.isPresent()) {
+                productJpaRepo.delete(productEntity.get());
+                List<Event> events = product.pullEvents();
+                domainEventProducer.produce(product.getClass().getSimpleName(), product.getId().getValue(), events);
+            }
+        });
     }
 
     @Override
     public Optional<Product> find(Id productId) {
-        Optional<ProductEntity> productEntity = this.productJpaRepo.findByUuid(productId.getValue());
-        if(productEntity.isEmpty()) {
-            return Optional.empty();
-        }
-
-        ProductEntity entity = productEntity.get();
-        Product product = productJpaAssembler.toFullDomainGraph(entity);
-        return Optional.of(product);
+        return executor.query("Product", () -> productJpaRepo.findByUuid(productId.getValue())
+                .map(productJpaAssembler::toFullDomainGraph));
     }
 
     @Override
     public Optional<Product> findBySlug(String slug) {
-        Optional<ProductEntity> productEntity = this.productJpaRepo.findBySlug(slug);
-        if(productEntity.isEmpty()) {
-            return Optional.empty();
-        }
-
-        ProductEntity entity = productEntity.get();
-        Product product = productJpaAssembler.toFullDomainGraph(entity);
-        return Optional.of(product);
+        return executor.query("Product", () -> productJpaRepo.findBySlug(slug)
+                .map(productJpaAssembler::toFullDomainGraph));
     }
 
     @Override
     public boolean isSlugTaken(String slug, String excludeProductUuid) {
-        return productJpaRepo.isSlugTaken(slug, excludeProductUuid);
+        return executor.query("Product", () -> productJpaRepo.isSlugTaken(slug, excludeProductUuid));
     }
 
     @Override
     public Optional<Integer> findMaxSlugSuffix(String baseSlug) {
-        return productJpaRepo.findMaxSlugSuffix(baseSlug);
+        return executor.query("Product", () -> productJpaRepo.findMaxSlugSuffix(baseSlug));
     }
 }

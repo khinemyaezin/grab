@@ -3,10 +3,12 @@ package com.grab.store.catalog.internal.command.handler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.repository.ProductRepository;
+import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,6 +83,11 @@ class UpdateProductCommandHandlerTest {
         UpdateProductCommand command = new UpdateProductCommand(productId, "Name", new CommonId(CATEGORY_ID), null, null);
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> {
+                    CatalogServiceException typed = (CatalogServiceException) exception;
+                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.product.not_found");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.NOT_FOUND);
+                });
     }
 }

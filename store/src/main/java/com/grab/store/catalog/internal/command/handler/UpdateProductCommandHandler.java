@@ -4,6 +4,8 @@ import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
@@ -28,7 +30,9 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
 
         Optional<Product> hasProduct = productRepository.find(command.productId());
         if (hasProduct.isEmpty()) {
-            throw new IllegalArgumentException("Product not found: " + command.productId());
+            throw new CatalogServiceException(
+                    new CatalogServiceError.ProductNotFound(command.productId().getValue())
+            );
         }
 
         Product product = hasProduct.get();

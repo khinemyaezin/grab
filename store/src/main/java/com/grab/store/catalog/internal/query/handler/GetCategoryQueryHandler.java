@@ -5,6 +5,8 @@ import com.catalog.domain.repository.CategoryRepository;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.CategoryResult;
 import com.grab.store.catalog.internal.query.GetCategoryQuery;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +27,9 @@ public class GetCategoryQueryHandler implements QueryHandler<GetCategoryQuery, C
         log.debug("Handling GetCategoryQuery for categoryId: {}", query.categoryId());
 
         Category category = categoryRepository.find(idGenerator.generateId(query.categoryId()))
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + query.categoryId()));
+                .orElseThrow(() -> new CatalogServiceException(
+                        new CatalogServiceError.CategoryNotFound(query.categoryId())
+                ));
 
         return new CategoryResult(
                 category.getId().getValue(),

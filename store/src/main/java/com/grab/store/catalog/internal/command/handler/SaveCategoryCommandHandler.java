@@ -8,6 +8,8 @@ import com.grab.store.catalog.internal.command.SaveCategoryCommand;
 import com.grab.store.catalog.internal.command.SaveCategoryResult;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -46,7 +48,9 @@ public class SaveCategoryCommandHandler implements CommandHandler<SaveCategoryCo
         }
 
         Category parent = categoryRepository.find(command.parentId())
-                .orElseThrow(() -> new IllegalArgumentException("Parent category not found: " + command.parentId().getValue()));
+                .orElseThrow(() -> new CatalogServiceException(
+                        new CatalogServiceError.ParentCategoryNotFound(command.parentId().getValue())
+                ));
 
         return Category.createChild(categoryId, command.name(), parent);
     }

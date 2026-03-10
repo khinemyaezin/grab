@@ -1,6 +1,8 @@
 package com.grab.store.catalog.internal.util;
 
 import com.catalog.domain.repository.ProductRepository;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +18,7 @@ public class UniqueSlugResolver {
     public String resolve(String requestedSlug, String name, String currentProductId) {
         String baseSlug = normalize(requestedSlug == null || requestedSlug.isBlank() ? name : requestedSlug);
         if (baseSlug == null || baseSlug.isBlank()) {
-            throw new IllegalArgumentException("Slug cannot be blank");
+            throw new CatalogServiceException(new CatalogServiceError.SlugBlank());
         }
 
         if (!productRepository.isSlugTaken(baseSlug, currentProductId)) {

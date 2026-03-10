@@ -5,6 +5,8 @@ import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductQuery;
 import com.grab.store.catalog.internal.query.GetProductResult;
 import com.catalog.domain.aggregate.Product;
@@ -32,7 +34,9 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         log.debug("Handling GetProductQuery for productId: {}", query.productId());
 
         Product product = productRepository.find(idGenerator.generateId(query.productId()))
-                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + query.productId()));
+                .orElseThrow(() -> new CatalogServiceException(
+                        new CatalogServiceError.ProductNotFound(query.productId())
+                ));
 
         return mapToResult(product);
     }
