@@ -7,6 +7,7 @@ import com.inventory.domain.enums.LocationType;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.valueobject.Address;
 import com.grab.store.inventory.internal.command.LocationResult;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.command.UpdateLocationCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,7 +87,7 @@ class UpdateLocationCommandHandlerTest {
         );
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Address country is required");
     }
 

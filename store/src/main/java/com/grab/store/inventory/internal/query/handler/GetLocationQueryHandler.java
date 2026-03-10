@@ -4,6 +4,8 @@ import com.grab.framework.cqrs.query.QueryHandler;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.query.GetLocationQuery;
 import com.grab.store.inventory.internal.query.GetLocationResult;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
@@ -20,7 +22,7 @@ public class GetLocationQueryHandler implements QueryHandler<GetLocationQuery, G
     @InventoryReadTransactional
     public GetLocationResult handle(GetLocationQuery query) {
         Location location = locationRepository.findById(query.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + query.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(query.locationId().getValue())));
         return LocationResultMapper.toQueryResult(location);
     }
 

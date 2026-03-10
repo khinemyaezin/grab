@@ -3,15 +3,15 @@ package com.grab.store.catalog.internal.command.handler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
-import com.catalog.domain.exception.InvalidProductStatusTransitionException;
-import com.catalog.domain.exception.ProductActivationRequiresActiveVariantsException;
+import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.UpdateProductStatusCommand;
 import com.grab.store.catalog.internal.command.UpdateProductStatusResult;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,7 +76,13 @@ class UpdateProductStatusCommandHandlerTest {
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(ProductActivationRequiresActiveVariantsException.class);
+                .isInstanceOf(CatalogDomainValidationException.class)
+                .satisfies(exception -> {
+                    CatalogDomainValidationException typed = (CatalogDomainValidationException) exception;
+                    assertThat(typed.getMessageSource().code())
+                            .isEqualTo("cat.domain.product_activation_requires_active_variants");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
+                });
     }
 
     @Test
@@ -88,7 +94,13 @@ class UpdateProductStatusCommandHandlerTest {
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ARCHIVED");
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(InvalidProductStatusTransitionException.class);
+                .isInstanceOf(CatalogDomainValidationException.class)
+                .satisfies(exception -> {
+                    CatalogDomainValidationException typed = (CatalogDomainValidationException) exception;
+                    assertThat(typed.getMessageSource().code())
+                            .isEqualTo("cat.domain.invalid_product_status_transition");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
+                });
     }
 
     @Test
@@ -99,7 +111,12 @@ class UpdateProductStatusCommandHandlerTest {
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> {
+                    CatalogServiceException typed = (CatalogServiceException) exception;
+                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.product.not_found");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.NOT_FOUND);
+                });
     }
 
     private void addActiveVariant(Product product, String variantIdValue) {

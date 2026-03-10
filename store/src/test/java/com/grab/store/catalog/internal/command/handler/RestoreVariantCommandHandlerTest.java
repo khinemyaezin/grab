@@ -5,10 +5,12 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.RestoreVariantCommand;
 import com.grab.store.catalog.internal.command.RestoreVariantResult;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -83,7 +85,12 @@ class RestoreVariantCommandHandlerTest {
         RestoreVariantCommand command = new RestoreVariantCommand(productId, variantId);
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> {
+                    CatalogServiceException typed = (CatalogServiceException) exception;
+                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.product.not_found");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.NOT_FOUND);
+                });
     }
 
     @Test
@@ -102,6 +109,11 @@ class RestoreVariantCommandHandlerTest {
         RestoreVariantCommand command = new RestoreVariantCommand(productId, variantId);
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> {
+                    CatalogServiceException typed = (CatalogServiceException) exception;
+                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.variant.not_found_or_not_deleted");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
+                });
     }
 }

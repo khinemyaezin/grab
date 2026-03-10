@@ -11,6 +11,8 @@ import com.inventory.domain.repository.StockMovementRepository;
 import com.grab.store.inventory.internal.command.InventoryReservationResult;
 import com.grab.store.inventory.internal.command.ReserveStockCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -35,7 +37,7 @@ public class ReserveStockCommandHandler implements CommandHandler<ReserveStockCo
         }
 
         InventoryItem item = inventoryRepository.findById(command.inventoryItemId())
-                .orElseThrow(() -> new IllegalArgumentException("Inventory not found: " + command.inventoryItemId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.InventoryNotFound(command.inventoryItemId().getValue())));
 
         StockMovement movement = item.reserveStock(
                 command.quantity(),

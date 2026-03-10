@@ -8,6 +8,8 @@ import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.command.AddZoneCommand;
 import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,10 +25,10 @@ public class AddZoneCommandHandler implements CommandHandler<AddZoneCommand, Loc
     @InventoryTransactional
     public LocationResult handle(AddZoneCommand command) {
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
 
         if (location.findZoneByCode(command.code()).isPresent()) {
-            throw new IllegalArgumentException("Zone already exists for code: " + command.code());
+            throw new InventoryServiceException(new InventoryServiceError.ZoneAlreadyExists(command.code()));
         }
 
         Zone zone = new Zone(idGenerator.generateId(), command.code(), command.name(), command.type());
@@ -36,7 +38,7 @@ public class AddZoneCommandHandler implements CommandHandler<AddZoneCommand, Loc
 
         boolean added = location.addZone(zone);
         if (!added) {
-            throw new IllegalArgumentException("Unable to add zone: " + command.code());
+            throw new InventoryServiceException(new InventoryServiceError.UnableToAddZone(command.code()));
         }
 
         Location saved = locationRepository.save(location);

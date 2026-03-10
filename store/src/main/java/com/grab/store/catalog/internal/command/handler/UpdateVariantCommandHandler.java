@@ -4,6 +4,8 @@ import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateVariantCommand;
 import com.grab.store.catalog.internal.command.UpdateVariantResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
@@ -28,16 +30,22 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
 
         Optional<Product> hasProduct = productRepository.find(command.productId());
         if (hasProduct.isEmpty()) {
-            throw new IllegalArgumentException("Product not found: " + command.productId());
+            throw new CatalogServiceException(
+                    new CatalogServiceError.ProductNotFound(command.productId().getValue())
+            );
         }
 
         Product product = hasProduct.get();
 
         ProductVariant existing = product.findVariantById(command.variantId())
-                .orElseThrow(() -> new IllegalArgumentException("Variant not found: " + command.variantId()));
+                .orElseThrow(() -> new CatalogServiceException(
+                        new CatalogServiceError.VariantNotFound(command.variantId().getValue())
+                ));
 
         if (existing.isDeleted()) {
-            throw new IllegalStateException("Cannot update deleted variant: " + command.variantId());
+            throw new CatalogServiceException(
+                    new CatalogServiceError.VariantDeletedCannotUpdate(command.variantId().getValue())
+            );
         }
 
         ProductVariant updated = new ProductVariant(
@@ -49,7 +57,10 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
 
         boolean ok = product.updateVariant(existing, updated);
         if (!ok) {
-            throw new IllegalStateException("Failed to update variant: uniqueness or index error");
+            throw new CatalogServiceException(
+                    new CatalogServiceError.VariantUpdateFailed(command.variantId().getValue()),
+                    "Failed to update variant: uniqueness or index error"
+            );
         }
 
         productRepository.save(product);

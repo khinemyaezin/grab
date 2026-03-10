@@ -1,5 +1,8 @@
 package com.inventory.domain.valueobject;
 
+import com.inventory.domain.exception.InventoryDomainError;
+import com.inventory.domain.exception.InventoryDomainValidationException;
+
 public record ReorderConfig(
         int safetyStock,
         int reorderPoint,
@@ -8,12 +11,35 @@ public record ReorderConfig(
 ) {
 
     public ReorderConfig {
-        if (safetyStock < 0) throw new IllegalArgumentException("safetyStock cannot be negative");
-        if (reorderPoint < 0) throw new IllegalArgumentException("reorderPoint cannot be negative");
-        if (reorderQuantity < 0) throw new IllegalArgumentException("reorderQuantity cannot be negative");
-        if (maxStock != null && maxStock < 0) throw new IllegalArgumentException("maxStock cannot be negative");
+        if (safetyStock < 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InvalidSafetyStock(safetyStock),
+                    "safetyStock cannot be negative"
+            );
+        }
+        if (reorderPoint < 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InvalidReorderPoint(reorderPoint),
+                    "reorderPoint cannot be negative"
+            );
+        }
+        if (reorderQuantity < 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InvalidReorderQuantity(reorderQuantity),
+                    "reorderQuantity cannot be negative"
+            );
+        }
+        if (maxStock != null && maxStock < 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InvalidMaxStock(maxStock),
+                    "maxStock cannot be negative"
+            );
+        }
         if (reorderPoint < safetyStock) {
-            throw new IllegalArgumentException("reorderPoint should be >= safetyStock");
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InvalidReorderConfig(safetyStock, reorderPoint),
+                    "reorderPoint should be >= safetyStock"
+            );
         }
     }
 

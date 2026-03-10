@@ -4,11 +4,12 @@ import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.CategoryChildrenResult;
 import com.grab.store.catalog.internal.query.CategoryResult;
 import com.grab.store.catalog.internal.query.GetCategoryChildrenQuery;
 import com.nestedset.app.NestedSetNodeRepository;
-import com.nestedset.app.service.TreeBuilder;
 import com.nestedset.library.model.NodeComponent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,9 @@ public class GetCategoryChildrenQueryHandler implements QueryHandler<GetCategory
         log.debug("Handling GetCategoryChildrenQuery for categoryId: {}", query.categoryId());
 
         CategoryEntity category = categoryJpaRepo.findByUuid(query.categoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + query.categoryId()));
+                .orElseThrow(() -> new CatalogServiceException(
+                        new CatalogServiceError.CategoryNotFound(query.categoryId())
+                ));
 
         NodeComponent<CategoryEntity> tree = nodeRepository.getImmediateChildren(category);
         List<CategoryResult> children = mapChildren(safeChildren(tree), category.getUuid());

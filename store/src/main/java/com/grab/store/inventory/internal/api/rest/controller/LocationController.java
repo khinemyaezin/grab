@@ -129,8 +129,8 @@ public class LocationController {
 
     @GetMapping
     public ResponseEntity<EntityModel<LocationsResponse>> listLocations(
-            @RequestParam(required = false) Boolean active,
-            @RequestParam(required = false) LocationType type
+            @RequestParam(value = "active", required = false) Boolean active,
+            @RequestParam(value = "type", required = false) LocationType type
     ) {
         return ResponseEntity.ok(locationFacadeService.listLocations(active, type));
     }

@@ -12,6 +12,7 @@ import com.inventory.domain.valueobject.Address;
 import com.inventory.domain.valueobject.InventoryQuantity;
 import com.inventory.domain.valueobject.ReorderConfig;
 import com.grab.store.inventory.internal.command.DeactivateLocationCommand;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.command.LocationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,7 @@ class DeactivateLocationCommandHandlerTest {
         when(inventoryRepository.findByLocation(id("loc-1"))).thenReturn(List.of(withStock));
 
         assertThatThrownBy(() -> handler.handle(new DeactivateLocationCommand(id("loc-1"), id("actor-1"))))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Cannot deactivate location with dependent inventory");
 
         verify(locationRepository, never()).save(any(Location.class));

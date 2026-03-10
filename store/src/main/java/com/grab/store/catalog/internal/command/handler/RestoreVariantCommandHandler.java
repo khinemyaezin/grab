@@ -4,6 +4,8 @@ import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.RestoreVariantCommand;
 import com.grab.store.catalog.internal.command.RestoreVariantResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,14 +28,18 @@ public class RestoreVariantCommandHandler implements CommandHandler<RestoreVaria
 
         Optional<Product> hasProduct = productRepository.find(command.productId());
         if (hasProduct.isEmpty()) {
-            throw new IllegalArgumentException("Product not found: " + command.productId());
+            throw new CatalogServiceException(
+                    new CatalogServiceError.ProductNotFound(command.productId().getValue())
+            );
         }
 
         Product product = hasProduct.get();
 
         boolean restored = product.restoreVariant(command.variantId());
         if (!restored) {
-            throw new IllegalArgumentException("Variant not found or not deleted: " + command.variantId());
+            throw new CatalogServiceException(
+                    new CatalogServiceError.VariantNotFoundOrNotDeleted(command.variantId().getValue())
+            );
         }
 
         productRepository.save(product);

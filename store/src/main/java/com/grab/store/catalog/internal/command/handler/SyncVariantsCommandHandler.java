@@ -14,6 +14,8 @@ import com.grab.store.catalog.internal.command.SyncVariantsCommand;
 import com.grab.store.catalog.internal.command.SyncVariantsResult;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -45,7 +47,9 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
         log.debug("Handling SyncVariantsCommand for productId={}", command.productId());
 
         Product product = productRepository.find(command.productId())
-                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + command.productId()));
+                .orElseThrow(() -> new CatalogServiceException(
+                        new CatalogServiceError.ProductNotFound(command.productId().getValue())
+                ));
 
         List<VariantType> desiredTypes = mapToDomainVariantTypes(command.variantTypes());
         List<VariantType> filteredTypes = variantDeletionStrategy.filterVariantTypes(product, desiredTypes);
@@ -137,7 +141,9 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
             if (StringUtils.hasLength(key)) {
                 SyncVariantsCommand.Variant previous = byCombinationKey.putIfAbsent(key, variant);
                 if (previous != null) {
-                    throw new IllegalArgumentException("Duplicate request variant combination key: " + key);
+                    throw new CatalogServiceException(
+                            new CatalogServiceError.DuplicateVariantCombinationKey(key)
+                    );
                 }
             }
         }
@@ -158,7 +164,9 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
             SyncVariantsCommand.Variant requestVariant = requestLookup.get(combinationKey);
 
             if(requestVariant == null){
-                throw new IllegalArgumentException("Variation combination not found");
+                throw new CatalogServiceException(
+                        new CatalogServiceError.VariationCombinationNotFound()
+                );
             }
 
             targetVariants.add(new ProductVariant(
@@ -194,12 +202,16 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
             if (existing.isPresent()) {
                 boolean updated = product.updateVariant(existing.get(), targetVariant);
                 if (!updated) {
-                    throw new IllegalStateException("Failed to update variant: " + targetVariant.getId().getValue());
+                    throw new CatalogServiceException(
+                            new CatalogServiceError.VariantUpdateFailed(targetVariant.getId().getValue())
+                    );
                 }
             } else {
                 boolean added = product.addVariant(targetVariant);
                 if (!added) {
-                    throw new IllegalStateException("Failed to add variant: " + targetVariant.getId().getValue());
+                    throw new CatalogServiceException(
+                            new CatalogServiceError.VariantAddFailed(targetVariant.getId().getValue())
+                    );
                 }
             }
         }

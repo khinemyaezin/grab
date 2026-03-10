@@ -4,6 +4,8 @@ import com.grab.framework.cqrs.query.QueryHandler;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.query.GetLocationByCodeQuery;
 import com.grab.store.inventory.internal.query.GetLocationResult;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
@@ -20,7 +22,7 @@ public class GetLocationByCodeQueryHandler implements QueryHandler<GetLocationBy
     @InventoryReadTransactional
     public GetLocationResult handle(GetLocationByCodeQuery query) {
         Location location = locationRepository.findByCode(query.code())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found for code: " + query.code()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFoundByCode(query.code())));
         return LocationResultMapper.toQueryResult(location);
     }
 

@@ -16,6 +16,7 @@ import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.catalog.infrastructure.factory.CategoryComponentFactory;
@@ -27,6 +28,7 @@ import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.repository.jpa.impl.CategoryJpaRepository;
 import com.catalog.infrastructure.repository.jpa.impl.ProductQueryJpqlRepository;
 import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
+import com.catalog.infrastructure.repository.jpa.support.CatalogPersistenceExecutor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,6 +70,11 @@ public class CatalogInfraConfig {
         );
     }
 
+    @Bean("catalogPersistenceExecutor")
+    public PersistenceExecutor catalogPersistenceExecutor() {
+        return new CatalogPersistenceExecutor();
+    }
+
     @Bean
     public CatalogOutboxEventProcessor catalogOutboxEventProcessor(
             @Qualifier("catalogOutboxStore") OutboxStore<CatalogOutboxEvent, Long> outboxStore,
@@ -106,20 +113,23 @@ public class CatalogInfraConfig {
     public ProductRepository productRepository(
             ProductJpaAssembler jpaAssembler,
             ProductJpaRepo productJpaRepo,
-            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer) {
+            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new ProductJpaRepository(
-                jpaAssembler, productJpaRepo, domainEventProducer
+                jpaAssembler, productJpaRepo, domainEventProducer, executor
         );
     }
 
     @Bean
     public ProductQueryRepository productQueryRepository(
             JpaContext context,
-            ProductSummaryMapper productSummaryMapper
+            ProductSummaryMapper productSummaryMapper,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new ProductQueryJpqlRepository(
                 context.getEntityManagerByManagedType(ProductEntity.class),
-                productSummaryMapper
+                productSummaryMapper,
+                executor
         );
     }
 
@@ -154,11 +164,13 @@ public class CatalogInfraConfig {
             NestedSetNodeRepository<CategoryEntity,Long> nodeRepository,
             CategoryJpaRepo categoryJpaRepository,
             CategoryJpaAssembler categoryJpaAssembler,
-            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer) {
+            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new CategoryJpaRepository(
                 nodeRepository,
                 categoryJpaRepository,
                 categoryJpaAssembler,
-                domainEventProducer);
+                domainEventProducer,
+                executor);
     }
 }

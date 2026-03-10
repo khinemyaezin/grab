@@ -6,12 +6,15 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
+import com.catalog.infrastructure.exception.CatalogInfraException;
 import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.mapper.jpa.ProductJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
+import com.catalog.infrastructure.repository.jpa.support.CatalogPersistenceExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,6 +28,7 @@ class ProductJpaRepositoryTest {
     private ProductJpaAssembler productJpaAssembler;
     private ProductJpaRepo productJpaRepo;
     private DomainEventProducer domainEventProducer;
+    private CatalogPersistenceExecutor executor;
     private ProductJpaRepository repository;
 
     @BeforeEach
@@ -32,7 +36,8 @@ class ProductJpaRepositoryTest {
         productJpaAssembler = mock(ProductJpaAssembler.class);
         productJpaRepo = mock(ProductJpaRepo.class);
         domainEventProducer = mock(DomainEventProducer.class);
-        repository = new ProductJpaRepository(productJpaAssembler, productJpaRepo, domainEventProducer);
+        executor = new CatalogPersistenceExecutor();
+        repository = new ProductJpaRepository(productJpaAssembler, productJpaRepo, domainEventProducer, executor);
     }
 
     @Test
@@ -109,6 +114,20 @@ class ProductJpaRepositoryTest {
         inOrder.verify(productJpaRepo).save(entity);
         verify(domainEventProducer).produce(anyString(), anyString(), anyList());
         assertTrue(product.getEvents().isEmpty());
+    }
+
+    @Test
+    void save_whenConstraintViolationOccurs_shouldThrowTypedInfrastructureConflict() {
+        Product product = createProduct();
+
+        when(productJpaRepo.findByUuid(product.getId().getValue())).thenReturn(Optional.empty());
+        when(productJpaAssembler.buildFullEntityGraph(eq(product), isNull())).thenReturn(new ProductEntity());
+        when(productJpaRepo.save(any(ProductEntity.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value"));
+
+        CatalogInfraException exception = assertThrows(CatalogInfraException.class, () -> repository.save(product));
+        assertEquals("cat.infra.persistence.conflict", exception.getMessageSource().code());
+        assertEquals("Product", exception.getMessageSource().args().get("resource"));
     }
 
     @Test

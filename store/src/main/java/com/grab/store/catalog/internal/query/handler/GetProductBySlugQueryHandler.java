@@ -5,6 +5,8 @@ import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
 import com.catalog.domain.aggregate.Product;
@@ -31,11 +33,14 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
         log.debug("Handling GetProductBySlugQuery for slug: {}", query.slug());
 
         Product product = productRepository.findBySlug(query.slug())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Product not found for slug: " + query.slug()));
+                .orElseThrow(() -> new CatalogServiceException(
+                        new CatalogServiceError.ProductNotFoundBySlug(query.slug())
+                ));
 
         if (!product.isVisibleOnStorefront()) {
-            throw new IllegalArgumentException("Product not found for slug: " + query.slug());
+            throw new CatalogServiceException(
+                    new CatalogServiceError.ProductNotFoundBySlug(query.slug())
+            );
         }
 
         return mapToSlugResult(product);

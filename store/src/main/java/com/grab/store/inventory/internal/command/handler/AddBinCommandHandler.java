@@ -9,6 +9,8 @@ import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.command.AddBinCommand;
 import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,13 +26,13 @@ public class AddBinCommandHandler implements CommandHandler<AddBinCommand, Locat
     @InventoryTransactional
     public LocationResult handle(AddBinCommand command) {
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
 
         Zone zone = location.findZoneById(command.zoneId())
-                .orElseThrow(() -> new IllegalArgumentException("Zone not found: " + command.zoneId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.ZoneNotFound(command.zoneId().getValue())));
 
         if (zone.findBinByCode(command.code()) != null) {
-            throw new IllegalArgumentException("Bin already exists for code: " + command.code());
+            throw new InventoryServiceException(new InventoryServiceError.BinAlreadyExists(command.code()));
         }
 
         Bin bin = new Bin(
@@ -43,7 +45,7 @@ public class AddBinCommandHandler implements CommandHandler<AddBinCommand, Locat
 
         boolean added = zone.addBin(bin);
         if (!added) {
-            throw new IllegalArgumentException("Unable to add bin: " + command.code());
+            throw new InventoryServiceException(new InventoryServiceError.UnableToAddBin(command.code()));
         }
 
         Location saved = locationRepository.save(location);

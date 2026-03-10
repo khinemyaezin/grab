@@ -13,6 +13,8 @@ import com.inventory.domain.valueobject.ReorderConfig;
 import com.grab.store.inventory.internal.command.CreateInventoryCommand;
 import com.grab.store.inventory.internal.command.InventoryItemResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -29,13 +31,13 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     @InventoryTransactional
     public InventoryItemResult handle(CreateInventoryCommand command) {
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new IllegalArgumentException("Location not found: " + command.locationId().getValue()));
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
         if (!location.isActive()) {
-            throw new IllegalArgumentException("Location is not active: " + command.locationId().getValue());
+            throw new InventoryServiceException(new InventoryServiceError.LocationInactive(command.locationId().getValue()));
         }
 
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
-            throw new IllegalArgumentException("Inventory already exists for sku/location");
+            throw new InventoryServiceException(new InventoryServiceError.InventoryAlreadyExistsForSkuLocation(command.sku(), command.locationId().getValue()));
         }
 
         InventoryItem item = InventoryItem.create(

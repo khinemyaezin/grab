@@ -26,6 +26,8 @@ import com.grab.store.catalog.internal.query.ProductCombinationQuery;
 import com.grab.store.catalog.internal.query.ProductCombinationResult;
 import com.grab.store.catalog.internal.query.ProductSummaryQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
+import com.grab.store.catalog.internal.exception.CatalogServiceError;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;
@@ -62,7 +64,9 @@ public class ProductQueryService {
         GetProductQuery query = new GetProductQuery(productId);
         GetProductResult result = queryBus.dispatch(query);
         if (!"ACTIVE".equalsIgnoreCase(result.status())) {
-            throw new IllegalArgumentException("Product not found: " + productId);
+            throw new CatalogServiceException(
+                    new CatalogServiceError.ProductNotFound(productId)
+            );
         }
 
         GetProductResult storefrontResult = new GetProductResult(
