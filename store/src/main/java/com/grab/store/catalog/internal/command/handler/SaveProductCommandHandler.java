@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.framework.id.Id;
 import com.grab.store.catalog.internal.command.SaveProductCommand;
 import com.grab.store.catalog.internal.command.SaveProductResult;
@@ -12,15 +15,15 @@ import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class SaveProductCommandHandler implements CommandHandler<SaveProductCommand, SaveProductResult> {
+
+    private static final Logger log = Loggers.getLogger(SaveProductCommandHandler.class);
     private final ProductRepository productRepository;
     private final UniqueSlugResolver uniqueSlugResolver;
 

@@ -1,9 +1,6 @@
 version: '3.8'
 
 services:
-  # ===========================================
-  # Spring Boot Application
-  # ===========================================
   app:
     build:
       context: .
@@ -27,9 +24,6 @@ services:
       - grab-network
     restart: unless-stopped
 
-  # ===========================================
-  # PostgreSQL Database
-  # ===========================================
   postgres:
     image: postgres:16-alpine
     container_name: grab-postgres
@@ -50,9 +44,6 @@ services:
       - grab-network
     restart: unless-stopped
 
-  # ===========================================
-  # pgAdmin (Database Management UI)
-  # ===========================================
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: grab-pgadmin

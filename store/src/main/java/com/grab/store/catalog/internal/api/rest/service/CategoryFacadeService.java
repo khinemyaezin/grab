@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryChildrenModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryModelAssembler;
@@ -28,14 +31,14 @@ import com.grab.store.catalog.internal.query.GetCategoryParentQuery;
 import com.grab.store.catalog.internal.query.GetCategoryQuery;
 import com.grab.store.catalog.internal.query.GetCategoryTreeQuery;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryFacadeService {
+
+    private static final Logger log = Loggers.getLogger(CategoryFacadeService.class);
 
     private final CommandBus commandBus;
     private final QueryBus queryBus;

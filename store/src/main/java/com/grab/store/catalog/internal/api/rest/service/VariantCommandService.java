@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.store.catalog.internal.api.rest.assembler.DeleteVariantModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.RestoreVariantModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.SyncVariantsModelAssembler;
@@ -24,14 +27,14 @@ import com.grab.store.catalog.internal.command.UpdateVariantCommand;
 import com.grab.store.catalog.internal.command.UpdateVariantResult;
 import com.grab.framework.cqrs.command.CommandBus;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class VariantCommandService {
+
+    private static final Logger log = Loggers.getLogger(VariantCommandService.class);
 
     private final CommandBus commandBus;
     private final UpdateVariantDtoMapper updateVariantDtoMapper;

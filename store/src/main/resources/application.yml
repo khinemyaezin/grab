@@ -8,14 +8,14 @@ catalog:
     url: ${CATALOG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/catalog}
     username: ${CATALOG_DATASOURCE_USERNAME:admin}
     password: ${CATALOG_DATASOURCE_PASSWORD:123}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: ${CATALOG_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
   jpa:
     hibernate:
       dialect: ${CATALOG_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
         auto: ${CATALOG_JPA_DDL_AUTO:update}
       show_sql: ${CATALOG_JPA_SHOW_SQL:true}
-      format_sql: true
+      format_sql: ${CATALOG_JPA_FORMAT_SQL:true }
   outbox:
     fixed-delay-ms: ${CATALOG_OUTBOX_FIXED_DELAY_MS:5000}
     cleanup-fixed-delay-ms: ${CATALOG_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
@@ -26,17 +26,17 @@ catalog:
 
 inventory:
   datasource:
-    url: ${INVENTORY_DATASOURCE_URL:${CATALOG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/inventory}}
-    username: ${INVENTORY_DATASOURCE_USERNAME:${CATALOG_DATASOURCE_USERNAME:admin}}
-    password: ${INVENTORY_DATASOURCE_PASSWORD:${CATALOG_DATASOURCE_PASSWORD:123}}
+    url: ${INVENTORY_DATASOURCE_URL:jdbc:postgresql://localhost:5432/inventory}
+    username: ${INVENTORY_DATASOURCE_USERNAME:admin}
+    password: ${INVENTORY_DATASOURCE_PASSWORD:123}
     driver-class-name: ${INVENTORY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
   jpa:
     hibernate:
-      dialect: ${INVENTORY_DATASOURCE_DIALECT:${CATALOG_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}}
+      dialect: ${INVENTORY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
-        auto: ${INVENTORY_JPA_DDL_AUTO:${CATALOG_JPA_DDL_AUTO:update}}
-      show_sql: ${INVENTORY_JPA_SHOW_SQL:${CATALOG_JPA_SHOW_SQL:true}}
-      format_sql: true
+        auto: ${INVENTORY_JPA_DDL_AUTO:update}
+      show_sql: ${INVENTORY_JPA_SHOW_SQL:true}
+      format_sql: ${INVENTORY_JPA_FORMAT_SQL:true }
   outbox:
     fixed-delay-ms: ${INVENTORY_OUTBOX_FIXED_DELAY_MS:5000}
     cleanup-fixed-delay-ms: ${INVENTORY_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
@@ -45,11 +45,13 @@ inventory:
     claim-timeout-ms: ${INVENTORY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${INVENTORY_OUTBOX_RETENTION_MS:604800000}
 
-logging:
-  level:
-    root: ${LOG_LEVEL_ROOT:INFO}
-    org.springframework.web: ${LOG_LEVEL_WEB:TRACE}
-
+logger:
+  backend: ${LOGGER_BACKEND:slf4j}
+  level: ${LOGGER_LEVEL:INFO}
+  fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
+  file:
+    path: ${LOGGER_FILE_PATH:logs}
+    name: ${LOGGER_FILE_NAME:store.log}
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -57,34 +59,3 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
----
-spring:
-  config:
-    activate:
-      on-profile: h2
-catalog:
-  datasource:
-    url: jdbc:h2:mem:catalog;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      dialect: org.hibernate.dialect.H2Dialect
-      hbm2ddl:
-        auto: update
-      show_sql: true
-      format_sql: true
-inventory:
-  datasource:
-    url: jdbc:h2:mem:inventory;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      dialect: org.hibernate.dialect.H2Dialect
-      hbm2ddl:
-        auto: update
-      show_sql: true
-      format_sql: true

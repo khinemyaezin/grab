@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.grab.framework.cqrs.query.QueryHandler;
@@ -11,16 +14,16 @@ import com.grab.store.catalog.internal.query.GetCategoryTreeQuery;
 import com.nestedset.app.NestedSetNodeRepository;
 import com.nestedset.library.model.NodeComponent;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Set;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GetCategoryTreeQueryHandler implements QueryHandler<GetCategoryTreeQuery, CategoryNodeResult> {
+
+    private static final Logger log = Loggers.getLogger(GetCategoryTreeQueryHandler.class);
 
     private final CategoryJpaRepo categoryJpaRepo;
     private final NestedSetNodeRepository<CategoryEntity, Long> nodeRepository;

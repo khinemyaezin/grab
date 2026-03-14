@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.DeleteVariantCommand;
 import com.grab.store.catalog.internal.command.DeleteVariantResult;
@@ -8,16 +11,16 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.Set;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DeleteVariantCommandHandler implements CommandHandler<DeleteVariantCommand, DeleteVariantResult> {
+
+    private static final Logger log = Loggers.getLogger(DeleteVariantCommandHandler.class);
 
     private final ProductRepository productRepository;
 
