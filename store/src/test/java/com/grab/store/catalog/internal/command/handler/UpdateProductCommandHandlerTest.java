@@ -2,6 +2,8 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductStatus;
+import com.catalog.domain.aggregate.Category;
+import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
@@ -31,6 +33,8 @@ class UpdateProductCommandHandlerTest {
     @Mock
     private ProductRepository productRepository;
     @Mock
+    private CategoryRepository categoryRepository;
+    @Mock
     private UniqueSlugResolver uniqueSlugResolver;
 
     @Captor
@@ -44,7 +48,7 @@ class UpdateProductCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new UpdateProductCommandHandler(productRepository, uniqueSlugResolver);
+        handler = new UpdateProductCommandHandler(productRepository, categoryRepository, uniqueSlugResolver);
     }
 
     @Test
@@ -55,6 +59,7 @@ class UpdateProductCommandHandlerTest {
 
         Product existing = Product.create(productId, "Old Name", categoryId);
         when(productRepository.find(productId)).thenReturn(Optional.of(existing));
+        when(categoryRepository.find(newCategoryId)).thenReturn(Optional.of(Category.createRoot(newCategoryId, "Category")));
         when(uniqueSlugResolver.resolve(null, "New Name", PRODUCT_ID)).thenReturn("new-name");
 
         UpdateProductCommand command = new UpdateProductCommand(productId, "New Name", newCategoryId, null, null);
@@ -87,6 +92,27 @@ class UpdateProductCommandHandlerTest {
                 .satisfies(exception -> {
                     CatalogServiceException typed = (CatalogServiceException) exception;
                     assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.product.not_found");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.NOT_FOUND);
+                });
+    }
+
+    @Test
+    void handle_categoryNotFound_throws() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        Id missingCategoryId = new CommonId(NEW_CATEGORY_ID);
+        Product existing = Product.create(productId, "Old Name", categoryId);
+
+        when(productRepository.find(productId)).thenReturn(Optional.of(existing));
+        when(categoryRepository.find(missingCategoryId)).thenReturn(Optional.empty());
+
+        UpdateProductCommand command = new UpdateProductCommand(productId, "New Name", missingCategoryId, null, null);
+
+        assertThatThrownBy(() -> handler.handle(command))
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> {
+                    CatalogServiceException typed = (CatalogServiceException) exception;
+                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.category.not_found");
                     assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.NOT_FOUND);
                 });
     }

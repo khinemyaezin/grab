@@ -1,7 +1,9 @@
 package com.catalog.infrastructure.repository.jpa.impl;
 
 import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
 import com.nestedset.app.NestedSetNodeRepository;
+import com.nestedset.library.model.NodeComponent;
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
@@ -16,6 +18,8 @@ import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import lombok.AllArgsConstructor;
 
 import java.util.Optional;
+import java.util.Set;
+import java.util.LinkedHashSet;
 
 @AllArgsConstructor
 public class CategoryJpaRepository implements CategoryRepository {
@@ -26,6 +30,7 @@ public class CategoryJpaRepository implements CategoryRepository {
     private final CategoryJpaAssembler categoryJpaAssembler;
     private final DomainEventProducer domainEventProducer;
     private final PersistenceExecutor executor;
+    private final IdGenerator idGenerator;
 
     @Override
     public void save(Category category) {
@@ -76,6 +81,37 @@ public class CategoryJpaRepository implements CategoryRepository {
                         return categoryJpaAssembler.buildFullDomainAggregate(categoryEntity, null);
                     }
                 }));
+    }
+
+    @Override
+    public Set<Id> findSubtreeIds(Id id) {
+        log.debug("Loading category subtree ids for id={}", id.getValue());
+        return executor.query("Category", () -> categoryJpaRepository.findByUuid(id.getValue())
+                .map(nodeRepository::getTree)
+                .map(this::collectSubtreeIds)
+                .orElseGet(Set::of));
+    }
+
+    private Set<Id> collectSubtreeIds(NodeComponent<CategoryEntity> node) {
+        Set<Id> categoryIds = new LinkedHashSet<>();
+        collectSubtreeIds(node, categoryIds);
+        return categoryIds;
+    }
+
+    private void collectSubtreeIds(NodeComponent<CategoryEntity> node, Set<Id> categoryIds) {
+        if (node == null || node.getNode() == null || node.getNode().getUuid() == null) {
+            return;
+        }
+
+        categoryIds.add(idGenerator.generateId(node.getNode().getUuid()));
+
+        try {
+            for (NodeComponent<CategoryEntity> child : node.getChildren()) {
+                collectSubtreeIds(child, categoryIds);
+            }
+        } catch (UnsupportedOperationException ignored) {
+            // Leaf nodes do not expose children.
+        }
     }
 
     @Override

@@ -1,9 +1,11 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.id.Id;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +50,27 @@ public class InMemoryProductRepositoryTest implements ProductRepository {
         return storage.values().stream()
                 .anyMatch(p -> slug.equals(p.getSlug())
                         && (excludeProductUuid == null || !p.getId().getValue().equals(excludeProductUuid)));
+    }
+
+    @Override
+    public boolean isSkuTaken(String sku, String excludeVariantUuid) {
+        return storage.values().stream()
+                .flatMap(product -> product.getVariants().stream())
+                .anyMatch(variant -> variant.getSku().equalsIgnoreCase(sku)
+                        && (excludeVariantUuid == null || !variant.getId().getValue().equals(excludeVariantUuid)));
+    }
+
+    @Override
+    public boolean existsByCategoryIds(Collection<Id> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return false;
+        }
+
+        return storage.values().stream()
+                .map(Product::getCategoryId)
+                .anyMatch(categoryId -> categoryIds.stream()
+                        .anyMatch(requestedId -> requestedId != null
+                                && requestedId.getValue().equals(categoryId.getValue())));
     }
 
     @Override

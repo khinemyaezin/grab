@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.api.rest.controller;
 
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
+import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.grab.framework.id.Id;
@@ -39,6 +40,7 @@ import org.springframework.context.annotation.Bean;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +66,49 @@ public class CategoryControllerTestConfig {
     @Bean
     public CategoryRepository categoryRepository(InMemoryCategoryStore store) {
         return new InMemoryCategoryRepository(store);
+    }
+
+    @Bean
+    public ProductRepository productRepository() {
+        return new ProductRepository() {
+            @Override
+            public void save(com.catalog.domain.aggregate.Product product) {
+            }
+
+            @Override
+            public void delete(com.catalog.domain.aggregate.Product product) {
+            }
+
+            @Override
+            public Optional<com.catalog.domain.aggregate.Product> find(Id productId) {
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<com.catalog.domain.aggregate.Product> findBySlug(String slug) {
+                return Optional.empty();
+            }
+
+            @Override
+            public boolean isSlugTaken(String slug, String excludeProductUuid) {
+                return false;
+            }
+
+            @Override
+            public boolean isSkuTaken(String sku, String excludeVariantUuid) {
+                return false;
+            }
+
+            @Override
+            public boolean existsByCategoryIds(Collection<Id> categoryIds) {
+                return false;
+            }
+
+            @Override
+            public Optional<Integer> findMaxSlugSuffix(String baseSlug) {
+                return Optional.empty();
+            }
+        };
     }
 
     @Bean
@@ -157,8 +202,11 @@ public class CategoryControllerTestConfig {
     }
 
     @Bean
-    public DeleteCategoryCommandHandler deleteCategoryCommandHandler(CategoryRepository categoryRepository) {
-        return new DeleteCategoryCommandHandler(categoryRepository);
+    public DeleteCategoryCommandHandler deleteCategoryCommandHandler(
+            CategoryRepository categoryRepository,
+            ProductRepository productRepository
+    ) {
+        return new DeleteCategoryCommandHandler(categoryRepository, productRepository);
     }
 
     @Bean
@@ -228,6 +276,11 @@ public class CategoryControllerTestConfig {
         @Override
         public Optional<Category> find(Id id) {
             return store.findCategory(id.getValue());
+        }
+
+        @Override
+        public Set<Id> findSubtreeIds(Id id) {
+            return store.findSubtreeIds(id.getValue());
         }
 
         @Override
@@ -360,6 +413,17 @@ public class CategoryControllerTestConfig {
             return buildTree(entity);
         }
 
+        Set<Id> findSubtreeIds(String uuid) {
+            NodeComponent<CategoryEntity> tree = getTree(uuid);
+            if (tree == null) {
+                return Set.of();
+            }
+
+            Set<Id> ids = ConcurrentHashMap.newKeySet();
+            collectIds(tree, ids);
+            return ids;
+        }
+
         void deleteSubtree(String uuid) {
             Deque<String> stack = new ArrayDeque<>();
             stack.push(uuid);
@@ -387,6 +451,22 @@ public class CategoryControllerTestConfig {
                 composite.addChild(childNode);
             }
             return composite;
+        }
+
+        private void collectIds(NodeComponent<CategoryEntity> node, Set<Id> ids) {
+            if (node == null || node.getNode() == null || node.getNode().getUuid() == null) {
+                return;
+            }
+
+            ids.add(new com.grab.framework.id.impl.CommonId(node.getNode().getUuid()));
+
+            try {
+                for (NodeComponent<CategoryEntity> child : node.getChildren()) {
+                    collectIds(child, ids);
+                }
+            } catch (UnsupportedOperationException ignored) {
+                // Leaf nodes do not expose children.
+            }
         }
 
         private CategoryEntity buildEntity(Category category) {

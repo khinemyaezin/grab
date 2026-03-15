@@ -1,6 +1,7 @@
 package com.catalog.infrastructure.configuration;
 
 import com.catalog.infrastructure.mapper.jpa.*;
+import com.grab.framework.id.IdGenerator;
 import com.nestedset.app.NestedSetNodeRepository;
 import com.nestedset.app.config.NestedSetRepositoryConfiguration;
 import com.nestedset.app.config.factory.JpaNestedSetNodeRepositoryFactory;
@@ -164,6 +165,7 @@ public class CatalogInfraConfig {
             NestedSetNodeRepository<CategoryEntity,Long> nodeRepository,
             CategoryJpaRepo categoryJpaRepository,
             CategoryJpaAssembler categoryJpaAssembler,
+            IdGenerator idGenerator,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new CategoryJpaRepository(
@@ -171,6 +173,7 @@ public class CatalogInfraConfig {
                 categoryJpaRepository,
                 categoryJpaAssembler,
                 domainEventProducer,
-                executor);
+                executor,
+                idGenerator);
     }
 }

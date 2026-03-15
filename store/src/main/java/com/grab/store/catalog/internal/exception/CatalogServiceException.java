@@ -24,6 +24,8 @@ public class CatalogServiceException extends DomainException {
                     "Parent category not found: " + e.parentCategoryId();
             case CatalogServiceError.ParentCategoryNotFoundForCategory e ->
                     "Parent category not found for category: " + e.categoryId();
+            case CatalogServiceError.CategoryHasAssignedProducts e ->
+                    "Cannot delete category with assigned products: " + e.categoryId();
             case CatalogServiceError.VariantNotFound e ->
                     "Variant not found: " + e.variantId();
             case CatalogServiceError.VariantNotFoundOrNotDeleted e ->
@@ -34,6 +36,8 @@ public class CatalogServiceException extends DomainException {
                     "Failed to update variant: " + e.variantId();
             case CatalogServiceError.VariantAddFailed e ->
                     "Failed to add variant: " + e.variantId();
+            case CatalogServiceError.SkuAlreadyExists e ->
+                    "SKU already exists: " + e.sku();
             case CatalogServiceError.DuplicateVariantCombinationKey e ->
                     "Duplicate request variant combination key: " + e.key();
             case CatalogServiceError.VariationCombinationNotFound ignored ->

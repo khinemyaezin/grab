@@ -4,11 +4,13 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.specification.UniqueSkuSpec;
 import com.catalog.domain.service.*;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.valueobject.VariantCombination;
@@ -67,6 +69,8 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
                 diffResults,
                 requestLookup
         );
+        validateSkuAvailability(targetVariants);
+        archiveProductBeforeBecomingUnsellable(product, targetVariants);
 
         syncProductVariants(product, targetVariants);
         productRepository.save(product);
@@ -183,27 +187,36 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
         return targetVariants;
     }
 
-    private void syncProductVariants(Product product, List<ProductVariant> targetVariants) {
-        Set<Id> targetVariantIds = new HashSet<>();
+    private void validateSkuAvailability(List<ProductVariant> targetVariants) {
+        List<String> reservedSkus = new ArrayList<>(targetVariants.size());
+
         for (ProductVariant targetVariant : targetVariants) {
-            targetVariantIds.add(targetVariant.getId());
-        }
-
-        List<Id> existingVariantIds = new ArrayList<>();
-        for (ProductVariant v : product.getVariants()) {
-            existingVariantIds.add(v.getId());
-        }
-
-        for (Id existingVariantId : existingVariantIds) {
-            if (!targetVariantIds.contains(existingVariantId)) {
-                product.removeVariant(existingVariantId);
+            if (!new UniqueSkuSpec(reservedSkus).isSatisfiedBy(targetVariant)
+                    || productRepository.isSkuTaken(targetVariant.getSku(), targetVariant.getId().getValue())) {
+                throw new CatalogServiceException(
+                        new CatalogServiceError.SkuAlreadyExists(targetVariant.getSku())
+                );
             }
+            reservedSkus.add(targetVariant.getSku());
         }
+    }
 
+    private void syncProductVariants(Product product, List<ProductVariant> targetVariants) {
         for (ProductVariant targetVariant : targetVariants) {
             Optional<ProductVariant> existing = product.findVariantById(targetVariant.getId());
             if (existing.isPresent()) {
                 boolean updated = product.updateVariant(existing.get(), targetVariant);
+                if (!updated) {
+                    throw new CatalogServiceException(
+                            new CatalogServiceError.VariantUpdateFailed(targetVariant.getId().getValue())
+                    );
+                }
+                continue;
+            }
+
+            Optional<ProductVariant> replacementCandidate = findVariantByVariations(product, targetVariant);
+            if (replacementCandidate.isPresent()) {
+                boolean updated = product.updateVariant(replacementCandidate.get(), targetVariant);
                 if (!updated) {
                     throw new CatalogServiceException(
                             new CatalogServiceError.VariantUpdateFailed(targetVariant.getId().getValue())
@@ -217,6 +230,35 @@ public class SyncVariantsCommandHandler implements CommandHandler<SyncVariantsCo
                     );
                 }
             }
+        }
+
+        Set<Id> targetVariantIds = new HashSet<>();
+        for (ProductVariant targetVariant : targetVariants) {
+            targetVariantIds.add(targetVariant.getId());
+        }
+
+        List<Id> existingVariantIds = new ArrayList<>();
+        for (ProductVariant variant : product.getVariants()) {
+            existingVariantIds.add(variant.getId());
+        }
+
+        for (Id existingVariantId : existingVariantIds) {
+            if (!targetVariantIds.contains(existingVariantId)) {
+                product.removeVariant(existingVariantId);
+            }
+        }
+    }
+
+    private Optional<ProductVariant> findVariantByVariations(Product product, ProductVariant targetVariant) {
+        return product.getVariants().stream()
+                .filter(existing -> existing.getVariations().equals(targetVariant.getVariations()))
+                .findFirst();
+    }
+
+    private void archiveProductBeforeBecomingUnsellable(Product product, List<ProductVariant> targetVariants) {
+        boolean hasActiveTargetVariants = targetVariants.stream().anyMatch(ProductVariant::isActive);
+        if (product.getStatus() == ProductStatus.ACTIVE && !hasActiveTargetVariants) {
+            product.changeStatus(ProductStatus.ARCHIVED);
         }
     }
 

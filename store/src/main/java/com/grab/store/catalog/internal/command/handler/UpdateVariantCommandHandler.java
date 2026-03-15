@@ -51,6 +51,8 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
             );
         }
 
+        validateSkuAvailability(command.sku(), command.variantId().getValue());
+
         ProductVariant updated = new ProductVariant(
                 existing.getId(),
                 command.sku(),
@@ -79,5 +81,13 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
     @Override
     public Class<UpdateVariantCommand> getCommandType() {
         return UpdateVariantCommand.class;
+    }
+
+    private void validateSkuAvailability(String sku, String excludeVariantUuid) {
+        if (productRepository.isSkuTaken(sku, excludeVariantUuid)) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.SkuAlreadyExists(sku)
+            );
+        }
     }
 }

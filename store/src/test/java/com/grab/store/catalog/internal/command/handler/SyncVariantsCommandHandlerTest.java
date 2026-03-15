@@ -1,6 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.repository.ProductRepository;
@@ -239,6 +240,69 @@ class SyncVariantsCommandHandlerTest {
                 .extracting(v -> v.id().getValue())
                 .contains("var-red-replaced", "var-blue")
                 .doesNotContain("var-red");
+    }
+
+    @Test
+    void handle_activeProductReplacement_keepsProductSellable() {
+        Id productId = new CommonId("product-4");
+        Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
+        product.addVariant(new ProductVariant(
+                new CommonId("var-red"),
+                "SKU-RED",
+                ProductVariantStatus.ACTIVE,
+                List.of(
+                        variation("Red", "opt-red", "Color", "type-color"),
+                        variation("Small", "opt-s", "Size", "type-size")
+                )
+        ));
+        product.changeStatus(ProductStatus.ACTIVE);
+        productRepository.put(product);
+
+        SyncVariantsCommand command = new SyncVariantsCommand(
+                productId,
+                List.of(
+                        variantType("type-color", "Color", option("opt-blue", "Blue")),
+                        variantType("type-size", "Size", option("opt-s", "Small"))
+                ),
+                List.of(
+                        variant("var-blue", "SKU-BLUE",
+                                cmdVariation("Blue", "opt-blue", "Color", "type-color"),
+                                cmdVariation("Small", "opt-s", "Size", "type-size")
+                        )
+                )
+        );
+
+        handler.handle(command);
+        Product saved = productRepository.getLastSaved();
+
+        assertThat(saved.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+        assertThat(saved.getVariants()).hasSize(1);
+        assertThat(saved.getVariants().getFirst().getId().getValue()).isEqualTo("var-blue");
+    }
+
+    @Test
+    void handle_activeProductRemovingAllVariants_archivesProduct() {
+        Id productId = new CommonId("product-5");
+        Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
+        product.addVariant(new ProductVariant(
+                new CommonId("var-red"),
+                "SKU-RED",
+                ProductVariantStatus.ACTIVE,
+                List.of(
+                        variation("Red", "opt-red", "Color", "type-color"),
+                        variation("Small", "opt-s", "Size", "type-size")
+                )
+        ));
+        product.changeStatus(ProductStatus.ACTIVE);
+        productRepository.put(product);
+
+        SyncVariantsCommand command = new SyncVariantsCommand(productId, List.of(), List.of());
+
+        handler.handle(command);
+        Product saved = productRepository.getLastSaved();
+
+        assertThat(saved.getStatus()).isEqualTo(ProductStatus.ARCHIVED);
+        assertThat(saved.getVariants()).isEmpty();
     }
 
     private ProductVariation variation(String optionName, String optionId, String typeName, String typeId) {

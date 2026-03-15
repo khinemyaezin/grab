@@ -3,6 +3,7 @@ package com.grab.store.catalog.internal.command.handler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -62,6 +63,7 @@ class UpdateProductStatusCommandHandlerTest {
         Product saved = productCaptor.getValue();
 
         assertThat(saved.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+        assertThat(saved.getEvents()).anyMatch(ProductStatusChangedEvent.class::isInstance);
         assertThat(result.productId()).isEqualTo(PRODUCT_ID);
         assertThat(result.oldStatus()).isEqualTo("DRAFT");
         assertThat(result.newStatus()).isEqualTo("ACTIVE");
@@ -89,9 +91,11 @@ class UpdateProductStatusCommandHandlerTest {
     void handle_invalidTransition_throws() {
         Id productId = new CommonId(PRODUCT_ID);
         Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        addActiveVariant(product, "v1");
+        product.changeStatus(ProductStatus.ACTIVE);
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
 
-        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ARCHIVED");
+        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "DRAFT");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogDomainValidationException.class)

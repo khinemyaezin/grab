@@ -8,6 +8,7 @@ import java.util.Map;
 public sealed interface CatalogDomainError extends MessageSource permits
         CatalogDomainError.InvalidProductStatusTransition,
         CatalogDomainError.ProductActivationRequiresActiveVariants,
+        CatalogDomainError.CannotDeleteLastActiveVariantFromActiveProduct,
         CatalogDomainError.TooManyVariantCombinations {
 
     record InvalidProductStatusTransition(String currentStatus, String newStatus) implements CatalogDomainError {
@@ -44,6 +45,23 @@ public sealed interface CatalogDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of();
+        }
+    }
+
+    record CannotDeleteLastActiveVariantFromActiveProduct(String variantId) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.cannot_delete_last_active_variant_from_active_product";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("variantId", variantId);
         }
     }
 

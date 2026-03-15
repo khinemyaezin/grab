@@ -11,11 +11,13 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.CategoryNotFound,
         CatalogServiceError.ParentCategoryNotFound,
         CatalogServiceError.ParentCategoryNotFoundForCategory,
+        CatalogServiceError.CategoryHasAssignedProducts,
         CatalogServiceError.VariantNotFound,
         CatalogServiceError.VariantNotFoundOrNotDeleted,
         CatalogServiceError.VariantDeletedCannotUpdate,
         CatalogServiceError.VariantUpdateFailed,
         CatalogServiceError.VariantAddFailed,
+        CatalogServiceError.SkuAlreadyExists,
         CatalogServiceError.DuplicateVariantCombinationKey,
         CatalogServiceError.VariationCombinationNotFound,
         CatalogServiceError.SlugBlank {
@@ -97,6 +99,23 @@ public sealed interface CatalogServiceError extends MessageSource permits
         @Override
         public String code() {
             return "cat.service.category.parent_not_found_for_category";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("categoryId", categoryId);
+        }
+    }
+
+    record CategoryHasAssignedProducts(String categoryId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.category.has_assigned_products";
         }
 
         @Override
@@ -187,6 +206,23 @@ public sealed interface CatalogServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("variantId", variantId);
+        }
+    }
+
+    record SkuAlreadyExists(String sku) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.CONFLICT;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.variant.sku_already_exists";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("sku", sku);
         }
     }
 

@@ -2,10 +2,13 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
+import com.catalog.domain.aggregate.Category;
 import com.grab.store.catalog.internal.command.SaveProductCommand;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariantStatus;
+import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,15 +19,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SaveProductCommandHandlerTest {
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private CategoryRepository categoryRepository;
     @Mock
     private UniqueSlugResolver uniqueSlugResolver;
 
@@ -41,7 +47,7 @@ class SaveProductCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new SaveProductCommandHandler(productRepository, uniqueSlugResolver);
+        handler = new SaveProductCommandHandler(productRepository, categoryRepository, uniqueSlugResolver);
     }
 
     @Test
@@ -67,6 +73,7 @@ class SaveProductCommandHandlerTest {
                         false,
                         List.of(variant)));
 
+        when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
         when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
 
         handler.handle(command);
@@ -78,5 +85,55 @@ class SaveProductCommandHandlerTest {
         assertThat(savedProduct.getSlug()).isEqualTo("product-with-variants");
         assertThat(savedProduct.getVariants().getFirst().getSku()).isEqualTo("SKU-RED-001");
         assertThat(savedProduct.getVariants().getFirst().getStatus()).isEqualTo(ProductVariantStatus.ACTIVE);
+    }
+
+    @Test
+    void handle_categoryNotFound_throws() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+
+        SaveProductCommand command = new SaveProductCommand(
+                new SaveProductCommand.Product(productId, "Product", categoryId, null, false, List.of())
+        );
+
+        when(categoryRepository.find(categoryId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> handler.handle(command))
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> assertThat(((CatalogServiceException) exception).getMessageSource().code())
+                        .isEqualTo("cat.service.category.not_found"));
+    }
+
+    @Test
+    void handle_duplicateSku_throws() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Id colorTypeId = new CommonId(COLOR_TYPE_ID);
+        Id redOptionId = new CommonId(RED_OPTION_ID);
+
+        SaveProductCommand command = new SaveProductCommand(
+                new SaveProductCommand.Product(
+                        productId,
+                        "Product with Variants",
+                        categoryId,
+                        null,
+                        false,
+                        List.of(new SaveProductCommand.Variant(
+                                variantId,
+                                "SKU-RED-001",
+                                "ACTIVE",
+                                List.of(new SaveProductCommand.Variation("Red", redOptionId, colorTypeId, "Color"))
+                        )))
+        );
+
+        when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
+        when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
+        when(productRepository.isSkuTaken("SKU-RED-001", null)).thenReturn(true);
+
+        assertThatThrownBy(() -> handler.handle(command))
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> assertThat(((CatalogServiceException) exception).getMessageSource().code())
+                        .isEqualTo("cat.service.variant.sku_already_exists"));
     }
 }

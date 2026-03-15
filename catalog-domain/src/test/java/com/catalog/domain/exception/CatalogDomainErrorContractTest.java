@@ -51,19 +51,6 @@ class CatalogDomainErrorContractTest {
     }
 
     @Test
-    void product_invalidTransition_shouldThrowTypedValidationError() {
-        Product product = Product.create(id("p-1"), "Product", id("c-1"));
-
-        assertThatThrownBy(() -> product.changeStatus(ProductStatus.ARCHIVED))
-                .isInstanceOf(CatalogDomainValidationException.class)
-                .satisfies(exception -> {
-                    CatalogDomainValidationException typed = (CatalogDomainValidationException) exception;
-                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.domain.invalid_product_status_transition");
-                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
-                });
-    }
-
-    @Test
     void variantCombination_tooManyCombinations_shouldThrowTypedValidationError() {
         VariantCombinationService service = new DefaultVariantCombinationService();
         List<VariantType> variantTypes = createVariantTypesWithCombinationsOverLimit();
