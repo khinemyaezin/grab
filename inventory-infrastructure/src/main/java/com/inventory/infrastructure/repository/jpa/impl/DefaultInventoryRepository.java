@@ -3,6 +3,8 @@ package com.inventory.infrastructure.repository.jpa.impl;
 import com.grab.framework.domain.Event;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.enums.InventoryStatus;
@@ -10,7 +12,6 @@ import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.infrastructure.entity.InventoryItemEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
-import com.inventory.infrastructure.repository.jpa.support.InventoryPersistenceExecutor;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -19,6 +20,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DefaultInventoryRepository implements InventoryRepository {
 
+    private static final Logger log = Loggers.getLogger(DefaultInventoryRepository.class);
+
     private final InventoryItemJpaRepository jpaRepository;
     private final InventoryJpaAssembler mapper;
     private final DomainEventProducer domainEventProducer;
@@ -26,12 +29,14 @@ public class DefaultInventoryRepository implements InventoryRepository {
 
     @Override
     public Optional<InventoryItem> findById(Id id) {
+        log.debug("Loading inventory item by id={}", id.getValue());
         return executor.query("InventoryItem", () -> jpaRepository.findByUuid(id.getValue())
                 .map(mapper::toFullDomainGraph));
     }
 
     @Override
     public List<InventoryItem> findBySku(String sku) {
+        log.debug("Loading inventory items by sku={}", sku);
         return executor.query("InventoryItem", () -> jpaRepository.findAllBySku(sku).stream()
                 .map(mapper::toFullDomainGraph)
                 .toList());
@@ -39,6 +44,7 @@ public class DefaultInventoryRepository implements InventoryRepository {
 
     @Override
     public Optional<InventoryItem> findBySkuAndLocation(String sku, Id locationId) {
+        log.debug("Loading inventory item by sku={} and locationId={}", sku, locationId.getValue());
         return executor.query("InventoryItem", () -> jpaRepository.findBySkuAndLocationId(sku, locationId.getValue())
                 .map(mapper::toFullDomainGraph));
     }
@@ -98,6 +104,7 @@ public class DefaultInventoryRepository implements InventoryRepository {
     @Override
     public void save(InventoryItem item) {
         executor.command("InventoryItem", () -> {
+            log.info("Persisting inventory item id={}, sku={}", item.getId().getValue(), item.getSku());
             Optional<InventoryItemEntity> existingEntity = jpaRepository.findByUuid(item.getId().getValue());
             InventoryItemEntity entity;
 
@@ -111,13 +118,22 @@ public class DefaultInventoryRepository implements InventoryRepository {
 
             List<Event> events = item.pullEvents();
             domainEventProducer.produce(item.getClass().getSimpleName(), item.getId().getValue(), events);
+            log.info(
+                    "Persisted inventory item id={}, sku={}, publishedEvents={}",
+                    item.getId().getValue(),
+                    item.getSku(),
+                    events.size()
+            );
         });
     }
 
     @Override
     public void delete(Id id) {
-        executor.command("InventoryItem", () -> jpaRepository.findByUuid(id.getValue())
-                .ifPresent(jpaRepository::delete));
+        executor.command("InventoryItem", () -> {
+            log.info("Deleting inventory item id={}", id.getValue());
+            jpaRepository.findByUuid(id.getValue())
+                    .ifPresent(jpaRepository::delete);
+        });
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.grab.framework.id.impl.CommonId;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.enums.LocationType;
 import com.inventory.domain.valueobject.Address;
+import com.inventory.infrastructure.support.InventoryInfrastructureLoggerExtension;
 import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.exception.InventoryInfraException;
 import com.inventory.infrastructure.mapper.jpa.LocationJpaAssembler;
@@ -22,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, InventoryInfrastructureLoggerExtension.class})
 class DefaultLocationRepositoryExceptionTest {
 
     @Mock

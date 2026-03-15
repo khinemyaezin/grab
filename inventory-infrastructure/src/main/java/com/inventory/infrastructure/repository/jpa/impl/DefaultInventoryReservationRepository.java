@@ -1,6 +1,8 @@
 package com.inventory.infrastructure.repository.jpa.impl;
 
 import com.grab.framework.id.Id;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.entity.InventoryReservation;
 import com.inventory.domain.repository.InventoryReservationRepository;
@@ -15,18 +17,22 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DefaultInventoryReservationRepository implements InventoryReservationRepository {
 
+    private static final Logger log = Loggers.getLogger(DefaultInventoryReservationRepository.class);
+
     private final InventoryReservationJpaRepository jpaRepository;
     private final InventoryReservationJpaAssembler mapper;
     private final PersistenceExecutor executor;
 
     @Override
     public Optional<InventoryReservation> findById(Id id) {
+        log.debug("Loading inventory reservation by id={}", id.getValue());
         return executor.query("InventoryReservation", () -> jpaRepository.findByUuid(id.getValue())
                 .map(mapper::toFullDomainGraph));
     }
 
     @Override
     public Optional<InventoryReservation> findByIdempotencyKey(String idempotencyKey) {
+        log.debug("Loading inventory reservation by idempotencyKey={}", idempotencyKey);
         return executor.query("InventoryReservation", () -> jpaRepository.findByIdempotencyKey(idempotencyKey)
                 .map(mapper::toFullDomainGraph));
     }
@@ -48,6 +54,7 @@ public class DefaultInventoryReservationRepository implements InventoryReservati
     @Override
     public void save(InventoryReservation reservation) {
         executor.command("InventoryReservation", () -> {
+            log.info("Persisting inventory reservation id={}", reservation.getId().getValue());
             Optional<InventoryReservationEntity> existingEntity = jpaRepository.findByUuid(reservation.getId().getValue());
             InventoryReservationEntity entity;
 
@@ -58,6 +65,7 @@ public class DefaultInventoryReservationRepository implements InventoryReservati
             }
 
             jpaRepository.save(entity);
+            log.debug("Persisted inventory reservation id={}", reservation.getId().getValue());
             return null;
         });
     }

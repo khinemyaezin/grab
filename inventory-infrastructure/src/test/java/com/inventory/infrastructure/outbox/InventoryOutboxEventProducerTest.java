@@ -6,8 +6,10 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.SerializedEvent;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.inventory.domain.event.StockReceivedEvent;
+import com.inventory.infrastructure.support.InventoryInfrastructureLoggerExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(InventoryInfrastructureLoggerExtension.class)
 class InventoryOutboxEventProducerTest {
 
     private OutboxStore<InventoryOutboxEvent, Long> outboxStore;
