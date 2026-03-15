@@ -1,17 +1,11 @@
-# Grab Monorepo Overview
+# Commerce Store Application
 
-Maven multi-module workspace organized by bounded contexts (product, category, pricing) with a small shared framework and a Spring Boot storefront application.
+This is `the open-source repository`, designed to support online buying and selling through a flexible marketplace model. 
+It supports product catalog management, customer shopping, and seller-driven commerce for retailer, 
+consumer-to-consumer (C2C), and third-party seller (3P) use cases. Sellers can create and manage products, and customers can browse products and place orders online. For C2C listings, customers can propose a new price, and if the seller accepts, both parties can make a deal. The platform also supports a marketplace business model where the application can charge a platform fee on transactions.
 
-## Modules
-- `framework`: shared building blocks (DDD abstractions such as `AggregateRoot`, `Entity`, specs, ID interfaces, mapping helpers, logging).
-- `product-domain`: pure domain model for products (aggregates, variants, factory, SKU/variant services); no Spring.
-- `product-infrastructure`: JPA-facing adapters for product (entities, Spring Data repositories, mappers, option/variant services). Intended to stay framework-light; wire via config in the application layer.
-- `product-application`: thin application entry point placeholder for the product context.
-- `category-domain` / `category-infrastructure`: category bounded context split the same way as product.
-- `pricing-domain` / `pricing-infrastructure`: pricing context (domain and data adapters), parented to the root POM but not listed in the top-level `<modules>` yet.
-- `store`: Spring Boot application composing the bounded contexts (imports infra modules, supplies beans like `IdGenerator`).
-- `docs`: diagrams (`*.drawio`) describing module relationships.
-- `helper`: fixture-style helper data (e.g., `persistable_product_variants.json`).
+Start with the [Business Requirements Document](docs/BRD/commerce-platform-brd.md).
+
 
 ## Build & Run
 - Build core modules: `mvn clean install` (from repo root).
