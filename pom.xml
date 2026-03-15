@@ -12,6 +12,7 @@
 
     <modules>
         <module>framework</module>
+        <module>logger-slf4j</module>
         <module>outbox-infrastructure</module>
         <module>catalog-domain</module>
         <module>catalog-infrastructure</module>

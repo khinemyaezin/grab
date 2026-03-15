@@ -1,7 +1,6 @@
 package com.grab.store.shared.config;
 
 import com.grab.framework.logger.Loggers;
-import com.grab.framework.logger.console.ConsoleLoggerFactory;
 import com.grab.framework.logger.slf4j.Slf4jLoggerFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LoggerEnvironmentPostProcessorTest {
 
     private static final String LOGGER_BACKEND = "logger.backend";
-    private static final String LOGGER_LEVEL = "logger.level";
     private static final String LOGGER_STRICT = "logger.fail-on-missing-backend";
 
     private final LoggerEnvironmentPostProcessor postProcessor =
@@ -28,7 +26,6 @@ class LoggerEnvironmentPostProcessorTest {
     @AfterEach
     void tearDown() {
         System.clearProperty(LOGGER_BACKEND);
-        System.clearProperty(LOGGER_LEVEL);
         System.clearProperty(LOGGER_STRICT);
         Loggers.reset();
     }
@@ -39,19 +36,6 @@ class LoggerEnvironmentPostProcessorTest {
     }
 
     @Test
-    void postProcessEnvironment_shouldConfigureLoggersFromEnvironment() {
-        ConfigurableEnvironment environment = environmentWith(Map.of(
-                LOGGER_BACKEND, "console",
-                LOGGER_LEVEL, "DEBUG",
-                LOGGER_STRICT, "true"
-        ));
-
-        postProcessor.postProcessEnvironment(environment, new SpringApplication(Object.class));
-
-        assertInstanceOf(ConsoleLoggerFactory.class, Loggers.getFactory());
-    }
-
-    @Test
     void postProcessEnvironment_shouldRespectSystemPropertyPrecedence() {
         System.setProperty(LOGGER_BACKEND, "slf4j");
         ConfigurableEnvironment environment = environmentWith(Map.of(LOGGER_BACKEND, "console"), false);
@@ -59,10 +43,6 @@ class LoggerEnvironmentPostProcessorTest {
         postProcessor.postProcessEnvironment(environment, new SpringApplication(Object.class));
 
         assertInstanceOf(Slf4jLoggerFactory.class, Loggers.getFactory());
-    }
-
-    private ConfigurableEnvironment environmentWith(Map<String, Object> values) {
-        return environmentWith(values, true);
     }
 
     private ConfigurableEnvironment environmentWith(Map<String, Object> values, boolean first) {

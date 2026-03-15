@@ -10,7 +10,6 @@ This ADR records the decision behind the logging system that is now implemented 
 
 At the time of the decision, the project needed a logging approach that could:
 
-- support simple built-in console logging
 - support SLF4J-based logging for Spring Boot integration
 - allow future backends without rewriting business/module callsites
 
@@ -50,25 +49,23 @@ Backend resolution order is:
 
 1. explicit backend from config (`logger.backend` or `LOGGER_BACKEND`)
 2. if not set, highest-priority available provider
-3. if no provider is available, fallback to console
+3. if no provider is available, fallback to no-op logging
 
 Provider discovery uses:
 
-- built-in providers always registered in code
-- Java `ServiceLoader` for external extensions
+- Java `ServiceLoader`
 
-### 4) Ship built-in providers in `framework`
+### 4) Keep adapters outside `framework`
 
-The framework ships:
+The current adapter module is:
 
-- `ConsoleLoggerProvider`
-- `Slf4jLoggerProvider`
+- `logger-slf4j`
 
 Rules:
 
-- `framework` depends on `slf4j-api` only
-- `framework` does not ship backend bindings
-- applications choose the binding and config they need
+- `framework` owns only the facade, SPI, resolver, and no-op fallback
+- adapter modules register providers through `META-INF/services`
+- applications choose which adapter modules and config they need
 
 ### 5) Standardize caller code in `store`
 
@@ -86,7 +83,7 @@ This keeps backend swaps transparent to application code.
 
 `LoggerEnvironmentPostProcessor` installs a Spring-backed `LoggerConfigLoader` into the framework bootstrap via `Loggers.setConfigLoader(...)`.
 
-The framework intentionally does not ship a default `LoggerConfigLoader`. If an application does not install one, bootstrap fails fast.
+The framework intentionally does not ship a default `LoggerConfigLoader`. If an application does not install one, logger calls resolve to the no-op fallback until a loader or explicit factory is set.
 
 ### 7) Keep the formatting contract familiar
 
@@ -102,10 +99,11 @@ This allows framework logger calls to stay familiar to most Java developers.
 - consistent logging style across modules
 - clear application ownership of runtime configuration
 - easy extension path for new providers
+- adapters are no longer sprayed transitively through every module that depends on `framework`
 
 ### Negative
 
-- additional bootstrap and SPI complexity in `framework`
+- additional module and SPI complexity
 - resolver and provider behavior require explicit tests
 - more moving parts than using one hard-coded backend directly
 
@@ -115,7 +113,7 @@ This allows framework logger calls to stay familiar to most Java developers.
 
 Rejected because it does not provide a framework-owned backend selection model or a clean provider extension path.
 
-### Keep only the custom console logger
+### Keep only a custom in-framework logger
 
 Rejected because it integrates poorly with the normal Java/Spring logging ecosystem and makes future backend expansion harder.
 

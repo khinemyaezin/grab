@@ -2,7 +2,7 @@ package com.grab.framework.logger.internal;
 
 import com.grab.framework.logger.LogLevel;
 import com.grab.framework.logger.LoggerFactory;
-import com.grab.framework.logger.slf4j.Slf4jLoggerFactory;
+import com.grab.framework.logger.internal.fixtures.TestExternalLoggerFactory;
 import com.grab.framework.logger.spi.LoggerConfig;
 import org.junit.jupiter.api.Test;
 
@@ -14,12 +14,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class LoggerFactoryResolverTest {
 
     @Test
-    void resolveFactory_whenSlf4jRequested_shouldReturnSlf4jFactory() {
+    void resolveFactory_whenExternalProviderRequested_shouldReturnConfiguredFactory() {
         LoggerFactory resolved = LoggerFactoryResolver.withConfigLoader(
-                () -> new LoggerConfig("slf4j", LogLevel.INFO, Map.of(), false)
+                () -> new LoggerConfig("test-external", LogLevel.INFO, Map.of(), false)
         ).resolveFactory();
 
-        assertInstanceOf(Slf4jLoggerFactory.class, resolved);
+        assertInstanceOf(TestExternalLoggerFactory.class, resolved);
     }
 
     @Test

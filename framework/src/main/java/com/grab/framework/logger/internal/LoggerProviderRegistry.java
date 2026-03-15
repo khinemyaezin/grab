@@ -1,7 +1,5 @@
 package com.grab.framework.logger.internal;
 
-import com.grab.framework.logger.console.ConsoleLoggerProvider;
-import com.grab.framework.logger.slf4j.Slf4jLoggerProvider;
 import com.grab.framework.logger.spi.LoggerProvider;
 
 import java.util.Comparator;
@@ -55,10 +53,7 @@ public final class LoggerProviderRegistry {
                 .map(ServiceLoader.Provider::get)
                 .toList();
 
-        Map<String, LoggerProvider> unique = Stream.concat(
-                        builtInProviders().stream(),
-                        discovered.stream()
-                )
+        Map<String, LoggerProvider> unique = discovered.stream()
                 .collect(
                         LinkedHashMap::new,
                         (map, provider) -> map.merge(
@@ -76,14 +71,6 @@ public final class LoggerProviderRegistry {
                         .thenComparing(LoggerProvider::id))
                 .toList();
     }
-
-    private static List<LoggerProvider> builtInProviders() {
-        return List.of(
-                new Slf4jLoggerProvider(),
-                new ConsoleLoggerProvider()
-        );
-    }
-
     private static LoggerProvider selectPreferred(LoggerProvider current, LoggerProvider incoming) {
         int priorityCompare = Integer.compare(incoming.priority(), current.priority());
         if (priorityCompare > 0) {

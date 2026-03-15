@@ -14,6 +14,7 @@ COPY catalog-domain/pom.xml catalog-domain/
 COPY catalog-infrastructure/pom.xml catalog-infrastructure/
 COPY inventory-domain/pom.xml inventory-domain/
 COPY inventory-infrastructure/pom.xml inventory-infrastructure/
+COPY logger-slf4j/pom.xml logger-slf4j/
 COPY store/pom.xml store/
 
 RUN --mount=type=cache,target=/root/.m2 \
@@ -25,6 +26,7 @@ COPY catalog-domain/src catalog-domain/src
 COPY catalog-infrastructure/src catalog-infrastructure/src
 COPY inventory-domain/src inventory-domain/src
 COPY inventory-infrastructure/src inventory-infrastructure/src
+COPY logger-slf4j/src logger-slf4j/src
 COPY store/src store/src
 
 RUN --mount=type=cache,target=/root/.m2 \

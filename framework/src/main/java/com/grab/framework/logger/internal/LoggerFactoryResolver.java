@@ -1,7 +1,7 @@
 package com.grab.framework.logger.internal;
 
 import com.grab.framework.logger.LoggerFactory;
-import com.grab.framework.logger.console.ConsoleLoggerFactory;
+import com.grab.framework.logger.noop.NoOpLoggerFactory;
 import com.grab.framework.logger.spi.LoggerConfig;
 import com.grab.framework.logger.spi.LoggerProvider;
 
@@ -46,6 +46,6 @@ public final class LoggerFactoryResolver {
 
         return providerRegistry.highestPriorityAvailable()
                 .map(provider -> provider.createFactory(config))
-                .orElseGet(() -> new ConsoleLoggerFactory(config.effectiveLevel()));
+                .orElseGet(NoOpLoggerFactory::getInstance);
     }
 }

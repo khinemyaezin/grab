@@ -15,4 +15,3 @@ public final class Slf4jLoggerFactory implements LoggerFactory {
         return new Slf4jLogger(org.slf4j.LoggerFactory.getLogger(clazz));
     }
 }
-

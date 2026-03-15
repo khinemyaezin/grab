@@ -4,9 +4,6 @@ import com.grab.framework.logger.Logger;
 
 import java.util.Objects;
 
-/**
- * Framework logger adapter that delegates to SLF4J.
- */
 public final class Slf4jLogger implements Logger {
 
     private final org.slf4j.Logger delegate;
@@ -115,4 +112,3 @@ public final class Slf4jLogger implements Logger {
         delegate.error(message, throwable);
     }
 }
-

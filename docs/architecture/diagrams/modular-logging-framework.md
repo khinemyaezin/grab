@@ -21,19 +21,20 @@ flowchart TB
     Resolver --> Config["LoggerConfigLoader<br/>active loader strategy"]
     Resolver --> Registry["LoggerProviderRegistry"]
 
-    Registry --> BuiltInConsole["ConsoleLoggerProvider"]
-    Registry --> BuiltInSlf4j["Slf4jLoggerProvider"]
-    Registry --> ServiceLoader["External Provider(s)<br/>ServiceLoader"]
+    ServiceLoader --> Slf4jModule["logger-slf4j"]
 
-    Config --> Select["Provider Selection<br/>explicit -> highest available -> fallback"]
+    Config --> Select["Provider Selection<br/>explicit -> highest available -> no-op"]
     LoaderInstall --> Config
     Registry --> Select
     Select --> ActiveFactory["Active LoggerFactory"]
+    Select --> NoOpFactory["NoOpLoggerFactory"]
     ActiveFactory --> Logger["Logger"]
 
     Logger --> ConsoleOut["Console Output"]
     Logger --> Slf4jApi["SLF4J API"]
     Slf4jApi --> Backend["Runtime Binding<br/>Logback / Log4j2 / Other"]
+    Registry --> ServiceLoader["Adapter Provider(s)<br/>ServiceLoader"]
+
 ```
 
 ## Internal Class Diagram
@@ -96,11 +97,9 @@ classDiagram
         +effectiveLevel() LogLevel
     }
 
-    class ConsoleLoggerProvider
+    class NoOpLoggerFactory
     class Slf4jLoggerProvider
-    class ConsoleLoggerFactory
     class Slf4jLoggerFactory
-    class ConsoleLogger
     class Slf4jLogger
 
     Loggers o--> LoggerFactory : caches active factory
@@ -111,17 +110,14 @@ classDiagram
     LoggerFactoryResolver --> LoggerProviderRegistry : asks for provider
     LoggerProviderRegistry --> LoggerProvider : tracks providers
 
-    ConsoleLoggerProvider ..|> LoggerProvider
     Slf4jLoggerProvider ..|> LoggerProvider
 
-    ConsoleLoggerFactory ..|> LoggerFactory
     Slf4jLoggerFactory ..|> LoggerFactory
 
-    ConsoleLogger ..|> Logger
     Slf4jLogger ..|> Logger
 
     LoggerProvider --> LoggerFactory : createFactory()
-    ConsoleLoggerFactory --> ConsoleLogger : creates
+    NoOpLoggerFactory ..|> LoggerFactory
     Slf4jLoggerFactory --> Slf4jLogger : creates
 ```
 
@@ -130,10 +126,10 @@ classDiagram
 - `Loggers` is the entry point used by application classes.
 - `Loggers` does not create loggers directly. It resolves and caches a `LoggerFactory`.
 - `LoggerFactoryResolver` decides which backend to use.
-- `LoggerProviderRegistry` knows about built-in providers and external providers discovered through `ServiceLoader`.
+- `LoggerProviderRegistry` knows only about providers discovered through `ServiceLoader`.
 - The chosen provider creates a `LoggerFactory`.
-- That factory creates a concrete logger object such as `Slf4jLogger` or `ConsoleLogger`.
-- `Slf4jLogger` delegates to SLF4J. `ConsoleLogger` renders messages itself.
+- That factory creates a concrete logger object such as `Slf4jLogger`.
+- `Slf4jLogger` delegates to SLF4J. If nothing is configured, `NoOpLoggerFactory` keeps callers safe.
 
 ## Runtime Selection Sequence
 
@@ -154,14 +150,14 @@ sequenceDiagram
     C->>L: getLogger(CurrentClass)
     L->>R: resolveFactory()
     R->>CFG: load backend + options
-    R->>REG: load providers (built-in + ServiceLoader)
+    R->>REG: load providers through ServiceLoader
 
     alt explicit backend configured and available
         R->>P: choose explicit provider id
     else explicit backend missing/unavailable
         R->>P: choose highest priority available
     else no providers available
-        R->>F: create ConsoleLoggerFactory directly
+        R->>F: use NoOpLoggerFactory
     end
 
     opt provider selected
@@ -174,8 +170,8 @@ sequenceDiagram
 
 ## Notes
 
-- `framework` depends on `slf4j-api` only and does not ship a backend binding.
-- `framework` does not ship a default `LoggerConfigLoader`; app bootstrap must install one.
+- `framework` does not depend on `slf4j-api` and does not ship concrete backend adapters.
+- `framework` does not ship a default `LoggerConfigLoader`; app bootstrap installs one when real backend selection is needed.
 - Applications choose backend bindings and formatting at runtime.
 - New logger backends are added via `LoggerProvider` plus `META-INF/services` without changing module callsites.
-- In this repo, the common runtime path is `Logger` -> `Loggers` -> `Slf4jLogger` -> Logback.
+- In this repo, the common runtime path is `Logger` -> `Loggers` -> `logger-slf4j` -> Logback.

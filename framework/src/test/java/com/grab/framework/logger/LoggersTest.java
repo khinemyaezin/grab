@@ -1,6 +1,7 @@
 package com.grab.framework.logger;
 
 import com.grab.framework.logger.spi.LoggerConfig;
+import com.grab.framework.logger.internal.fixtures.TestExternalLoggerFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,8 +27,8 @@ class LoggersTest {
 
     @Test
     void getFactory_withConfiguredLoader_shouldResolveFactory() {
-        Loggers.setConfigLoader(() -> new LoggerConfig("slf4j", LogLevel.INFO, Map.of(), false));
+        Loggers.setConfigLoader(() -> new LoggerConfig("test-external", LogLevel.INFO, Map.of(), false));
 
-        assertInstanceOf(com.grab.framework.logger.slf4j.Slf4jLoggerFactory.class, Loggers.getFactory());
+        assertInstanceOf(TestExternalLoggerFactory.class, Loggers.getFactory());
     }
 }
