@@ -11,8 +11,10 @@ import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.mapper.jpa.ProductJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
 import com.catalog.infrastructure.repository.jpa.support.CatalogPersistenceExecutor;
+import com.catalog.infrastructure.support.CatalogInfrastructureLoggerExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -23,6 +25,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(CatalogInfrastructureLoggerExtension.class)
 class ProductJpaRepositoryTest {
 
     private ProductJpaAssembler productJpaAssembler;

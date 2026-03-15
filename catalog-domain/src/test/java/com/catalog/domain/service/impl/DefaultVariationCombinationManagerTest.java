@@ -4,6 +4,7 @@ import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.service.VariationCombinationManager;
+import com.catalog.domain.support.CatalogDomainLoggerExtension;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.valueobject.VariantCombination;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class, CatalogDomainLoggerExtension.class})
 class DefaultVariationCombinationManagerTest {
     private VariationCombinationManager variationCombinationManager;
 

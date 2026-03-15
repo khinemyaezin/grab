@@ -1,6 +1,8 @@
 package com.catalog.domain.service.impl;
 
 import com.grab.framework.id.Id;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.service.VariationKeyGenerator;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -12,17 +14,27 @@ import java.util.*;
 
 @RequiredArgsConstructor
 public class DefaultVariationCombinationManager implements VariationCombinationManager {
+    private static final Logger log = Loggers.getLogger(DefaultVariationCombinationManager.class);
+
     private final VariationKeyGenerator keyGenerator;
 
     @Override
     public List<VariantCombinationResult> syncCombinations(List<ProductVariant> existingVariants, List<VariantCombination> combinations) {
+        log.info(
+                "Syncing variant combinations: existingVariants={}, requestedCombinations={}",
+                existingVariants.size(),
+                combinations.size()
+        );
+
         if (combinations.isEmpty()) {
+            log.debug("No combinations provided for sync");
             return Collections.emptyList();
         }
 
         Set<Id> commonTypeIds = extractCommonTypeIds(existingVariants, combinations);
 
         if (commonTypeIds.isEmpty()) {
+            log.info("No common variation type ids found; marking all {} combinations as new", combinations.size());
             List<VariantCombinationResult> results = new ArrayList<>(combinations.size());
             for (VariantCombination c : combinations) {
                 results.add(new VariantCombinationResult(c, null, VariantCombinationResult.MatchedType.NEW));
@@ -51,6 +63,21 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
             usedKeys.add(key);
         }
 
+        long unchangedCount = results.stream()
+                .filter(result -> result.matchedType() == VariantCombinationResult.MatchedType.UNCHANGED)
+                .count();
+        long extendedCount = results.stream()
+                .filter(result -> result.matchedType() == VariantCombinationResult.MatchedType.EXTENDED)
+                .count();
+        long newCount = results.stream()
+                .filter(result -> result.matchedType() == VariantCombinationResult.MatchedType.NEW)
+                .count();
+        log.info(
+                "Variant combination sync completed: unchanged={}, extended={}, new={}",
+                unchangedCount,
+                extendedCount,
+                newCount
+        );
         return results;
     }
 
@@ -69,6 +96,12 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         }
         Set<Id> commonTypeIds = new HashSet<>(existingTypeIds);
         commonTypeIds.retainAll(combinationTypeIds);
+        log.debug(
+                "Extracted common variation type ids: existingTypeCount={}, incomingTypeCount={}, commonTypeCount={}",
+                existingTypeIds.size(),
+                combinationTypeIds.size(),
+                commonTypeIds.size()
+        );
         return commonTypeIds;
     }
 
@@ -85,6 +118,7 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         List<ProductVariation> filtered = variations.stream()
                 .filter(v -> commonTypeIds.contains(v.getTypeId()))
                 .toList();
+        log.debug("Generating sorted variation key from {} filtered variations", filtered.size());
         return keyGenerator.generateVariationKey(filtered);
     }
 }

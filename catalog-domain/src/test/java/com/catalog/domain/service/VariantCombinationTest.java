@@ -4,14 +4,23 @@ import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.service.impl.DefaultVariantCombinationService;
+import com.catalog.domain.support.CatalogDomainLoggerExtension;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(CatalogDomainLoggerExtension.class)
 class VariantCombinationTest {
-    private final VariantCombinationService variantCombination = new DefaultVariantCombinationService();
+    private VariantCombinationService variantCombination;
+
+    @BeforeEach
+    void setUp() {
+        variantCombination = new DefaultVariantCombinationService();
+    }
 
     /**
      * Given input:
