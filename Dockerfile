@@ -9,6 +9,7 @@ COPY .mvn .mvn
 COPY mvnw .
 
 COPY framework/pom.xml framework/
+COPY outbox-infrastructure/pom.xml outbox-infrastructure/
 COPY catalog-domain/pom.xml catalog-domain/
 COPY catalog-infrastructure/pom.xml catalog-infrastructure/
 COPY inventory-domain/pom.xml inventory-domain/
@@ -19,6 +20,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn -pl store -am dependency:go-offline -B -ntp
 
 COPY framework/src framework/src
+COPY outbox-infrastructure/src outbox-infrastructure/src
 COPY catalog-domain/src catalog-domain/src
 COPY catalog-infrastructure/src catalog-infrastructure/src
 COPY inventory-domain/src inventory-domain/src
@@ -51,8 +53,6 @@ ENV JAVA_OPTS="-XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
     -XX:InitialRAMPercentage=50.0 \
     -Djava.security.egd=file:/dev/./urandom"
-
-ENV SPRING_PROFILES_ACTIVE=default
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD nc -z localhost 8080 || exit 1

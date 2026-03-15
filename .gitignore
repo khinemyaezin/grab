@@ -32,3 +32,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Docker environment files ###
+.env
+.env.*
+docker/env/*.env
+!docker/env/*.env.example

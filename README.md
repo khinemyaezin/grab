@@ -17,6 +17,12 @@ Maven multi-module workspace organized by bounded contexts (product, category, p
 - Build core modules: `mvn clean install` (from repo root).
 - Build/run store app: `mvn -pl store spring-boot:run` (ensure it depends on the published/installed modules).
 
-## Conventions
-- Domain modules stay free of Spring/web concerns; infrastructure holds persistence/mapping; application (store) wires everything.
-- MapStruct/Lombok processors are configured in the parent POM; default component model for mappers can be overridden per module.
+## Docker Environments
+- `docker-compose.yml` is the common runtime contract. It contains only the app service and required runtime environment variables.
+
+Commands:
+
+```bash
+docker compose --env-file docker/env/dev.env -f docker-compose.yml down -v
+docker compose --env-file docker/env/dev.env -f docker-compose.yml up --build
+```

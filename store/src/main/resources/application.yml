@@ -52,6 +52,7 @@ logger:
   file:
     path: ${LOGGER_FILE_PATH:logs}
     name: ${LOGGER_FILE_NAME:store.log}
+
 springdoc:
   api-docs:
     path: /v3/api-docs
