@@ -1,7 +1,6 @@
 package com.catalog.infrastructure.outbox;
 
 import com.catalog.domain.event.ProductUpdatedEvent;
-import com.catalog.infrastructure.support.CatalogInfrastructureLoggerExtension;
 import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -11,7 +10,6 @@ import com.grab.framework.outbox.SerializedEvent;
 import com.grab.outbox.infrastructure.OutboxStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -36,7 +34,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(CatalogInfrastructureLoggerExtension.class)
 class CatalogOutboxEventProcessorTest {
 
     private OutboxStore<CatalogOutboxEvent, Long> outboxStore;

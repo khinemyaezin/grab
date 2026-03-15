@@ -8,10 +8,8 @@ import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.outbox.SerializedEvent;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.inventory.domain.event.StockReceivedEvent;
-import com.inventory.infrastructure.support.InventoryInfrastructureLoggerExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -35,7 +33,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(InventoryInfrastructureLoggerExtension.class)
 class InventoryOutboxEventProcessorTest {
 
     private OutboxStore<InventoryOutboxEvent, Long> outboxStore;

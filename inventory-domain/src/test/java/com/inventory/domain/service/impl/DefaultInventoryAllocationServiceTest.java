@@ -2,7 +2,6 @@ package com.inventory.domain.service.impl;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.inventory.domain.support.InventoryDomainLoggerExtension;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.exception.InventoryDomainError;
@@ -24,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith({MockitoExtension.class, InventoryDomainLoggerExtension.class})
+@ExtendWith(MockitoExtension.class)
 class DefaultInventoryAllocationServiceTest {
 
     @Mock

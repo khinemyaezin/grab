@@ -1,7 +1,6 @@
 package com.inventory.domain.service.impl;
 
 import com.grab.framework.id.Id;
-import com.inventory.domain.support.InventoryDomainLoggerExtension;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.repository.InventoryRepository;
@@ -27,7 +26,7 @@ import static org.mockito.Mockito.when;
  * Test points: <br>
  * See docs/features/reorder-service.md
  **/
-@ExtendWith({MockitoExtension.class, InventoryDomainLoggerExtension.class})
+@ExtendWith(MockitoExtension.class)
 class DefaultReorderServiceTest {
 
     @Mock

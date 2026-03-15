@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class LoggersTest {
 
@@ -17,10 +17,11 @@ class LoggersTest {
     }
 
     @Test
-    void getFactory_withoutConfiguredLoader_shouldThrow() {
+    void getFactory_withoutConfiguredLoader_shouldUseNoOpFallback() {
         Loggers.reset();
 
-        assertThrows(IllegalStateException.class, Loggers::getFactory);
+        assertInstanceOf(com.grab.framework.logger.noop.NoOpLoggerFactory.class, Loggers.getFactory());
+        assertFalse(Loggers.getLogger(LoggersTest.class).isInfoEnabled());
     }
 
     @Test

@@ -6,11 +6,9 @@ import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.service.VariantCombinationService;
 import com.catalog.domain.service.impl.DefaultVariantCombinationService;
-import com.catalog.domain.support.CatalogDomainLoggerExtension;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +16,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@ExtendWith(CatalogDomainLoggerExtension.class)
 class CatalogDomainErrorContractTest {
 
     private static final int MAX_COMBINATIONS = 100_000;
