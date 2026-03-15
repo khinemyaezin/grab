@@ -1,268 +1,222 @@
-# Feature: Modular Framework Logging (Console, SLF4J, and Future Providers)
+# Feature: Framework Logging Implementation Notes
 
 ## Overview
 
-This feature implements the modular logging architecture defined in:
+This document explains the logging implementation that currently exists in the repo. It is not a future plan. It is the shape of the code today.
 
-- [ADR-010: Modular Logging Framework With Pluggable Providers](../architecture/decisions/ADR-010-framework-logging-facade-and-slf4j-bridge.md)
-- [Framework Logging Usage Guide](framework-logging-usage-guide.md)
+The design goals are:
 
-Primary objective:
+- keep application code independent from a specific backend
+- allow backend choice at runtime
+- make caller code feel familiar to developers used to SLF4J
 
-- make logging backend-pluggable at framework level
-- support `console` and `slf4j` out of the box
-- allow future logger providers without changing business/module callsites
-- refactor existing `@Slf4j` in `store` to framework logger API
+For a new joiner, the easiest summary is:
 
-## Goals
+- code in modules logs through `Logger`
+- `Loggers` bootstraps one active `LoggerFactory`
+- the resolver decides whether that factory is backed by SLF4J or the console logger
+- `store` supplies runtime config and, in the common case, Logback handles the final output
 
-- Introduce provider SPI for pluggable logging backends.
-- Keep framework logger API stable for all modules.
-- Provide built-in providers (`console`, `slf4j`).
-- Add deterministic backend selection + fallback behavior.
-- Refactor store callsites to framework logger usage.
+## Main pieces
 
-## Scope
+The implementation is built from these parts:
 
-In scope:
+- `Logger`: stable framework-facing logging interface
+- `Loggers`: static entry point used by application code
+- `LoggerFactoryResolver`: chooses the active backend
+- `LoggerProviderRegistry`: tracks built-in and external providers
+- `LoggerProvider`: SPI for backends
+- `LoggerConfigLoader`: contract for runtime configuration loading
+- `Slf4jLogger*` classes: adapter path for normal Spring Boot execution
+- `ConsoleLogger*` classes: in-framework fallback logger path
 
-- `framework` logger SPI + bootstrap/selection
-- built-in console and SLF4J providers
-- `framework` dependency on `slf4j-api` (no backend binding)
-- `store` refactor of existing `@Slf4j` callsites in `src/main/java`
-- `store` development console backend config (`logback-spring.xml`)
-- tests for provider discovery/selection/delegation/fallback
+## 1) Caller side
 
-Out of scope:
-
-- refactor non-store modules in this iteration
-- production log aggregation schema redesign
-- tracing filter middleware implementation
-
-## Target Design
-
-### 1) Stable logging facade
-
-Retain:
-
-- `Logger`
-- `LoggerFactory`
-- `LogLevel`
-
-Add:
-
-- `Loggers` static bootstrap/entrypoint for callers
-
-### 2) Provider SPI
-
-Add interfaces/types:
-
-- `com.grab.framework.logger.spi.LoggerProvider`
-- `com.grab.framework.logger.spi.LoggerConfig`
-
-Proposed contract:
+Application code does not log against raw SLF4J directly. It uses:
 
 ```java
-public interface LoggerProvider {
-    String id();
-    int priority();
-    boolean isAvailable();
-    LoggerFactory createFactory(LoggerConfig config);
-}
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
+private static final Logger log = Loggers.getLogger(CurrentClass.class);
 ```
 
-`LoggerConfig` should include:
+This pattern is used throughout `store/src/main/java`.
 
-- backend id (`console`, `slf4j`, custom)
-- default level
-- key/value options map for provider-specific settings
+The benefit is that caller code stays stable even if the active backend changes.
 
-### 3) Provider registry and resolution
+## 2) Lazy bootstrap and caching
 
-Add internal bootstrap components:
+`Loggers` does not create loggers directly. It caches a single active `LoggerFactory`.
 
-- `LoggerProviderRegistry` (built-ins + ServiceLoader providers)
-- `LoggerFactoryResolver` (select active provider)
-- `LoggerConfigLoader` interface (config loading contract)
+Behavior:
 
-Bootstrap policy:
+1. the first call to `Loggers.getLogger(...)` triggers `getFactory()`
+2. `getFactory()` checks whether a factory is already cached
+3. if not, it resolves one through `LoggerFactoryResolver`
+4. once resolved, the factory is cached and reused
 
-- framework does not provide a default `LoggerConfigLoader`
-- application must set loader explicitly (`Loggers.setConfigLoader(...)`)
+This keeps backend selection centralized and avoids repeated resolution work.
 
-Selection algorithm:
+There are also two utility methods mainly used in tests or explicit bootstrap:
 
-1. read explicit backend from:
-   - system property: `logger.backend`
-   - env var: `LOGGER_BACKEND`
-2. if explicit backend exists and provider is available, use it
-3. otherwise choose highest-priority available provider
-4. if none available, fallback to console provider
+- `Loggers.setFactory(...)`
+- `Loggers.reset()`
 
-Optional strict mode:
+## 3) Runtime configuration loading
 
-- `logger.fail-on-missing-backend=true` to fail fast if explicit backend unavailable
+The framework expects the application to provide a `LoggerConfigLoader`.
 
-### 4) Built-in providers
+In this repo, `store` installs it through:
 
-#### 4.1 Console provider
+- `store/src/main/java/com/grab/store/shared/config/LoggerEnvironmentPostProcessor.java`
+- `store/src/main/resources/META-INF/spring.factories`
 
-- `ConsoleLoggerProvider`
-- Uses framework `ConsoleLogger` semantics (updated for robustness)
-- Supports level from config:
-  - `logger.level`
-  - `LOGGER_LEVEL`
+The post-processor reads these properties from the Spring `Environment`:
 
-#### 4.2 SLF4J provider
+- `logger.backend`
+- `logger.level`
+- `logger.fail-on-missing-backend`
+
+and converts them into a `LoggerConfig`.
+
+## 4) Backend selection logic
+
+`LoggerFactoryResolver` is responsible for choosing the active backend.
+
+Current logic:
+
+1. load `LoggerConfig`
+2. if an explicit backend is configured, try to find that provider by id
+3. if the requested provider is available, use it
+4. if the requested provider is unavailable and strict mode is enabled, throw
+5. otherwise choose the highest-priority available provider
+6. if no provider is available, create `ConsoleLoggerFactory` directly
+
+This is why backend choice is deterministic and still safe when configuration is incomplete.
+
+## 5) Provider registry behavior
+
+`LoggerProviderRegistry` builds the provider list from:
+
+- built-in providers
+- external providers discovered with `ServiceLoader`
+
+Current built-in providers are:
 
 - `Slf4jLoggerProvider`
-- `Slf4jLoggerFactory`
-- `Slf4jLogger` delegates methods to `org.slf4j.Logger`
+- `ConsoleLoggerProvider`
 
-### 5) External provider extensibility
+Current priorities are:
 
-Framework supports third-party providers by adding jar with:
+- `slf4j`: `200`
+- `console`: `100`
 
-- implementation of `LoggerProvider`
-- service descriptor:
-  - `META-INF/services/com.grab.framework.logger.spi.LoggerProvider`
+If multiple providers share the same id, the registry keeps the higher-priority one. If priorities are equal, class name ordering is used as a deterministic tie-break.
 
-No framework code changes required for new providers.
+## 6) The normal `store` runtime path
 
-### 6) Store caller refactor
+For the `store` application, the usual path is:
 
-All existing `@Slf4j` in `store/src/main/java` are replaced with framework logger usage.
+1. `Loggers` resolves `Slf4jLoggerFactory`
+2. the factory creates `Slf4jLogger`
+3. `Slf4jLogger` delegates to `org.slf4j.Logger`
+4. Logback handles final formatting and output
 
-Refactor pattern:
+That means:
 
-1. remove:
-   - `import lombok.extern.slf4j.Slf4j;`
-   - `@Slf4j`
-2. add:
-   - `import com.grab.framework.logger.Logger;`
-   - `import com.grab.framework.logger.Loggers;`
-3. define:
-   - `private static final Logger log = Loggers.getLogger(CurrentClass.class);`
-4. keep existing log statements unchanged.
+- the framework provides the API and backend selection
+- Logback provides appenders, rolling policy, and output format
 
-## Detailed Implementation Plan
+Relevant files:
 
-### Phase 1: Framework SPI foundation
-
-Files to add:
-
-- `framework/src/main/java/com/grab/framework/logger/Loggers.java`
-- `framework/src/main/java/com/grab/framework/logger/spi/LoggerProvider.java`
-- `framework/src/main/java/com/grab/framework/logger/spi/LoggerConfig.java`
-- `framework/src/main/java/com/grab/framework/logger/internal/LoggerProviderRegistry.java`
-- `framework/src/main/java/com/grab/framework/logger/internal/LoggerFactoryResolver.java`
-- `framework/src/main/java/com/grab/framework/logger/internal/LoggerConfigLoader.java`
-
-Files to update:
-
-- `framework/pom.xml` (add `slf4j-api`, test deps)
-- `framework/src/main/java/com/grab/framework/logger/Logger.java` (Javadoc: `{}` formatting contract)
-
-### Phase 2: Built-in providers
-
-Files to add/update:
-
-- `framework/src/main/java/com/grab/framework/logger/console/ConsoleLoggerProvider.java`
-- `framework/src/main/java/com/grab/framework/logger/console/ConsoleLoggerFactory.java`
-- `framework/src/main/java/com/grab/framework/logger/console/ConsoleLogger.java` (robust `{}` formatting + throwable handling)
-- `framework/src/main/java/com/grab/framework/logger/slf4j/Slf4jLogger.java`
 - `framework/src/main/java/com/grab/framework/logger/slf4j/Slf4jLoggerFactory.java`
-- `framework/src/main/java/com/grab/framework/logger/slf4j/Slf4jLoggerProvider.java`
-
-Notes:
-
-- `console` and `slf4j` are built into `framework` registry.
-- `ServiceLoader` is used for external providers only.
-
-### Phase 3: Store caller migration
-
-- Refactor all `@Slf4j` classes in `store/src/main/java` to `Loggers` usage.
-- Do not alter business logic.
-- Verify no `@Slf4j` remains in `store/src/main/java`.
-
-### Phase 4: Store backend configuration
-
-Add:
-
+- `framework/src/main/java/com/grab/framework/logger/slf4j/Slf4jLogger.java`
 - `store/src/main/resources/logback-spring.xml`
-- `store/src/main/resources/application.yml` (`logger.*` keys)
+
+This is the normal path you should assume unless config says otherwise.
+
+## 7) The console fallback path
+
+If the console backend is selected, the flow becomes:
+
+1. `Loggers` resolves `ConsoleLoggerFactory`
+2. the factory creates `ConsoleLogger`
+3. `ConsoleLogger` formats and prints messages itself
+
+`ConsoleLogger` currently supports:
+
+- log level filtering
+- `{}` placeholder replacement
+- trailing throwable detection
+- appending unused arguments as `extraArgs`
+
+This makes the console path usable even without an external logging framework.
+
+## 8) Responsibility split
+
+`framework` owns:
+
+- the logging API
+- provider discovery
+- backend selection
+- built-in backends
+
+`store` owns:
+
+- runtime config values
+- Spring bootstrap wiring
+- Logback appenders and output formatting
+
+This split is intentional. The framework stays backend-agnostic while the application controls runtime behavior.
+
+That means when you debug a logging issue, ask two questions first:
+
+1. Did `framework` choose the backend you expected?
+2. If the backend is `slf4j`, is Logback configured the way you expected?
+
+## 9) Why the project does not log with raw SLF4J everywhere
+
+Using the framework facade gives the project:
+
+- a stable API for all modules
+- backend swapping without caller rewrites
+- one place to handle fallback behavior
+- an extension point for future providers
+
+It also keeps framework modules from depending directly on a concrete backend configuration model.
+
+## 10) Adding another backend
+
+To add a new backend:
+
+1. implement `com.grab.framework.logger.spi.LoggerProvider`
+2. create a `LoggerFactory` for that backend
+3. register the provider in `META-INF/services/com.grab.framework.logger.spi.LoggerProvider`
+4. select it with `logger.backend=<provider-id>`
+
+No caller code should need to change.
+
+## Useful files for new joiners
+
+Start here if you want the shortest path from API to runtime behavior:
+
+- `framework/src/main/java/com/grab/framework/logger/Logger.java`
+- `framework/src/main/java/com/grab/framework/logger/Loggers.java`
+- `framework/src/main/java/com/grab/framework/logger/internal/LoggerFactoryResolver.java`
+- `framework/src/main/java/com/grab/framework/logger/internal/LoggerProviderRegistry.java`
+- `framework/src/main/java/com/grab/framework/logger/console/ConsoleLogger.java`
+- `framework/src/main/java/com/grab/framework/logger/slf4j/Slf4jLogger.java`
 - `store/src/main/java/com/grab/store/shared/config/LoggerEnvironmentPostProcessor.java`
-- `store/src/main/resources/META-INF/spring/org.springframework.boot.env.EnvironmentPostProcessor`
+- `store/src/main/resources/application.yml`
+- `store/src/main/resources/logback-spring.xml`
 
-Use:
+## Useful tests
 
-- console appender pattern with `traceId` MDC output
-- local-friendly format (timestamp, level, logger, thread, message)
-- install Spring-backed `LoggerConfigLoader` via `LoggerEnvironmentPostProcessor` so store owns logger config resolution
+These tests are the fastest way to understand expected behavior:
 
-## Testing Strategy
-
-### 1) Framework unit tests
-
-Add tests for:
-
-- provider registry collects built-in + ServiceLoader providers
-- resolver selects explicit backend when available
-- resolver fallback behavior when backend missing/unavailable
-- strict mode fail-fast behavior
-- SLF4J adapter delegation for all overloads
-- console provider factory and level configuration behavior
-
-Suggested files:
-
+- `framework/src/test/java/com/grab/framework/logger/LoggersTest.java`
 - `framework/src/test/java/com/grab/framework/logger/internal/LoggerFactoryResolverTest.java`
 - `framework/src/test/java/com/grab/framework/logger/internal/LoggerProviderRegistryTest.java`
 - `framework/src/test/java/com/grab/framework/logger/slf4j/Slf4jLoggerTest.java`
-- `framework/src/test/java/com/grab/framework/logger/console/ConsoleLoggerProviderTest.java`
-
-### 2) Extension compatibility test
-
-Add a test-only fake provider via `META-INF/services` in test resources to validate plugin loading path.
-
-### 3) Store verification
-
-- compile and run tests after refactor
-- verify startup with `logback-spring.xml`
-- ensure no Lombok logging annotation remains in store main code
-
-Commands:
-
-- `./mvnw -pl framework test`
-- `./mvnw -pl store -am -Dtest=GlobalApiExceptionHandlerIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test`
-- `./mvnw -pl store -am test`
-
-Completeness checks:
-
-- `rg -n "@Slf4j|lombok\.extern\.slf4j\.Slf4j" store/src/main/java` => no result
-- `rg -n "com\.grab\.framework\.logger\.Loggers|private static final Logger log" store/src/main/java` => migrated usage present
-
-## Rollout Plan
-
-1. Deliver framework SPI + built-in providers with tests.
-2. Migrate store callsites to framework logger.
-3. Add/verify store backend config.
-4. Publish usage guide and link docs for developer onboarding.
-5. Run test suite and completeness checks.
-6. Merge once acceptance criteria pass.
-
-## Risks and Mitigations
-
-- Risk: misconfigured backend id causes silent fallback.
-  - Mitigation: strict mode option (`logger.fail-on-missing-backend=true`) to fail fast.
-- Risk: provider conflicts (same id from multiple jars).
-  - Mitigation: deterministic tie-break by priority, then class name.
-- Risk: refactor introduces accidental non-logging edits.
-  - Mitigation: mechanical refactor rules + focused review.
-
-## Acceptance Criteria
-
-- Framework supports runtime-selectable backend providers.
-- Built-in `console` and `slf4j` providers are available and tested.
-- Third-party provider loading via `ServiceLoader` is tested.
-- `store` main code has no `@Slf4j` remaining.
-- Store tests pass and console logging works in development.
+- `framework/src/test/java/com/grab/framework/logger/console/ConsoleLoggerTest.java`
