@@ -2,6 +2,8 @@ package com.inventory.domain.service.impl;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.exception.InventoryDomainError;
@@ -15,6 +17,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class DefaultInventoryAllocationService implements InventoryAllocationService {
+
+    private static final Logger log = Loggers.getLogger(DefaultInventoryAllocationService.class);
 
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
@@ -32,12 +36,16 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
 
     @Override
     public AllocationResult allocateStock(String sku, int quantity, String orderId, Id createdBy) {
+        log.info("Allocating stock for sku={}, quantity={}, orderId={}", sku, quantity, orderId);
+
         if (quantity <= 0) {
+            log.warn("Rejected allocation for sku={} because quantity={} is not positive", sku, quantity);
             return AllocationResult.failure(sku, quantity, new InventoryDomainError.QuantityNotPositive());
         }
 
         List<InventoryItem> availableItems = findAvailableInventory(sku);
         if (availableItems.isEmpty()) {
+            log.warn("No allocatable inventory found for sku={}", sku);
             return AllocationResult.failure(sku, quantity, new InventoryDomainError.NoAvailableInventory(sku));
         }
 
@@ -46,6 +54,12 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
                 .sum();
 
         if (totalAvailable < quantity) {
+            log.warn(
+                    "Insufficient stock for sku={}: requested={}, available={}",
+                    sku,
+                    quantity,
+                    totalAvailable
+            );
             return AllocationResult.failure(sku, quantity, new InventoryDomainError.InsufficientStock(totalAvailable, quantity));
         }
 
@@ -61,17 +75,41 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
                 inventoryRepository.save(item);
                 stockMovementRepository.save(movement);
 
+                log.debug(
+                        "Reserved quantity={} for sku={} from inventoryItemId={} at locationId={}",
+                        toAllocate,
+                        sku,
+                        item.getId().getValue(),
+                        item.getLocationId().getValue()
+                );
+
                 allocations.add(new AllocationDetail(item.getId(), item.getLocationId(), toAllocate));
                 remaining -= toAllocate;
             }
         }
 
+        log.info(
+                "Allocation completed for sku={}: requested={}, allocations={}, remaining={}",
+                sku,
+                quantity,
+                allocations.size(),
+                remaining
+        );
         return AllocationResult.success(sku, quantity, allocations);
     }
 
     @Override
     public AllocationResult allocateStockFromLocation(String sku, Id locationId, int quantity, String orderId, Id createdBy) {
+        log.info(
+                "Allocating stock from location for sku={}, locationId={}, quantity={}, orderId={}",
+                sku,
+                locationId.getValue(),
+                quantity,
+                orderId
+        );
+
         if (quantity <= 0) {
+            log.warn("Rejected location allocation for sku={} because quantity={} is not positive", sku, quantity);
             return AllocationResult.failure(sku, quantity, new InventoryDomainError.QuantityNotPositive());
         }
 
@@ -81,9 +119,17 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
             InventoryItem item = inventoryItem.get();
 
             if (!item.isActive()) {
+                log.warn("Inventory item is not active for sku={} at locationId={}", sku, locationId.getValue());
                 return AllocationResult.failure(sku, quantity, new InventoryDomainError.InventoryItemNotActive(sku));
             }
             if (item.getAvailableQuantity() < quantity) {
+                log.warn(
+                        "Insufficient stock at location for sku={}: requested={}, available={}, locationId={}",
+                        sku,
+                        quantity,
+                        item.getAvailableQuantity(),
+                        locationId.getValue()
+                );
                 return AllocationResult.failure(sku, quantity,
                         new InventoryDomainError.InsufficientStock(item.getAvailableQuantity(), quantity));
             }
@@ -92,11 +138,20 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
             inventoryRepository.save(item);
             stockMovementRepository.save(movement);
 
+            log.info(
+                    "Allocated quantity={} for sku={} from inventoryItemId={} at locationId={}",
+                    quantity,
+                    sku,
+                    item.getId().getValue(),
+                    locationId.getValue()
+            );
+
             List<AllocationDetail> allocations = List.of(
                     new AllocationDetail(item.getId(), locationId, quantity)
             );
             return AllocationResult.success(sku, quantity, allocations);
         } else {
+            log.warn("No inventory found for sku={} at locationId={}", sku, locationId.getValue());
             return AllocationResult.failure(sku, quantity,
                     new InventoryDomainError.InventoryNotFoundAtLocation(sku, locationId.getValue()));
         }
@@ -104,6 +159,8 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
 
     @Override
     public void deallocateStock(String sku, int quantity, String orderId, Id initiatedBy) {
+        log.info("Deallocating stock for sku={}, quantity={}, orderId={}", sku, quantity, orderId);
+
         List<InventoryItem> items = inventoryRepository.findBySku(sku);
 
         int remaining = quantity;
@@ -116,9 +173,23 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
                 StockMovement movement = item.releaseReservation(toRelease, orderId, initiatedBy, idGenerator.generateId());
                 inventoryRepository.save(item);
                 stockMovementRepository.save(movement);
+                log.debug(
+                        "Released quantity={} for sku={} from inventoryItemId={} at locationId={}",
+                        toRelease,
+                        sku,
+                        item.getId().getValue(),
+                        item.getLocationId().getValue()
+                );
                 remaining -= toRelease;
             }
         }
+
+        if (remaining > 0) {
+            log.warn("Deallocation ended with unreleased quantity={} for sku={}", remaining, sku);
+            return;
+        }
+
+        log.info("Deallocation completed for sku={}, releasedQuantity={}", sku, quantity);
     }
 
     @Override
@@ -133,10 +204,13 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
 
     @Override
     public List<InventoryItem> findAvailableInventory(String sku) {
-        return inventoryRepository.findBySku(sku).stream()
+        List<InventoryItem> availableItems = inventoryRepository.findBySku(sku).stream()
                 .filter(InventoryItem::isActive)
                 .filter(item -> item.getAvailableQuantity() > 0)
                 .sorted(Comparator.comparingInt(InventoryItem::getAvailableQuantity).reversed())
                 .toList();
+
+        log.debug("Found {} allocatable inventory items for sku={}", availableItems.size(), sku);
+        return availableItems;
     }
 }

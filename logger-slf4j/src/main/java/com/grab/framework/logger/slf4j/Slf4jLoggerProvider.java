@@ -28,4 +28,3 @@ public final class Slf4jLoggerProvider implements LoggerProvider {
         return new Slf4jLoggerFactory();
     }
 }
-

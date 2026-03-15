@@ -1,7 +1,6 @@
 package com.grab.framework.logger.internal.fixtures;
 
 import com.grab.framework.logger.LoggerFactory;
-import com.grab.framework.logger.console.ConsoleLoggerFactory;
 import com.grab.framework.logger.spi.LoggerConfig;
 import com.grab.framework.logger.spi.LoggerProvider;
 
@@ -24,6 +23,6 @@ public final class TestExternalLoggerProvider implements LoggerProvider {
 
     @Override
     public LoggerFactory createFactory(LoggerConfig config) {
-        return new ConsoleLoggerFactory(config.effectiveLevel());
+        return new TestExternalLoggerFactory();
     }
 }

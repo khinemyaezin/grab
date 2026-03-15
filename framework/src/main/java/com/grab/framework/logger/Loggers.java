@@ -2,6 +2,7 @@ package com.grab.framework.logger;
 
 import com.grab.framework.logger.internal.LoggerConfigLoader;
 import com.grab.framework.logger.internal.LoggerFactoryResolver;
+import com.grab.framework.logger.noop.NoOpLoggerFactory;
 
 import java.util.Objects;
 
@@ -28,13 +29,9 @@ public final class Loggers {
         }
         synchronized (Loggers.class) {
             if (loggerFactory == null) {
-                if (configLoader == null) {
-                    throw new IllegalStateException(
-                            "LoggerConfigLoader is not configured. " +
-                            "Configure via Loggers.setConfigLoader(...) during application bootstrap."
-                    );
-                }
-                loggerFactory = LoggerFactoryResolver.withConfigLoader(configLoader).resolveFactory();
+                loggerFactory = (configLoader != null)
+                        ? LoggerFactoryResolver.withConfigLoader(configLoader).resolveFactory()
+                        : NoOpLoggerFactory.getInstance();
             }
             return loggerFactory;
         }

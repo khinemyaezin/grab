@@ -47,11 +47,15 @@ inventory:
 
 logger:
   backend: ${LOGGER_BACKEND:slf4j}
-  level: ${LOGGER_LEVEL:INFO}
   fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
   file:
     path: ${LOGGER_FILE_PATH:logs}
     name: ${LOGGER_FILE_NAME:store.log}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    org.springframework.web: ${LOGGING_LEVEL_WEB:INFO}
 
 springdoc:
   api-docs:

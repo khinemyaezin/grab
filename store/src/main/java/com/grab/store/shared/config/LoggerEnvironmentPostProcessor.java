@@ -1,6 +1,5 @@
 package com.grab.store.shared.config;
 
-import com.grab.framework.logger.LogLevel;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.logger.internal.LoggerConfigLoader;
 import com.grab.framework.logger.spi.LoggerConfig;
@@ -15,7 +14,6 @@ import java.util.Map;
 public class LoggerEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
     private static final String LOGGER_BACKEND = "logger.backend";
-    private static final String LOGGER_LEVEL = "logger.level";
     private static final String LOGGER_STRICT = "logger.fail-on-missing-backend";
 
     @Override
@@ -39,26 +37,14 @@ public class LoggerEnvironmentPostProcessor implements EnvironmentPostProcessor,
         @Override
         public LoggerConfig load() {
             String backend = trimToNull(environment.getProperty(LOGGER_BACKEND));
-            String level = trimToNull(environment.getProperty(LOGGER_LEVEL));
             String strict = trimToNull(environment.getProperty(LOGGER_STRICT));
 
             return new LoggerConfig(
                     backend,
-                    parseLevel(level),
+                    null,
                     Map.of(),
                     parseBoolean(strict)
             );
-        }
-
-        private LogLevel parseLevel(String raw) {
-            if (raw == null) {
-                return LogLevel.INFO;
-            }
-            try {
-                return LogLevel.valueOf(raw.toUpperCase());
-            } catch (IllegalArgumentException ex) {
-                return LogLevel.INFO;
-            }
         }
 
         private boolean parseBoolean(String raw) {

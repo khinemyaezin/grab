@@ -1,6 +1,8 @@
 package com.inventory.domain.service.impl;
 
 import com.grab.framework.id.Id;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.service.ReorderService;
@@ -12,47 +14,67 @@ import java.util.stream.Stream;
 
 @AllArgsConstructor
 public class DefaultReorderService implements ReorderService {
+    private static final Logger log = Loggers.getLogger(DefaultReorderService.class);
+
     private final InventoryRepository inventoryRepository;
 
     @Override
     public List<ReorderSuggestion> calculateReorderSuggestions() {
-        return inventoryRepository.findAll().stream()
+        log.info("Calculating reorder suggestions for all inventory items");
+
+        List<ReorderSuggestion> suggestions = inventoryRepository.findAll().stream()
                 .filter(InventoryItem::isActive)
                 .filter(this::shouldSuggestReorder)
                 .map(this::createSuggestion)
                 .sorted(Comparator.comparing(ReorderSuggestion::priority))
                 .toList();
+
+        log.info("Calculated {} reorder suggestions across all locations", suggestions.size());
+        return suggestions;
     }
 
     @Override
     public List<ReorderSuggestion> calculateReorderSuggestionsForLocation(Id locationId) {
-        return inventoryRepository.findByLocation(locationId).stream()
+        log.info("Calculating reorder suggestions for locationId={}", locationId.getValue());
+
+        List<ReorderSuggestion> suggestions = inventoryRepository.findByLocation(locationId).stream()
                 .filter(InventoryItem::isActive)
                 .filter(this::shouldSuggestReorder)
                 .map(this::createSuggestion)
                 .sorted(Comparator.comparing(ReorderSuggestion::priority))
                 .toList();
+
+        log.info("Calculated {} reorder suggestions for locationId={}", suggestions.size(), locationId.getValue());
+        return suggestions;
     }
 
     @Override
     public List<ReorderSuggestion> calculateReorderSuggestionsForSku(String sku) {
-        return inventoryRepository.findBySku(sku).stream()
+        log.info("Calculating reorder suggestions for sku={}", sku);
+
+        List<ReorderSuggestion> suggestions = inventoryRepository.findBySku(sku).stream()
                 .filter(InventoryItem::isActive)
                 .filter(this::shouldSuggestReorder)
                 .map(this::createSuggestion)
                 .sorted(Comparator.comparing(ReorderSuggestion::priority))
                 .toList();
+
+        log.info("Calculated {} reorder suggestions for sku={}", suggestions.size(), sku);
+        return suggestions;
     }
 
     @Override
     public List<InventoryItem> getCriticalReorderItems() {
-        return Stream.concat(
+        List<InventoryItem> criticalItems = Stream.concat(
                         inventoryRepository.findOutOfStock().stream(),
                         inventoryRepository.findLowStock().stream()
                 )
                 .filter(InventoryItem::isActive)
                 .distinct()
                 .toList();
+
+        log.info("Found {} critical reorder items", criticalItems.size());
+        return criticalItems;
     }
 
     @Override
@@ -78,6 +100,13 @@ public class DefaultReorderService implements ReorderService {
 
     private boolean shouldSuggestReorder(InventoryItem item) {
         ReorderPriority priority = calculatePriority(item);
+        log.debug(
+                "Calculated reorder priority={} for inventoryItemId={}, sku={}, available={}",
+                priority,
+                item.getId().getValue(),
+                item.getSku(),
+                item.getAvailableQuantity()
+        );
         return priority != ReorderPriority.LOW;
     }
 
