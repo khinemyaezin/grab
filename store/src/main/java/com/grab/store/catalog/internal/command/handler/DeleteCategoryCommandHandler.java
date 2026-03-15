@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
 import com.grab.framework.cqrs.command.CommandHandler;
@@ -7,15 +10,15 @@ import com.grab.store.catalog.internal.command.DeleteCategoryCommand;
 import com.grab.store.catalog.internal.command.DeleteCategoryResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DeleteCategoryCommandHandler implements CommandHandler<DeleteCategoryCommand, DeleteCategoryResult> {
+
+    private static final Logger log = Loggers.getLogger(DeleteCategoryCommandHandler.class);
 
     private final CategoryRepository categoryRepository;
 

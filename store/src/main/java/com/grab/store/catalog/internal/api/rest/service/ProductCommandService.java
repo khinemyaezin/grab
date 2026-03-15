@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.api.rest.assembler.DeleteProductModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.UpdateProductModelAssembler;
@@ -23,14 +26,14 @@ import com.grab.store.catalog.internal.command.UpdateProductStatusCommand;
 import com.grab.store.catalog.internal.command.UpdateProductStatusResult;
 import com.grab.framework.cqrs.command.CommandBus;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductCommandService {
+
+    private static final Logger log = Loggers.getLogger(ProductCommandService.class);
 
     private final CommandBus commandBus;
     private final SaveProductDtoMapper saveProductDtoMapper;

@@ -1,5 +1,13 @@
 package com.grab.framework.logger;
 
+/**
+ * Framework logging facade.
+ *
+ * <p>For parameterized methods with {@code Object... args}, placeholders follow
+ * SLF4J-style braces (for example: {@code "Order {} failed for {}"}).
+ * {@code String.format} placeholders (for example: {@code %s}) are not the
+ * contract of this API.
+ */
 public interface Logger {
     boolean isTraceEnabled();
     boolean isDebugEnabled();

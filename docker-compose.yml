@@ -1,79 +1,89 @@
-version: '3.8'
-
 services:
-  # ===========================================
-  # Spring Boot Application
-  # ===========================================
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: grab-store
+    container_name: grab-store-dev
     ports:
-      - "8080:8080"
-      - "5005:5005"
-    environment:
-      - SPRING_PROFILES_ACTIVE=default
-      - CATALOG_DATASOURCE_URL=jdbc:postgresql://postgres:5432/catalog
-      - CATALOG_DATASOURCE_USERNAME=admin
-      - CATALOG_DATASOURCE_PASSWORD=123
-      - CATALOG_DATASOURCE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
-      - CATALOG_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
-      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      - "${APP_PORT:-8080}:8080"
+      - "${DEBUG_PORT:-5005}:5005"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
-      - grab-network
-    restart: unless-stopped
+      - app-network
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+      CATALOG_DATASOURCE_URL: "${CATALOG_DATASOURCE_URL:?CATALOG_DATASOURCE_URL is required}"
+      CATALOG_DATASOURCE_USERNAME: "${CATALOG_DATASOURCE_USERNAME:?CATALOG_DATASOURCE_USERNAME is required}"
+      CATALOG_DATASOURCE_PASSWORD: "${CATALOG_DATASOURCE_PASSWORD:?CATALOG_DATASOURCE_PASSWORD is required}"
+      CATALOG_DATASOURCE_DIALECT: "${CATALOG_DATASOURCE_DIALECT:?CATALOG_DATASOURCE_DIALECT is required}"
+      CATALOG_DATASOURCE_DRIVER_CLASS_NAME: "${CATALOG_DATASOURCE_DRIVER_CLASS_NAME:?CATALOG_DATASOURCE_DRIVER_CLASS_NAME is required}"
+      CATALOG_JPA_DDL_AUTO: "${CATALOG_JPA_DDL_AUTO:-validate}"
+      CATALOG_JPA_SHOW_SQL: "${CATALOG_JPA_SHOW_SQL:-false}"
+      CATALOG_JPA_FORMAT_SQL: "${CATALOG_JPA_FORMAT_SQL:-false}"
+      INVENTORY_DATASOURCE_URL: "${INVENTORY_DATASOURCE_URL:?INVENTORY_DATASOURCE_URL is required}"
+      INVENTORY_DATASOURCE_USERNAME: "${INVENTORY_DATASOURCE_USERNAME:?INVENTORY_DATASOURCE_USERNAME is required}"
+      INVENTORY_DATASOURCE_PASSWORD: "${INVENTORY_DATASOURCE_PASSWORD:?INVENTORY_DATASOURCE_PASSWORD is required}"
+      INVENTORY_DATASOURCE_DIALECT: "${INVENTORY_DATASOURCE_DIALECT:?INVENTORY_DATASOURCE_DIALECT is required}"
+      INVENTORY_DATASOURCE_DRIVER_CLASS_NAME: "${INVENTORY_DATASOURCE_DRIVER_CLASS_NAME:?INVENTORY_DATASOURCE_DRIVER_CLASS_NAME is required}"
+      INVENTORY_JPA_DDL_AUTO: "${INVENTORY_JPA_DDL_AUTO:-validate}"
+      INVENTORY_JPA_SHOW_SQL: "${INVENTORY_JPA_SHOW_SQL:-false}"
+      INVENTORY_JPA_FORMAT_SQL: "${INVENTORY_JPA_FORMAT_SQL:-false}"
+      LOGGER_BACKEND: "${LOGGER_BACKEND:-slf4j}"
+      LOGGER_LEVEL: "${LOGGER_LEVEL:-INFO}"
+      LOGGER_FAIL_ON_MISSING_BACKEND: "${LOGGER_FAIL_ON_MISSING_BACKEND:-false}"
+      LOGGER_FILE_PATH: "${LOGGER_FILE_PATH:-logs}"
+      LOGGER_FILE_NAME: "${LOGGER_FILE_NAME:-store.log}"
+      JAVA_TOOL_OPTIONS: "${JAVA_TOOL_OPTIONS:--agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005}"
 
-  # ===========================================
-  # PostgreSQL Database
-  # ===========================================
   postgres:
     image: postgres:16-alpine
-    container_name: grab-postgres
-    ports:
-      - "5432:5432"
+    container_name: grab-postgres-dev
     environment:
-      - POSTGRES_DB=catalog
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=123
+      MODULE_DATABASES: "${MODULE_DATABASES:?MODULE_DATABASES is required}"
+      POSTGRES_USER: "${POSTGRES_USER:?POSTGRES_USER is required}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init/01-create-databases.sh:/docker-entrypoint-initdb.d/01-create-databases.sh:ro
+
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d catalog"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - grab-network
+      - app-network
     restart: unless-stopped
 
-  # ===========================================
-  # pgAdmin (Database Management UI)
-  # ===========================================
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: grab-pgadmin
-    ports:
-      - "5050:80"
     environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@grab.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
-      - PGADMIN_CONFIG_SERVER_MODE=False
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL:?PGADMIN_DEFAULT_EMAIL is required}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD:?PGADMIN_DEFAULT_PASSWORD is required}"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
-      - grab-network
+      - app-network
     restart: unless-stopped
 
 networks:
-  grab-network:
+  app-network:
+    name: "${DOCKER_NETWORK:-grab-network}"
     driver: bridge
 
 volumes:
   postgres-data:
+    name: "${POSTGRES_VOLUME:-postgres-data}"
   pgadmin-data:
+    name: "${PGADMIN_VOLUME:-pgadmin-data}"

@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.ProductSummaryQuery;
@@ -9,17 +12,17 @@ import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.view.ProductSummary;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQuery, ProductSummaryResult> {
+
+    private static final Logger log = Loggers.getLogger(ProductSummaryQueryHandler.class);
 
     private final ProductQueryRepository productQueryRepository;
 

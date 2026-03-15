@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.grab.framework.cqrs.query.QueryHandler;
@@ -10,13 +13,13 @@ import com.grab.store.catalog.internal.query.CategoryResult;
 import com.grab.store.catalog.internal.query.GetCategoryParentQuery;
 import com.nestedset.app.NestedSetNodeRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GetCategoryParentQueryHandler implements QueryHandler<GetCategoryParentQuery, CategoryResult> {
+
+    private static final Logger log = Loggers.getLogger(GetCategoryParentQueryHandler.class);
 
     private final CategoryJpaRepo categoryJpaRepo;
     private final NestedSetNodeRepository<CategoryEntity, Long> nodeRepository;

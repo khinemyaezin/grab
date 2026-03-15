@@ -8,6 +8,7 @@
 **/.classpath
 **/.dockerignore
 **/.env
+**/.env.*
 **/.factorypath
 **/.git
 **/.gitignore
@@ -24,6 +25,7 @@
 **/*.jfm
 **/charts
 **/docker-compose*
+docker/env/*.env
 **/compose.y*ml
 **/Dockerfile*
 **/secrets.dev.yaml

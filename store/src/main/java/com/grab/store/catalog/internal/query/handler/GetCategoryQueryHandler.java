@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
 import com.grab.framework.id.IdGenerator;
@@ -10,13 +13,13 @@ import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.CategoryResult;
 import com.grab.store.catalog.internal.query.GetCategoryQuery;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GetCategoryQueryHandler implements QueryHandler<GetCategoryQuery, CategoryResult> {
+
+    private static final Logger log = Loggers.getLogger(GetCategoryQueryHandler.class);
 
     private final CategoryRepository categoryRepository;
     private final IdGenerator idGenerator;

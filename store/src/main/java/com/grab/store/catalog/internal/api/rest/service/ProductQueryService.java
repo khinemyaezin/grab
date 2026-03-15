@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.store.catalog.internal.api.rest.assembler.GetProductBySlugModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.GetProductModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.ProductCombinationModelAssembler;
@@ -29,14 +32,14 @@ import com.grab.store.catalog.internal.query.ProductSummaryResult;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductQueryService {
+
+    private static final Logger log = Loggers.getLogger(ProductQueryService.class);
 
     private final QueryBus queryBus;
     private final GetProductDtoMapper getProductDtoMapper;

@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.cqrs.query.QueryHandler;
@@ -17,16 +20,16 @@ import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.valueobject.VariantCombination;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Objects;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductCombinationQueryHandler implements QueryHandler<ProductCombinationQuery, ProductCombinationResult> {
+
+    private static final Logger log = Loggers.getLogger(ProductCombinationQueryHandler.class);
     private final IdGenerator idGenerator;
     private final VariationCombinationManager variationCombinationManager;
     private final VariantCombinationService variantCombinationService;
