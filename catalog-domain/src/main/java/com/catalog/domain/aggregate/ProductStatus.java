@@ -6,9 +6,9 @@ public enum ProductStatus {
     public boolean canTransitionTo(ProductStatus target) {
         if (target == null) return false;
         return switch (this) {
-            case DRAFT -> target == this || target == ACTIVE;
+            case DRAFT -> target == this || target == ACTIVE || target == ARCHIVED;
             case ACTIVE -> target == this || target == ARCHIVED;
-            case ARCHIVED -> target == this;
+            case ARCHIVED -> target == this || target == ACTIVE;
         };
     }
 }

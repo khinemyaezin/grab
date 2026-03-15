@@ -3,6 +3,7 @@ package com.grab.store.catalog.internal.command.handler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.aggregate.ProductVariantStatus;
+import com.catalog.domain.event.ProductVariantRestoredEvent;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.exception.ErrorCategory;
@@ -70,6 +71,7 @@ class RestoreVariantCommandHandlerTest {
         assertThat(saved.findVariantById(variantId))
                 .isPresent()
                 .hasValueSatisfying(v -> assertThat(v.getStatus()).isEqualTo(ProductVariantStatus.ACTIVE));
+        assertThat(saved.getEvents()).anyMatch(ProductVariantRestoredEvent.class::isInstance);
 
         assertThat(result.productId()).isEqualTo(PRODUCT_ID);
         assertThat(result.variantId()).isEqualTo(VARIANT_ID);

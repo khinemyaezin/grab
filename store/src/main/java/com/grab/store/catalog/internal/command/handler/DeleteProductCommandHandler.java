@@ -3,7 +3,6 @@ package com.grab.store.catalog.internal.command.handler;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
-import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.command.DeleteProductCommand;
 import com.grab.store.catalog.internal.command.DeleteProductResult;
 import com.grab.framework.cqrs.command.CommandHandler;
@@ -34,7 +33,9 @@ public class DeleteProductCommandHandler implements CommandHandler<DeleteProduct
             return new DeleteProductResult(false);
         }
 
-        productRepository.delete(product.get());
+        Product existingProduct = product.get();
+        existingProduct.delete();
+        productRepository.save(existingProduct);
 
         log.info("Product deleted successfully: {}", command.productId());
 

@@ -4,6 +4,7 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.id.Id;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
@@ -11,6 +12,7 @@ import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -24,6 +26,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     private static final Logger log = Loggers.getLogger(UpdateProductCommandHandler.class);
 
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
     private final UniqueSlugResolver uniqueSlugResolver;
 
     @Override
@@ -39,6 +42,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         }
 
         Product product = hasProduct.get();
+        validateCategoryExists(command.categoryId());
 
         String slug = uniqueSlugResolver.resolve(command.slug(), command.name(), product.getId().getValue());
         boolean featured = command.featured() != null ? command.featured() : product.isFeatured();
@@ -64,5 +68,13 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     @Override
     public Class<UpdateProductCommand> getCommandType() {
         return UpdateProductCommand.class;
+    }
+
+    private void validateCategoryExists(Id categoryId) {
+        if (categoryRepository.find(categoryId).isEmpty()) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.CategoryNotFound(categoryId.getValue())
+            );
+        }
     }
 }

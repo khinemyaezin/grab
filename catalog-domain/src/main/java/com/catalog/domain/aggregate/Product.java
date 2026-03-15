@@ -18,7 +18,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.*;
-import java.util.Locale;
 
 /**
  * A product has list of variants. Variant order can be neglect.
@@ -89,12 +88,6 @@ public class Product extends AggregateRoot<Id> {
         super.addEvent(categoryChangedEvent);
     }
 
-    public void delete() {
-        ProductDeletedEvent productDeletedEvent = new ProductDeletedEvent(this.getId(),this.getCategoryId(),
-                this.variants.stream().map(Entity::getId).toList());
-        super.addEvent(productDeletedEvent);
-    }
-
     public List<ProductVariant> getVariants() {
         return Collections.unmodifiableList(variants);
     }
@@ -151,12 +144,17 @@ public class Product extends AggregateRoot<Id> {
         return true;
     }
 
-    public boolean removeVariant(Id id) {
-        boolean removed = variants.removeIf( v-> Objects.equals(id, v.getId()) );
-        if(removed) {
-            super.addEvent(new ProductVariantDeletedEvent(this.getId(),this.getCategoryId(), id));
+    public void removeVariant(Id id) {
+        ensureLastActiveVariantIsNotRemoved(Set.of(id));
+
+        Optional<ProductVariant> existing = findVariantById(id);
+        boolean removed = variants.removeIf(v -> Objects.equals(id, v.getId()));
+        if (removed) {
+            super.addEvent(new ProductVariantDeletedEvent(this.getId(), this.getCategoryId(), id));
+            if (existing.filter(ProductVariant::isActive).isPresent()) {
+                archiveIfUnsellable();
+            }
         }
-        return removed;
     }
 
     public void applySoftDeleteVariants(Collection<Id> variantIds) {
@@ -167,11 +165,16 @@ public class Product extends AggregateRoot<Id> {
             if (id != null) removalIds.add(id);
         }
 
+        ensureLastActiveVariantIsNotRemoved(removalIds);
+
         for (ProductVariant variant : this.variants) {
             if (variant.isActive() && removalIds.contains(variant.getId())) {
                 variant.markAsDeleted();
+                super.addEvent(new ProductVariantDeletedEvent(this.getId(), this.getCategoryId(), variant.getId()));
             }
         }
+
+        archiveIfUnsellable();
     }
 
     public void update(String name, Id categoryId, boolean featured, String slug) {
@@ -202,7 +205,7 @@ public class Product extends AggregateRoot<Id> {
     }
 
     public boolean isVisibleOnStorefront() {
-        return this.status == ProductStatus.ACTIVE;
+        return this.status == ProductStatus.ACTIVE && !this.getActiveVariants().isEmpty();
     }
 
     public void changeStatus(ProductStatus newStatus) {
@@ -226,6 +229,58 @@ public class Product extends AggregateRoot<Id> {
         ProductStatus old = this.status;
         this.status = newStatus;
         super.addEvent(new ProductStatusChangedEvent(this.getId(), old.name(), newStatus.name()));
+    }
+
+    public void delete() {
+        if (this.status == ProductStatus.ARCHIVED) {
+            super.addEvent(new ProductDeletedEvent(
+                    this.getId(),
+                    this.getCategoryId(),
+                    this.variants.stream().map(Entity::getId).toList()
+            ));
+            return;
+        }
+        changeStatus(ProductStatus.ARCHIVED);
+        super.addEvent(new ProductDeletedEvent(
+                this.getId(),
+                this.getCategoryId(),
+                this.variants.stream().map(Entity::getId).toList()
+        ));
+    }
+
+    public void archiveIfUnsellable() {
+        if (this.status == ProductStatus.ACTIVE && this.getActiveVariants().isEmpty()) {
+            changeStatus(ProductStatus.ARCHIVED);
+        }
+    }
+
+    private void ensureLastActiveVariantIsNotRemoved(Set<Id> candidateVariantIds) {
+        if (this.status != ProductStatus.ACTIVE || candidateVariantIds == null || candidateVariantIds.isEmpty()) {
+            return;
+        }
+
+        long activeVariantsToDelete = this.variants.stream()
+                .filter(ProductVariant::isActive)
+                .filter(variant -> candidateVariantIds.contains(variant.getId()))
+                .count();
+
+        if (activeVariantsToDelete <= 0 || this.getActiveVariants().size() - activeVariantsToDelete > 0) {
+            return;
+        }
+
+        Id protectedVariantId = this.variants.stream()
+                .filter(ProductVariant::isActive)
+                .filter(variant -> candidateVariantIds.contains(variant.getId()))
+                .map(Entity::getId)
+                .findFirst()
+                .orElse(null);
+
+        throw new CatalogDomainValidationException(
+                new CatalogDomainError.CannotDeleteLastActiveVariantFromActiveProduct(
+                        protectedVariantId == null ? null : protectedVariantId.getValue()
+                ),
+                "Cannot delete the last active variant from an active product."
+        );
     }
 
     private static String generateSlug(String name) {

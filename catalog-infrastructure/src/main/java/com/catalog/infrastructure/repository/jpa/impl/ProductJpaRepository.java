@@ -81,6 +81,31 @@ public class ProductJpaRepository implements ProductRepository {
     }
 
     @Override
+    public boolean isSkuTaken(String sku, String excludeVariantUuid) {
+        log.debug("Checking product sku availability for sku={}, excludeVariantUuid={}", sku, excludeVariantUuid);
+        return executor.query("Product", () -> productJpaRepo.isSkuTaken(sku, excludeVariantUuid));
+    }
+
+    @Override
+    public boolean existsByCategoryIds(Collection<Id> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return false;
+        }
+
+        List<String> categoryUuids = categoryIds.stream()
+                .filter(Objects::nonNull)
+                .map(Id::getValue)
+                .toList();
+
+        if (categoryUuids.isEmpty()) {
+            return false;
+        }
+
+        log.debug("Checking product existence for categoryIds={}", categoryUuids);
+        return executor.query("Product", () -> productJpaRepo.existsByCategoryIds(categoryUuids));
+    }
+
+    @Override
     public Optional<Integer> findMaxSlugSuffix(String baseSlug) {
         log.debug("Loading max slug suffix for baseSlug={}", baseSlug);
         return executor.query("Product", () -> productJpaRepo.findMaxSlugSuffix(baseSlug));

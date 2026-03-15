@@ -3,6 +3,7 @@ package com.catalog.domain.repository;
 import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.Product;
 
+import java.util.Collection;
 import java.util.Optional;
 
 public interface ProductRepository{
@@ -11,5 +12,7 @@ public interface ProductRepository{
     Optional<Product> find(Id productId);
     Optional<Product> findBySlug(String slug);
     boolean isSlugTaken(String slug, String excludeProductUuid);
+    boolean isSkuTaken(String sku, String excludeVariantUuid);
+    boolean existsByCategoryIds(Collection<Id> categoryIds);
     Optional<Integer> findMaxSlugSuffix(String baseSlug);
 }

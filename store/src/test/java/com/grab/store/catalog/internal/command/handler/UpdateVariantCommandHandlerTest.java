@@ -134,4 +134,29 @@ class UpdateVariantCommandHandlerTest {
                     assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
                 });
     }
+
+    @Test
+    void handle_duplicateSku_throws() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+
+        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        ProductVariation variation = new ProductVariation(
+                "Red", new CommonId("opt-red"), "Color", new CommonId("type-color"));
+        ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
+        product.addVariant(variant);
+
+        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.isSkuTaken("NEW-SKU", VARIANT_ID)).thenReturn(true);
+
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, variantId, "NEW-SKU");
+
+        assertThatThrownBy(() -> handler.handle(command))
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> {
+                    CatalogServiceException typed = (CatalogServiceException) exception;
+                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.variant.sku_already_exists");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.CONFLICT);
+                });
+    }
 }
