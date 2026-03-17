@@ -2,7 +2,7 @@ package com.catalog.domain.service.impl;
 
 import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.valueobject.VariantCombination;

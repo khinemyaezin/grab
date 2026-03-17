@@ -13,9 +13,26 @@ public record SaveProductCommand(
             Id id,
             String name,
             Id categoryId,
+            Id sellerId,
+            String sellerType,
+            String condition,
+            Boolean offerEligible,
             String slug,
             Boolean featured,
+            List<Description> descriptions,
+            List<Media> medias,
             List<Variant> variants
+    ) {}
+
+    public record Description(
+            String name,
+            String title,
+            String description
+    ) {}
+
+    public record Media(
+            String type,
+            String path
     ) {}
 
     public record Variant(
@@ -31,4 +48,4 @@ public record SaveProductCommand(
             Id typeId,
             String typeName
     ) {}
-}
+} 

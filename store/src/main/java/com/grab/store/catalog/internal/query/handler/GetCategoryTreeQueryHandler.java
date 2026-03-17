@@ -7,8 +7,6 @@ import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
-import com.grab.store.catalog.internal.exception.CatalogServiceError;
-import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.CategoryNodeResult;
 import com.grab.store.catalog.internal.query.GetCategoryTreeQuery;
 import com.nestedset.app.NestedSetNodeRepository;
@@ -25,20 +23,13 @@ public class GetCategoryTreeQueryHandler implements QueryHandler<GetCategoryTree
 
     private static final Logger log = Loggers.getLogger(GetCategoryTreeQueryHandler.class);
 
-    private final CategoryJpaRepo categoryJpaRepo;
     private final NestedSetNodeRepository<CategoryEntity, Long> nodeRepository;
 
     @Override
     @CatalogReadTransactional
     public CategoryNodeResult handle(GetCategoryTreeQuery query) {
-        log.debug("Handling GetCategoryTreeQuery for categoryId: {}", query.categoryId());
-
-        CategoryEntity category = categoryJpaRepo.findByUuid(query.categoryId())
-                .orElseThrow(() -> new CatalogServiceException(
-                        new CatalogServiceError.CategoryNotFound(query.categoryId())
-                ));
-
-        NodeComponent<CategoryEntity> tree = nodeRepository.getTree(category);
+        log.debug("Handling GetCategoryTreeQuery for root");
+        NodeComponent<CategoryEntity> tree = nodeRepository.getTree(null);
         return mapNode(tree);
     }
 

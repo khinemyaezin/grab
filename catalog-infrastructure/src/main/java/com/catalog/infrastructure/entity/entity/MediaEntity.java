@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -27,4 +28,16 @@ public class MediaEntity {
 
     @ManyToMany(mappedBy = "medias")
     private Set<ProductVariantEntity> productVariants = new HashSet<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MediaEntity that)) return false;
+        return Objects.equals(uuid, that.uuid) && Objects.equals(path, that.path);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uuid, path);
+    }
 }

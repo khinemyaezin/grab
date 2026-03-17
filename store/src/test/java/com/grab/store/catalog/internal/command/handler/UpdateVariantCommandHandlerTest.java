@@ -2,8 +2,8 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;

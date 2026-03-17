@@ -1,400 +1,327 @@
 package com.catalog.infrastructure.mapper.jpa.impl;
 
-import com.catalog.infrastructure.mapper.jpa.*;
-import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.Description;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.infrastructure.entity.entity.MediaEntity;
+import com.catalog.infrastructure.entity.entity.ProductDescriptionEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
+import com.catalog.infrastructure.mapper.jpa.ProductEntityMapper;
+import com.catalog.infrastructure.mapper.jpa.ProductMapper;
+import com.catalog.infrastructure.mapper.jpa.ProductVariationMapper;
+import com.catalog.infrastructure.mapper.jpa.ProductVariantEntityMapper;
+import com.catalog.infrastructure.mapper.jpa.ProductVariantMapper;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
+import com.grab.framework.id.impl.CommonId;
+import com.grab.framework.id.impl.UuidGenerator;
+import com.grab.framework.mapper.IdMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
+import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ProductJpaAssemblerImplTest {
 
-    private ProductEntityMapper productEntityMapper;
-    private ProductVariantEntityMapper variantEntityMapper;
-    private ProductMapper productMapper;
-    private ProductVariantMapper productVariantMapper;
-    private ProductVariationMapper productVariationMapper;
     private ProductJpaAssemblerImpl assembler;
 
     @BeforeEach
     void setUp() {
-        productEntityMapper = mock(ProductEntityMapper.class);
-        variantEntityMapper = mock(ProductVariantEntityMapper.class);
-        productMapper = mock(ProductMapper.class);
-        productVariantMapper = mock(ProductVariantMapper.class);
-        productVariationMapper = mock(ProductVariationMapper.class);
+        IdGenerator idGenerator = new UuidGenerator();
+        IdMapper idMapper = new IdMapper(idGenerator);
+
+        ProductEntityMapper productEntityMapper = Mappers.getMapper(ProductEntityMapper.class);
+        ProductVariantEntityMapper productVariantEntityMapper = Mappers.getMapper(ProductVariantEntityMapper.class);
+        ProductMapper productMapper = Mappers.getMapper(ProductMapper.class);
+        ProductVariantMapper productVariantMapper = Mappers.getMapper(ProductVariantMapper.class);
+        ProductVariationMapper productVariationMapper = Mappers.getMapper(ProductVariationMapper.class);
+
+        inject(productEntityMapper, "idMapper", idMapper);
+        inject(productVariantEntityMapper, "idMapper", idMapper);
+        inject(productMapper, "idGenerator", idGenerator);
+        inject(productVariantMapper, "idGenerator", idGenerator);
+        inject(productVariationMapper, "idGenerator", idGenerator);
+
         assembler = new ProductJpaAssemblerImpl(
-                productEntityMapper, variantEntityMapper,
-                productMapper, productVariantMapper, productVariationMapper
+                productEntityMapper,
+                productVariantEntityMapper,
+                productMapper,
+                productVariantMapper,
+                productVariationMapper
         );
     }
 
     @Test
-    void buildFullEntityGraph_withNoExistingProduct_shouldCreatesNewEntity() {
-        Product product = createProduct("p1", "T-Shirt");
-
-        stubVariantEntityMapper();
-
-        ProductEntity result = assembler.buildFullEntityGraph(product, null);
-
-        assertNotNull(result);
-        verify(productEntityMapper).toEntity(eq(product), any(ProductEntity.class));
-    }
-
-    @Test
-    void buildFullEntityGraph_withNewVariants_shouldCreateNewEntity() {
-        Product product = createProductWithVariants();
-
-        stubVariantEntityMapper();
-
-        ProductEntity result = assembler.buildFullEntityGraph(product, null);
-
-        assertEquals(product.getVariants().size(), result.getProductVariants().size());
-    }
-
-    @Test
-    void buildFullEntityGraph_withNewVariants_shouldAddVariationsToEachVariant() {
-        Product product = createProductWithVariants();
-
-        stubVariantEntityMapper();
-
-        ProductEntity result = assembler.buildFullEntityGraph(product, null);
-
-        for (ProductVariantEntity variantEntity : result.getProductVariants()) {
-            assertFalse(variantEntity.getProductVariations().isEmpty());
-        }
-    }
-
-    @Test
-    void buildFullEntityGraph_withVariations_shouldMapVariationIdsCorrectly() {
-        Product product = createProduct("p1", "T-Shirt");
-        ProductVariant variant = ProductVariant.create(
-                id("v1"), "SKU-001",
-                List.of(new ProductVariation("Red", id("opt-red"), "Color", id("type-color")))
+    void buildFullEntityGraph_mergesDescriptionsByUuid_andPreservesExistingDatabaseIds() {
+        Product product = Product.create(
+                id("p1"),
+                "T-Shirt",
+                id("clothing"),
+                null,
+                null,
+                null,
+                false,
+                false,
+                null,
+                List.of(
+                        new Description(id("1001"), "summary", "Updated Summary", "Updated body"),
+                        new Description(id("1002"), "details", "Details", "Detailed body")
+                ),
+                List.of()
         );
-        product.addVariant(variant);
 
-        stubVariantEntityMapper();
+        ProductEntity existingEntity = new ProductEntity();
+        existingEntity.setUuid("p1");
+        existingEntity.setCategoryId("clothing");
 
-        ProductEntity result = assembler.buildFullEntityGraph(product, null);
-
-        ProductVariantEntity variantEntity = result.getProductVariants().get(0);
-        ProductVariationEntity variationEntity = variantEntity.getProductVariations().get(0);
-
-        assertEquals("opt-red", variationEntity.getId().getVariantOptionUuid());
-        assertEquals("type-color", variationEntity.getId().getVariantTypeUuid());
-        assertEquals("Red", variationEntity.getVariantOptionValue());
-        assertEquals("Color", variationEntity.getVariantTypeValue());
-    }
-
-    @Test
-    void buildFullEntityGraph_withVariations_shouldSetVariantBackReference() {
-        Product product = createProductWithVariants();
-
-        stubVariantEntityMapper();
-
-        ProductEntity result = assembler.buildFullEntityGraph(product, null);
-
-        for (ProductVariantEntity variantEntity : result.getProductVariants()) {
-            for (ProductVariationEntity variation : variantEntity.getProductVariations()) {
-                assertSame(variantEntity, variation.getProductVariant());
-            }
-        }
-    }
-
-    @Test
-    void buildFullEntityGraph_withExistingEntity_shouldMergeIntoExistingEntity() {
-        Product product = createProductWithVariants();
-        ProductEntity existingEntity = createExistingEntity(product);
-
-        stubVariantEntityMapper();
+        ProductDescriptionEntity existingSummary = descriptionRow(11L, "1001", "summary", "Old Summary", "Old body");
+        ProductDescriptionEntity orphan = descriptionRow(12L, "1999", "orphan", "Orphan", "Unused");
+        existingEntity.addProductDescription(existingSummary);
+        existingEntity.addProductDescription(orphan);
 
         ProductEntity result = assembler.buildFullEntityGraph(product, existingEntity);
 
-        assertSame(existingEntity, result);
-        verify(productEntityMapper).toEntity(eq(product), same(existingEntity));
+        assertThat(result).isSameAs(existingEntity);
+        assertThat(result.getDescriptions()).hasSize(2);
+
+        ProductDescriptionEntity mergedSummary = findDescription(result, "1001");
+        assertThat(mergedSummary).isSameAs(existingSummary);
+        assertThat(mergedSummary.getId()).isEqualTo(11L);
+        assertThat(mergedSummary.getTitle()).isEqualTo("Updated Summary");
+        assertThat(mergedSummary.getDescription()).isEqualTo("Updated body");
+        assertThat(mergedSummary.getProduct()).isSameAs(result);
+
+        ProductDescriptionEntity addedDetails = findDescription(result, "1002");
+        assertThat(addedDetails.getId()).isNull();
+        assertThat(addedDetails.getName()).isEqualTo("details");
+        assertThat(addedDetails.getProduct()).isSameAs(result);
+
+        assertThat(result.getDescriptions())
+                .extracting(ProductDescriptionEntity::getUuid)
+                .containsExactly("1001", "1002");
     }
 
     @Test
-    void buildFullEntityGraph_withExistingVariant_shouldUpdateExistingVariant() {
-        Product product = createProduct("p1", "T-Shirt");
-        ProductVariant variant = ProductVariant.create(
-                id("v1"), "SKU-001",
-                List.of(new ProductVariation("Red", id("red"), "Color", id("color")))
+    void buildFullEntityGraph_mergesMediaByPath_andReusesExistingRowInsteadOfCreatingDuplicate() {
+        Product product = Product.create(
+                id("p1"),
+                "Camera",
+                id("electronics"),
+                null,
+                null,
+                null,
+                false,
+                false,
+                null,
+                List.of(),
+                List.of(new ProductMedia(id("3001"), "IMAGE", "/images/camera/main.jpg"))
         );
-        product.addVariant(variant);
 
         ProductEntity existingEntity = new ProductEntity();
         existingEntity.setUuid("p1");
-        ProductVariantEntity existingVariant = new ProductVariantEntity();
-        existingVariant.setUuid("v1");
-        existingVariant.setSku("SKU-001-OLD");
-        existingEntity.addVariant(existingVariant);
+        existingEntity.setCategoryId("electronics");
 
-        stubVariantEntityMapper();
+        MediaEntity existingMedia = mediaRow(21L, "3999", "THUMBNAIL", "/images/camera/main.jpg");
+        MediaEntity orphan = mediaRow(22L, "3998", "GALLERY", "/images/camera/old.jpg");
+        existingEntity.addMedia(existingMedia);
+        existingEntity.addMedia(orphan);
 
-        assembler.buildFullEntityGraph(product, existingEntity);
+        ProductEntity result = assembler.buildFullEntityGraph(product, existingEntity);
 
-        verify(variantEntityMapper).toEntity(eq(variant), same(existingVariant));
+        assertThat(result.getMedias()).hasSize(1);
+        MediaEntity mergedMedia = result.getMedias().getFirst();
+        assertThat(mergedMedia).isSameAs(existingMedia);
+        assertThat(mergedMedia.getId()).isEqualTo(21L);
+        assertThat(mergedMedia.getUuid()).isEqualTo("3001");
+        assertThat(mergedMedia.getType()).isEqualTo("IMAGE");
+        assertThat(mergedMedia.getPath()).isEqualTo("/images/camera/main.jpg");
     }
 
     @Test
-    void buildFullEntityGraph_withOrphanVariant_shouldRemoveVariantNotInDomain() {
+    void buildFullEntityGraph_mergesVariantCollections_forAddUpdateAndRemoveCases() {
         Product product = createProduct("p1", "T-Shirt");
-        // product has no variantSummary
-
-        ProductEntity existingEntity = new ProductEntity();
-        existingEntity.setUuid("p1");
-        ProductVariantEntity orphanVariant = new ProductVariantEntity();
-        orphanVariant.setUuid("orphan-v1");
-        orphanVariant.setSku("SKU-ORPHAN");
-        existingEntity.addVariant(orphanVariant);
-
-        assembler.buildFullEntityGraph(product, existingEntity);
-
-        assertTrue(existingEntity.getProductVariants().isEmpty());
-    }
-
-    @Test
-    void buildFullEntityGraph_withNewVariantOnExistingEntity_shouldAddNewVariant() {
-        Product product = createProduct("p1", "T-Shirt");
-        ProductVariant newVariant = ProductVariant.create(
-                id("v-new"), "SKU-NEW",
+        product.addVariant(ProductVariant.create(
+                id("v1"),
+                "SKU-001-UPDATED",
                 List.of(new ProductVariation("Blue", id("blue"), "Color", id("color")))
-        );
-        product.addVariant(newVariant);
+        ));
+        product.addVariant(ProductVariant.create(
+                id("v3"),
+                "SKU-003",
+                List.of(new ProductVariation("Green", id("green"), "Color", id("color")))
+        ));
 
         ProductEntity existingEntity = new ProductEntity();
         existingEntity.setUuid("p1");
-        // no existing variantSummary
-
-        stubVariantEntityMapper();
-
-        assembler.buildFullEntityGraph(product, existingEntity);
-
-        assertEquals(1, existingEntity.getProductVariants().size());
-    }
-
-    @Test
-    void buildFullEntityGraph_withExistingVariant_shouldReplaceVariations() {
-        Product product = createProduct("p1", "T-Shirt");
-        ProductVariant variant = ProductVariant.create(
-                id("v1"), "SKU-001",
-                List.of(new ProductVariation("Blue", id("blue"), "Color", id("color")))
-        );
-        product.addVariant(variant);
-
-        ProductEntity existingEntity = new ProductEntity();
-        existingEntity.setUuid("p1");
-        ProductVariantEntity existingVariant = new ProductVariantEntity();
-        existingVariant.setUuid("v1");
-        existingVariant.setSku("SKU-001");
-        // old variation
-        ProductVariationEntity oldVariation = new ProductVariationEntity(
-                new ProductVariationEntity.ProductVariationId("old-opt", "old-type", null),
-                null, "OldOption", "OldType"
-        );
-        existingVariant.addProductVariation(oldVariation);
-        existingEntity.addVariant(existingVariant);
-
-        stubVariantEntityMapper();
-
-        assembler.buildFullEntityGraph(product, existingEntity);
-
-        List<ProductVariationEntity> variations = existingVariant.getProductVariations();
-        assertEquals(1, variations.size());
-        assertEquals("blue", variations.get(0).getId().getVariantOptionUuid());
-    }
-
-    @Test
-    void buildFullEntityGraph_withMixedVariantChanges_shouldHandleAddUpdateRemove() {
-        // Domain has: v1 (update), v3 (new)
-        // Existing has: v1 (keep), v2 (remove)
-        Product product = createProduct("p1", "T-Shirt");
-        ProductVariant v1 = ProductVariant.create(id("v1"), "SKU-001-UPDATED",
-                List.of(new ProductVariation("Red", id("red"), "Color", id("color"))));
-        ProductVariant v3 = ProductVariant.create(id("v3"), "SKU-003",
-                List.of(new ProductVariation("Green", id("green"), "Color", id("color"))));
-        product.addVariant(v1);
-        product.addVariant(v3);
-
-        ProductEntity existingEntity = new ProductEntity();
-        existingEntity.setUuid("p1");
+        existingEntity.setCategoryId("clothing");
 
         ProductVariantEntity existingV1 = new ProductVariantEntity();
+        existingV1.setId(31L);
         existingV1.setUuid("v1");
         existingV1.setSku("SKU-001");
+        existingV1.setStatus("ACTIVE");
         existingEntity.addVariant(existingV1);
+        existingV1.addProductVariation(new ProductVariationEntity(
+                new ProductVariationEntity.ProductVariationId("old-opt", "old-type", null),
+                null,
+                "Old Option",
+                "Old Type"
+        ));
 
-        ProductVariantEntity existingV2 = new ProductVariantEntity();
-        existingV2.setUuid("v2");
-        existingV2.setSku("SKU-002");
-        existingEntity.addVariant(existingV2);
+        ProductVariantEntity orphanV2 = new ProductVariantEntity();
+        orphanV2.setId(32L);
+        orphanV2.setUuid("v2");
+        orphanV2.setSku("SKU-002");
+        orphanV2.setStatus("ACTIVE");
+        existingEntity.addVariant(orphanV2);
 
-        stubVariantEntityMapper();
+        ProductEntity result = assembler.buildFullEntityGraph(product, existingEntity);
 
-        assembler.buildFullEntityGraph(product, existingEntity);
+        assertThat(result.getProductVariants())
+                .extracting(ProductVariantEntity::getUuid)
+                .containsExactlyInAnyOrder("v1", "v3");
 
-        List<String> uuids = existingEntity.getProductVariants().stream()
-                .map(ProductVariantEntity::getUuid)
-                .toList();
-        assertEquals(2, uuids.size());
-        assertTrue(uuids.contains("v1"));
-        assertTrue(uuids.contains("v3"));
-        assertFalse(uuids.contains("v2"));
+        ProductVariantEntity mergedV1 = findVariant(result, "v1");
+        assertThat(mergedV1).isSameAs(existingV1);
+        assertThat(mergedV1.getId()).isEqualTo(31L);
+        assertThat(mergedV1.getSku()).isEqualTo("SKU-001-UPDATED");
+        assertThat(mergedV1.getProductVariations()).hasSize(1);
+        assertThat(mergedV1.getProductVariations().getFirst().getId().getVariantOptionUuid()).isEqualTo("blue");
+        assertThat(mergedV1.getProductVariations().getFirst().getId().getVariantTypeUuid()).isEqualTo("color");
+        assertThat(mergedV1.getProductVariations().getFirst().getProductVariant()).isSameAs(mergedV1);
+
+        ProductVariantEntity addedV3 = findVariant(result, "v3");
+        assertThat(addedV3.getId()).isNull();
+        assertThat(addedV3.getSku()).isEqualTo("SKU-003");
+        assertThat(addedV3.getProduct()).isSameAs(result);
+        assertThat(addedV3.getProductVariations()).hasSize(1);
     }
 
     @Test
-    void buildFullEntityGraph__withEntity_shouldMapEntityToDomain() {
+    void toFullDomainGraph_mapsDescriptionsMediasVariantsAndVariationIds() {
         ProductEntity entity = new ProductEntity();
+        entity.setId(1L);
         entity.setUuid("p1");
-        entity.setName("T-Shirt");
-        entity.setCategoryId("cat1");
+        entity.setName("Phone");
+        entity.setCategoryId("electronics");
+        entity.setStatus(ProductStatus.ACTIVE);
+        entity.setSlug("phone");
+        entity.setFeatured(true);
+        entity.setOfferEligible(false);
 
-        Product expectedProduct = createProduct("p1", "T-Shirt");
-        when(productMapper.toDomain(eq(entity), anyList())).thenReturn(expectedProduct);
+        ProductDescriptionEntity description = descriptionRow(41L, "desc-1", "summary", "Summary", "Body");
+        entity.addProductDescription(description);
+
+        MediaEntity media = mediaRow(42L, "media-1", "IMAGE", "/images/phone/main.jpg");
+        entity.addMedia(media);
+
+        ProductVariantEntity variant = new ProductVariantEntity();
+        variant.setId(43L);
+        variant.setUuid("variant-1");
+        variant.setSku("SKU-001");
+        variant.setStatus("ACTIVE");
+        entity.addVariant(variant);
+
+        variant.addProductVariation(new ProductVariationEntity(
+                new ProductVariationEntity.ProductVariationId("opt-red", "type-color", null),
+                null,
+                "Red",
+                "Color"
+        ));
 
         Product result = assembler.toFullDomainGraph(entity);
 
-        assertSame(expectedProduct, result);
+        assertThat(result.getId().getValue()).isEqualTo("1");
+        assertThat(result.getName()).isEqualTo("Phone");
+        assertThat(result.getCategoryId().getValue()).isEqualTo("electronics");
+        assertThat(result.getStatus()).isEqualTo(ProductStatus.ACTIVE);
+        assertThat(result.getSlug()).isEqualTo("phone");
+        assertThat(result.isFeatured()).isTrue();
+
+        assertThat(result.getDescriptions()).hasSize(1);
+        assertThat(result.getDescriptions().getFirst().getId().getValue()).isEqualTo("41");
+        assertThat(result.getDescriptions().getFirst().getTitle()).isEqualTo("Summary");
+
+        assertThat(result.getMedias()).hasSize(1);
+        assertThat(result.getMedias().getFirst().getId().getValue()).isEqualTo("42");
+        assertThat(result.getMedias().getFirst().getPath()).isEqualTo("/images/phone/main.jpg");
+
+        assertThat(result.getVariants()).hasSize(1);
+        ProductVariant mappedVariant = result.getVariants().getFirst();
+        assertThat(mappedVariant.getId().getValue()).isEqualTo("variant-1");
+        assertThat(mappedVariant.getSku()).isEqualTo("SKU-001");
+        assertThat(mappedVariant.getVariations()).hasSize(1);
+        ProductVariation variation = mappedVariant.getVariations().iterator().next();
+        assertThat(variation.getOptionId().getValue()).isEqualTo("opt-red");
+        assertThat(variation.getTypeId().getValue()).isEqualTo("type-color");
+        assertThat(variation.getOptionName()).isEqualTo("Red");
+        assertThat(variation.getTypeName()).isEqualTo("Color");
     }
 
-    @Test
-    void buildFullEntityGraph__withVariantsAndVariations_shouldMapAllCorrectly() {
-        ProductEntity entity = new ProductEntity();
-        entity.setUuid("p1");
-        entity.setName("T-Shirt");
-        entity.setCategoryId("cat1");
-
-        ProductVariantEntity variantEntity = new ProductVariantEntity();
-        variantEntity.setUuid("v1");
-        variantEntity.setSku("SKU-001");
-        variantEntity.setStatus("ACTIVE");
-        entity.addVariant(variantEntity);
-
-        ProductVariationEntity variationEntity = new ProductVariationEntity(
-                new ProductVariationEntity.ProductVariationId("red", "color", null),
-                null, "Red", "Color"
-        );
-        variantEntity.addProductVariation(variationEntity);
-
-        ProductVariation domainVariation = new ProductVariation("Red", id("red"), "Color", id("color"));
-        when(productVariationMapper.toDomain(variationEntity)).thenReturn(domainVariation);
-
-        ProductVariant domainVariant = ProductVariant.create(id("v1"), "SKU-001", List.of(domainVariation));
-        when(productVariantMapper.toDomain(eq(variantEntity), anyList())).thenReturn(domainVariant);
-
-        Product expectedProduct = createProduct("p1", "T-Shirt");
-        when(productMapper.toDomain(eq(entity), anyList())).thenReturn(expectedProduct);
-
-        assembler.toFullDomainGraph(entity);
-
-        verify(productVariationMapper).toDomain(variationEntity);
-        verify(productVariantMapper).toDomain(eq(variantEntity), argThat(variations ->
-                variations.size() == 1 && variations.get(0) == domainVariation));
-        verify(productMapper).toDomain(eq(entity), argThat(variants ->
-                variants.size() == 1 && variants.get(0) == domainVariant));
+    private Product createProduct(String productId, String name) {
+        return Product.create(id(productId), name, id("clothing"));
     }
 
-    @Test
-    void buildFullEntityGraph__withNoVariants_shouldMapEntityOnly() {
-        ProductEntity entity = new ProductEntity();
-        entity.setUuid("p1");
-        entity.setName("T-Shirt");
-        entity.setCategoryId("cat1");
-
-        Product expectedProduct = createProduct("p1", "T-Shirt");
-        when(productMapper.toDomain(eq(entity), eq(List.of()))).thenReturn(expectedProduct);
-
-        Product result = assembler.toFullDomainGraph(entity);
-
-        assertSame(expectedProduct, result);
-        verify(productMapper).toDomain(entity, List.of());
-        verifyNoInteractions(productVariantMapper);
-        verifyNoInteractions(productVariationMapper);
-    }
-
-    private void stubVariantEntityMapper() {
-        doAnswer(invocation -> {
-            ProductVariant source = invocation.getArgument(0);
-            ProductVariantEntity target = invocation.getArgument(1);
-            target.setUuid(source.getId().getValue());
-            target.setSku(source.getSku());
-            target.setStatus(source.getStatus().name());
-            return null;
-        }).when(variantEntityMapper).toEntity(any(ProductVariant.class), any(ProductVariantEntity.class));
-    }
-
-    private Product createProduct(String id, String name) {
-        return Product.create(id(id), name, id("clothing"));
-    }
-
-    private Product createProductWithVariants() {
-        Product product = createProduct("p1", "T-Shirt");
-
-        ProductVariant v1 = ProductVariant.create(id("v1"), "SKU-RED-S",
-                List.of(
-                        new ProductVariation("Red", id("red"), "Color", id("color")),
-                        new ProductVariation("Small", id("small"), "Size", id("size"))
-                ));
-        ProductVariant v2 = ProductVariant.create(id("v2"), "SKU-BLUE-S",
-                List.of(
-                        new ProductVariation("Blue", id("blue"), "Color", id("color")),
-                        new ProductVariation("Small", id("small"), "Size", id("size"))
-                ));
-        product.addVariant(v1);
-        product.addVariant(v2);
-        return product;
-    }
-
-    private ProductEntity createExistingEntity(Product product) {
-        ProductEntity entity = new ProductEntity();
-        entity.setUuid(product.getId().getValue());
-        entity.setName(product.getName());
-        entity.setCategoryId("clothing");
-
-        for (ProductVariant variant : product.getVariants()) {
-            ProductVariantEntity variantEntity = new ProductVariantEntity();
-            variantEntity.setUuid(variant.getId().getValue());
-            variantEntity.setSku(variant.getSku());
-            variantEntity.setStatus(variant.getStatus().name());
-            entity.addVariant(variantEntity);
-        }
+    private ProductDescriptionEntity descriptionRow(Long id, String uuid, String name, String title, String description) {
+        ProductDescriptionEntity entity = new ProductDescriptionEntity();
+        entity.setId(id);
+        entity.setUuid(uuid);
+        entity.setName(name);
+        entity.setTitle(title);
+        entity.setDescription(description);
         return entity;
     }
 
+    private MediaEntity mediaRow(Long id, String uuid, String type, String path) {
+        MediaEntity entity = new MediaEntity();
+        entity.setId(id);
+        entity.setUuid(uuid);
+        entity.setType(type);
+        entity.setPath(path);
+        return entity;
+    }
+
+    private ProductDescriptionEntity findDescription(ProductEntity entity, String uuid) {
+        return entity.getDescriptions().stream()
+                .filter(description -> uuid.equals(description.getUuid()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private ProductVariantEntity findVariant(ProductEntity entity, String uuid) {
+        return entity.getProductVariants().stream()
+                .filter(variant -> uuid.equals(variant.getUuid()))
+                .findFirst()
+                .orElseThrow();
+    }
+
     private static Id id(String value) {
-        return new Id() {
-            @Override
-            public String getValue() {
-                return value;
-            }
+        return new CommonId(value);
+    }
 
-            @Override
-            public boolean equals(Object o) {
-                if (!(o instanceof Id other)) return false;
-                return Objects.equals(value, other.getValue());
+    private static void inject(Object target, String fieldName, Object value) {
+        Class<?> type = target.getClass();
+        while (type != null) {
+            try {
+                Field field = type.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                field.set(target, value);
+                return;
+            } catch (NoSuchFieldException ignored) {
+                type = type.getSuperclass();
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Failed to set field '" + fieldName + "'", e);
             }
-
-            @Override
-            public int hashCode() {
-                return Objects.hashCode(value);
-            }
-
-            @Override
-            public String toString() {
-                return value;
-            }
-        };
+        }
+        throw new IllegalArgumentException("Field '" + fieldName + "' not found on " + target.getClass());
     }
 }

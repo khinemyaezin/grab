@@ -1,9 +1,9 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
-import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
@@ -51,6 +51,9 @@ public class GetFeaturedProductsQueryHandler implements QueryHandler<GetFeatured
                 .map(summary -> new ProductSummaryResult.Product(
                         summary.id(),
                         summary.name(),
+                        summary.sellerId(),
+                        summary.sellerType(),
+                        summary.offerEligible(),
                         summary.status(),
                         summary.slug(),
                         summary.featured(),

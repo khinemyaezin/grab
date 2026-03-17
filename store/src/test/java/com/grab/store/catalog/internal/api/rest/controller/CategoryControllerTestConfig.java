@@ -5,8 +5,17 @@ import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
+import com.catalog.infrastructure.view.CategoryComposite;
+import com.catalog.infrastructure.view.CategoryLeaf;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
+import com.grab.framework.cqrs.query.QueryBus;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.id.impl.UuidGenerator;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryChildrenModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryModelAssembler;
@@ -19,33 +28,18 @@ import com.grab.store.catalog.internal.api.rest.mapper.SaveCategoryDtoMapper;
 import com.grab.store.catalog.internal.api.rest.service.CategoryFacadeService;
 import com.grab.store.catalog.internal.command.handler.DeleteCategoryCommandHandler;
 import com.grab.store.catalog.internal.command.handler.SaveCategoryCommandHandler;
-import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.framework.cqrs.command.CommandHandler;
-import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
-import com.grab.framework.cqrs.query.QueryBus;
-import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
 import com.grab.store.catalog.internal.query.handler.GetCategoryChildrenQueryHandler;
 import com.grab.store.catalog.internal.query.handler.GetCategoryParentQueryHandler;
 import com.grab.store.catalog.internal.query.handler.GetCategoryQueryHandler;
 import com.grab.store.catalog.internal.query.handler.GetCategoryTreeQueryHandler;
-import com.grab.framework.id.impl.UuidGenerator;
 import com.nestedset.app.NestedSetNodeRepository;
 import com.nestedset.library.model.NodeComponent;
-import com.catalog.infrastructure.view.CategoryComposite;
-import com.catalog.infrastructure.view.CategoryLeaf;
 import org.mapstruct.factory.Mappers;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
 import java.lang.reflect.Proxy;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -221,9 +215,8 @@ public class CategoryControllerTestConfig {
     }
 
     @Bean
-    public GetCategoryTreeQueryHandler getCategoryTreeQueryHandler(CategoryJpaRepo categoryJpaRepo,
-                                                                  NestedSetNodeRepository<CategoryEntity, Long> nodeRepository) {
-        return new GetCategoryTreeQueryHandler(categoryJpaRepo, nodeRepository);
+    public GetCategoryTreeQueryHandler getCategoryTreeQueryHandler(NestedSetNodeRepository<CategoryEntity, Long> nodeRepository) {
+        return new GetCategoryTreeQueryHandler(nodeRepository);
     }
 
     @Bean

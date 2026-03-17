@@ -1,15 +1,15 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.catalog.domain.aggregate.Category;
+import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.repository.CategoryRepository;
+import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
-import com.catalog.domain.aggregate.Category;
 import com.grab.store.catalog.internal.command.SaveProductCommand;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductVariantStatus;
-import com.catalog.domain.repository.CategoryRepository;
-import com.catalog.domain.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SaveProductCommandHandlerTest {
@@ -70,7 +71,13 @@ class SaveProductCommandHandlerTest {
                         "Product with Variants",
                         categoryId,
                         null,
+                        null,
+                        null,
                         false,
+                        null,
+                        false,
+                        List.of(),
+                        List.of(),
                         List.of(variant)));
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
@@ -93,7 +100,20 @@ class SaveProductCommandHandlerTest {
         Id categoryId = new CommonId(CATEGORY_ID);
 
         SaveProductCommand command = new SaveProductCommand(
-                new SaveProductCommand.Product(productId, "Product", categoryId, null, false, List.of())
+                new SaveProductCommand.Product(
+                        productId,
+                        "Product",
+                        categoryId,
+                        null,
+                        null,
+                        null,
+                        false,
+                        null,
+                        false,
+                        List.of(),
+                        List.of(),
+                        List.of()
+                )
         );
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.empty());
@@ -118,7 +138,13 @@ class SaveProductCommandHandlerTest {
                         "Product with Variants",
                         categoryId,
                         null,
+                        null,
+                        null,
                         false,
+                        null,
+                        false,
+                        List.of(),
+                        List.of(),
                         List.of(new SaveProductCommand.Variant(
                                 variantId,
                                 "SKU-RED-001",

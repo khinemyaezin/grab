@@ -1,8 +1,17 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
+import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.service.*;
 import com.catalog.domain.service.impl.*;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
+import com.grab.framework.cqrs.query.QueryBus;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.id.impl.UuidGenerator;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
@@ -11,22 +20,10 @@ import com.grab.store.catalog.internal.api.rest.service.ProductFacadeService;
 import com.grab.store.catalog.internal.api.rest.service.ProductQueryService;
 import com.grab.store.catalog.internal.api.rest.service.VariantCommandService;
 import com.grab.store.catalog.internal.command.handler.InMemoryProductRepositoryTest;
-import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.framework.cqrs.command.CommandHandler;
-import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
-import com.grab.framework.cqrs.query.QueryBus;
-import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
+import com.grab.store.catalog.internal.command.handler.ReplaceProductDescriptionsCommandHandler;
+import com.grab.store.catalog.internal.command.handler.SyncVariantsCommandHandler;
 import com.grab.store.catalog.internal.query.handler.ProductCombinationQueryHandler;
 import com.grab.store.catalog.internal.util.ProductSKUGenerator;
-import com.grab.framework.id.impl.UuidGenerator;
-import com.grab.store.catalog.internal.command.handler.SyncVariantsCommandHandler;
-import com.catalog.domain.service.SkuGenerator;
-import com.catalog.domain.service.VariantCombinationService;
-import com.catalog.domain.service.VariantDeletionStrategy;
-import com.catalog.domain.service.VariationCombinationManager;
-import com.catalog.domain.service.VariationKeyGenerator;
-import com.catalog.domain.repository.ProductRepository;
 import org.mapstruct.factory.Mappers;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -94,6 +91,13 @@ public class ProductControllerTestConfig {
     }
 
     @Bean
+    public ReplaceProductDescriptionsCommandHandler replaceProductDescriptionsCommandHandler(
+            ProductRepository productRepository
+    ) {
+        return new ReplaceProductDescriptionsCommandHandler(productRepository);
+    }
+
+    @Bean
     public ProductCombinationQueryHandler productCombinationQueryHandler(
             IdGenerator idGenerator,
             VariationCombinationManager variationCombinationManager,
@@ -153,6 +157,11 @@ public class ProductControllerTestConfig {
     @Bean
     public ProductSummaryDtoMapper productSummaryDtoMapper() {
         return Mappers.getMapper(ProductSummaryDtoMapper.class);
+    }
+
+    @Bean
+    public ProductAuditDtoMapper productAuditDtoMapper() {
+        return Mappers.getMapper(ProductAuditDtoMapper.class);
     }
 
     @Bean
@@ -251,7 +260,8 @@ public class ProductControllerTestConfig {
             ProductCombinationModelAssembler productCombinationModelAssembler,
             ProductSummaryModelAssembler productSummaryModelAssembler,
             ProductSummaryQueryMapper productSummaryQueryMapper,
-            ProductSummaryDtoMapper productSummaryDtoMapper
+            ProductSummaryDtoMapper productSummaryDtoMapper,
+            ProductAuditDtoMapper productAuditDtoMapper
     ) {
         return new ProductQueryService(
                 queryBus,
@@ -263,7 +273,8 @@ public class ProductControllerTestConfig {
                 productCombinationModelAssembler,
                 productSummaryModelAssembler,
                 productSummaryQueryMapper,
-                productSummaryDtoMapper
+                productSummaryDtoMapper,
+                productAuditDtoMapper
         );
     }
 

@@ -1,15 +1,19 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductStatus;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
-import com.catalog.domain.repository.ProductRepository;
-import com.catalog.domain.service.*;
+import com.catalog.domain.service.VariantCombinationService;
+import com.catalog.domain.service.VariantDeletionStrategy;
+import com.catalog.domain.service.VariationCombinationManager;
+import com.catalog.domain.service.VariationKeyGenerator;
 import com.catalog.domain.service.impl.*;
+import com.catalog.domain.valueobject.ProductStatus;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.domain.valueobject.SellerType;
 import com.grab.framework.id.Id;
-import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.SyncVariantsCommand;
 import com.grab.store.catalog.internal.command.SyncVariantsResult;
@@ -17,10 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -245,7 +245,7 @@ class SyncVariantsCommandHandlerTest {
     @Test
     void handle_activeProductReplacement_keepsProductSellable() {
         Id productId = new CommonId("product-4");
-        Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
+        Product product = createPublishableProduct(productId);
         product.addVariant(new ProductVariant(
                 new CommonId("var-red"),
                 "SKU-RED",
@@ -283,7 +283,7 @@ class SyncVariantsCommandHandlerTest {
     @Test
     void handle_activeProductRemovingAllVariants_archivesProduct() {
         Id productId = new CommonId("product-5");
-        Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
+        Product product = createPublishableProduct(productId);
         product.addVariant(new ProductVariant(
                 new CommonId("var-red"),
                 "SKU-RED",
@@ -338,5 +338,20 @@ class SyncVariantsCommandHandlerTest {
         return new SyncVariantsCommand.Variation(optionName, new CommonId(optionId), new CommonId(typeId), typeName);
     }
 
+    private Product createPublishableProduct(Id productId) {
+        return Product.create(
+                productId,
+                "T-Shirt",
+                new CommonId("cat-1"),
+                new CommonId("seller-1"),
+                SellerType.RETAILER,
+                null,
+                false,
+                false,
+                null,
+                List.of(new Description(null, "summary", "Summary", "Product summary")),
+                List.of(new ProductMedia(null, "IMAGE", "/images/product.png"))
+        );
+    }
 
 }

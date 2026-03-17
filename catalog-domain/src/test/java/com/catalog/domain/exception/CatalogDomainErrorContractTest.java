@@ -1,7 +1,5 @@
 package com.catalog.domain.exception;
 
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.service.VariantCombinationService;

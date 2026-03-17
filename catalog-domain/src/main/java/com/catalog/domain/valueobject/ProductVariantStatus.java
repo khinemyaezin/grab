@@ -1,4 +1,4 @@
-package com.catalog.domain.aggregate;
+package com.catalog.domain.valueobject;
 
 /**
  * Status of a product variant.

@@ -35,15 +35,16 @@ public class CategoryEntity implements NestedSet<Long>, ICategory {
     private Integer depth;
 
     @Column
-    private Boolean active;
+    private Boolean active = true;
 
-//    public CategoryEntity(Long id, String name, Integer lft, Integer rgt, Integer depth) {
-//        this.id = id;
-//        this.name = name;
-//        this.lft = lft;
-//        this.rgt = rgt;
-//        this.depth = depth;
-//    }
+    @Column(name = "listing_allowed", nullable = false)
+    private Boolean listingAllowed = true;
+
+    @Column(name = "review_required", nullable = false)
+    private Boolean reviewRequired = false;
+
+    @Column(name = "c2c_allowed", nullable = false)
+    private Boolean c2cAllowed = true;
 
     public CategoryEntity() {
 

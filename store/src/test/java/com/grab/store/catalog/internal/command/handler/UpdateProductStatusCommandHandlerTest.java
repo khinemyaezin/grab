@@ -1,12 +1,13 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductStatus;
-import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.domain.aggregate.*;
 import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.exception.CatalogDomainValidationException;
+import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.domain.valueobject.SellerType;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
@@ -34,6 +35,8 @@ class UpdateProductStatusCommandHandlerTest {
 
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private CategoryRepository categoryRepository;
 
     @Captor
     private ArgumentCaptor<Product> productCaptor;
@@ -45,16 +48,18 @@ class UpdateProductStatusCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new UpdateProductStatusCommandHandler(productRepository);
+        handler = new UpdateProductStatusCommandHandler(productRepository, categoryRepository);
     }
 
     @Test
     void handle_draftToActive_withActiveVariants() {
         Id productId = new CommonId(PRODUCT_ID);
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        Product product = createPublishableProduct(productId);
         addActiveVariant(product, "v1");
 
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(categoryRepository.find(new CommonId(CATEGORY_ID)))
+                .thenReturn(Optional.of(Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
         UpdateProductStatusResult result = handler.handle(command);
@@ -72,8 +77,10 @@ class UpdateProductStatusCommandHandlerTest {
     @Test
     void handle_draftToActive_withoutActiveVariants_throws() {
         Id productId = new CommonId(PRODUCT_ID);
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        Product product = createPublishableProduct(productId);
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(categoryRepository.find(new CommonId(CATEGORY_ID)))
+                .thenReturn(Optional.of(Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
 
@@ -90,10 +97,12 @@ class UpdateProductStatusCommandHandlerTest {
     @Test
     void handle_invalidTransition_throws() {
         Id productId = new CommonId(PRODUCT_ID);
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        Product product = createPublishableProduct(productId);
         addActiveVariant(product, "v1");
         product.changeStatus(ProductStatus.ACTIVE);
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(categoryRepository.find(new CommonId(CATEGORY_ID)))
+                .thenReturn(Optional.of(Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "DRAFT");
 
@@ -129,5 +138,21 @@ class UpdateProductStatusCommandHandlerTest {
                 "Red", new CommonId("opt-red"), "Color", new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-" + variantIdValue, List.of(variation));
         product.addVariant(variant);
+    }
+
+    private Product createPublishableProduct(Id productId) {
+        return Product.create(
+                productId,
+                "Product",
+                new CommonId(CATEGORY_ID),
+                new CommonId("seller-1"),
+                SellerType.RETAILER,
+                null,
+                false,
+                false,
+                "product",
+                List.of(new Description(null, "default", "Product", "Description")),
+                List.of(new ProductMedia(null, "IMAGE", "/images/product.jpg"))
+        );
     }
 }

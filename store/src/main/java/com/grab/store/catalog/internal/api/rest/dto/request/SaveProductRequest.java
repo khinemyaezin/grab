@@ -16,9 +16,26 @@ public record SaveProductRequest(
             String id,
             @NotBlank String name,
             @NotBlank String categoryId,
+            @NotBlank String sellerId,
+            @NotBlank String sellerType,
+            String condition,
+            Boolean offerEligible,
             String slug,
             Boolean featured,
+            @Valid List<Description> descriptions,
+            @Valid List<Media> medias,
             @Valid List<Variant> variants
+    ) {}
+
+    public record Description(
+            @NotBlank String name,
+            String title,
+            @NotBlank String description
+    ) {}
+
+    public record Media(
+            String type,
+            @NotBlank String path
     ) {}
 
     public record VariantType(

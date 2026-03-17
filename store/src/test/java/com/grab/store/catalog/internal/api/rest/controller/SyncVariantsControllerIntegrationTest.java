@@ -1,9 +1,10 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
 import com.catalog.domain.aggregate.Product;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.api.rest.dto.request.SyncVariantsRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.SyncVariantsResponse;
-import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.handler.InMemoryProductRepositoryTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,8 +13,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
 

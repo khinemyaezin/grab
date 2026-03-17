@@ -6,8 +6,15 @@ public record UpdateProductResponse(
         String productId,
         String name,
         String categoryId,
+        String sellerId,
+        String sellerType,
+        String condition,
+        boolean offerEligible,
         String status,
         String slug,
-        boolean featured
+        boolean featured,
+        java.util.List<GetProductResponse.Description> descriptions,
+        java.util.List<GetProductResponse.Media> medias,
+        String moderationNote
 ) implements Serializable {
 }

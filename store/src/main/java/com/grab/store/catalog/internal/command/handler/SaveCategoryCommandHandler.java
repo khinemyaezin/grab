@@ -47,7 +47,7 @@ public class SaveCategoryCommandHandler implements CommandHandler<SaveCategoryCo
 
     private Category buildCategory(Id categoryId, SaveCategoryCommand command) {
         if (isRoot(command.parentId())) {
-            return Category.createRoot(categoryId, command.name());
+            return Category.createRoot(categoryId, command.name(), true, false, false, false);
         }
 
         Category parent = categoryRepository.find(command.parentId())
@@ -55,7 +55,14 @@ public class SaveCategoryCommandHandler implements CommandHandler<SaveCategoryCo
                         new CatalogServiceError.ParentCategoryNotFound(command.parentId().getValue())
                 ));
 
-        return Category.createChild(categoryId, command.name(), parent);
+        return Category.createChild(
+                categoryId,
+                command.name(),
+                parent,
+                command.active(),
+                command.listingAllowed(),
+                command.reviewRequired(),
+                command.c2cAllowed());
     }
 
     private boolean isRoot(Id parentId) {

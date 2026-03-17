@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
@@ -10,7 +11,6 @@ import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.ProductCombinationQuery;
 import com.grab.store.catalog.internal.query.ProductCombinationResult;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.service.SkuGenerator;

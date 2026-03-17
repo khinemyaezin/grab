@@ -1,10 +1,13 @@
 package com.grab.store.catalog.internal.api.rest.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-
 public record UpdateProductRequest(
-        @NotBlank String name,
-        @NotBlank String categoryId,
+        String name,
+        String categoryId,
+        String sellerId,
+        String sellerType,
+        String condition,
+        Boolean offerEligible,
         String slug,
-        Boolean featured
+        Boolean featured,
+        String moderationNote
 ) {}

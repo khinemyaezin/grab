@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.util;
 
-import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.service.SkuGenerator;
+import com.catalog.domain.valueobject.ProductVariation;
 
 import java.security.SecureRandom;
 import java.util.List;

@@ -1,19 +1,19 @@
 package com.grab.store.catalog.internal.query.handler;
 
-import com.grab.framework.logger.Logger;
-import com.grab.framework.logger.Loggers;
-
+import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
+import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -66,9 +66,25 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId().getValue(),
+                product.getSellerId() == null ? null : product.getSellerId().getValue(),
+                product.getSellerType() == null ? null : product.getSellerType().name(),
+                product.getListingCondition() == null ? null : product.getListingCondition().name(),
+                product.isOfferEligible(),
                 product.getStatus().name(),
                 product.getSlug(),
                 product.isFeatured(),
+                product.getDescriptions().stream()
+                        .map(description -> new GetProductBySlugResult.Description(
+                                description.getId() == null ? null : description.getId().getValue(),
+                                description.getName(),
+                                description.getTitle(),
+                                description.getDescription()
+                        ))
+                        .toList(),
+                product.getMedias().stream()
+                        .map(this::mapToSlugResultMedia)
+                        .toList(),
+                product.getModerationNote(),
                 variants,
                 variantTypes
         );
@@ -128,6 +144,14 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
                 variation.getOptionName(),
                 variation.getTypeId().getValue(),
                 variation.getTypeName()
+        );
+    }
+
+    private GetProductBySlugResult.Media mapToSlugResultMedia(ProductMedia media) {
+        return new GetProductBySlugResult.Media(
+                media.getId() == null ? null : media.getId().getValue(),
+                media.getType(),
+                media.getPath()
         );
     }
 }

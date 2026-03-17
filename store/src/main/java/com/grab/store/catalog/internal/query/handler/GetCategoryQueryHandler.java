@@ -37,7 +37,11 @@ public class GetCategoryQueryHandler implements QueryHandler<GetCategoryQuery, C
         return new CategoryResult(
                 category.getId().getValue(),
                 category.getName(),
-                category.getParentId().map(id -> id.getValue()).orElse(null)
+                category.getParentId().map(id -> id.getValue()).orElse(null),
+                category.isActive(),
+                category.isListingAllowed(),
+                category.isReviewRequired(),
+                category.isC2cAllowed()
         );
     }
 

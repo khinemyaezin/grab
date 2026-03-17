@@ -1,36 +1,19 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-
 import com.grab.store.catalog.internal.api.rest.assembler.GetProductBySlugModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.GetProductModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.ProductSummaryModelAssembler;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductCombinationRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
-import com.grab.store.catalog.internal.api.rest.dto.response.GetProductBySlugResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.GetProductResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.ProductCombinationResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.ProductSummaryResponse;
-import com.grab.store.catalog.internal.api.rest.mapper.GetProductBySlugDtoMapper;
-import com.grab.store.catalog.internal.api.rest.mapper.GetProductDtoMapper;
-import com.grab.store.catalog.internal.api.rest.mapper.ProductCombinationDtoMapper;
-import com.grab.store.catalog.internal.api.rest.mapper.ProductSummaryDtoMapper;
-import com.grab.store.catalog.internal.api.rest.mapper.ProductSummaryQueryMapper;
-import com.grab.framework.cqrs.query.QueryBus;
-import com.grab.store.catalog.internal.query.GetFeaturedProductsQuery;
-import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
-import com.grab.store.catalog.internal.query.GetProductBySlugResult;
-import com.grab.store.catalog.internal.query.GetProductQuery;
-import com.grab.store.catalog.internal.query.GetProductResult;
-import com.grab.store.catalog.internal.query.GetProductsByCategoryQuery;
-import com.grab.store.catalog.internal.query.ProductCombinationQuery;
-import com.grab.store.catalog.internal.query.ProductCombinationResult;
-import com.grab.store.catalog.internal.query.ProductSummaryQuery;
-import com.grab.store.catalog.internal.query.ProductSummaryResult;
+import com.grab.store.catalog.internal.api.rest.dto.response.*;
+import com.grab.store.catalog.internal.api.rest.mapper.*;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
+import com.grab.store.catalog.internal.query.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
@@ -51,6 +34,7 @@ public class ProductQueryService {
     private final ProductSummaryModelAssembler productSummaryModelAssembler;
     private final ProductSummaryQueryMapper productSummaryQueryMapper;
     private final ProductSummaryDtoMapper productSummaryDtoMapper;
+    private final ProductAuditDtoMapper productAuditDtoMapper;
 
     public EntityModel<GetProductResponse> getProduct(String productId) {
         log.info("Getting product: {}", productId);
@@ -76,9 +60,16 @@ public class ProductQueryService {
                 result.id(),
                 result.name(),
                 result.categoryId(),
+                result.sellerId(),
+                result.sellerType(),
+                result.condition(),
+                result.offerEligible(),
                 result.status(),
                 result.slug(),
                 result.featured(),
+                result.descriptions(),
+                result.medias(),
+                result.moderationNote(),
                 result.variants().stream()
                         .filter(variant -> "ACTIVE".equalsIgnoreCase(variant.status()))
                         .toList(),
@@ -105,6 +96,10 @@ public class ProductQueryService {
                 request.productName(),
                 request.sku(),
                 request.variantStatus(),
+                request.categoryId(),
+                request.sellerId(),
+                request.sellerType(),
+                request.offerEligible(),
                 request.variations(),
                 request.page(),
                 request.size()
@@ -143,5 +138,10 @@ public class ProductQueryService {
         ProductSummaryResponse response = productSummaryDtoMapper.toResponse(result);
 
         return productSummaryModelAssembler.toModel(response);
+    }
+
+    public EntityModel<ProductAuditResponse> getProductAudit(String productId) {
+        GetProductAuditResult result = queryBus.dispatch(new GetProductAuditQuery(productId));
+        return EntityModel.of(productAuditDtoMapper.toResponse(result));
     }
 }

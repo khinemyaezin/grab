@@ -2,6 +2,7 @@ package com.catalog.infrastructure.mapper.jpa;
 
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
+import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.catalog.infrastructure.mapper.CentralMapperConfig;
 import com.catalog.infrastructure.view.ProductSummary;
 import com.grab.framework.mapper.IdMapper;
@@ -15,12 +16,15 @@ import java.util.stream.Collectors;
 @Mapper(config = CentralMapperConfig.class,uses = {IdMapper.class})
 public interface ProductSummaryMapper {
 
-    @Mapping(source = "uuid", target = "id")
-    @Mapping(source = "name", target = "name")
-    @Mapping(source = "status", target = "status")
-    @Mapping(source = "slug", target = "slug")
-    @Mapping(source = "featured", target = "featured")
-    @Mapping(source = "productVariants", target = "variantSummary", qualifiedByName = "VariantSummary")
+    @Mapping(source = ProductEntity_.UUID, target = "id")
+    @Mapping(source = ProductEntity_.NAME, target = "name")
+    @Mapping(source = ProductEntity_.SELLER_ID, target = "sellerId")
+    @Mapping(source = ProductEntity_.SELLER_TYPE, target = "sellerType")
+    @Mapping(source = ProductEntity_.OFFER_ELIGIBLE, target = "offerEligible")
+    @Mapping(source = ProductEntity_.STATUS, target = "status")
+    @Mapping(source = ProductEntity_.SLUG, target = "slug")
+    @Mapping(source = ProductEntity_.FEATURED, target = "featured")
+    @Mapping(source = ProductEntity_.PRODUCT_VARIANT_ENTITIES, target = "variantSummary", qualifiedByName = "VariantSummary")
     ProductSummary toProductSummary(ProductEntity productEntity);
 
     @Named("VariantSummary")

@@ -1,18 +1,17 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductVariantStatus;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-
-import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.command.UpdateVariantCommand;
 import com.grab.store.catalog.internal.command.UpdateVariantResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
-import com.catalog.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

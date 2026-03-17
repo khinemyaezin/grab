@@ -2,159 +2,280 @@
 
 ## 1. Summary
 
-This document describes the catalog module in simple product terms.
+This PRD defines the target scope of the catalog module for the commerce
+platform described in the Business Requirements Document.
 
-The catalog module helps admin users organize categories, create products,
-manage variants, and expose valid products to the storefront. It is based on
-the current business direction in the commerce platform BRD and on the current
-catalog implementation.
+The catalog module is the source of truth for seller-owned product listings
+and storefront-ready catalog data. It enables retailer, third-party seller,
+and consumer-to-consumer (C2C) selling models by governing what can be listed,
+how it is described, when it can be published, and how it can be discovered
+by customers.
+
+This document is intentionally broader than the current implementation. The
+current codebase covers only part of this scope. This PRD defines what the
+catalog module must include to satisfy the BRD.
 
 ## 2. Problem
 
-An ecommerce platform needs a clean and reliable catalog so products can be
-organized, maintained, and shown to customers correctly.
+The commerce platform needs one governed catalog capability that works across
+retailer, 3P, and C2C selling models.
 
-Without this module:
+Without a proper catalog module:
 
-- products may not belong to a valid category
-- invalid or incomplete products may appear on the storefront
-- variant and SKU data may become inconsistent
-- storefront browsing becomes harder to support
+- seller ownership of listings is unclear
+- products may be listed in invalid or prohibited categories
+- listings may be published without complete content or review
+- storefront search and browse become inconsistent
+- downstream modules cannot rely on stable listing and variant data
 
 ## 3. Users
 
-- Catalog admin who manages categories and products
-- Internal operator who keeps catalog data clean
-- Customer who browses active products on the storefront
+- Platform admin
+- Retail seller
+- Third-party seller
+- Consumer seller (C2C)
+- Customer browsing the storefront
 
 ## 4. Goals
 
-- Provide a clear category structure for organizing products
-- Let admin users create and maintain products
-- Support products with variants such as size or color
-- Show only valid and active products on the storefront
-- Protect the catalog from invalid data and broken relationships
+- Allow valid sellers to create and manage listings within platform policy
+- Support category, product, variant, media, and description management
+- Govern listing publication through validation, moderation, and admin control
+- Provide storefront-ready search, browse, filter, and detail discovery
+- Integrate inventory availability without making catalog the stock ledger
+- Support both marketplace foundation and later C2C expansion
 
-## 5. In Scope
+## 5. What The Catalog Module Is About
 
-The current catalog module includes:
+The catalog module owns the sellable listing definition and publication rules
+for the storefront.
 
-- category creation and category browsing
-- product creation and product update
-- product lifecycle control
-- product variant management
-- storefront product discovery
-- slug-based product lookup
-- catalog integrity rules between products, variants, and categories
+It is about:
 
-## 6. Out of Scope
+- category taxonomy and listing placement
+- seller-owned listings
+- product and variant content
+- media references and descriptive content
+- listing visibility and publication governance
+- moderation and policy enforcement
+- storefront discovery and merchandising
 
-The catalog module does not own:
+It is not about:
 
-- seller profile management
-- seller ownership of listings
-- pricing and commission logic
-- C2C offer negotiation
-- deal management
-- cart and checkout
-- Cash on Delivery payment flow
-- payment status tracking
-- shipment and delivery
-- returns and refunds
-- promotions and vouchers
-- inventory reservation at checkout
-- media upload workflow
+- pricing ownership or price calculation
+- stock reservation or stock deduction
+- checkout, order placement, or payment handling
+- fee calculation or seller settlement
+- delivery and shipment workflows
 
-## 7. Main Features
+## 6. In Scope
 
-### 7.1 Category Management
+The catalog module must include:
 
-The module supports a product category structure for catalog organization.
+- category and subcategory management
+- seller-owned listing records tied to valid seller profiles
+- product titles, descriptions, specifications, and listing metadata
+- variant definitions and sellable option combinations
+- media references for listing presentation
+- listing lifecycle states such as draft, review, publish, archive, and
+  suspension
+- moderation and approval workflows where required
+- category-based listing rules and prohibited product controls
+- C2C-specific listing metadata such as item condition and offer eligibility
+- storefront search, browse, filter, slug lookup, and product detail queries
+- featured or merchandised listing support
+- bulk listing creation and bulk update support for platform and seller
+  operations
+- audit visibility for listing status, moderation actions, and key catalog
+  changes
 
-Current phase:
+## 7. Out of Scope
 
-- create category
-- view category
-- view category tree
-- view parent category
-- view child categories
-- delete a category only when its subtree has no assigned products
+The catalog module does not include:
 
-### 7.2 Product Management
+- seller onboarding, KYC, or payout profile management
+- pricing ownership, price calculation, and price history
+- stock quantities, reservations, releases, or warehouse balancing
+- cart, checkout, or order lifecycle management
+- Cash on Delivery payment status handling
+- platform commission calculation or settlement reporting
+- shipment creation, tracking, or delivery management
+- promotions, vouchers, and campaign pricing
+- dispute case management
+- customer ratings and reviews
 
-The module supports the basic product authoring flow.
+## 8. Main Capabilities
 
-Current phase:
+### 8.1 Category And Catalog Policy Management
 
-- create product
-- view product
-- update product details
-- archive or reactivate a product
-- mark a product as featured
+The module must support category structures that organize listings and enforce
+catalog rules.
 
-### 7.3 Variant Management
+It must support:
 
-The module supports product variants so one product can have multiple sellable
-options.
+- category hierarchy management
+- category activation or retirement
+- category-specific listing rules
+- prohibited or restricted product controls by category
+- admin governance over taxonomy changes
 
-Current phase:
+### 8.2 Seller-Owned Listing Authoring
 
-- create products with variants
-- update a single variant
-- delete a variant
-- restore a deleted variant
-- sync variants in bulk
-- generate variant combinations
+The module must support listing creation and maintenance by valid sellers.
 
-### 7.4 Storefront Discovery
+It must support:
 
-The module supports basic storefront-facing discovery.
+- linking every listing to a valid seller profile
+- recording seller type such as retailer, 3P, or C2C
+- draft authoring before publication
+- update, archive, and removal flows that preserve business history
+- seller-scoped and admin-scoped editing flows
 
-Current phase:
+### 8.3 Product Content And Variant Management
 
-- search product summaries
-- view product detail
-- view product by slug
-- list featured products
-- list products by category
+The module must support the content customers need to evaluate a product and
+the structure downstream modules need to identify sellable variants.
 
-### 7.5 Catalog Safety Rules
+It must support:
 
-The module protects catalog quality through core business rules.
+- product name and description
+- structured attributes or specifications
+- variant types and options
+- sellable variants with stable identifiers
+- rules that prevent invalid or duplicate variant definitions
 
-Key rules:
+### 8.4 Media And Presentation
 
-- a product must belong to a valid category
-- a product cannot become active without at least one active variant
-- an active product cannot lose its last active variant
-- duplicate SKU usage is blocked
-- categories with assigned products cannot be deleted
-- only storefront-eligible products should appear in storefront queries
+The module must support storefront-facing media and presentation metadata.
 
-## 8. Success Criteria
+It must support:
 
-The catalog module is successful for the current phase when:
+- image or media references
+- ordering of media assets
+- primary media selection
+- SEO-friendly slug support
 
-- admin users can create and organize categories
-- admin users can create and maintain products with variants
-- invalid product and category relationships are blocked
-- active products can be discovered on the storefront
-- inactive or unsellable products do not appear in storefront queries
+The actual media upload pipeline may be implemented by a supporting service,
+but catalog must own the references used by listings.
 
-## 9. Dependencies
+### 8.5 Sellability And Publication
 
-The catalog module depends on the wider platform for future capabilities that
-are not part of this scope, such as:
+The module must support rules that determine whether a listing can be exposed
+and sold through the storefront.
 
-- seller profile support
-- pricing support
-- deal management
-- order management
-- payment handling
-- inventory handling
+It must support:
 
-## 10. Related Documents
+- visibility rules that use listing completeness, moderation state, and
+  external availability signals
+- storefront sellability decisions based on publication status plus inventory
+  availability
+
+Catalog does not own pricing. Price display and transactional pricing are
+provided by external pricing, deal, or order capabilities.
+
+### 8.6 Moderation And Governance
+
+The module must support platform governance for catalog safety and trust.
+
+It must support:
+
+- review-required flows for seller types or categories that need moderation
+- approve, reject, suspend, and restore actions
+- reason capture for moderation outcomes
+- admin override and policy enforcement actions
+- audit history for important governance decisions
+
+### 8.7 Storefront Discovery
+
+The module must provide customer-facing catalog discovery.
+
+It must support:
+
+- product detail pages
+- category browsing
+- search and filtering
+- slug-based lookup
+- featured or merchandised listings
+- seller-aware discovery in a multi-seller storefront
+
+### 8.8 Seller Model Support
+
+The module must support the business differences between seller models.
+
+It must support:
+
+- retailer and 3P listing flows
+- C2C listing flows with condition metadata
+- offer-eligible listing flags for C2C items
+- stricter moderation and policy controls for C2C listings where required
+
+## 9. Business Rules
+
+- Every listing must belong to a valid seller profile.
+- Every listing must belong to a valid category.
+- A listing may be published only when required content is complete.
+- A listing may be published only when policy checks and moderation checks
+  are satisfied.
+- Published storefront visibility must depend on listing publication state and
+  inventory availability.
+- C2C listings must support item condition metadata.
+- Buyer offer negotiation must be allowed only for eligible C2C listings.
+- Category and seller policy violations must be able to hide or suspend a
+  listing without deleting business history.
+- Variant identifiers must remain stable enough for inventory and order
+  workflows to reference sellable items correctly.
+
+## 10. Dependencies And Integrations
+
+The catalog module depends on other platform capabilities for full operation:
+
+- seller profile support for seller identity, type, and status
+- inventory support for stock availability by variant and location
+- pricing support for list price and price presentation
+- storefront/search support for customer-facing discovery experiences
+- admin and policy support for governance rules
+- deal management for C2C offer acceptance and negotiated pricing
+- order management for order-time pricing and history preservation
+
+## 11. Phase Alignment
+
+### Phase 1: Marketplace Foundation
+
+The catalog module must at minimum support:
+
+- category management
+- seller-owned listings for retailer and 3P sellers
+- product and variant management
+- media references and descriptions
+- storefront search, browse, and detail pages
+- admin governance and moderation foundations
+- inventory availability integration for storefront visibility
+
+### Phase 2: Expanded Marketplace
+
+The catalog module must extend to support:
+
+- C2C listing workflows
+- item condition metadata
+- offer-eligible listing controls
+- stricter moderation for C2C and high-risk listings
+- stronger bulk operation support for marketplace sellers
+
+## 12. Success Criteria
+
+The catalog module is successful when:
+
+- sellers can create and manage valid listings within policy
+- admins can govern categories and listings without manual data fixes
+- customers can discover accurate and trustworthy listings on the storefront
+- only publishable and sellable listings appear in customer-facing queries
+- the platform can support retailer, 3P, and C2C catalog needs from one
+  module boundary
+
+## 13. Related Documents
 
 - `docs/BRD/commerce-platform-brd.md`
-- `docs/PRD/deal-management-prd.md`
-- `docs/features/product-module-business-reference.md`
+- `docs/PRD/inventory-module-prd.md`
+- `docs/features/category-management.md`
+- `docs/features/product-management.md`
+- `docs/features/catalog-lifecycle-integrity-and-sku-policy.md`

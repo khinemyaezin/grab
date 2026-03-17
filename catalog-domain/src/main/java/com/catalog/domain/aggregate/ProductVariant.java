@@ -1,5 +1,6 @@
 package com.catalog.domain.aggregate;
 
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.id.Id;
 import com.grab.framework.domain.Entity;
 import com.catalog.domain.valueobject.ProductVariation;

@@ -74,7 +74,11 @@ public class GetCategoryChildrenQueryHandler implements QueryHandler<GetCategory
         return new CategoryResult(
                 entity.getUuid(),
                 entity.getName(),
-                parentId
+                parentId,
+                Boolean.TRUE.equals(entity.getActive()),
+                Boolean.TRUE.equals(entity.getListingAllowed()),
+                Boolean.TRUE.equals(entity.getReviewRequired()),
+                Boolean.TRUE.equals(entity.getC2cAllowed())
         );
     }
 }

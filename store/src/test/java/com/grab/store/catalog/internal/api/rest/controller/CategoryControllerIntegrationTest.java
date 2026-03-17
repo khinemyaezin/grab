@@ -1,12 +1,13 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
 import com.catalog.domain.aggregate.Category;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveCategoryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryNodeResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteCategoryResponse;
-import com.grab.framework.id.impl.CommonId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -15,14 +16,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CategoryController.class)
@@ -45,7 +42,7 @@ class CategoryControllerIntegrationTest {
 
     @Test
     void saveCategory_createsRootAndReturnsLocation() throws Exception {
-        SaveCategoryRequest request = new SaveCategoryRequest("Shoes", null);
+        SaveCategoryRequest request = new SaveCategoryRequest("Shoes", null, null, null, null, null);
 
         MvcResult result = mockMvc.perform(post("/api/v1/categories")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -80,7 +77,7 @@ class CategoryControllerIntegrationTest {
         assertThat(children.children()).extracting(CategoryResponse::id)
                 .containsExactlyInAnyOrder(CHILD_A_ID, CHILD_B_ID);
 
-        CategoryNodeResponse tree = extractTreeResponse(mockMvc.perform(get("/api/v1/categories/{id}/tree", ROOT_ID))
+        CategoryNodeResponse tree = extractTreeResponse(mockMvc.perform(get("/api/v1/categories/tree"))
                 .andExpect(status().isOk())
                 .andReturn());
 

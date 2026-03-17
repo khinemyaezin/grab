@@ -11,6 +11,9 @@ public record ProductSummaryResult(
     public record Product(
             String id,
             String name,
+            String sellerId,
+            String sellerType,
+            boolean offerEligible,
             String status,
             String slug,
             boolean featured,

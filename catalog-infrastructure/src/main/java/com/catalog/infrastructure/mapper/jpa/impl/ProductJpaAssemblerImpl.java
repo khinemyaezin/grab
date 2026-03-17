@@ -1,8 +1,12 @@
 package com.catalog.infrastructure.mapper.jpa.impl;
 
+import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.infrastructure.entity.entity.MediaEntity;
+import com.catalog.infrastructure.entity.entity.ProductDescriptionEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
@@ -21,34 +25,94 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
     private final ProductVariantMapper productVariantMapper;
     private final ProductVariationMapper productVariationMapper;
 
+    @Override
     public ProductEntity buildFullEntityGraph(Product product, ProductEntity entity) {
-        if(entity == null) {
-            // Create new entity
-            entity = toProductEntity(product);
-            for(ProductVariant productVariant : product.getVariants()) {
-                ProductVariantEntity variantEntity = toProductVariantEntity(productVariant);
-                for(ProductVariation variation: productVariant.getVariations()) {
-                    ProductVariationEntity variationEntity = toProductVariationEntity(variation);
-                    variantEntity.addProductVariation(variationEntity);
-                }
-                entity.addVariant(variantEntity);
-            }
-        } else {
-            // Merge into existing entity
-            mergeProductEntity(entity, product);
-            mergeVariants(entity, product.getVariants());
+        if (entity == null) {
+            entity = new ProductEntity();
         }
-        return entity;
-    }
 
-    private ProductEntity toProductEntity(Product product) {
-        ProductEntity entity = new ProductEntity();
         productEntityMapper.toEntity(product, entity);
+        mergeVariants(entity, product.getVariants());
+        mergeDescriptions(entity, product.getDescriptions());
+        mergeMedias(entity, product.getMedias());
+
         return entity;
     }
 
-    private void mergeProductEntity(ProductEntity productEntity, Product product) {
-        productEntityMapper.toEntity(product, productEntity);
+    private void mergeDescriptions(ProductEntity entity, List<Description> descriptions) {
+        if (descriptions == null) {
+            entity.clearDescriptions();
+            return;
+        }
+
+        Map<String, ProductDescriptionEntity> existingByUuid = entity.getDescriptions().stream()
+                .filter(descriptionEntity -> Objects.nonNull(descriptionEntity.getUuid()))
+                .collect(Collectors.toMap(
+                        ProductDescriptionEntity::getUuid,
+                        Function.identity(),
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
+
+        List<ProductDescriptionEntity> mergedDescriptions = new ArrayList<>();
+        for (Description description : descriptions) {
+            String descriptionId = description.getId() == null ? null : description.getId().getValue();
+            ProductDescriptionEntity descriptionEntity = existingByUuid.get(descriptionId);
+            if (descriptionEntity == null) {
+                descriptionEntity = new ProductDescriptionEntity();
+            }
+            descriptionEntity.setUuid(descriptionId);
+            descriptionEntity.setName(description.getName());
+            descriptionEntity.setTitle(description.getTitle());
+            descriptionEntity.setDescription(description.getDescription());
+            mergedDescriptions.add(descriptionEntity);
+        }
+
+        entity.clearDescriptions();
+        mergedDescriptions.forEach(entity::addProductDescription);
+    }
+
+    private void mergeMedias(ProductEntity entity, List<ProductMedia> medias) {
+        if (medias == null) {
+            entity.clearMedias();
+            return;
+        }
+
+        Map<String, MediaEntity> existingByUuid = entity.getMedias().stream()
+                .filter(mediaEntity -> mediaEntity.getUuid() != null)
+                .collect(Collectors.toMap(
+                        MediaEntity::getUuid,
+                        Function.identity(),
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
+        Map<String, MediaEntity> existingByPath = entity.getMedias().stream()
+                .filter(mediaEntity -> mediaEntity.getPath() != null)
+                .collect(Collectors.toMap(
+                        MediaEntity::getPath,
+                        Function.identity(),
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
+
+        List<MediaEntity> mergedMedias = new ArrayList<>();
+        for (ProductMedia media : medias) {
+            String mediaId = media.getId() == null ? null : media.getId().getValue();
+            MediaEntity mediaEntity = existingByUuid.get(mediaId);
+            if (mediaEntity == null) {
+                mediaEntity = existingByPath.get(media.getPath());
+            }
+            if (mediaEntity == null) {
+                mediaEntity = new MediaEntity();
+            }
+            mediaEntity.setUuid(mediaId);
+            mediaEntity.setType(media.getType());
+            mediaEntity.setPath(media.getPath());
+            mergedMedias.add(mediaEntity);
+        }
+
+        entity.clearMedias();
+        mergedMedias.forEach(entity::addMedia);
     }
 
     private ProductVariantEntity toProductVariantEntity(ProductVariant variant) {
@@ -91,16 +155,16 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
                 processedUuids.add(uuid);
                 resultVariants.add(variantEntity);
             } else {
-                // Create new variant
                 ProductVariantEntity productVariantEntity = toProductVariantEntity(variantDomain);
-                for(ProductVariation variation: variantDomain.getVariations()) {
+                for (ProductVariation variation : variantDomain.getVariations()) {
                     ProductVariationEntity variationEntity = toProductVariationEntity(variation);
                     productVariantEntity.addProductVariation(variationEntity);
                 }
                 resultVariants.add(productVariantEntity);
             }
         }
-        productEntity.getProductVariants().removeIf(e -> !processedUuids.contains(e.getUuid()));
+        productEntity.getProductVariants()
+                .removeIf(e -> !processedUuids.contains(e.getUuid()));
 
         resultVariants.stream()
                 .filter(e -> !existingByUuid.containsKey(e.getUuid()))
@@ -139,7 +203,8 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
         return optionId + "::" + typeId;
     }
 
-    public Product toFullDomainGraph(ProductEntity productJpaEntity){
+    @Override
+    public Product toFullDomainGraph(ProductEntity productJpaEntity) {
         List<ProductVariant> productVariants = new ArrayList<>();
 
         for(ProductVariantEntity variantEntity : productJpaEntity.getProductVariants()) {
