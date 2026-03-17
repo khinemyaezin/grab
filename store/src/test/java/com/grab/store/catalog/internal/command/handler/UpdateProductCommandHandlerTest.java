@@ -92,7 +92,7 @@ class UpdateProductCommandHandlerTest {
     }
 
     @Test
-    void handle_productNotFound_throws() {
+    void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
 
@@ -119,7 +119,7 @@ class UpdateProductCommandHandlerTest {
     }
 
     @Test
-    void handle_categoryNotFound_throws() {
+    void handle_categoryNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id categoryId = new CommonId(CATEGORY_ID);
         Id missingCategoryId = new CommonId(NEW_CATEGORY_ID);

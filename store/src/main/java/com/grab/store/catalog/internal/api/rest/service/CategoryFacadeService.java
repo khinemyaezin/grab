@@ -62,10 +62,10 @@ public class CategoryFacadeService {
         return categoryModelAssembler.toModel(response);
     }
 
-    public EntityModel<CategoryNodeResponse> getCategoryTree() {
-        log.info("Getting category tree");
+    public EntityModel<CategoryNodeResponse> getCategoryTree(String categoryId) {
+        log.info("Getting category tree: {}", categoryId);
 
-        CategoryNodeResult result = queryBus.dispatch(new GetCategoryTreeQuery());
+        CategoryNodeResult result = queryBus.dispatch(new GetCategoryTreeQuery(categoryId));
         CategoryNodeResponse response = categoryNodeDtoMapper.toResponse(result);
         return categoryNodeModelAssembler.toModel(response);
     }

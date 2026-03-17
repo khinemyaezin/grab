@@ -52,7 +52,7 @@ class SaveProductCommandHandlerTest {
     }
 
     @Test
-    void handle_withVariants_addsAllVariantsToProduct() {
+    void handle_withVariantsAddsAllVariantsToProduct() {
         Id productId = new CommonId(PRODUCT_ID);
         Id categoryId = new CommonId(CATEGORY_ID);
         Id variantId = new CommonId(VARIANT_ID);
@@ -78,8 +78,10 @@ class SaveProductCommandHandlerTest {
                         false,
                         List.of(),
                         List.of(),
-                        List.of(variant)));
+                        List.of(variant))
+        );
 
+        when(productRepository.find(productId)).thenReturn(Optional.empty());
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
         when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
 
@@ -95,7 +97,36 @@ class SaveProductCommandHandlerTest {
     }
 
     @Test
-    void handle_categoryNotFound_throws() {
+    void handle_existingProductThrows() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        when(productRepository.find(productId)).thenReturn(Optional.of(Product.create(productId, "Product", categoryId)));
+
+        SaveProductCommand command = new SaveProductCommand(
+                new SaveProductCommand.Product(
+                        productId,
+                        "Product",
+                        categoryId,
+                        null,
+                        null,
+                        null,
+                        false,
+                        null,
+                        false,
+                        List.of(),
+                        List.of(),
+                        List.of()
+                )
+        );
+
+        assertThatThrownBy(() -> handler.handle(command))
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> assertThat(((CatalogServiceException) exception).getMessageSource().code())
+                        .isEqualTo("cat.service.product.product_already_existed"));
+    }
+
+    @Test
+    void handle_categoryNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id categoryId = new CommonId(CATEGORY_ID);
 
@@ -116,6 +147,7 @@ class SaveProductCommandHandlerTest {
                 )
         );
 
+        when(productRepository.find(productId)).thenReturn(Optional.empty());
         when(categoryRepository.find(categoryId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> handler.handle(command))
@@ -125,7 +157,7 @@ class SaveProductCommandHandlerTest {
     }
 
     @Test
-    void handle_duplicateSku_throws() {
+    void handle_duplicateSkuThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id categoryId = new CommonId(CATEGORY_ID);
         Id variantId = new CommonId(VARIANT_ID);
@@ -153,6 +185,7 @@ class SaveProductCommandHandlerTest {
                         )))
         );
 
+        when(productRepository.find(productId)).thenReturn(Optional.empty());
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
         when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
         when(productRepository.isSkuTaken("SKU-RED-001", null)).thenReturn(true);

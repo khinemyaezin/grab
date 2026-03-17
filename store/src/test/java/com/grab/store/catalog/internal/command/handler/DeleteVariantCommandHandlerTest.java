@@ -81,7 +81,7 @@ class DeleteVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_productNotFound_returnsFalse() {
+    void handle_productNotFoundReturnsFalse() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
@@ -95,7 +95,7 @@ class DeleteVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_variantAlreadyDeleted_remainsDeleted() {
+    void handle_variantAlreadyDeletedRemainsDeleted() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 
@@ -115,7 +115,7 @@ class DeleteVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_lastActiveVariantOnActiveProduct_throws() {
+    void handle_lastActiveVariantOnActiveProductThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 

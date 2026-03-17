@@ -28,7 +28,6 @@ class DeleteCategoryCommandHandlerTest {
 
     @Mock
     private CategoryRepository categoryRepository;
-
     @Mock
     private ProductRepository productRepository;
 
@@ -70,5 +69,15 @@ class DeleteCategoryCommandHandlerTest {
 
         verify(categoryRepository).deleteCascade(category);
         assertThat(result.deleted()).isTrue();
+    }
+
+    @Test
+    void handle_missingCategoryReturnsFalse() {
+        Id categoryId = new CommonId("missing-category");
+        when(categoryRepository.find(categoryId)).thenReturn(Optional.empty());
+
+        DeleteCategoryResult result = handler.handle(new DeleteCategoryCommand(categoryId));
+
+        assertThat(result.deleted()).isFalse();
     }
 }

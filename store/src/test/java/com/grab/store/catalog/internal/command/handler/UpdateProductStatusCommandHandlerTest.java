@@ -1,6 +1,9 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.domain.aggregate.*;
+import com.catalog.domain.aggregate.Description;
+import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductMedia;
+import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.CategoryRepository;
@@ -52,14 +55,14 @@ class UpdateProductStatusCommandHandlerTest {
     }
 
     @Test
-    void handle_draftToActive_withActiveVariants() {
+    void handle_draftToActiveWithActiveVariants() {
         Id productId = new CommonId(PRODUCT_ID);
         Product product = createPublishableProduct(productId);
         addActiveVariant(product, "v1");
 
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
         when(categoryRepository.find(new CommonId(CATEGORY_ID)))
-                .thenReturn(Optional.of(Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
+                .thenReturn(Optional.of(com.catalog.domain.aggregate.Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
         UpdateProductStatusResult result = handler.handle(command);
@@ -75,12 +78,12 @@ class UpdateProductStatusCommandHandlerTest {
     }
 
     @Test
-    void handle_draftToActive_withoutActiveVariants_throws() {
+    void handle_draftToActiveWithoutActiveVariantsThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Product product = createPublishableProduct(productId);
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
         when(categoryRepository.find(new CommonId(CATEGORY_ID)))
-                .thenReturn(Optional.of(Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
+                .thenReturn(Optional.of(com.catalog.domain.aggregate.Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
 
@@ -95,14 +98,14 @@ class UpdateProductStatusCommandHandlerTest {
     }
 
     @Test
-    void handle_invalidTransition_throws() {
+    void handle_invalidTransitionThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Product product = createPublishableProduct(productId);
         addActiveVariant(product, "v1");
         product.changeStatus(ProductStatus.ACTIVE);
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
         when(categoryRepository.find(new CommonId(CATEGORY_ID)))
-                .thenReturn(Optional.of(Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
+                .thenReturn(Optional.of(com.catalog.domain.aggregate.Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
         UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "DRAFT");
 
@@ -117,7 +120,7 @@ class UpdateProductStatusCommandHandlerTest {
     }
 
     @Test
-    void handle_productNotFound_throws() {
+    void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
 

@@ -78,7 +78,7 @@ class UpdateVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_productNotFound_throws() {
+    void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
 
@@ -94,7 +94,7 @@ class UpdateVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_variantNotFound_throws() {
+    void handle_variantNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
         when(productRepository.find(productId)).thenReturn(Optional.of(product));
@@ -111,7 +111,7 @@ class UpdateVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_deletedVariant_throws() {
+    void handle_deletedVariantThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 
@@ -136,7 +136,7 @@ class UpdateVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_duplicateSku_throws() {
+    void handle_duplicateSkuThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 

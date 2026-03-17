@@ -42,9 +42,9 @@ public class CategoryController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping(value = "/tree", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<CategoryNodeResponse>> getCategoryTree() {
-        EntityModel<CategoryNodeResponse> response = categoryFacadeService.getCategoryTree();
+    @GetMapping(value = "/{categoryId}/tree", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<CategoryNodeResponse>> getCategoryTree(@PathVariable("categoryId") String categoryId) {
+        EntityModel<CategoryNodeResponse> response = categoryFacadeService.getCategoryTree(categoryId);
         return ResponseEntity.ok(response);
     }
 

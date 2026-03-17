@@ -79,7 +79,7 @@ class RestoreVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_productNotFound_throws() {
+    void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
@@ -96,7 +96,7 @@ class RestoreVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_variantNotDeletedOrNotFound_throws() {
+    void handle_variantNotDeletedOrNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 

@@ -47,8 +47,8 @@ public class InMemoryProductRepositoryTest implements ProductRepository {
     @Override
     public boolean isSlugTaken(String slug, String excludeProductUuid) {
         return storage.values().stream()
-                .anyMatch(p -> slug.equals(p.getSlug())
-                        && (excludeProductUuid == null || !p.getId().getValue().equals(excludeProductUuid)));
+                .anyMatch(product -> slug.equals(product.getSlug())
+                        && (excludeProductUuid == null || !product.getId().getValue().equals(excludeProductUuid)));
     }
 
     @Override
@@ -77,9 +77,9 @@ public class InMemoryProductRepositoryTest implements ProductRepository {
         String prefix = baseSlug + "-";
         return storage.values().stream()
                 .map(Product::getSlug)
-                .filter(s -> s != null && s.startsWith(prefix))
-                .map(s -> s.substring(prefix.length()))
-                .filter(s -> s.matches("\\d+"))
+                .filter(slug -> slug != null && slug.startsWith(prefix))
+                .map(slug -> slug.substring(prefix.length()))
+                .filter(suffix -> suffix.matches("\\d+"))
                 .map(Integer::parseInt)
                 .max(Integer::compareTo);
     }

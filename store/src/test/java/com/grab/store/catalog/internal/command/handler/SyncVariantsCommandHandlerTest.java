@@ -8,7 +8,11 @@ import com.catalog.domain.service.VariantCombinationService;
 import com.catalog.domain.service.VariantDeletionStrategy;
 import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.service.VariationKeyGenerator;
-import com.catalog.domain.service.impl.*;
+import com.catalog.domain.service.impl.DefaultVariantCombinationService;
+import com.catalog.domain.service.impl.DefaultVariationCombinationManager;
+import com.catalog.domain.service.impl.DefaultVariationKeyGenerator;
+import com.catalog.domain.service.impl.FullOptionHardDeleteStrategy;
+import com.catalog.domain.service.impl.ProductVariationComparator;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -48,7 +52,7 @@ class SyncVariantsCommandHandlerTest {
     }
 
     @Test
-    void handle_withOldVariants_shouldMergeNewVariants() {
+    void handle_withOldVariantsShouldMergeNewVariants() {
         Id productId = new CommonId("product-1");
         Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
 
@@ -121,7 +125,7 @@ class SyncVariantsCommandHandlerTest {
     }
 
     @Test
-    void handle_withNewVariants_shouldReplaceOldVariants() {
+    void handle_withNewVariantsShouldReplaceOldVariants() {
         Id productId = new CommonId("product-2");
         Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
 
@@ -176,7 +180,7 @@ class SyncVariantsCommandHandlerTest {
     }
 
     @Test
-    void handle_trustsRequestVariantIdChange_forExistingCombination() {
+    void handle_trustsRequestVariantIdChangeForExistingCombination() {
         Id productId = new CommonId("product-3");
         Product product = Product.create(productId, "T-Shirt", new CommonId("cat-1"));
 
@@ -243,7 +247,7 @@ class SyncVariantsCommandHandlerTest {
     }
 
     @Test
-    void handle_activeProductReplacement_keepsProductSellable() {
+    void handle_activeProductReplacementKeepsProductSellable() {
         Id productId = new CommonId("product-4");
         Product product = createPublishableProduct(productId);
         product.addVariant(new ProductVariant(
@@ -281,7 +285,7 @@ class SyncVariantsCommandHandlerTest {
     }
 
     @Test
-    void handle_activeProductRemovingAllVariants_archivesProduct() {
+    void handle_activeProductRemovingAllVariantsArchivesProduct() {
         Id productId = new CommonId("product-5");
         Product product = createPublishableProduct(productId);
         product.addVariant(new ProductVariant(
@@ -322,11 +326,11 @@ class SyncVariantsCommandHandlerTest {
     }
 
     private SyncVariantsCommand.Variant variant(
-            String id,
+            String variantId,
             String sku,
             SyncVariantsCommand.Variation... variations
     ) {
-        return new SyncVariantsCommand.Variant(new CommonId(id), sku, List.of(variations));
+        return new SyncVariantsCommand.Variant(new CommonId(variantId), sku, List.of(variations));
     }
 
     private SyncVariantsCommand.Variation cmdVariation(
@@ -341,17 +345,16 @@ class SyncVariantsCommandHandlerTest {
     private Product createPublishableProduct(Id productId) {
         return Product.create(
                 productId,
-                "T-Shirt",
+                "Product",
                 new CommonId("cat-1"),
                 new CommonId("seller-1"),
                 SellerType.RETAILER,
                 null,
                 false,
                 false,
-                null,
-                List.of(new Description(null, "summary", "Summary", "Product summary")),
-                List.of(new ProductMedia(null, "IMAGE", "/images/product.png"))
+                "product",
+                List.of(new Description(null, "default", "Product", "Description")),
+                List.of(new ProductMedia(null, "IMAGE", "/images/product.jpg"))
         );
     }
-
 }

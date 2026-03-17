@@ -64,4 +64,14 @@ class DeleteProductCommandHandlerTest {
         assertThat(saved.getEvents()).anyMatch(ProductDeletedEvent.class::isInstance);
         assertThat(result.deleted()).isTrue();
     }
+
+    @Test
+    void handle_missingProductReturnsFalse() {
+        Id productId = new CommonId("missing-product");
+        when(productRepository.find(productId)).thenReturn(Optional.empty());
+
+        DeleteProductResult result = handler.handle(new DeleteProductCommand(productId));
+
+        assertThat(result.deleted()).isFalse();
+    }
 }
