@@ -1,6 +1,7 @@
 package com.catalog.domain.specification;
 
 import com.catalog.domain.aggregate.*;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.id.Id;
 import com.catalog.domain.valueobject.ProductVariation;
 import org.junit.jupiter.api.BeforeEach;

@@ -38,7 +38,7 @@ public class GetCategoryTreeQueryHandler implements QueryHandler<GetCategoryTree
                         new CatalogServiceError.CategoryNotFound(query.categoryId())
                 ));
 
-        NodeComponent<CategoryEntity> tree = nodeRepository.getTree(category);
+        NodeComponent<CategoryEntity> tree = nodeRepository.getSubtreeOf(category);
         return mapNode(tree);
     }
 

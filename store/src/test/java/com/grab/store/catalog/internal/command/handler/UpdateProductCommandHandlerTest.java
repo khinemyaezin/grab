@@ -1,10 +1,10 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.Category;
+import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
@@ -62,7 +62,18 @@ class UpdateProductCommandHandlerTest {
         when(categoryRepository.find(newCategoryId)).thenReturn(Optional.of(Category.createRoot(newCategoryId, "Category")));
         when(uniqueSlugResolver.resolve(null, "New Name", PRODUCT_ID)).thenReturn("new-name");
 
-        UpdateProductCommand command = new UpdateProductCommand(productId, "New Name", newCategoryId, null, null);
+        UpdateProductCommand command = new UpdateProductCommand(
+                productId,
+                "New Name",
+                newCategoryId,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null
+        );
         UpdateProductResult result = handler.handle(command);
 
         verify(productRepository).save(productCaptor.capture());
@@ -81,11 +92,22 @@ class UpdateProductCommandHandlerTest {
     }
 
     @Test
-    void handle_productNotFound_throws() {
+    void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
 
-        UpdateProductCommand command = new UpdateProductCommand(productId, "Name", new CommonId(CATEGORY_ID), null, null);
+        UpdateProductCommand command = new UpdateProductCommand(
+                productId,
+                "Name",
+                new CommonId(CATEGORY_ID),
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null
+        );
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -97,7 +119,7 @@ class UpdateProductCommandHandlerTest {
     }
 
     @Test
-    void handle_categoryNotFound_throws() {
+    void handle_categoryNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id categoryId = new CommonId(CATEGORY_ID);
         Id missingCategoryId = new CommonId(NEW_CATEGORY_ID);
@@ -106,7 +128,18 @@ class UpdateProductCommandHandlerTest {
         when(productRepository.find(productId)).thenReturn(Optional.of(existing));
         when(categoryRepository.find(missingCategoryId)).thenReturn(Optional.empty());
 
-        UpdateProductCommand command = new UpdateProductCommand(productId, "New Name", missingCategoryId, null, null);
+        UpdateProductCommand command = new UpdateProductCommand(
+                productId,
+                "New Name",
+                missingCategoryId,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null
+        );
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)

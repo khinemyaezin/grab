@@ -1,12 +1,12 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.event.ProductDeletedEvent;
 import com.catalog.domain.event.ProductStatusChangedEvent;
-import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductStatus;
+import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.DeleteProductCommand;
@@ -63,5 +63,15 @@ class DeleteProductCommandHandlerTest {
         assertThat(saved.getEvents()).anyMatch(ProductStatusChangedEvent.class::isInstance);
         assertThat(saved.getEvents()).anyMatch(ProductDeletedEvent.class::isInstance);
         assertThat(result.deleted()).isTrue();
+    }
+
+    @Test
+    void handle_missingProductReturnsFalse() {
+        Id productId = new CommonId("missing-product");
+        when(productRepository.find(productId)).thenReturn(Optional.empty());
+
+        DeleteProductResult result = handler.handle(new DeleteProductCommand(productId));
+
+        assertThat(result.deleted()).isFalse();
     }
 }

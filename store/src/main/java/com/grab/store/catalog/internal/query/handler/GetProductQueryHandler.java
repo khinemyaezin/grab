@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.domain.aggregate.ProductMedia;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
@@ -60,9 +61,25 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId().getValue(),
+                product.getSellerId() == null ? null : product.getSellerId().getValue(),
+                product.getSellerType() == null ? null : product.getSellerType().name(),
+                product.getListingCondition() == null ? null : product.getListingCondition().name(),
+                product.isOfferEligible(),
                 product.getStatus().name(),
                 product.getSlug(),
                 product.isFeatured(),
+                product.getDescriptions().stream()
+                        .map(description -> new GetProductResult.Description(
+                                description.getId() == null ? null : description.getId().getValue(),
+                                description.getName(),
+                                description.getTitle(),
+                                description.getDescription()
+                        ))
+                        .toList(),
+                product.getMedias().stream()
+                        .map(this::mapToResultMedia)
+                        .toList(),
+                product.getModerationNote(),
                 variants,
                 variantTypes
         );
@@ -119,6 +136,14 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 variation.getOptionName(),
                 variation.getTypeId().getValue(),
                 variation.getTypeName()
+        );
+    }
+
+    private GetProductResult.Media mapToResultMedia(ProductMedia media) {
+        return new GetProductResult.Media(
+                media.getId() == null ? null : media.getId().getValue(),
+                media.getType(),
+                media.getPath()
         );
     }
 }

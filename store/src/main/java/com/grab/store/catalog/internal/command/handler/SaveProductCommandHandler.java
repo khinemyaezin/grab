@@ -1,5 +1,8 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.catalog.domain.aggregate.*;
+import com.catalog.domain.valueobject.ListingCondition;
+import com.catalog.domain.valueobject.SellerType;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
@@ -8,15 +11,13 @@ import com.grab.store.catalog.internal.command.SaveProductCommand;
 import com.grab.store.catalog.internal.command.SaveProductResult;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.specification.UniqueSkuSpec;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
+import com.grab.store.catalog.internal.util.CatalogPolicyValidator;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -37,10 +38,11 @@ public class SaveProductCommandHandler implements CommandHandler<SaveProductComm
     @CatalogTransactional
     public SaveProductResult handle(SaveProductCommand command) {
         log.debug("Handling SaveProductCommand for product: {}", command.product().name());
-
-        validateCategoryExists(command.product().categoryId());
+        ensureProductIsNotExisted(command.product().name(), command.product().id());
 
         Product product = mapToDomainProduct(command.product());
+        Category category = validateCategoryExists(command.product().categoryId());
+        CatalogPolicyValidator.validateCategoryPolicy(category, product);
         List<String> reservedSkus = new ArrayList<>();
 
         List<SaveProductCommand.Variant> variants = command.product().variants() == null
@@ -66,30 +68,32 @@ public class SaveProductCommandHandler implements CommandHandler<SaveProductComm
         return SaveProductCommand.class;
     }
 
+    private void ensureProductIsNotExisted(String productName, Id productId){
+        if(productRepository.find(productId).isPresent()) {
+            throw new CatalogServiceException(new CatalogServiceError.ProductAlreadyExisted(productName));
+        }
+    }
+
     private Product mapToDomainProduct(SaveProductCommand.Product product) {
         String slug = uniqueSlugResolver.resolve(product.slug(), product.name(), null);
         return Product.create(
                 product.id(),
                 product.name(),
                 product.categoryId(),
+                product.sellerId(),
+                mapSellerType(product.sellerType()),
+                mapCondition(product.condition()),
+                Boolean.TRUE.equals(product.offerEligible()),
                 Boolean.TRUE.equals(product.featured()),
-                slug
+                slug,
+                mapDescriptions(product.descriptions()),
+                mapMedias(product.medias())
         );
     }
 
     private ProductVariant mapToDomainVariant(SaveProductCommand.Variant variant) {
-        ProductVariantStatus status = mapToDomainProductVariantStatus(variant.status());
         List<ProductVariation> variations = mapToDomainProductVariations(variant.variations());
-        return new ProductVariant(variant.id(), variant.sku(), status, variations);
-    }
-
-
-
-    private ProductVariantStatus mapToDomainProductVariantStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return ProductVariantStatus.ACTIVE;
-        }
-        return ProductVariantStatus.valueOf(status);
+        return ProductVariant.create(variant.id(), variant.sku(), variations);
     }
 
     private List<ProductVariation> mapToDomainProductVariations(List<SaveProductCommand.Variation> variations) {
@@ -104,12 +108,36 @@ public class SaveProductCommandHandler implements CommandHandler<SaveProductComm
         )).toList();
     }
 
-    private void validateCategoryExists(Id categoryId) {
-        if (categoryRepository.find(categoryId).isEmpty()) {
-            throw new CatalogServiceException(
-                    new CatalogServiceError.CategoryNotFound(categoryId.getValue())
-            );
+    private List<Description> mapDescriptions(List<SaveProductCommand.Description> descriptions) {
+        if (descriptions == null) {
+            return List.of();
         }
+        return descriptions.stream()
+                .map(d -> new Description(null, d.name(), d.title(), d.description()))
+                .toList();
+    }
+
+    private List<ProductMedia> mapMedias(List<SaveProductCommand.Media> medias) {
+        if (medias == null) {
+            return List.of();
+        }
+        return medias.stream()
+                .map(media -> new ProductMedia(null, media.type(), media.path()))
+                .toList();
+    }
+
+    private SellerType mapSellerType(String sellerType) {
+        return sellerType == null ? null : SellerType.valueOf(sellerType);
+    }
+
+    private ListingCondition mapCondition(String condition) {
+        return condition == null || condition.isBlank() ? null : ListingCondition.valueOf(condition);
+    }
+
+    private Category validateCategoryExists(Id categoryId) {
+        return categoryRepository.find(categoryId).orElseThrow(() -> new CatalogServiceException(
+                new CatalogServiceError.CategoryNotFound(categoryId.getValue())
+        ));
     }
 
     private void validateSkuAvailability(ProductVariant variant, List<String> reservedSkus, String excludeVariantUuid) {

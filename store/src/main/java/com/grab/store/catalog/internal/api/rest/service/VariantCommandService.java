@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-
 import com.grab.store.catalog.internal.api.rest.assembler.DeleteVariantModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.RestoreVariantModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.SyncVariantsModelAssembler;
@@ -17,15 +17,7 @@ import com.grab.store.catalog.internal.api.rest.mapper.DeleteVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.RestoreVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.SyncVariantsDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateVariantDtoMapper;
-import com.grab.store.catalog.internal.command.DeleteVariantCommand;
-import com.grab.store.catalog.internal.command.DeleteVariantResult;
-import com.grab.store.catalog.internal.command.RestoreVariantCommand;
-import com.grab.store.catalog.internal.command.RestoreVariantResult;
-import com.grab.store.catalog.internal.command.SyncVariantsCommand;
-import com.grab.store.catalog.internal.command.SyncVariantsResult;
-import com.grab.store.catalog.internal.command.UpdateVariantCommand;
-import com.grab.store.catalog.internal.command.UpdateVariantResult;
-import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.store.catalog.internal.command.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;

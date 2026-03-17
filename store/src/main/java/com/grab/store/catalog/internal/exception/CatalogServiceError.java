@@ -12,6 +12,9 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.ParentCategoryNotFound,
         CatalogServiceError.ParentCategoryNotFoundForCategory,
         CatalogServiceError.CategoryHasAssignedProducts,
+        CatalogServiceError.CategoryListingProhibited,
+        CatalogServiceError.CategoryC2CNotAllowed,
+        CatalogServiceError.ProductReviewRequired,
         CatalogServiceError.VariantNotFound,
         CatalogServiceError.VariantNotFoundOrNotDeleted,
         CatalogServiceError.VariantDeletedCannotUpdate,
@@ -20,7 +23,12 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.SkuAlreadyExists,
         CatalogServiceError.DuplicateVariantCombinationKey,
         CatalogServiceError.VariationCombinationNotFound,
-        CatalogServiceError.SlugBlank {
+        CatalogServiceError.SlugBlank,
+        CatalogServiceError.ProductDescriptionNotFound,
+        CatalogServiceError.ProductMediaNotFound,
+        CatalogServiceError.InvalidProductDescriptionPatch,
+        CatalogServiceError.InvalidProductMediaPatch,
+        CatalogServiceError.ProductAlreadyExisted {
 
     record ProductNotFound(String productId) implements CatalogServiceError {
         @Override
@@ -121,6 +129,57 @@ public sealed interface CatalogServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("categoryId", categoryId);
+        }
+    }
+
+    record CategoryListingProhibited(String categoryId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.category.listing_prohibited";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("categoryId", categoryId);
+        }
+    }
+
+    record CategoryC2CNotAllowed(String categoryId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.category.c2c_not_allowed";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("categoryId", categoryId);
+        }
+    }
+
+    record ProductReviewRequired(String productId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.review_required";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("productId", productId);
         }
     }
 
@@ -274,6 +333,91 @@ public sealed interface CatalogServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of();
+        }
+    }
+
+    record ProductDescriptionNotFound(String descriptionId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.description_not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("descriptionId", descriptionId);
+        }
+    }
+
+    record ProductMediaNotFound(String mediaId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.media_not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("mediaId", mediaId);
+        }
+    }
+
+    record InvalidProductDescriptionPatch(String reason) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.description_patch_invalid";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("reason", reason);
+        }
+    }
+
+    record InvalidProductMediaPatch(String reason) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.media_patch_invalid";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("reason", reason);
+        }
+    }
+
+    record ProductAlreadyExisted(String name) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.product_already_existed";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("name", name);
         }
     }
 }

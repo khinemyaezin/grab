@@ -12,5 +12,9 @@ import org.mapstruct.MappingTarget;
 public interface CategoryEntityMapper{
     @Mapping(ignore = true, target = CategoryEntity_.ID)
     @Mapping(source = "id", target = CategoryEntity_.UUID)
+    @Mapping(source = "active", target = CategoryEntity_.ACTIVE)
+    @Mapping(source = "listingAllowed", target = CategoryEntity_.LISTING_ALLOWED)
+    @Mapping(source = "reviewRequired", target = CategoryEntity_.REVIEW_REQUIRED)
+    @Mapping(source = "c2cAllowed", target = CategoryEntity_.C2C_ALLOWED)
     void toEntity(Category source, @MappingTarget CategoryEntity entity);
 }

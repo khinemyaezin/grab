@@ -1,18 +1,14 @@
 package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inventory.domain.enums.LocationType;
-import com.inventory.domain.enums.ZoneType;
 import com.grab.store.inventory.internal.api.rest.dto.request.AddBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.AddZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.AddressRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateLocationRequest;
-import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
-import com.grab.store.inventory.internal.api.rest.dto.response.LocationAddressResponse;
-import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
-import com.grab.store.inventory.internal.api.rest.dto.response.LocationsResponse;
-import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
+import com.grab.store.inventory.internal.api.rest.dto.response.*;
 import com.grab.store.inventory.internal.api.rest.service.LocationFacadeService;
+import com.inventory.domain.enums.LocationType;
+import com.inventory.domain.enums.ZoneType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

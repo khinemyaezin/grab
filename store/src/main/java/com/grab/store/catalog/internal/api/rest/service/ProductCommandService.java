@@ -1,30 +1,18 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-
-import com.grab.framework.id.IdGenerator;
 import com.grab.store.catalog.internal.api.rest.assembler.DeleteProductModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.UpdateProductModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.UpdateProductStatusModelAssembler;
-import com.grab.store.catalog.internal.api.rest.dto.request.SaveProductRequest;
-import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductRequest;
-import com.grab.store.catalog.internal.api.rest.dto.request.UpdateProductStatusRequest;
-import com.grab.store.catalog.internal.api.rest.dto.response.DeleteProductResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.UpdateProductStatusResponse;
+import com.grab.store.catalog.internal.api.rest.dto.request.*;
+import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductStatusDtoMapper;
-import com.grab.store.catalog.internal.command.DeleteProductCommand;
-import com.grab.store.catalog.internal.command.DeleteProductResult;
-import com.grab.store.catalog.internal.command.SaveProductCommand;
-import com.grab.store.catalog.internal.command.SaveProductResult;
-import com.grab.store.catalog.internal.command.UpdateProductCommand;
-import com.grab.store.catalog.internal.command.UpdateProductResult;
-import com.grab.store.catalog.internal.command.UpdateProductStatusCommand;
-import com.grab.store.catalog.internal.command.UpdateProductStatusResult;
-import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.store.catalog.internal.command.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.stereotype.Service;
@@ -73,6 +61,37 @@ public class ProductCommandService {
         return updateProductModelAssembler.toModel(response);
     }
 
+    public EntityModel<ProductDescriptionsResponse> replaceProductDescriptions(String productId, ReplaceProductDescriptionsRequest request) {
+        ReplaceProductDescriptionsCommand command = new ReplaceProductDescriptionsCommand(
+                idGenerator.generateId(productId),
+                request.descriptions().stream()
+                        .map(description -> new ReplaceProductDescriptionsCommand.Description(
+                                description.id() == null || description.id().isBlank() ? null : idGenerator.generateId(description.id()),
+                                description.name(),
+                                description.title(),
+                                description.description()
+                        ))
+                        .toList()
+        );
+        ProductDescriptionsResult result = commandBus.dispatch(command);
+        return EntityModel.of(new ProductDescriptionsResponse(result.productId(), mapDescriptions(result)));
+    }
+
+    public EntityModel<ProductMediaResponse> replaceProductMedia(String productId, ReplaceProductMediaRequest request) {
+        ReplaceProductMediaCommand command = new ReplaceProductMediaCommand(
+                idGenerator.generateId(productId),
+                request.medias().stream()
+                        .map(media -> new ReplaceProductMediaCommand.Media(
+                                media.id() == null || media.id().isBlank() ? null : idGenerator.generateId(media.id()),
+                                media.type(),
+                                media.path()
+                        ))
+                        .toList()
+        );
+        ProductMediaResult result = commandBus.dispatch(command);
+        return EntityModel.of(new ProductMediaResponse(result.productId(), mapMedias(result)));
+    }
+
     public EntityModel<UpdateProductStatusResponse> updateProductStatus(String productId, UpdateProductStatusRequest request) {
         log.info("Updating product status: {}", productId);
 
@@ -81,5 +100,42 @@ public class ProductCommandService {
         UpdateProductStatusResponse response = updateProductStatusDtoMapper.toResponse(result);
 
         return updateProductStatusModelAssembler.toModel(response);
+    }
+
+    public EntityModel<ProductModerationResponse> moderateProduct(String productId, String action, ProductModerationRequest request) {
+        ModerateProductCommand command = new ModerateProductCommand(
+                idGenerator.generateId(productId),
+                action,
+                request == null ? null : request.reason()
+        );
+        ModerateProductResult result = commandBus.dispatch(command);
+        return EntityModel.of(new ProductModerationResponse(
+                result.productId(),
+                result.action(),
+                result.oldStatus(),
+                result.newStatus(),
+                result.reason()
+        ));
+    }
+
+    private java.util.List<GetProductResponse.Description> mapDescriptions(ProductDescriptionsResult result) {
+        return result.descriptions().stream()
+                .map(description -> new GetProductResponse.Description(
+                        description.id() == null ? null : description.id().getValue(),
+                        description.name(),
+                        description.title(),
+                        description.description()
+                ))
+                .toList();
+    }
+
+    private java.util.List<GetProductResponse.Media> mapMedias(ProductMediaResult result) {
+        return result.medias().stream()
+                .map(media -> new GetProductResponse.Media(
+                        media.id() == null ? null : media.id().getValue(),
+                        media.type(),
+                        media.path()
+                ))
+                .toList();
     }
 }

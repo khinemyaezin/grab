@@ -42,7 +42,11 @@ public class GetCategoryParentQueryHandler implements QueryHandler<GetCategoryPa
         return new CategoryResult(
                 parent.getUuid(),
                 parent.getName(),
-                nodeRepository.getParent(parent).map(CategoryEntity::getUuid).orElse(null)
+                nodeRepository.getParent(parent).map(CategoryEntity::getUuid).orElse(null),
+                Boolean.TRUE.equals(parent.getActive()),
+                Boolean.TRUE.equals(parent.getListingAllowed()),
+                Boolean.TRUE.equals(parent.getReviewRequired()),
+                Boolean.TRUE.equals(parent.getC2cAllowed())
         );
     }
 

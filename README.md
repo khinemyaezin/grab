@@ -18,5 +18,5 @@ Commands:
 
 ```bash
 docker compose --env-file docker/env/dev.env -f docker-compose.yml down -v
-docker compose --env-file docker/env/dev.env -f docker-compose.yml up --build
+docker compose --env-file docker/env/dev.env -f docker-compose.yml up --build -d
 ```

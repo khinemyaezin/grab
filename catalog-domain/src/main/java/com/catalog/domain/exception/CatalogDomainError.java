@@ -9,7 +9,10 @@ public sealed interface CatalogDomainError extends MessageSource permits
         CatalogDomainError.InvalidProductStatusTransition,
         CatalogDomainError.ProductActivationRequiresActiveVariants,
         CatalogDomainError.CannotDeleteLastActiveVariantFromActiveProduct,
-        CatalogDomainError.TooManyVariantCombinations {
+        CatalogDomainError.TooManyVariantCombinations,
+        CatalogDomainError.ListingIncomplete,
+        CatalogDomainError.C2CConditionRequired,
+        CatalogDomainError.OfferEligibilityOnlyForC2C {
 
     record InvalidProductStatusTransition(String currentStatus, String newStatus) implements CatalogDomainError {
         @Override
@@ -82,6 +85,57 @@ public sealed interface CatalogDomainError extends MessageSource permits
                     "totalCombinations", totalCombinations,
                     "maxAllowed", maxAllowed
             );
+        }
+    }
+
+    record ListingIncomplete() implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.listing_incomplete";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
+        }
+    }
+
+    record C2CConditionRequired() implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.c2c_condition_required";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
+        }
+    }
+
+    record OfferEligibilityOnlyForC2C() implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.offer_eligibility_only_for_c2c";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
         }
     }
 }

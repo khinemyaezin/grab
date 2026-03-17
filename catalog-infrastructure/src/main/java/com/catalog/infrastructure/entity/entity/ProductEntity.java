@@ -1,6 +1,6 @@
 package com.catalog.infrastructure.entity.entity;
 
-import com.catalog.domain.aggregate.ProductStatus;
+import com.catalog.domain.valueobject.ProductStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,7 +31,27 @@ public class ProductEntity implements Serializable {
     @Column(name = "category_id", nullable = false)
     private String categoryId;
 
-    @ManyToMany(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @Setter
+    @Column(name = "seller_id")
+    private String sellerId;
+
+    @Setter
+    @Column(name = "seller_type")
+    private String sellerType;
+
+    @Setter
+    @Column(name = "listing_condition")
+    private String listingCondition;
+
+    @Setter
+    @Column(name = "offer_eligible", nullable = false)
+    private boolean offerEligible = false;
+
+    @Setter
+    @Column(name = "moderation_note", length = 500)
+    private String moderationNote;
+
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, fetch = FetchType.LAZY)
     @JoinTable(name = "product_media", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "media_id"))
     private List<MediaEntity> medias = new ArrayList<>();
 
@@ -57,6 +77,18 @@ public class ProductEntity implements Serializable {
     public void addProductDescription(ProductDescriptionEntity productDescriptionEntity) {
         productDescriptionEntity.setProduct(this);
         descriptions.add(productDescriptionEntity);
+    }
+
+    public void clearDescriptions() {
+        descriptions.clear();
+    }
+
+    public void addMedia(MediaEntity mediaEntity) {
+        medias.add(mediaEntity);
+    }
+
+    public void clearMedias() {
+        medias.clear();
     }
 
     public void addVariant(ProductVariantEntity productVariantEntity) {

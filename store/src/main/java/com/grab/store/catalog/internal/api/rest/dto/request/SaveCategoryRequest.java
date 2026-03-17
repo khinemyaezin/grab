@@ -6,6 +6,10 @@ import java.io.Serializable;
 
 public record SaveCategoryRequest(
         @NotBlank String name,
-        String parentId
+        String parentId,
+        Boolean active,
+        Boolean listingAllowed,
+        Boolean reviewRequired,
+        Boolean c2cAllowed
 ) implements Serializable {
 }

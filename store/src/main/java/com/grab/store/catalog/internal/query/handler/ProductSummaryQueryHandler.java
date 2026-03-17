@@ -1,16 +1,15 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
+import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
+import com.catalog.infrastructure.view.ProductSummary;
+import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-
-import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.ProductSummaryQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
 import com.grab.store.catalog.internal.query.SpringPageInfoFactory;
-import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
-import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
-import com.catalog.infrastructure.view.ProductSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +34,10 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                 .productName(query.productName())
                 .sku(query.sku())
                 .variantStatus(query.variantStatus())
+                .categoryId(query.categoryId())
+                .sellerId(query.sellerId())
+                .sellerType(query.sellerType())
+                .offerEligible(query.offerEligible())
                 .variations(query.variations())
                 .build();
 
@@ -51,6 +54,9 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                 .map(summary -> new ProductSummaryResult.Product(
                         summary.id(),
                         summary.name(),
+                        summary.sellerId(),
+                        summary.sellerType(),
+                        summary.offerEligible(),
                         summary.status(),
                         summary.slug(),
                         summary.featured(),

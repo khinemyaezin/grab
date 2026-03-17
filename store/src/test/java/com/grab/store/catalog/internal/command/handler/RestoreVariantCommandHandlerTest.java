@@ -2,9 +2,9 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.event.ProductVariantRestoredEvent;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
@@ -79,7 +79,7 @@ class RestoreVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_productNotFound_throws() {
+    void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
         when(productRepository.find(productId)).thenReturn(Optional.empty());
@@ -96,7 +96,7 @@ class RestoreVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_variantNotDeletedOrNotFound_throws() {
+    void handle_variantNotDeletedOrNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 

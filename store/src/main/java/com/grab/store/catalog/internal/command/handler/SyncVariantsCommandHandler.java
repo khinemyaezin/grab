@@ -1,12 +1,12 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.catalog.domain.valueobject.ProductStatus;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductStatus;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.ProductVariantStatus;
 import com.catalog.domain.aggregate.VariantOption;
 import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.repository.ProductRepository;

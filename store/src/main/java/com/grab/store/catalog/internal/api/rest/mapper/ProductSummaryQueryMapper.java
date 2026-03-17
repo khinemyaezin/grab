@@ -12,6 +12,10 @@ public abstract class ProductSummaryQueryMapper {
     public abstract ProductSummaryQuery toQuery(String productName,
                                               String sku,
                                               String variantStatus,
+                                              String categoryId,
+                                              String sellerId,
+                                              String sellerType,
+                                              Boolean offerEligible,
                                               List<String> variations,
                                               int page,
                                               int size);

@@ -101,6 +101,21 @@ public class ProductSummaryJpqlQuery {
             params.put("categoryId", criteria.categoryId());
         }
 
+        if (StringUtils.hasLength(criteria.sellerId())) {
+            conditions.add("p." + ProductEntity_.SELLER_ID + " = :sellerId");
+            params.put("sellerId", criteria.sellerId());
+        }
+
+        if (StringUtils.hasLength(criteria.sellerType())) {
+            conditions.add("p." + ProductEntity_.SELLER_TYPE + " = :sellerType");
+            params.put("sellerType", criteria.sellerType());
+        }
+
+        if (criteria.offerEligible() != null) {
+            conditions.add("p." + ProductEntity_.OFFER_ELIGIBLE + " = :offerEligible");
+            params.put("offerEligible", criteria.offerEligible());
+        }
+
         if(Objects.nonNull(criteria.productStatus())) {
             conditions.add("p." + ProductEntity_.STATUS + " = :productStatus");
             params.put("productStatus", criteria.productStatus());

@@ -2,15 +2,15 @@ package com.grab.store.inventory.internal.command.handler;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
+import com.grab.store.inventory.internal.command.LocationResult;
+import com.grab.store.inventory.internal.command.RemoveZoneCommand;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.Zone;
 import com.inventory.domain.enums.LocationType;
 import com.inventory.domain.enums.ZoneType;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.valueobject.Address;
-import com.grab.store.inventory.internal.command.LocationResult;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
-import com.grab.store.inventory.internal.command.RemoveZoneCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
