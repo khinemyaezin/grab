@@ -4,6 +4,8 @@ spring:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 catalog:
+  seed:
+    enabled: ${CATALOG_SEED_ENABLED:true}
   datasource:
     url: ${CATALOG_DATASOURCE_URL:jdbc:postgresql://localhost:5432/catalog}
     username: ${CATALOG_DATASOURCE_USERNAME:admin}
