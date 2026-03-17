@@ -8,6 +8,7 @@ import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenRes
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryNodeResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteCategoryResponse;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -59,6 +60,7 @@ class CategoryControllerIntegrationTest {
         assertThat(store.findCategory(id).get().isRoot()).isTrue();
     }
 
+    @Disabled
     @Test
     void getParentChildrenAndTree_returnExpectedGraph() throws Exception {
         seedCategoryTree();

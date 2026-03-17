@@ -4,7 +4,6 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
-import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.CategoryNodeResult;
