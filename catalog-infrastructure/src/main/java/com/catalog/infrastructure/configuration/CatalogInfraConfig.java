@@ -1,35 +1,38 @@
 package com.catalog.infrastructure.configuration;
 
-import com.catalog.infrastructure.mapper.jpa.*;
-import com.grab.framework.id.IdGenerator;
-import com.nestedset.app.NestedSetNodeRepository;
-import com.nestedset.app.config.NestedSetRepositoryConfiguration;
-import com.nestedset.app.config.factory.JpaNestedSetNodeRepositoryFactory;
-import com.nestedset.app.service.TreeBuilderImpl;
 import com.catalog.domain.repository.CategoryRepository;
-import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.repository.CategoryHierarchyPort;
+import com.catalog.infrastructure.adapter.category.CategoryNodeInserter;
+import com.catalog.infrastructure.adapter.category.CategoryNodeRemover;
+import com.catalog.infrastructure.adapter.category.CategoryNodeRetriever;
+import com.catalog.infrastructure.adapter.category.impl.CategoryNodeInserterImpl;
+import com.catalog.infrastructure.adapter.category.impl.CategoryNodeRemoverImpl;
+import com.catalog.infrastructure.adapter.category.impl.CategoryNodeRetrieverImpl;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
+import com.catalog.infrastructure.factory.CategoryComponentFactory;
+import com.catalog.infrastructure.mapper.jpa.*;
+import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
+import com.catalog.infrastructure.mapper.jpa.impl.CategoryJpaAssemblerImpl;
 import com.catalog.infrastructure.outbox.CatalogOutboxEvent;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProcessor;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProducer;
+import com.catalog.infrastructure.repository.jpa.*;
+import com.catalog.infrastructure.repository.jpa.adapter.*;
+import com.catalog.infrastructure.repository.jpa.impl.*;
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.grab.outbox.infrastructure.OutboxStore;
-import com.catalog.infrastructure.factory.CategoryComponentFactory;
-import com.catalog.infrastructure.mapper.jpa.impl.CategoryJpaAssemblerImpl;
 import com.catalog.infrastructure.mapper.jpa.impl.ProductJpaAssemblerImpl;
-import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
-import com.catalog.infrastructure.repository.jpa.ProductJpaRepo;
-import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
-import com.catalog.infrastructure.repository.jpa.impl.CategoryJpaRepository;
-import com.catalog.infrastructure.repository.jpa.impl.ProductQueryJpqlRepository;
-import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
-import com.catalog.infrastructure.repository.jpa.support.CatalogPersistenceExecutor;
+import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
+import com.nestedset.app.config.JpaNestedSetRepositoryConfiguration;
+import com.nestedset.app.service.TreeBuilder;
+import com.nestedset.app.service.TreeBuilderImpl;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -135,45 +138,116 @@ public class CatalogInfraConfig {
     }
 
     @Bean
-    public NestedSetRepositoryConfiguration<CategoryEntity,Long> categoryRepositoryConfiguration(JpaContext context) {
-        return new NestedSetRepositoryConfiguration<>(
-                context,
-                CategoryEntity.class
+    public JpaNestedSetRepositoryConfiguration<CategoryEntity, Long> categoryNestedSetConfig(JpaContext jpaContext) {
+        return new JpaNestedSetRepositoryConfiguration<>(jpaContext, CategoryEntity.class);
+    }
+
+    @Bean
+    public CategoryComponentFactory categoryComponentFactory() {
+        return new CategoryComponentFactory();
+    }
+
+    @Bean
+    public TreeBuilder<CategoryEntity, Long> categoryTreeBuilder(CategoryComponentFactory categoryComponentFactory) {
+        return new TreeBuilderImpl<>(categoryComponentFactory);
+    }
+
+    @Bean
+    public CategoryJpaInsertingDelegate categoryJpaInsertingDelegate(
+            JpaNestedSetRepositoryConfiguration<CategoryEntity, Long> config
+    ) {
+        return new CategoryJpaInsertingDelegateImpl(config);
+    }
+
+    @Bean
+    public CategoryJpaRemovingDelegate categoryJpaRemovingDelegate(
+            JpaNestedSetRepositoryConfiguration<CategoryEntity, Long> config
+    ) {
+        return new CategoryJpaRemovingDelegateImpl(config);
+    }
+
+    @Bean
+    public CategoryJpaRetrievingDelegate categoryJpaRetrievingDelegate(
+            JpaNestedSetRepositoryConfiguration<CategoryEntity, Long> config
+    ) {
+        return new CategoryJpaRetrievingDelegateImpl(config);
+    }
+
+    @Bean
+    public CategoryNodeInserter categoryNodeInserter(CategoryJpaInsertingDelegate insertingDelegate) {
+        return new CategoryNodeInserterImpl(insertingDelegate);
+    }
+
+    @Bean
+    public CategoryNodeRemover categoryNodeRemover(CategoryJpaRemovingDelegate removingDelegate) {
+        return new CategoryNodeRemoverImpl(removingDelegate);
+    }
+
+    @Bean
+    public CategoryNodeRetriever categoryNodeRetriever(CategoryJpaRetrievingDelegate retrievingDelegate) {
+        return new CategoryNodeRetrieverImpl(retrievingDelegate);
+    }
+
+    @Bean
+    public CategoryJpaAssembler  categoryJpaAssembler(CategoryEntityMapper categoryEntityMapper,
+                                                      CategoryMapper categoryMapper
+    ) {
+        return new CategoryJpaAssemblerImpl(categoryEntityMapper, categoryMapper);
+    }
+
+    @Bean
+    public CategoryNestedSetNodeRepository categoryNestedSetNodeRepository(
+            CategoryNodeInserter categoryNodeInserter,
+            CategoryNodeRemover categoryNodeRemover,
+            CategoryNodeRetriever categoryNodeRetriever,
+            TreeBuilder<CategoryEntity, Long> categoryTreeBuilder,
+            CategoryJpaRetrievingDelegate categoryJpaRetrievingDelegate
+    ) {
+        return new CategoryNestedSetNodeRepositoryImpl(
+                categoryNodeInserter,
+                categoryNodeRemover,
+                categoryNodeRetriever,
+                categoryTreeBuilder,
+                categoryJpaRetrievingDelegate
         );
     }
 
     @Bean
-    public NestedSetNodeRepository<CategoryEntity,Long> categoryNodeRepository(NestedSetRepositoryConfiguration<CategoryEntity,Long> configuration) {
-        return JpaNestedSetNodeRepositoryFactory.create(
-                configuration,
-                new TreeBuilderImpl<>(new CategoryComponentFactory())
-        );
-    }
-
-    @Bean
-    public CategoryJpaAssembler categoryJpaAssembler(
-            CategoryEntityMapper categoryEntityMapper,
-            CategoryMapper categoryMapper) {
-        return new CategoryJpaAssemblerImpl(
-                categoryEntityMapper,
-                categoryMapper
-        );
+    public CategoryNodeRepository categoryNodeRepository(
+            CategoryJpaRepo categoryJpaRepository,
+            CategoryNestedSetNodeRepository categoryNestedSetNodeRepository) {
+        return new CategoryNodeRepositoryImpl(categoryJpaRepository,categoryNestedSetNodeRepository);
     }
 
     @Bean
     public CategoryRepository categoryRepository(
-            NestedSetNodeRepository<CategoryEntity,Long> nodeRepository,
+            CategoryNodeRepository categoryNodeRepository,
             CategoryJpaRepo categoryJpaRepository,
             CategoryJpaAssembler categoryJpaAssembler,
-            IdGenerator idGenerator,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new CategoryJpaRepository(
-                nodeRepository,
+                categoryNodeRepository,
                 categoryJpaRepository,
                 categoryJpaAssembler,
                 domainEventProducer,
-                executor,
-                idGenerator);
+                executor);
+    }
+
+    @Bean
+    public CategoryHierarchyPort categoryHierarchyPort(
+            CategoryNodeRepository categoryNodeRepository,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor,
+            IdGenerator idGenerator
+    ) {
+        return new CategoryHierarchyJpaRepository(categoryNodeRepository, executor, idGenerator);
+    }
+
+    @Bean
+    public CategoryQueryRepository categoryQueryRepository(
+            CategoryJpaRepo categoryJpaRepo,
+            CategoryNodeRepository categoryNodeRepository
+    ) {
+        return new CategoryQueryRepositoryImpl(categoryJpaRepo, categoryNodeRepository);
     }
 }

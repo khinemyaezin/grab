@@ -10,7 +10,7 @@ public class UuidGenerator implements IdGenerator {
     }
 
     @Override
-    public Id generateId(String id) {
+    public Id convertIdFrom(String id) {
         return new CommonId(id);
     }
 }

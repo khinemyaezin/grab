@@ -128,7 +128,7 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
 
     private ProductVariant mapToDomainVariant(ProductCombinationQuery.Variant variant, Id productId) {
         Id variantId = Objects.isNull(variant.id()) ? idGenerator.generateId()
-                : idGenerator.generateId(variant.id());
+                : idGenerator.convertIdFrom(variant.id());
         ProductVariantStatus status = mapToDomainProductVariantStatus(variant.status());
         List<ProductVariation> variations = mapToDomainProductVariations(variant.variations());
         return new ProductVariant(variantId, variant.sku(), status, variations);
@@ -147,14 +147,14 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
         }
         return variations.stream().map(v -> new ProductVariation(
                 v.optionName(),
-                idGenerator.generateId(v.optionId()),
+                idGenerator.convertIdFrom(v.optionId()),
                 v.typeName(),
-                idGenerator.generateId(v.typeId())
+                idGenerator.convertIdFrom(v.typeId())
         )).toList();
     }
 
     private VariantType mapToDomainProductVariantTypes(ProductCombinationQuery.VariantType variantType) {
-        VariantType domainVariantType = new VariantType(idGenerator.generateId(variantType.typeId()), variantType.typeName());
+        VariantType domainVariantType = new VariantType(idGenerator.convertIdFrom(variantType.typeId()), variantType.typeName());
         variantType.options()
                 .forEach(option ->
                         domainVariantType.addOption(mapToDomainProductVariantOptions(option, domainVariantType)));
@@ -162,7 +162,7 @@ public class ProductCombinationQueryHandler implements QueryHandler<ProductCombi
     }
 
     private VariantOption mapToDomainProductVariantOptions(ProductCombinationQuery.VariantOption option, VariantType variantType) {
-        return new VariantOption(idGenerator.generateId(option.optionId()), option.optionName(), variantType);
+        return new VariantOption(idGenerator.convertIdFrom(option.optionId()), option.optionName(), variantType);
     }
 
     private String generateSku(String productName,  List<ProductVariation> variations) {

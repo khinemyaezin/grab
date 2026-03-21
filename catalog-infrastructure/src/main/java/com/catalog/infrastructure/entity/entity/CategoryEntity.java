@@ -13,7 +13,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "category", indexes = {@Index(name = "leftIndex", columnList = "lft")})
+@Table(name = "category", indexes = {
+        @Index(name = "leftIndex", columnList = "lft"),
+        @Index(name = "depthNameLeftIndex", columnList = "depth,name,lft")
+})
 public class CategoryEntity implements NestedSet<Long>, ICategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

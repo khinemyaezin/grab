@@ -4,6 +4,7 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.domain.aggregate.Category;
+import com.catalog.domain.repository.CategoryHierarchyPort;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.cqrs.command.CommandHandler;
@@ -26,6 +27,7 @@ public class DeleteCategoryCommandHandler implements CommandHandler<DeleteCatego
     private static final Logger log = Loggers.getLogger(DeleteCategoryCommandHandler.class);
 
     private final CategoryRepository categoryRepository;
+    private final CategoryHierarchyPort categoryHierarchyPort;
     private final ProductRepository productRepository;
 
     @Override
@@ -39,14 +41,14 @@ public class DeleteCategoryCommandHandler implements CommandHandler<DeleteCatego
             return new DeleteCategoryResult(false);
         }
 
-        Set<Id> subtreeIds = categoryRepository.findSubtreeIds(command.categoryId());
+        Set<Id> subtreeIds = categoryHierarchyPort.findSubtreeIds(command.categoryId());
         if (productRepository.existsByCategoryIds(subtreeIds)) {
             throw new CatalogServiceException(
                     new CatalogServiceError.CategoryHasAssignedProducts(command.categoryId().getValue())
             );
         }
 
-        categoryRepository.deleteCascade(category.get());
+        categoryHierarchyPort.deleteSubtree(command.categoryId());
 
         log.info("Category deleted successfully: {}", command.categoryId());
 

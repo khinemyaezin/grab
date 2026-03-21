@@ -1,6 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
+import com.catalog.domain.repository.CategoryHierarchyPort;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.exception.ErrorCategory;
@@ -29,13 +30,15 @@ class DeleteCategoryCommandHandlerTest {
     @Mock
     private CategoryRepository categoryRepository;
     @Mock
+    private CategoryHierarchyPort categoryHierarchyPort;
+    @Mock
     private ProductRepository productRepository;
 
     private DeleteCategoryCommandHandler handler;
 
     @BeforeEach
     void setUp() {
-        handler = new DeleteCategoryCommandHandler(categoryRepository, productRepository);
+        handler = new DeleteCategoryCommandHandler(categoryRepository, categoryHierarchyPort, productRepository);
     }
 
     @Test
@@ -44,7 +47,7 @@ class DeleteCategoryCommandHandlerTest {
         Category category = Category.createRoot(categoryId, "Category");
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(category));
-        when(categoryRepository.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
+        when(categoryHierarchyPort.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
         when(productRepository.existsByCategoryIds(Set.of(categoryId))).thenReturn(true);
 
         assertThatThrownBy(() -> handler.handle(new DeleteCategoryCommand(categoryId)))
@@ -62,12 +65,12 @@ class DeleteCategoryCommandHandlerTest {
         Category category = Category.createRoot(categoryId, "Category");
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(category));
-        when(categoryRepository.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
+        when(categoryHierarchyPort.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
         when(productRepository.existsByCategoryIds(Set.of(categoryId))).thenReturn(false);
 
         DeleteCategoryResult result = handler.handle(new DeleteCategoryCommand(categoryId));
 
-        verify(categoryRepository).deleteCascade(category);
+        verify(categoryHierarchyPort).deleteSubtree(categoryId);
         assertThat(result.deleted()).isTrue();
     }
 
