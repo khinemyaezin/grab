@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.api.rest.controller;
 
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveCategoryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.CategoryLeavesResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryNodeResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteCategoryResponse;
@@ -57,6 +58,12 @@ public class CategoryController {
     @GetMapping(value = "/{categoryId}/children", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<CategoryChildrenResponse>> getCategoryChildren(@PathVariable("categoryId") String categoryId) {
         EntityModel<CategoryChildrenResponse> response = categoryFacadeService.getCategoryChildren(categoryId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/leaves", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntityModel<CategoryLeavesResponse>> getLeafNodesByName(@RequestParam("name") String name) {
+        EntityModel<CategoryLeavesResponse> response = categoryFacadeService.getLeafNodesByName(name);
         return ResponseEntity.ok(response);
     }
 

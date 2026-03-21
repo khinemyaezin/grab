@@ -12,6 +12,7 @@ public class CategoryComposite<T> extends NodeComponent<T> {
 
     public CategoryComposite(T node) {
         super(node);
+        this.node = node;
     }
 
 
@@ -21,8 +22,8 @@ public class CategoryComposite<T> extends NodeComponent<T> {
     }
 
     @Override
-    public void setNode(T T) {
-        node = T;
+    public void setNode(T node) {
+        this.node = node;
     }
 
     @Override
@@ -32,6 +33,10 @@ public class CategoryComposite<T> extends NodeComponent<T> {
 
     @Override
     public void addChild(NodeComponent<T> nodeComponent) {
+        if (nodeComponent == null) {
+            return;
+        }
+        nodeComponent.setParent(this);
         children.add(nodeComponent);
     }
 
@@ -47,7 +52,7 @@ public class CategoryComposite<T> extends NodeComponent<T> {
 
     @Override
     public void print(String i) {
-        //System.out.println(i + node.get());
+        // no-op
 
         for (NodeComponent<T> child : children) {
             child.print(i + "-"); // Increase indentation for children

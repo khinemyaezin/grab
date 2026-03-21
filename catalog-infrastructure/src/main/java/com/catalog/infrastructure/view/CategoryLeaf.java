@@ -10,6 +10,7 @@ public class CategoryLeaf<T> extends NodeComponent<T> {
 
     public CategoryLeaf(T node) {
         super(node);
+        this.node = node;
     }
 
     @Override
@@ -44,6 +45,6 @@ public class CategoryLeaf<T> extends NodeComponent<T> {
 
     @Override
     public void print(String i) {
-        ///System.out.println(i + node.getName());
+        // no-op
     }
 }

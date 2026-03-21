@@ -6,16 +6,19 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryChildrenModelAssembler;
+import com.grab.store.catalog.internal.api.rest.assembler.CategoryLeavesModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.CategoryNodeModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.DeleteCategoryModelAssembler;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveCategoryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.CategoryLeavesResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryNodeResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryResponse;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteCategoryResponse;
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryChildrenDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryDtoMapper;
+import com.grab.store.catalog.internal.api.rest.mapper.CategoryLeavesDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryNodeDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveCategoryDtoMapper;
 import com.grab.store.catalog.internal.command.DeleteCategoryCommand;
@@ -37,9 +40,11 @@ public class CategoryFacadeService {
     private final QueryBus queryBus;
     private final SaveCategoryDtoMapper saveCategoryDtoMapper;
     private final CategoryDtoMapper categoryDtoMapper;
+    private final CategoryLeavesDtoMapper categoryLeavesDtoMapper;
     private final CategoryNodeDtoMapper categoryNodeDtoMapper;
     private final CategoryChildrenDtoMapper categoryChildrenDtoMapper;
     private final CategoryModelAssembler categoryModelAssembler;
+    private final CategoryLeavesModelAssembler categoryLeavesModelAssembler;
     private final CategoryNodeModelAssembler categoryNodeModelAssembler;
     private final CategoryChildrenModelAssembler categoryChildrenModelAssembler;
     private final DeleteCategoryModelAssembler deleteCategoryModelAssembler;
@@ -78,6 +83,14 @@ public class CategoryFacadeService {
         return categoryModelAssembler.toModel(response);
     }
 
+    public EntityModel<CategoryLeavesResponse> getLeafNodesByName(String name) {
+        log.info("Getting category leaves by name: {}", name);
+
+        CategoryLeavesResult result = queryBus.dispatch(new GetCategoryLeafNodesByNameQuery(name));
+        CategoryLeavesResponse response = categoryLeavesDtoMapper.toResponse(result);
+        return categoryLeavesModelAssembler.toModel(response, name);
+    }
+
     public EntityModel<CategoryChildrenResponse> getCategoryChildren(String categoryId) {
         log.info("Getting category children for: {}", categoryId);
 
@@ -89,7 +102,7 @@ public class CategoryFacadeService {
     public EntityModel<DeleteCategoryResponse> deleteCategory(String categoryId) {
         log.info("Deleting category: {}", categoryId);
 
-        DeleteCategoryCommand command = new DeleteCategoryCommand(idGenerator.generateId(categoryId));
+        DeleteCategoryCommand command = new DeleteCategoryCommand(idGenerator.convertIdFrom(categoryId));
         DeleteCategoryResult result = commandBus.dispatch(command);
         DeleteCategoryResponse response = new DeleteCategoryResponse(categoryId, result.deleted());
 

@@ -1,4 +1,4 @@
-package com.catalog.infrastructure.repository.jpa.support;
+package com.catalog.infrastructure.repository.jpa.impl;
 
 import com.catalog.infrastructure.exception.CatalogInfraError;
 import com.catalog.infrastructure.exception.CatalogInfraException;

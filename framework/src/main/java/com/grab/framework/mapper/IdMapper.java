@@ -17,6 +17,6 @@ public class IdMapper {
     }
 
     public Id map(String id) {
-        return id == null || id.isBlank() ? null : idGenerator.generateId(id);
+        return id == null || id.isBlank() ? null : idGenerator.convertIdFrom(id);
     }
 }

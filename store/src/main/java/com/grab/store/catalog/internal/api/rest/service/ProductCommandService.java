@@ -44,7 +44,7 @@ public class ProductCommandService {
     public EntityModel<DeleteProductResponse> deleteProduct(String productId) {
         log.info("Deleting product: {}", productId);
 
-        DeleteProductCommand command = new DeleteProductCommand(idGenerator.generateId(productId));
+        DeleteProductCommand command = new DeleteProductCommand(idGenerator.convertIdFrom(productId));
         DeleteProductResult result = commandBus.dispatch(command);
         DeleteProductResponse response = new DeleteProductResponse(productId, result.deleted());
 
@@ -63,10 +63,10 @@ public class ProductCommandService {
 
     public EntityModel<ProductDescriptionsResponse> replaceProductDescriptions(String productId, ReplaceProductDescriptionsRequest request) {
         ReplaceProductDescriptionsCommand command = new ReplaceProductDescriptionsCommand(
-                idGenerator.generateId(productId),
+                idGenerator.convertIdFrom(productId),
                 request.descriptions().stream()
                         .map(description -> new ReplaceProductDescriptionsCommand.Description(
-                                description.id() == null || description.id().isBlank() ? null : idGenerator.generateId(description.id()),
+                                description.id() == null || description.id().isBlank() ? null : idGenerator.convertIdFrom(description.id()),
                                 description.name(),
                                 description.title(),
                                 description.description()
@@ -79,10 +79,10 @@ public class ProductCommandService {
 
     public EntityModel<ProductMediaResponse> replaceProductMedia(String productId, ReplaceProductMediaRequest request) {
         ReplaceProductMediaCommand command = new ReplaceProductMediaCommand(
-                idGenerator.generateId(productId),
+                idGenerator.convertIdFrom(productId),
                 request.medias().stream()
                         .map(media -> new ReplaceProductMediaCommand.Media(
-                                media.id() == null || media.id().isBlank() ? null : idGenerator.generateId(media.id()),
+                                media.id() == null || media.id().isBlank() ? null : idGenerator.convertIdFrom(media.id()),
                                 media.type(),
                                 media.path()
                         ))
@@ -104,7 +104,7 @@ public class ProductCommandService {
 
     public EntityModel<ProductModerationResponse> moderateProduct(String productId, String action, ProductModerationRequest request) {
         ModerateProductCommand command = new ModerateProductCommand(
-                idGenerator.generateId(productId),
+                idGenerator.convertIdFrom(productId),
                 action,
                 request == null ? null : request.reason()
         );

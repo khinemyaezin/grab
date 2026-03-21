@@ -29,7 +29,7 @@ public class GetCategoryQueryHandler implements QueryHandler<GetCategoryQuery, C
     public CategoryResult handle(GetCategoryQuery query) {
         log.debug("Handling GetCategoryQuery for categoryId: {}", query.categoryId());
 
-        Category category = categoryRepository.find(idGenerator.generateId(query.categoryId()))
+        Category category = categoryRepository.find(idGenerator.convertIdFrom(query.categoryId()))
                 .orElseThrow(() -> new CatalogServiceException(
                         new CatalogServiceError.CategoryNotFound(query.categoryId())
                 ));

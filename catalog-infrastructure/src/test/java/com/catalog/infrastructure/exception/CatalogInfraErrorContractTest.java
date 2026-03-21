@@ -1,6 +1,6 @@
 package com.catalog.infrastructure.exception;
 
-import com.catalog.infrastructure.repository.jpa.support.CatalogPersistenceExecutor;
+import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
 import com.grab.framework.exception.ErrorCategory;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;

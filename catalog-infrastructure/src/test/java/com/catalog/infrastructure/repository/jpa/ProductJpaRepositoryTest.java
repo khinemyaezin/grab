@@ -10,7 +10,7 @@ import com.catalog.infrastructure.exception.CatalogInfraException;
 import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.mapper.jpa.ProductJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
-import com.catalog.infrastructure.repository.jpa.support.CatalogPersistenceExecutor;
+import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

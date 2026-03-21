@@ -1,36 +1,29 @@
 package com.catalog.infrastructure.repository.jpa.impl;
 
 import com.grab.framework.id.Id;
-import com.grab.framework.id.IdGenerator;
-import com.nestedset.app.NestedSetNodeRepository;
-import com.nestedset.library.model.NodeComponent;
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
-import com.catalog.infrastructure.exception.CatalogInfraError;
-import com.catalog.infrastructure.exception.CatalogInfraException;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.catalog.infrastructure.mapper.jpa.CategoryJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
+import com.catalog.infrastructure.repository.jpa.CategoryNodeRepository;
 import lombok.AllArgsConstructor;
 
 import java.util.Optional;
-import java.util.Set;
-import java.util.LinkedHashSet;
 
 @AllArgsConstructor
 public class CategoryJpaRepository implements CategoryRepository {
     private static final Logger log = Loggers.getLogger(CategoryJpaRepository.class);
 
-    private final NestedSetNodeRepository<CategoryEntity,Long> nodeRepository;
+    private final CategoryNodeRepository categoryNodeRepository;
     private final CategoryJpaRepo categoryJpaRepository;
     private final CategoryJpaAssembler categoryJpaAssembler;
     private final DomainEventProducer domainEventProducer;
     private final PersistenceExecutor executor;
-    private final IdGenerator idGenerator;
 
     @Override
     public void save(Category category) {
@@ -43,22 +36,8 @@ public class CategoryJpaRepository implements CategoryRepository {
                 categoryJpaRepository.save(entity);
             } else {
                 entity = categoryJpaAssembler.buildFullEntityGraph(category, null);
-
-                if (category.getParentId().isEmpty()) {
-                    nodeRepository.insertAsFirstRoot(entity);
-                } else {
-                    String parentId = category.getParentId().get().getValue();
-                    Optional<CategoryEntity> parentEntity = categoryJpaRepository.findByUuid(parentId);
-                    if (parentEntity.isPresent()) {
-                        nodeRepository.insertAsLastChildOf(entity, parentEntity.get());
-                    } else {
-                        log.warn("Parent category not found for categoryId={}, parentId={}", category.getId().getValue(), parentId);
-                        throw new CatalogInfraException(
-                                new CatalogInfraError.PersistenceNotFound("Category", parentId),
-                                "Parent category not found: " + parentId + "."
-                        );
-                    }
-                }
+                String nullableParentId =  category.getParentId().map(Id::getValue).orElse(null);
+                categoryNodeRepository.insert(entity, nullableParentId);
             }
             domainEventProducer.produce(
                     category.getClass().getSimpleName(),
@@ -73,53 +52,10 @@ public class CategoryJpaRepository implements CategoryRepository {
     public Optional<Category> find(Id id) {
         log.debug("Loading category by id={}", id.getValue());
         return executor.query("Category", () -> categoryJpaRepository.findByUuid(id.getValue())
-                .map(categoryEntity -> {
-                    Optional<CategoryEntity> parent = nodeRepository.getParent(categoryEntity);
-                    if (parent.isPresent()) {
-                        return categoryJpaAssembler.buildFullDomainAggregate(categoryEntity, parent.get());
-                    } else {
-                        return categoryJpaAssembler.buildFullDomainAggregate(categoryEntity, null);
-                    }
-                }));
-    }
-
-    @Override
-    public Set<Id> findSubtreeIds(Id id) {
-        log.debug("Loading category subtree ids for id={}", id.getValue());
-        return executor.query("Category", () -> categoryJpaRepository.findByUuid(id.getValue())
-                .map(nodeRepository::getTree)
-                .map(this::collectSubtreeIds)
-                .orElseGet(Set::of));
-    }
-
-    private Set<Id> collectSubtreeIds(NodeComponent<CategoryEntity> node) {
-        Set<Id> categoryIds = new LinkedHashSet<>();
-        collectSubtreeIds(node, categoryIds);
-        return categoryIds;
-    }
-
-    private void collectSubtreeIds(NodeComponent<CategoryEntity> node, Set<Id> categoryIds) {
-        if (node == null || node.getNode() == null || node.getNode().getUuid() == null) {
-            return;
-        }
-
-        categoryIds.add(idGenerator.generateId(node.getNode().getUuid()));
-
-        try {
-            for (NodeComponent<CategoryEntity> child : node.getChildren()) {
-                collectSubtreeIds(child, categoryIds);
-            }
-        } catch (UnsupportedOperationException ignored) {
-            // Leaf nodes do not expose children.
-        }
-    }
-
-    @Override
-    public void deleteCascade(Category category) {
-        executor.command("Category", () -> {
-            log.info("Cascade deleting category id={}", category.getId().getValue());
-            categoryJpaRepository.findByUuid(category.getId().getValue())
-                    .ifPresent(nodeRepository::removeSubtree);
-        });
+                .map(categoryEntity -> categoryJpaAssembler.buildFullDomainAggregate(
+                        categoryEntity,
+                        categoryNodeRepository.findParent(categoryEntity).orElse(null)
+                ))
+        );
     }
 }
