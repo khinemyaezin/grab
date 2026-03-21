@@ -4,7 +4,7 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.domain.aggregate.Category;
-import com.catalog.domain.repository.CategoryHierarchyPort;
+import com.catalog.infrastructure.repository.jpa.CategoryHierarchyPort;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.cqrs.command.CommandHandler;

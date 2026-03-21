@@ -1,6 +1,6 @@
 package com.catalog.infrastructure.repository.jpa.impl;
 
-import com.catalog.domain.repository.CategoryHierarchyPort;
+import com.catalog.infrastructure.repository.jpa.CategoryHierarchyPort;
 import com.catalog.infrastructure.repository.jpa.CategoryNodeRepository;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;

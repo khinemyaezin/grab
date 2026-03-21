@@ -1,4 +1,4 @@
-package com.catalog.domain.repository;
+package com.catalog.infrastructure.repository.jpa;
 
 import com.grab.framework.id.Id;
 

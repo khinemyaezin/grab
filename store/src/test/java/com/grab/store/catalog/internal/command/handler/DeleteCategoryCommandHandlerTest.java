@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
-import com.catalog.domain.repository.CategoryHierarchyPort;
+import com.catalog.infrastructure.repository.jpa.CategoryHierarchyPort;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.exception.ErrorCategory;

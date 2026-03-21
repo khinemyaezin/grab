@@ -1,7 +1,7 @@
 package com.catalog.infrastructure.configuration;
 
 import com.catalog.domain.repository.CategoryRepository;
-import com.catalog.domain.repository.CategoryHierarchyPort;
+import com.catalog.infrastructure.repository.jpa.CategoryHierarchyPort;
 import com.catalog.infrastructure.adapter.category.CategoryNodeInserter;
 import com.catalog.infrastructure.adapter.category.CategoryNodeRemover;
 import com.catalog.infrastructure.adapter.category.CategoryNodeRetriever;

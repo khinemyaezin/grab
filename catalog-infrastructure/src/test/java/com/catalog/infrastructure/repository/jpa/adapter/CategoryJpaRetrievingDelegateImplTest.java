@@ -2,62 +2,30 @@ package com.catalog.infrastructure.repository.jpa.adapter;
 
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRetrievingDelegate;
+import com.catalog.infrastructure.repository.jpa.CategoryRepositoryTestConfig;
 import com.nestedset.app.config.JpaNestedSetRepositoryConfiguration;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.jpa.repository.JpaContext;
-import org.springframework.data.jpa.repository.support.DefaultJpaContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener;
-import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
-import org.springframework.test.context.support.DirtiesContextTestExecutionListener;
-import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@ContextConfiguration(classes = CategoryJpaRetrievingDelegateImplTest.TestConfig.class)
-@TestExecutionListeners(
-        listeners = {
-                DependencyInjectionTestExecutionListener.class,
-                DirtiesContextTestExecutionListener.class,
-                TransactionalTestExecutionListener.class,
-                SqlScriptsTestExecutionListener.class
-        },
-        mergeMode = TestExecutionListeners.MergeMode.REPLACE_DEFAULTS
-)
-@TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:category_retrieval_delegate_db;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driverClassName=org.h2.Driver",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spirng.jpa.hibernate.show_sql=true",
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
-})
-class CategoryJpaRetrievingDelegateImplTest {
-
-    @EnableAutoConfiguration
-    @EntityScan(basePackages = "com.catalog.infrastructure.entity")
-    static class TestConfig {
-    }
+public class CategoryJpaRetrievingDelegateImplTest extends CategoryRepositoryTestConfig {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private JpaContext jpaContext;
 
     private CategoryJpaRetrievingDelegate retrievingDelegate;
 
     @BeforeEach
     void setUp() {
-        JpaContext jpaContext = new DefaultJpaContext(Set.of(entityManager));
         JpaNestedSetRepositoryConfiguration<CategoryEntity, Long> config =
                 new JpaNestedSetRepositoryConfiguration<>(jpaContext, CategoryEntity.class);
         retrievingDelegate = new CategoryJpaRetrievingDelegateImpl(config);
@@ -87,7 +55,7 @@ class CategoryJpaRetrievingDelegateImplTest {
     }
 
     @Test
-    void getLeafNodesByName_returnsEmptyForNullOrBlankInput() {
+    void getLeafNodesByName_withNullOrBlankInput_returnsEmpty() {
         assertThat(retrievingDelegate.getLeafNodesByName(null)).isEmpty();
         assertThat(retrievingDelegate.getLeafNodesByName("   ")).isEmpty();
     }
@@ -129,7 +97,7 @@ class CategoryJpaRetrievingDelegateImplTest {
     }
 
     @Test
-    void getLeafNodesByName_escapesLikeWildcardsAndBackslash() {
+    void getLeafNodesByName_escapes_likeWildcardsAndBackslash() {
         assertThat(retrievingDelegate.getLeafNodesByName("Elec%"))
                 .extracting(CategoryEntity::getUuid)
                 .containsExactly("promo");
@@ -144,7 +112,7 @@ class CategoryJpaRetrievingDelegateImplTest {
     }
 
     @Test
-    void getLeafNodesByName_returnsEmptyWhenMatchingRootHasNullBounds() {
+    void getLeafNodesByName_withMatchingRootHasNullBounds_returnsEmpty() {
         persistCategory("broken-root", "Broken", null, null, 0);
         entityManager.flush();
         entityManager.clear();
