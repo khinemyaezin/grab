@@ -48,11 +48,11 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         Set<String> usedKeys = new HashSet<>(combinations.size());
 
         for (VariantCombination combination : combinations) {
-            String key = generateSortedKey(combination.getVariations(), commonTypeIds);
+            String key = generateSortedKey(combination.variations(), commonTypeIds);
             ProductVariantSelection match = existingVariantByKey.get(key);
             VariantCombinationResult result;
 
-            if (match != null && !usedKeys.contains(key) && match.variations().size() == combination.getVariations().size()) {
+            if (match != null && !usedKeys.contains(key) && match.variations().size() == combination.variations().size()) {
                 result = new VariantCombinationResult(combination, match, VariantCombinationResult.MatchedType.UNCHANGED);
             } else if (match != null) {
                 result = new VariantCombinationResult(combination, match, VariantCombinationResult.MatchedType.EXTENDED);
@@ -90,7 +90,7 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         }
         Set<Id> combinationTypeIds = new HashSet<>();
         for (VariantCombination combo : combinations) {
-            for (ProductVariation v : combo.getVariations()) {
+            for (ProductVariation v : combo.variations()) {
                 combinationTypeIds.add(v.getTypeId());
             }
         }

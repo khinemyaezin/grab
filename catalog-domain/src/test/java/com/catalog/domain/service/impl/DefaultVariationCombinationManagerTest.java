@@ -91,8 +91,8 @@ class DefaultVariationCombinationManagerTest {
 
     private String extractTemplateFrom(VariationCombinationManager.VariantCombinationResult variantCombinationResult) {
         return String.format("%s %s %s",
-                variantCombinationResult.variantCombination().getVariations().stream()
-                        .map(ProductVariation::getOptionName)
+                variantCombinationResult.variantCombination().variations().stream()
+                        .map( variation -> variation.getOptionId().getValue())
                         .filter(Objects::nonNull)
                         .collect(Collectors.joining()),
                 variantCombinationResult.matchedVariant() == null ? "ACTIVE" : variantCombinationResult.matchedVariant().status(),
@@ -146,10 +146,10 @@ class DefaultVariationCombinationManagerTest {
                         variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
         );
         String[] desiredCombination = {
-                "YellowMale ACTIVE NEW",
-                "YellowFemale ACTIVE NEW",
-                "RedMale ACTIVE NEW",
-                "RedFemale ACTIVE NEW"
+                "color-yellowgender-male ACTIVE NEW",
+                "color-yellowgender-female ACTIVE NEW",
+                "color-redgender-male ACTIVE NEW",
+                "color-redgender-female ACTIVE NEW"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
@@ -175,10 +175,10 @@ class DefaultVariationCombinationManagerTest {
                         variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
         );
         String[] desiredCombination = {
-                "YellowMale ACTIVE EXTENDED",
-                "YellowFemale ACTIVE EXTENDED",
-                "RedMale ACTIVE EXTENDED",
-                "RedFemale ACTIVE EXTENDED"
+                "color-yellowgender-male ACTIVE EXTENDED",
+                "color-yellowgender-female ACTIVE EXTENDED",
+                "color-redgender-male ACTIVE EXTENDED",
+                "color-redgender-female ACTIVE EXTENDED"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
@@ -207,10 +207,10 @@ class DefaultVariationCombinationManagerTest {
                         variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
         );
         String[] desiredCombination = {
-                "LargeMale ACTIVE EXTENDED",
-                "LargeFemale ACTIVE EXTENDED",
-                "SmallMale ACTIVE EXTENDED",
-                "SmallFemale ACTIVE EXTENDED"
+                "size-largegender-male ACTIVE EXTENDED",
+                "size-largegender-female ACTIVE EXTENDED",
+                "size-smallgender-male ACTIVE EXTENDED",
+                "size-smallgender-female ACTIVE EXTENDED"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
@@ -239,10 +239,10 @@ class DefaultVariationCombinationManagerTest {
                         variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"))
         );
         String[] desiredCombination = {
-                "LargeYellow ACTIVE EXTENDED",
-                "LargeRed ACTIVE EXTENDED",
-                "SmallYellow ACTIVE EXTENDED",
-                "SmallRed ACTIVE EXTENDED"
+                "size-largecolor-yellow ACTIVE EXTENDED",
+                "size-largecolor-red ACTIVE EXTENDED",
+                "size-smallcolor-yellow ACTIVE EXTENDED",
+                "size-smallcolor-red ACTIVE EXTENDED"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
@@ -349,22 +349,22 @@ class DefaultVariationCombinationManagerTest {
                         variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage"))
         );
         String[] desiredCombination = {
-                "LargeYellowMale128 ACTIVE EXTENDED",
-                "LargeYellowMale256 ACTIVE EXTENDED",
-                "LargeYellowFemale128 ACTIVE EXTENDED",
-                "LargeYellowFemale256 ACTIVE EXTENDED",
-                "LargeRedMale128 ACTIVE EXTENDED",
-                "LargeRedMale256 ACTIVE EXTENDED",
-                "LargeRedFemale128 ACTIVE EXTENDED",
-                "LargeRedFemale256 ACTIVE EXTENDED",
-                "SmallYellowMale128 ACTIVE EXTENDED",
-                "SmallYellowMale256 ACTIVE EXTENDED",
-                "SmallYellowFemale128 ACTIVE EXTENDED",
-                "SmallYellowFemale256 ACTIVE EXTENDED",
-                "SmallRedMale128 ACTIVE EXTENDED",
-                "SmallRedMale256 ACTIVE EXTENDED",
-                "SmallRedFemale128 ACTIVE EXTENDED",
-                "SmallRedFemale256 ACTIVE EXTENDED"
+                "size-largecolor-yellowgender-malestorage-128 ACTIVE EXTENDED",
+                "size-largecolor-yellowgender-malestorage-256 ACTIVE EXTENDED",
+                "size-largecolor-yellowgender-femalestorage-128 ACTIVE EXTENDED",
+                "size-largecolor-yellowgender-femalestorage-256 ACTIVE EXTENDED",
+                "size-largecolor-redgender-malestorage-128 ACTIVE EXTENDED",
+                "size-largecolor-redgender-malestorage-256 ACTIVE EXTENDED",
+                "size-largecolor-redgender-femalestorage-128 ACTIVE EXTENDED",
+                "size-largecolor-redgender-femalestorage-256 ACTIVE EXTENDED",
+                "size-smallcolor-yellowgender-malestorage-128 ACTIVE EXTENDED",
+                "size-smallcolor-yellowgender-malestorage-256 ACTIVE EXTENDED",
+                "size-smallcolor-yellowgender-femalestorage-128 ACTIVE EXTENDED",
+                "size-smallcolor-yellowgender-femalestorage-256 ACTIVE EXTENDED",
+                "size-smallcolor-redgender-malestorage-128 ACTIVE EXTENDED",
+                "size-smallcolor-redgender-malestorage-256 ACTIVE EXTENDED",
+                "size-smallcolor-redgender-femalestorage-128 ACTIVE EXTENDED",
+                "size-smallcolor-redgender-femalestorage-256 ACTIVE EXTENDED"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
@@ -417,12 +417,12 @@ class DefaultVariationCombinationManagerTest {
         );
 
         String[] desiredCombination = {
-                "LargeYellow ACTIVE UNCHANGED",
-                "LargeRed ACTIVE UNCHANGED",
-                "LargeBlue ACTIVE NEW",
-                "SmallYellow ACTIVE UNCHANGED",
-                "SmallRed ACTIVE UNCHANGED",
-                "SmallBlue ACTIVE NEW"
+                "size-largecolor-yellow ACTIVE UNCHANGED",
+                "size-largecolor-red ACTIVE UNCHANGED",
+                "size-largecolor-blue ACTIVE NEW",
+                "size-smallcolor-yellow ACTIVE UNCHANGED",
+                "size-smallcolor-red ACTIVE UNCHANGED",
+                "size-smallcolor-blue ACTIVE NEW"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
@@ -448,7 +448,7 @@ class DefaultVariationCombinationManagerTest {
         );
 
         String[] desiredCombination = {
-                "LargeYellow ACTIVE UNCHANGED"
+                "size-largecolor-yellow ACTIVE UNCHANGED"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
@@ -461,7 +461,7 @@ class DefaultVariationCombinationManagerTest {
         List<ProductVariantSelection> existingVariants = List.of(
                 variant("1",  "SKU-LYM",
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size")),
+                        variation(new CommonId("size-large"), "size-large", new CommonId("size"), "Size")),
 
 
                 variant("3",  "SKU-LRM",
@@ -478,8 +478,8 @@ class DefaultVariationCombinationManagerTest {
         );
 
         String[] desiredCombination = {
-                "LargeYellow ACTIVE UNCHANGED",
-                "LargeRed ACTIVE UNCHANGED"
+                "size-largecolor-yellow ACTIVE UNCHANGED",
+                "size-largecolor-red ACTIVE UNCHANGED"
         };
         List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
         assertThat(results)
