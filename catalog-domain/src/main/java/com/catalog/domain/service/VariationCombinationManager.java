@@ -1,14 +1,15 @@
 package com.catalog.domain.service;
 
-import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.domain.service.dto.ProductVariantSelection;
 import com.catalog.domain.valueobject.VariantCombination;
 
 import java.util.List;
 
 public interface VariationCombinationManager {
+
     record VariantCombinationResult (
             VariantCombination variantCombination,
-            ProductVariant matchedVariant,
+            ProductVariantSelection matchedVariant,
             MatchedType matchedType
     ){
         public enum MatchedType {
@@ -18,5 +19,5 @@ public interface VariationCombinationManager {
         }
     }
 
-    List<VariantCombinationResult> syncCombinations(List<ProductVariant> existingVariants, List<VariantCombination> combinations);
+    List<VariantCombinationResult> syncCombinations(List<ProductVariantSelection> existingVariants, List<VariantCombination> combinations);
 }

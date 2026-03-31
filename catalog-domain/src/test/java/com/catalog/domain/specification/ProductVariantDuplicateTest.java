@@ -2,6 +2,7 @@ package com.catalog.domain.specification;
 
 import com.catalog.domain.aggregate.*;
 import com.catalog.domain.valueobject.ProductVariantStatus;
+import com.catalog.domain.valueobject.VariantTypeStatus;
 import com.grab.framework.id.Id;
 import com.catalog.domain.valueobject.ProductVariation;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,18 +40,8 @@ public class ProductVariantDuplicateTest {
 
     @BeforeEach
     void setUp() {
-        // Setup color variant type
-        VariantType color = new VariantType(new CommonId("color"), "Color");
-        color.addOption(new VariantOption(new CommonId("red"), "Red", color));
-        color.addOption(new VariantOption(new CommonId("blue"), "Blue", color));
-
-        // Setup size variant type
-        VariantType size = new VariantType(new CommonId("size"), "Size");
-        size.addOption(new VariantOption(new CommonId("small"), "Small", size));
-        size.addOption(new VariantOption(new CommonId("medium"), "Medium", size));
-
-        // Create product
         product =  Product.create(new CommonId("product-1"), "T-Shirt", new CommonId("clothing"));
+
     }
 
     @Test

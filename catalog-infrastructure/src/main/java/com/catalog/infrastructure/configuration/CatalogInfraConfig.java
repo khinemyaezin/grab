@@ -1,6 +1,7 @@
 package com.catalog.infrastructure.configuration;
 
 import com.catalog.domain.repository.CategoryRepository;
+import com.catalog.domain.repository.VariantTypeRepository;
 import com.catalog.infrastructure.repository.jpa.CategoryHierarchyPort;
 import com.catalog.infrastructure.adapter.category.CategoryNodeInserter;
 import com.catalog.infrastructure.adapter.category.CategoryNodeRemover;
@@ -14,6 +15,7 @@ import com.catalog.infrastructure.mapper.jpa.*;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.mapper.jpa.impl.CategoryJpaAssemblerImpl;
+import com.catalog.infrastructure.mapper.jpa.impl.VariantTypeJpaAssemblerImpl;
 import com.catalog.infrastructure.outbox.CatalogOutboxEvent;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProcessor;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProducer;
@@ -121,6 +123,26 @@ public class CatalogInfraConfig {
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new ProductJpaRepository(
                 jpaAssembler, productJpaRepo, domainEventProducer, executor
+        );
+    }
+
+    @Bean
+    public VariantTypeJpaAssembler variantTypeJpaAssembler(IdGenerator idGenerator) {
+        return new VariantTypeJpaAssemblerImpl(idGenerator);
+    }
+
+    @Bean
+    public VariantTypeRepository variantTypeRepository(
+            VariantTypeJpaAssembler variantTypeJpaAssembler,
+            VariantTypeJpaRepo variantTypeJpaRepo,
+            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new VariantTypeJpaRepository(
+                variantTypeJpaAssembler,
+                variantTypeJpaRepo,
+                domainEventProducer,
+                executor
         );
     }
 

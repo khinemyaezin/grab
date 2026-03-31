@@ -1,7 +1,7 @@
 package com.catalog.domain.service.impl;
 
+import com.catalog.domain.service.dto.ProductVariantSelection;
 import com.grab.framework.id.Id;
-import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.service.VariationCombinationManager;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -33,7 +33,7 @@ class DefaultVariationCombinationManagerTest {
     product-1    | SKU-SRM  | Small   | Red     | Male
     product-1    | SKU-SRF  | Small   | Red     | Female
     */
-    private List<ProductVariant> getProductVariation() {
+    private List<ProductVariantSelection> getProductVariation() {
         return List.of(
                 variant("1", "SKU-LYM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
@@ -77,8 +77,8 @@ class DefaultVariationCombinationManagerTest {
         );
     }
 
-    protected static ProductVariant variant(String variantId, String sku, ProductVariation... variations) {
-        return new ProductVariant(new CommonId(variantId), sku, ProductVariantStatus.ACTIVE, List.of(variations));
+    protected static ProductVariantSelection variant(String id, String sku, ProductVariation... variations) {
+        return new ProductVariantSelection(new CommonId(id), List.of(variations), ProductVariantStatus.ACTIVE);
     }
 
     protected static ProductVariation variation(Id optionId, String optionName,Id typeId, String typeName) {
@@ -95,7 +95,7 @@ class DefaultVariationCombinationManagerTest {
                         .map(ProductVariation::getOptionName)
                         .filter(Objects::nonNull)
                         .collect(Collectors.joining()),
-                variantCombinationResult.matchedVariant() == null ? "ACTIVE" : variantCombinationResult.matchedVariant().getStatus(),
+                variantCombinationResult.matchedVariant() == null ? "ACTIVE" : variantCombinationResult.matchedVariant().status(),
                 variantCombinationResult.matchedType());
     }
 
@@ -130,7 +130,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_addVariantType_returnNewVariants() {
-        List<ProductVariant> existingVariants = List.of();
+        List<ProductVariantSelection> existingVariants = List.of();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
@@ -159,7 +159,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtFirst_returnCombinationInOrder() {
-        List<ProductVariant> existingVariants = getProductVariation();
+        List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
@@ -188,7 +188,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtMiddle_returnCombinationInOrder() {
-        List<ProductVariant> existingVariants = getProductVariation();
+        List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
@@ -220,7 +220,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtLast_returnCombinationInOrder() {
-        List<ProductVariant> existingVariants = getProductVariation();
+        List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
@@ -252,7 +252,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_addVariantTypeAtLast_returnCombinationsInOrder_() {
-        List<ProductVariant> existingVariants = getProductVariation();
+        List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
@@ -374,7 +374,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_addVariantOption_returnCombinationsInOrder() {
-        List<ProductVariant> existingVariants = List.of(
+        List<ProductVariantSelection> existingVariants = List.of(
                 variant("1",  "SKU-LYM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
@@ -432,7 +432,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantOption_returnCombinationsInOrder() {
-        List<ProductVariant> existingVariants = List.of(
+        List<ProductVariantSelection> existingVariants = List.of(
                 variant("1",  "SKU-LYM",
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
@@ -458,7 +458,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_changeVariantOptionOrder_returnCombinationsInOrder() {
-        List<ProductVariant> existingVariants = List.of(
+        List<ProductVariantSelection> existingVariants = List.of(
                 variant("1",  "SKU-LYM",
                         variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
                         variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size")),

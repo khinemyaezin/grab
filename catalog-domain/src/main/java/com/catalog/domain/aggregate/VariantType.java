@@ -1,7 +1,10 @@
 package com.catalog.domain.aggregate;
 
+import com.catalog.domain.exception.CatalogDomainError;
+import com.catalog.domain.exception.CatalogDomainValidationException;
+import com.catalog.domain.valueobject.VariantTypeStatus;
+import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.id.Id;
-import com.grab.framework.domain.Entity;
 import lombok.Getter;
 
 import java.util.*;
@@ -11,18 +14,71 @@ import java.util.*;
  * Color -> [ Yellow, brown, green ]
  */
 @Getter
-public class VariantType extends Entity<Id> {
-    private final String name;
+public class VariantType extends AggregateRoot<Id> {
+    private String name;
+    private VariantTypeStatus status;
     private final Set<VariantOption> options = new LinkedHashSet<>();
 
-    public VariantType(Id id, String name) {
+    private VariantType(Id id, String name) {
         super(id);
+        this.name = name;
+        this.status = VariantTypeStatus.ACTIVE;
+    }
+
+    public VariantType(
+            Id id,
+            String name,
+            VariantTypeStatus status,
+            List<VariantOption> options
+    ) {
+        super(id);
+        this.name = name;
+        this.status = status;
+        this.options.addAll(options);
+    }
+
+    public static VariantType create(Id id, String name){
+        return new VariantType(id, name);
+    }
+
+    public void activate() {
+        this.status = VariantTypeStatus.ACTIVE;
+    }
+
+    public void deactivate() {
+        this.status = VariantTypeStatus.INACTIVE;
+    }
+
+    public boolean isActive() {
+        return this.status == VariantTypeStatus.ACTIVE;
+    }
+
+    public void changeName(String name) {
         this.name = name;
     }
 
-
     public void addOption(VariantOption option) {
-        options.add(option);
+        Objects.requireNonNull(option, "option");
+
+        if(!options.add(option)) {
+            throw new CatalogDomainValidationException(
+                    new CatalogDomainError.DuplicateVariantOption( option.getName(), getName()),
+                    "Duplicate variant option in variant type."
+            );
+        }
+    }
+
+    public Optional<VariantOption> findOptionById(Id optionId) {
+        if (optionId == null) {
+            return Optional.empty();
+        }
+        return options.stream()
+                .filter(option -> Objects.equals(option.getId(), optionId))
+                .findFirst();
+    }
+
+    public Set<VariantOption> getOptions() {
+        return Collections.unmodifiableSet(options);
     }
 
     @Override
@@ -35,7 +91,7 @@ public class VariantType extends Entity<Id> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name);
+        return Objects.hash(getId());
     }
 
     @Override
