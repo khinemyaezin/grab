@@ -9,7 +9,8 @@ import org.junit.platform.suite.api.*;
 @SelectClasses({
         CategoryJpaRetrievingDelegateImplTest.class,
         CategoryNodeRepositoryImplTest.class,
-        CategoryQueryRepositoryTest.class
+        CategoryQueryRepositoryTest.class,
+        VariantOptionQueryRepoTest.class
 })
 public class CategoryRepositorySuite {
 }

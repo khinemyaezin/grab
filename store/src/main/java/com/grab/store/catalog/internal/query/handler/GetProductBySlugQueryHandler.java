@@ -4,9 +4,12 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
-import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
+import com.catalog.infrastructure.view.VariantOptionView;
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
@@ -14,13 +17,15 @@ import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
+import com.grab.store.catalog.internal.util.ParentChildTransformer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -29,6 +34,8 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
     private static final Logger log = Loggers.getLogger(GetProductBySlugQueryHandler.class);
 
     private final ProductRepository productRepository;
+    private final VariantOptionQueryRepository variantOptionQueryRepository;
+    private final IdGenerator idGenerator;
 
     @Override
     @CatalogReadTransactional
@@ -55,12 +62,20 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
     }
 
     public GetProductBySlugResult mapToSlugResult(Product product) {
-        List<GetProductBySlugResult.Variant> variants = product.getVariants().stream()
-                .filter(ProductVariant::isActive)
-                .map(this::mapToSlugResultVariant)
+        List<ProductVariation> allVariations = product.getVariants().stream()
+                .flatMap(v -> v.getVariations().stream())
                 .toList();
 
-        List<GetProductBySlugResult.VariantType> variantTypes = extractSlugVariantTypes(product);
+        List<String> optionIds = allVariations.stream()
+                .map(v -> v.getOptionId().getValue())
+                .distinct()
+                .toList();
+
+        List<VariantOptionView> optionViews = fetchVariantOptions(optionIds);
+
+        List<GetProductBySlugResult.Variant> variants = mapToSlugResultVariant(product.getVariants(), optionViews);
+
+        List<GetProductBySlugResult.VariantType> variantTypes = extractSlugVariantTypes(optionViews);
 
         return new GetProductBySlugResult(
                 product.getId().getValue(),
@@ -90,62 +105,56 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
         );
     }
 
-    private List<GetProductBySlugResult.VariantType> extractSlugVariantTypes(Product product) {
-        Map<String, List<GetProductBySlugResult.VariantOption>> typeOptionsMap = new LinkedHashMap<>();
-        Map<String, String> typeNameMap = new LinkedHashMap<>();
+    private List<VariantOptionView> fetchVariantOptions(List<String> optionIds) {
+        return variantOptionQueryRepository.findAllByUuidIn(optionIds);
+    }
 
-        for (ProductVariant variant : product.getVariants()) {
-            if (variant.getStatus() != ProductVariantStatus.ACTIVE) {
-                continue;
+    private List<GetProductBySlugResult.VariantType> extractSlugVariantTypes(List<VariantOptionView> optionViews) {
+        ParentChildTransformer<VariantOptionView, Id, GetProductBySlugResult.VariantType, GetProductBySlugResult.VariantOption> transformer =
+                ParentChildTransformer.of(
+                        view -> idGenerator.convertIdFrom(view.typeId()),
+                        view -> new GetProductBySlugResult.VariantType(view.typeId(), view.typeName(), new ArrayList<>()),
+                        view -> new GetProductBySlugResult.VariantOption(view.optionId(), view.optionName()),
+                        (parent, child) -> {
+                            List<GetProductBySlugResult.VariantOption> options = new ArrayList<>(parent.options());
+                            options.add(child);
+                            return new GetProductBySlugResult.VariantType(parent.typeId(), parent.typeName(), options);
+                        }
+                );
+        return transformer.apply(optionViews);
+    }
+
+    private List<GetProductBySlugResult.Variant> mapToSlugResultVariant(List<ProductVariant> variantList, List<VariantOptionView> optionViews) {
+        Map<String, VariantOptionView> variationMapByOptionId = optionViews.stream()
+                .collect(Collectors.toMap(
+                        VariantOptionView::optionId,
+                        Function.identity()));
+        List<GetProductBySlugResult.Variant> result = new ArrayList<>(variantList.size());
+
+        for(ProductVariant variant : variantList) {
+            List<GetProductBySlugResult.Variation> variations = new ArrayList<>();
+            for(ProductVariation productVariation : variant.getVariations()) {
+                VariantOptionView variantOptionView = variationMapByOptionId.get(productVariation.getOptionId().getValue());
+                GetProductBySlugResult.Variation variation = new GetProductBySlugResult.Variation(
+                        variantOptionView.optionId(),
+                        variantOptionView.optionName(),
+                        variantOptionView.typeId(),
+                        variantOptionView.typeName()
+                );
+                variations.add(variation);
             }
-            for (ProductVariation variation : variant.getVariations()) {
-                String typeId = variation.getTypeId().getValue();
-                typeNameMap.putIfAbsent(typeId, variation.getTypeName());
 
-                typeOptionsMap.computeIfAbsent(typeId, k -> new ArrayList<>());
-                List<GetProductBySlugResult.VariantOption> options = typeOptionsMap.get(typeId);
-
-                boolean exists = options.stream()
-                        .anyMatch(o -> o.optionId().equals(variation.getOptionId().getValue()));
-                if (!exists) {
-                    options.add(new GetProductBySlugResult.VariantOption(
-                            variation.getOptionId().getValue(),
-                            variation.getOptionName()
-                    ));
-                }
-            }
+            GetProductBySlugResult.Variant resultVariant = new GetProductBySlugResult.Variant(
+                    variant.getId().getValue(),
+                    variant.getSku(),
+                    variant.getStatus().name(),
+                    variations
+            );
+            result.add(resultVariant);
         }
-
-        return typeOptionsMap.entrySet().stream()
-                .map(entry -> new GetProductBySlugResult.VariantType(
-                        entry.getKey(),
-                        typeNameMap.get(entry.getKey()),
-                        entry.getValue()
-                ))
-                .toList();
+        return result;
     }
 
-    private GetProductBySlugResult.Variant mapToSlugResultVariant(ProductVariant variant) {
-        List<GetProductBySlugResult.Variation> variations = variant.getVariations().stream()
-                .map(this::mapToSlugResultVariation)
-                .toList();
-
-        return new GetProductBySlugResult.Variant(
-                variant.getId().getValue(),
-                variant.getSku(),
-                variant.getStatus().name(),
-                variations
-        );
-    }
-
-    private GetProductBySlugResult.Variation mapToSlugResultVariation(ProductVariation variation) {
-        return new GetProductBySlugResult.Variation(
-                variation.getOptionId().getValue(),
-                variation.getOptionName(),
-                variation.getTypeId().getValue(),
-                variation.getTypeName()
-        );
-    }
 
     private GetProductBySlugResult.Media mapToSlugResultMedia(ProductMedia media) {
         return new GetProductBySlugResult.Media(
