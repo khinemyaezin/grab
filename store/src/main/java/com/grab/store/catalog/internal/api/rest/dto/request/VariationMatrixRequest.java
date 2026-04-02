@@ -7,46 +7,32 @@ import jakarta.validation.constraints.NotEmpty;
 import java.io.Serializable;
 import java.util.List;
 
-public record ProductCombinationRequest(
+public record VariationMatrixRequest(
+    @NotEmpty
     @Valid
-    Product product,
+    List<Variant> variants,
     @NotEmpty
     @Valid
     List<VariantType> variantTypes
 
 ) implements Serializable{
-    public record Product(
-            String id,
-            @NotBlank
-            String name,
-            @NotBlank
-            String categoryId,
-            List<Variant> variants
-    ){}
-
     public record VariantType(
             @NotBlank String typeId,
-            @NotBlank String typeName,
             @NotEmpty @Valid List<VariantOption> options
     ){}
 
     public record VariantOption(
-            @NotBlank String optionId,
-            @NotBlank String optionName
+            @NotBlank String optionId
     ) {}
 
     public record Variant(
-            @NotBlank String id,
-            @NotBlank String sku,
-            @NotBlank String status,
+            @NotBlank String matrixKey,
             @Valid List<Variation> variations
     ){}
 
     public record Variation(
-            @NotBlank String optionName,
             @NotBlank String optionId,
-            @NotBlank String typeId,
-            @NotBlank String typeName
+            @NotBlank String typeId
     ){}
 
 }

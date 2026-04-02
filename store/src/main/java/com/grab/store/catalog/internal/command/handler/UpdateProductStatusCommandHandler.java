@@ -53,7 +53,7 @@ public class UpdateProductStatusCommandHandler implements CommandHandler<UpdateP
             CatalogPolicyValidator.validateActivationPolicy(category, product);
         }
         if (newStatus == ProductStatus.IN_REVIEW || newStatus == ProductStatus.DRAFT || newStatus == ProductStatus.SUSPENDED) {
-            CatalogPolicyValidator.validateCategoryPolicy(category, product);
+            CatalogPolicyValidator.validateCategoryPolicy(category);
         }
         product.changeStatus(newStatus);
 

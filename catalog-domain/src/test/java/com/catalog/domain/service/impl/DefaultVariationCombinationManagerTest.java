@@ -1,6 +1,6 @@
 package com.catalog.domain.service.impl;
 
-import com.catalog.domain.service.dto.ProductVariantSelection;
+import com.catalog.domain.aggregate.ProductVariant;
 import com.grab.framework.id.Id;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.service.VariationCombinationManager;
@@ -33,7 +33,7 @@ class DefaultVariationCombinationManagerTest {
     product-1    | SKU-SRM  | Small   | Red     | Male
     product-1    | SKU-SRF  | Small   | Red     | Female
     */
-    private List<ProductVariantSelection> getProductVariation() {
+    private List<ProductVariant> getProductVariation() {
         return List.of(
                 variant(
                         variation(new CommonId("size-large"), new CommonId("size")),
@@ -77,8 +77,8 @@ class DefaultVariationCombinationManagerTest {
         );
     }
 
-    protected static ProductVariantSelection variant(ProductVariation... variations) {
-        return new ProductVariantSelection(List.of(variations), ProductVariantStatus.ACTIVE);
+    protected static ProductVariant variant(ProductVariation... variations) {
+        return new ProductVariant(null, null, ProductVariantStatus.ACTIVE, List.of(variations));
     }
 
     protected static ProductVariation variation(Id optionId, Id typeId) {
@@ -95,7 +95,7 @@ class DefaultVariationCombinationManagerTest {
                         .map( variation -> variation.getOptionId().getValue())
                         .filter(Objects::nonNull)
                         .collect(Collectors.joining()),
-                variantCombinationResult.matchedVariant() == null ? "ACTIVE" : variantCombinationResult.matchedVariant().status(),
+                variantCombinationResult.matchedVariant() == null ? "ACTIVE" : variantCombinationResult.matchedVariant().getStatus(),
                 variantCombinationResult.matchedType());
     }
 
@@ -130,7 +130,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_addVariantType_returnNewVariants() {
-        List<ProductVariantSelection> existingVariants = List.of();
+        List<ProductVariant> existingVariants = List.of();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("color-yellow"), new CommonId("color")),
@@ -159,7 +159,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtFirst_returnCombinationInOrder() {
-        List<ProductVariantSelection> existingVariants = getProductVariation();
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("color-yellow"), new CommonId("color")),
@@ -188,7 +188,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtMiddle_returnCombinationInOrder() {
-        List<ProductVariantSelection> existingVariants = getProductVariation();
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), new CommonId("size")),
@@ -220,7 +220,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantTypeAtLast_returnCombinationInOrder() {
-        List<ProductVariantSelection> existingVariants = getProductVariation();
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), new CommonId("size")),
@@ -252,7 +252,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_addVariantTypeAtLast_returnCombinationsInOrder_() {
-        List<ProductVariantSelection> existingVariants = getProductVariation();
+        List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
                         variation(new CommonId("size-large"), new CommonId("size")),
@@ -374,7 +374,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_addVariantOption_returnCombinationsInOrder() {
-        List<ProductVariantSelection> existingVariants = List.of(
+        List<ProductVariant> existingVariants = List.of(
                 variant(
                         variation(new CommonId("size-large"), new CommonId("size")),
                         variation(new CommonId("color-yellow"), new CommonId("color"))),
@@ -432,7 +432,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_removeVariantOption_returnCombinationsInOrder() {
-        List<ProductVariantSelection> existingVariants = List.of(
+        List<ProductVariant> existingVariants = List.of(
                 variant(
                         variation(new CommonId("size-large"), new CommonId("size")),
                         variation(new CommonId("color-yellow"), new CommonId("color"))),
@@ -458,7 +458,7 @@ class DefaultVariationCombinationManagerTest {
 
     @Test
     public void syncCombinations_changeVariantOptionOrder_returnCombinationsInOrder() {
-        List<ProductVariantSelection> existingVariants = List.of(
+        List<ProductVariant> existingVariants = List.of(
                 variant(
                         variation(new CommonId("color-yellow"), new CommonId("color")),
                         variation(new CommonId("size-large"), new CommonId("size"))),

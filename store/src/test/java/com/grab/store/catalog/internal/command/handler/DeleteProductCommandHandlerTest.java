@@ -49,7 +49,7 @@ class DeleteProductCommandHandlerTest {
         product.addVariant(ProductVariant.create(
                 new CommonId("variant-1"),
                 "SKU-1",
-                List.of(new ProductVariation("Red", new CommonId("opt-red"), "Color", new CommonId("type-color")))
+                List.of(new ProductVariation(new CommonId("opt-red"), new CommonId("type-color")))
         ));
 
         when(productRepository.find(productId)).thenReturn(Optional.of(product));

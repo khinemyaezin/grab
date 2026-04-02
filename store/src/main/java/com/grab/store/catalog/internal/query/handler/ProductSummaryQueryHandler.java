@@ -38,7 +38,6 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                 .sellerId(query.sellerId())
                 .sellerType(query.sellerType())
                 .offerEligible(query.offerEligible())
-                .variations(query.variations())
                 .build();
 
         Page<ProductSummary> page = productQueryRepository.search(criteria, PageRequest.of(query.page(), query.size()));

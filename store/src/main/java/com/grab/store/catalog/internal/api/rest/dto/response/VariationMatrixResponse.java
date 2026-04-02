@@ -3,40 +3,27 @@ package com.grab.store.catalog.internal.api.rest.dto.response;
 import java.io.Serializable;
 import java.util.List;
 
-public record ProductCombinationResponse(
-        Product product,
+public record VariationMatrixResponse(
+        List<Variant> variants,
         List<VariantType> variantTypes
 ) implements Serializable {
 
-    public record Product(
-            String id,
-            String name,
-            String categoryId,
-            List<Variant> variants
-    ) {}
-
     public record VariantType(
             String typeId,
-            String typeName,
             List<VariantOption> options
     ) {}
 
     public record VariantOption(
-            String optionId,
-            String optionName
+            String optionId
     ) {}
 
     public record Variant(
-            String id,
-            String sku,
-            String status,
+            String matrixKey,
             List<Variation> variations
     ) {}
 
     public record Variation(
-            String optionName,
             String optionId,
-            String typeId,
-            String typeName
+            String typeId
     ) {}
 }

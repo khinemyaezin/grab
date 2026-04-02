@@ -27,7 +27,7 @@ public class RestoreVariantCommandHandler implements CommandHandler<RestoreVaria
     @Override
     @CatalogTransactional
     public RestoreVariantResult handle(RestoreVariantCommand command) {
-        log.debug("Handling RestoreVariantCommand for productId={}, variantId={}", command.productId(), command.variantId());
+        log.debug("Handling RestoreVariantCommand for productId={}, sku={}", command.productId(), command.variantId());
 
         Optional<Product> hasProduct = productRepository.find(command.productId());
         if (hasProduct.isEmpty()) {

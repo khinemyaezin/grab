@@ -1,14 +1,13 @@
 package com.grab.store.catalog.internal.query;
 
 import com.grab.framework.id.Id;
-import com.grab.framework.cqrs.query.Query;
 
 import java.util.List;
 
-public record ProductCombinationQuery(
-        Product product,
+public record VariationMatrixResult(
+        List<Variant> variants,
         List<VariantType> variantTypes
-) implements Query<ProductCombinationResult> {
+) {
 
     public record Product(
             Id id,
@@ -19,26 +18,20 @@ public record ProductCombinationQuery(
 
     public record VariantType(
             String typeId,
-       String typeName,
-           List<VariantOption> options
+            List<VariantOption> options
     ){}
 
     public record VariantOption(
-            String optionId,
-           String optionName
+            String optionId
     ) {}
 
     public record Variant(
-            String id,
-            String sku,
-            String status,
+            String matrixKey,
             List<Variation> variations
     ){}
 
     public record Variation(
-            String optionName,
             String optionId,
-            String typeId,
-            String typeName
+            String typeId
     ){}
 }

@@ -11,7 +11,7 @@ public final class CatalogPolicyValidator {
     private CatalogPolicyValidator() {
     }
 
-    public static void validateCategoryPolicy(Category category, Product product) {
+    public static void validateCategoryPolicy(Category category) {
         if (!category.isActive() || !category.isListingAllowed()) {
             throw new CatalogServiceException(
                     new CatalogServiceError.CategoryListingProhibited(category.getId().getValue())
@@ -20,7 +20,7 @@ public final class CatalogPolicyValidator {
     }
 
     public static void validateActivationPolicy(Category category, Product product) {
-        validateCategoryPolicy(category, product);
+        validateCategoryPolicy(category);
         if (category.isReviewRequired() && product.getStatus() != ProductStatus.IN_REVIEW) {
             throw new CatalogServiceException(
                     new CatalogServiceError.ProductReviewRequired(product.getId().getValue())

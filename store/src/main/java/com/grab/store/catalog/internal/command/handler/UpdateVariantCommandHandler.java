@@ -28,7 +28,7 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
     @Override
     @CatalogTransactional
     public UpdateVariantResult handle(UpdateVariantCommand command) {
-        log.debug("Handling UpdateVariantCommand for productId={} variantId={}", command.productId(), command.variantId());
+        log.debug("Handling UpdateVariantCommand for productId={} sku={}", command.productId(), command.variantId());
 
         Optional<Product> hasProduct = productRepository.find(command.productId());
         if (hasProduct.isEmpty()) {

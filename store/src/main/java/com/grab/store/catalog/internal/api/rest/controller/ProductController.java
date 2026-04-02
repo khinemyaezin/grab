@@ -58,9 +58,9 @@ public class ProductController {
         return ResponseEntity.ok(productFacadeService.replaceProductMedia(productId, request));
     }
 
-    @PutMapping(value = "/{productId}/variants/{variantId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/{productId}/variants/{sku}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<UpdateVariantResponse>> updateVariant(@PathVariable("productId") String productId,
-                                                                             @PathVariable("variantId") String variantId,
+                                                                             @PathVariable("sku") String variantId,
                                                                              @Valid @RequestBody UpdateVariantRequest request) {
         EntityModel<UpdateVariantResponse> response = productFacadeService.updateVariant(productId, variantId, request);
         return ResponseEntity.ok(response);
@@ -85,15 +85,15 @@ public class ProductController {
     }
 
     @PostMapping(
-            value = "/combination",
+            value = "/variation-matrix",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<EntityModel<ProductCombinationResponse>> getProductVariationCombination(
-            @Valid @RequestBody ProductCombinationRequest request) {
+    public ResponseEntity<EntityModel<VariationMatrixResponse>> getVariationMatrix(
+            @Valid @RequestBody VariationMatrixRequest request) {
 
-        EntityModel<ProductCombinationResponse> response =
-                productFacadeService.getProductCombination(request);
+        EntityModel<VariationMatrixResponse> response =
+                productFacadeService.getMatrixCombination(request);
 
         return ResponseEntity.ok(response);
     }
@@ -134,10 +134,10 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping(value = "/{productId}/variants/{variantId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/{productId}/variants/{sku}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<DeleteVariantResponse>> deleteVariant(
             @PathVariable("productId") String productId,
-            @PathVariable("variantId") String variantId) {
+            @PathVariable("sku") String variantId) {
         EntityModel<DeleteVariantResponse> response = productFacadeService.deleteVariant(productId, variantId);
         return ResponseEntity.ok(response);
     }
@@ -151,10 +151,10 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/{productId}/variants/{variantId}/restore", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{productId}/variants/{sku}/restore", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<RestoreVariantResponse>> restoreVariant(
             @PathVariable("productId") String productId,
-            @PathVariable("variantId") String variantId) {
+            @PathVariable("sku") String variantId) {
         EntityModel<RestoreVariantResponse> response = productFacadeService.restoreVariant(productId, variantId);
         return ResponseEntity.ok(response);
     }

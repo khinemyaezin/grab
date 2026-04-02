@@ -5,12 +5,22 @@ import com.grab.framework.cqrs.command.Command;
 
 import java.util.List;
 
-public record SaveProductCommand(
-        Product product
-) implements Command<SaveProductResult> {
+public record CreateProductSetCommand(
+        Product product,
+        List<VariantType> variantTypes
+) implements Command<CreateProductSetResult> {
+
+    public record VariantType(
+            String typeId,
+            List<VariantOption> options
+    ){}
+
+    public record VariantOption(
+            String optionId
+    ) {}
+
 
     public record Product(
-            Id id,
             String name,
             Id categoryId,
             Id sellerId,
@@ -36,16 +46,13 @@ public record SaveProductCommand(
     ) {}
 
     public record Variant(
-            Id id,
             String sku,
-            String status,
+            String matrixKey,
             List<Variation> variations
     ) {}
 
     public record Variation(
-            String optionName,
             Id optionId,
-            Id typeId,
-            String typeName
+            Id typeId
     ) {}
 } 

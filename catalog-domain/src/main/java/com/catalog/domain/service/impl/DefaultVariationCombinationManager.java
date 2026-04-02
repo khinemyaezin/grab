@@ -1,6 +1,6 @@
 package com.catalog.domain.service.impl;
 
-import com.catalog.domain.service.dto.ProductVariantSelection;
+import com.catalog.domain.aggregate.ProductVariant;
 import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -19,7 +19,7 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
     private final VariationKeyGenerator keyGenerator;
 
     @Override
-    public List<VariantCombinationResult> syncCombinations(List<ProductVariantSelection> existingVariants, List<VariantCombination> combinations) {
+    public List<VariantCombinationResult> syncCombinations(List<ProductVariant> existingVariants, List<VariantCombination> combinations) {
         log.info(
                 "Syncing variant combinations: existingVariants={}, requestedCombinations={}",
                 existingVariants.size(),
@@ -42,17 +42,17 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
             return results;
         }
 
-        Map<String, ProductVariantSelection> existingVariantByKey = buildExistingVariantMap(existingVariants, commonTypeIds);
+        Map<String, ProductVariant> existingVariantByKey = buildExistingVariantMap(existingVariants, commonTypeIds);
 
         List<VariantCombinationResult> results = new ArrayList<>(combinations.size());
         Set<String> usedKeys = new HashSet<>(combinations.size());
 
         for (VariantCombination combination : combinations) {
             String key = generateSortedKey(combination.variations(), commonTypeIds);
-            ProductVariantSelection match = existingVariantByKey.get(key);
+            ProductVariant match = existingVariantByKey.get(key);
             VariantCombinationResult result;
 
-            if (match != null && !usedKeys.contains(key) && match.variations().size() == combination.variations().size()) {
+            if (match != null && !usedKeys.contains(key) && match.getVariations().size() == combination.variations().size()) {
                 result = new VariantCombinationResult(combination, match, VariantCombinationResult.MatchedType.UNCHANGED);
             } else if (match != null) {
                 result = new VariantCombinationResult(combination, match, VariantCombinationResult.MatchedType.EXTENDED);
@@ -81,10 +81,10 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         return results;
     }
 
-    private Set<Id> extractCommonTypeIds(List<ProductVariantSelection> existingVariants, List<VariantCombination> combinations){
+    private Set<Id> extractCommonTypeIds(List<ProductVariant> existingVariants, List<VariantCombination> combinations){
         Set<Id> existingTypeIds = new HashSet<>();
-        for (ProductVariantSelection variant : existingVariants) {
-            for (ProductVariation v : variant.variations()) {
+        for (ProductVariant variant : existingVariants) {
+            for (ProductVariation v : variant.getVariations()) {
                 existingTypeIds.add(v.getTypeId());
             }
         }
@@ -105,10 +105,10 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         return commonTypeIds;
     }
 
-    private Map<String, ProductVariantSelection> buildExistingVariantMap(List<ProductVariantSelection> existingVariants, Set<Id> commonTypeIds) {
-        Map<String, ProductVariantSelection> existingVariantByKey = new LinkedHashMap<>(existingVariants.size());
-        for (ProductVariantSelection variant : existingVariants) {
-            String key = generateSortedKey(new ArrayList<>(variant.variations()), commonTypeIds);
+    private Map<String, ProductVariant> buildExistingVariantMap(List<ProductVariant> existingVariants, Set<Id> commonTypeIds) {
+        Map<String, ProductVariant> existingVariantByKey = new LinkedHashMap<>(existingVariants.size());
+        for (ProductVariant variant : existingVariants) {
+            String key = generateSortedKey(new ArrayList<>(variant.getVariations()), commonTypeIds);
             existingVariantByKey.putIfAbsent(key, variant);
         }
         return existingVariantByKey;

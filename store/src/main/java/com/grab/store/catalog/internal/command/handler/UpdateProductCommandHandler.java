@@ -68,7 +68,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         );
 
         product.updateMetadata(next);
-        CatalogPolicyValidator.validateCategoryPolicy(category, product);
+        CatalogPolicyValidator.validateCategoryPolicy(category);
 
         productRepository.save(product);
 
