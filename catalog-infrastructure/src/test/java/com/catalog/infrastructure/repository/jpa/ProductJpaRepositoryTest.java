@@ -164,8 +164,8 @@ class ProductJpaRepositoryTest {
                 id("v1"),
                 "SKU-001",
                 List.of(
-                        new ProductVariation("Red", id("red"), "Color", id("color")),
-                        new ProductVariation("Small", id("small"), "Size", id("size"))
+                        new ProductVariation(id("red"), id("color")),
+                        new ProductVariation(id("small"), id("size"))
                 )
         );
         product.addVariant(variant);

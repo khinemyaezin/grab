@@ -152,12 +152,12 @@ class ProductJpaAssemblerImplTest {
         product.addVariant(ProductVariant.create(
                 id("v1"),
                 "SKU-001-UPDATED",
-                List.of(new ProductVariation("Blue", id("blue"), "Color", id("color")))
+                List.of(new ProductVariation(id("blue"), id("color")))
         ));
         product.addVariant(ProductVariant.create(
                 id("v3"),
                 "SKU-003",
-                List.of(new ProductVariation("Green", id("green"), "Color", id("color")))
+                List.of(new ProductVariation(id("green"), id("color")))
         ));
 
         ProductEntity existingEntity = new ProductEntity();

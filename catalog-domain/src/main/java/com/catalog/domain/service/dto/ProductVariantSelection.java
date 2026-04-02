@@ -7,8 +7,6 @@ import com.grab.framework.id.Id;
 import java.util.List;
 
 public record ProductVariantSelection (
-        Id id,
-       // String sku,
         List<ProductVariation> variations,
         ProductVariantStatus status
 ) {

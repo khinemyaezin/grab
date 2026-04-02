@@ -2,7 +2,6 @@ package com.catalog.domain.specification;
 
 import com.catalog.domain.aggregate.*;
 import com.catalog.domain.valueobject.ProductVariantStatus;
-import com.catalog.domain.valueobject.VariantTypeStatus;
 import com.grab.framework.id.Id;
 import com.catalog.domain.valueobject.ProductVariation;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,14 +47,14 @@ public class ProductVariantDuplicateTest {
     void shouldNotAddDuplicateVariantWithSameSKU() {
         // Create first variant
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001",  ProductVariantStatus.ACTIVE,List.of(
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("red"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
         // Create duplicate variant with same SKU but different ID
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("red"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
         assertTrue(product.addVariant(variant1));
@@ -67,14 +66,14 @@ public class ProductVariantDuplicateTest {
     void testAdded_sameVariations_returnFalse() {
         // Create first variant
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("red"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
         // Create duplicate variant with different SKU but same variations
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002",  ProductVariantStatus.ACTIVE,List.of(
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("red"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
         product.addVariant(variant1);
@@ -85,14 +84,14 @@ public class ProductVariantDuplicateTest {
     void shouldNotAddDuplicateVariantWithSameVariationsInDifferentOrder() {
         // Create first variant
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("red"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
         // Create duplicate variant with variations in different order
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002",  ProductVariantStatus.ACTIVE,List.of(
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size")),
-                new ProductVariation("Red", new CommonId("red"), "Color", new CommonId("color"))
+                new ProductVariation(new CommonId("small"), new CommonId("size")),
+                new ProductVariation(new CommonId("red"), new CommonId("color"))
         ));
 
         assertTrue(product.addVariant(variant1));
@@ -103,14 +102,14 @@ public class ProductVariantDuplicateTest {
     void shouldNotAddDuplicateVariantWithSameSku() {
         // Create first variant
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("red"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
         // Create duplicate variant with variations in different order
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU001",  ProductVariantStatus.ACTIVE,List.of(
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size")),
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color"))
+                new ProductVariation(new CommonId("small"), new CommonId("size")),
+                new ProductVariation(new CommonId("red"), new CommonId("color"))
         ));
 
         assertTrue(product.addVariant(variant1));
@@ -123,14 +122,14 @@ public class ProductVariantDuplicateTest {
     void shouldAddVariantWithDifferentVariations() {
         // Create first variant
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
-                new ProductVariation("Red", new CommonId("red"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("red"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
         // Create second variant with different color
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002", ProductVariantStatus.ACTIVE, List.of(
-                new ProductVariation("Blue", new CommonId("blue"), "Color",   new CommonId("color")),
-                new ProductVariation("Small", new CommonId("small"), "Size",new CommonId("size"))
+                new ProductVariation(new CommonId("blue"), new CommonId("color")),
+                new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
         assertTrue(product.addVariant(variant1));
         assertTrue(product.addVariant(variant2));

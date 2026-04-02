@@ -15,7 +15,7 @@ public class ProductVariation extends ValueObject {
     private final Id optionId;
     private final Id typeId;
 
-    public ProductVariation(String optionName, Id optionId, String typeName, Id typeId) {
+    public ProductVariation(Id optionId, Id typeId) {
         this.optionId = optionId;
         this.typeId = typeId;
     }

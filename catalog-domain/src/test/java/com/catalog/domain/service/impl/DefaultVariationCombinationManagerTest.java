@@ -35,54 +35,54 @@ class DefaultVariationCombinationManagerTest {
     */
     private List<ProductVariantSelection> getProductVariation() {
         return List.of(
-                variant("1", "SKU-LYM",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
 
-                variant("2",  "SKU-LYF",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender"))),
 
-                variant("3",  "SKU-LRM",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
 
-                variant("4",  "SKU-LRF",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender"))),
 
-                variant("5",  "SKU-SYM",
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                variant(
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
 
-                variant("6",  "SKU-SYF",
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
+                variant(
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender"))),
 
-                variant("7",  "SKU-SRM",
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                variant(
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
 
-                variant("8",  "SKU-SRF",
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
+                variant(
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")))
         );
     }
 
-    protected static ProductVariantSelection variant(String id, String sku, ProductVariation... variations) {
-        return new ProductVariantSelection(new CommonId(id), List.of(variations), ProductVariantStatus.ACTIVE);
+    protected static ProductVariantSelection variant(ProductVariation... variations) {
+        return new ProductVariantSelection(List.of(variations), ProductVariantStatus.ACTIVE);
     }
 
-    protected static ProductVariation variation(Id optionId, String optionName,Id typeId, String typeName) {
-        return new ProductVariation(optionName, optionId, typeName, typeId);
+    protected static ProductVariation variation(Id optionId, Id typeId) {
+        return new ProductVariation(optionId, typeId);
     }
 
     protected static VariantCombination combination(ProductVariation... variations) {
@@ -133,17 +133,17 @@ class DefaultVariationCombinationManagerTest {
         List<ProductVariantSelection> existingVariants = List.of();
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
                 combination(
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender"))),
                 combination(
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
                 combination(
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")))
         );
         String[] desiredCombination = {
                 "color-yellowgender-male ACTIVE NEW",
@@ -162,17 +162,17 @@ class DefaultVariationCombinationManagerTest {
         List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
                 combination(
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender"))),
                 combination(
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
                 combination(
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")))
         );
         String[] desiredCombination = {
                 "color-yellowgender-male ACTIVE EXTENDED",
@@ -191,20 +191,20 @@ class DefaultVariationCombinationManagerTest {
         List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("gender-female"), new CommonId("gender"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("gender-male"), new CommonId("gender"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"))
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")))
         );
         String[] desiredCombination = {
                 "size-largegender-male ACTIVE EXTENDED",
@@ -223,20 +223,20 @@ class DefaultVariationCombinationManagerTest {
         List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"))
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")))
         );
         String[] desiredCombination = {
                 "size-largecolor-yellow ACTIVE EXTENDED",
@@ -255,98 +255,98 @@ class DefaultVariationCombinationManagerTest {
         List<ProductVariantSelection> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-male"), "Male", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-male"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-128"), "128", new CommonId("storage"), "Storage")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-128"), new CommonId("storage"))),
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("gender-female"), "Female", new CommonId("gender"), "Gender"),
-                        variation(new CommonId("storage-256"), "256", new CommonId("storage"), "Storage"))
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("gender-female"), new CommonId("gender")),
+                        variation(new CommonId("storage-256"), new CommonId("storage")))
         );
         String[] desiredCombination = {
                 "size-largecolor-yellowgender-malestorage-128 ACTIVE EXTENDED",
@@ -375,45 +375,45 @@ class DefaultVariationCombinationManagerTest {
     @Test
     public void syncCombinations_addVariantOption_returnCombinationsInOrder() {
         List<ProductVariantSelection> existingVariants = List.of(
-                variant("1",  "SKU-LYM",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
 
-                variant("3",  "SKU-LRM",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color")),
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color"))),
 
-                variant("5",  "SKU-SYM",
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                variant(
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
 
-                variant("7",  "SKU-SRM",
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"))
+                variant(
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")))
         );
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color"))),
 
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-blue"), "Blue", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-blue"), new CommonId("color"))),
 
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
 
                combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color"))),
                 combination(
-                        variation(new CommonId("size-small"), "Small", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-blue"), "Blue", new CommonId("color"), "Color"))
+                        variation(new CommonId("size-small"), new CommonId("size")),
+                        variation(new CommonId("color-blue"), new CommonId("color")))
         );
 
         String[] desiredCombination = {
@@ -433,18 +433,18 @@ class DefaultVariationCombinationManagerTest {
     @Test
     public void syncCombinations_removeVariantOption_returnCombinationsInOrder() {
         List<ProductVariantSelection> existingVariants = List.of(
-                variant("1",  "SKU-LYM",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
 
-                variant("3",  "SKU-LRM",
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"))
+                variant(
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")))
         );
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"))
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color")))
         );
 
         String[] desiredCombination = {
@@ -459,22 +459,22 @@ class DefaultVariationCombinationManagerTest {
     @Test
     public void syncCombinations_changeVariantOptionOrder_returnCombinationsInOrder() {
         List<ProductVariantSelection> existingVariants = List.of(
-                variant("1",  "SKU-LYM",
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color"),
-                        variation(new CommonId("size-large"), "size-large", new CommonId("size"), "Size")),
+                variant(
+                        variation(new CommonId("color-yellow"), new CommonId("color")),
+                        variation(new CommonId("size-large"), new CommonId("size"))),
 
 
-                variant("3",  "SKU-LRM",
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"),
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"))
+                variant(
+                        variation(new CommonId("color-red"), new CommonId("color")),
+                        variation(new CommonId("size-large"), new CommonId("size")))
         );
         List<VariantCombination> combinations = List.of(
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-yellow"), "Yellow", new CommonId("color"), "Color")),
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-yellow"), new CommonId("color"))),
                 combination(
-                        variation(new CommonId("size-large"), "Large", new CommonId("size"), "Size"),
-                        variation(new CommonId("color-red"), "Red", new CommonId("color"), "Color"))
+                        variation(new CommonId("size-large"), new CommonId("size")),
+                        variation(new CommonId("color-red"), new CommonId("color")))
         );
 
         String[] desiredCombination = {
