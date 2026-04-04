@@ -3,7 +3,7 @@ package com.catalog.domain.service.impl;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.grab.framework.id.Id;
 import com.catalog.domain.valueobject.ProductVariantStatus;
-import com.catalog.domain.service.VariationCombinationManager;
+import com.catalog.domain.service.MatrixCombinationSynchronizer;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.valueobject.VariantCombination;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,8 +18,8 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultVariationCombinationManagerTest {
-    private VariationCombinationManager variationCombinationManager;
+class DefaultMatrixCombinationSynchronizerTest {
+    private MatrixCombinationSynchronizer matrixCombinationSynchronizer;
 
     /**
     productId    | sku      | size    | color   | gender
@@ -89,7 +89,7 @@ class DefaultVariationCombinationManagerTest {
         return new VariantCombination(List.of(variations));
     }
 
-    private String extractTemplateFrom(VariationCombinationManager.VariantCombinationResult variantCombinationResult) {
+    private String extractTemplateFrom(MatrixCombinationSynchronizer.VariantCombinationResult variantCombinationResult) {
         return String.format("%s %s %s",
                 variantCombinationResult.variantCombination().variations().stream()
                         .map( variation -> variation.getOptionId().getValue())
@@ -124,12 +124,12 @@ class DefaultVariationCombinationManagerTest {
 
     @BeforeEach
     public void init() {
-        var keyFactory = new DefaultVariationKeyGenerator(new ProductVariationComparator());
-        variationCombinationManager = new DefaultVariationCombinationManager(keyFactory);
+        var keyFactory = new DefaultMatrixKeyGenerator(new ProductVariationComparator());
+        matrixCombinationSynchronizer = new DefaultMatrixCombinationSynchronizer(keyFactory);
     }
 
     @Test
-    public void syncCombinations_addVariantType_returnNewVariants() {
+    public void syncMatrixCombination_addVariantType_returnNewVariants() {
         List<ProductVariant> existingVariants = List.of();
         List<VariantCombination> combinations = List.of(
                 combination(
@@ -151,14 +151,14 @@ class DefaultVariationCombinationManagerTest {
                 "color-redgender-male ACTIVE NEW",
                 "color-redgender-female ACTIVE NEW"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );
     }
 
     @Test
-    public void syncCombinations_removeVariantTypeAtFirst_returnCombinationInOrder() {
+    public void syncMatrixCombination_removeVariantTypeAtFirst_returnCombinationInOrder() {
         List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
@@ -180,14 +180,14 @@ class DefaultVariationCombinationManagerTest {
                 "color-redgender-male ACTIVE EXTENDED",
                 "color-redgender-female ACTIVE EXTENDED"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );
     }
 
     @Test
-    public void syncCombinations_removeVariantTypeAtMiddle_returnCombinationInOrder() {
+    public void syncMatrixCombination_removeVariantTypeAtMiddle_returnCombinationInOrder() {
         List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
@@ -212,14 +212,14 @@ class DefaultVariationCombinationManagerTest {
                 "size-smallgender-male ACTIVE EXTENDED",
                 "size-smallgender-female ACTIVE EXTENDED"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );
     }
 
     @Test
-    public void syncCombinations_removeVariantTypeAtLast_returnCombinationInOrder() {
+    public void syncMatrixCombination_removeVariantTypeAtLast_returnCombinationInOrder() {
         List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
@@ -244,14 +244,14 @@ class DefaultVariationCombinationManagerTest {
                 "size-smallcolor-yellow ACTIVE EXTENDED",
                 "size-smallcolor-red ACTIVE EXTENDED"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );
     }
 
     @Test
-    public void syncCombinations_addVariantTypeAtLast_returnCombinationsInOrder_() {
+    public void syncCombinations_addVariantTypeAtLast_returnMatrixCombinationInOrder_() {
         List<ProductVariant> existingVariants = getProductVariation();
         List<VariantCombination> combinations = List.of(
                 combination(
@@ -366,14 +366,14 @@ class DefaultVariationCombinationManagerTest {
                 "size-smallcolor-redgender-femalestorage-128 ACTIVE EXTENDED",
                 "size-smallcolor-redgender-femalestorage-256 ACTIVE EXTENDED"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );
     }
 
     @Test
-    public void syncCombinations_addVariantOption_returnCombinationsInOrder() {
+    public void syncCombinations_addVariantOption_returnMatrixCombinationInOrder() {
         List<ProductVariant> existingVariants = List.of(
                 variant(
                         variation(new CommonId("size-large"), new CommonId("size")),
@@ -424,14 +424,14 @@ class DefaultVariationCombinationManagerTest {
                 "size-smallcolor-red ACTIVE UNCHANGED",
                 "size-smallcolor-blue ACTIVE NEW"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );
     }
 
     @Test
-    public void syncCombinations_removeVariantOption_returnCombinationsInOrder() {
+    public void syncCombinations_removeVariantOption_returnMatrixCombinationInOrder() {
         List<ProductVariant> existingVariants = List.of(
                 variant(
                         variation(new CommonId("size-large"), new CommonId("size")),
@@ -450,14 +450,14 @@ class DefaultVariationCombinationManagerTest {
         String[] desiredCombination = {
                 "size-largecolor-yellow ACTIVE UNCHANGED"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );
     }
 
     @Test
-    public void syncCombinations_changeVariantOptionOrder_returnCombinationsInOrder() {
+    public void syncCombinations_changeVariantOptionOrder_returnMatrixCombinationInOrder() {
         List<ProductVariant> existingVariants = List.of(
                 variant(
                         variation(new CommonId("color-yellow"), new CommonId("color")),
@@ -481,7 +481,7 @@ class DefaultVariationCombinationManagerTest {
                 "size-largecolor-yellow ACTIVE UNCHANGED",
                 "size-largecolor-red ACTIVE UNCHANGED"
         };
-        List<VariationCombinationManager.VariantCombinationResult>  results = variationCombinationManager.syncCombinations(existingVariants, combinations);
+        List<MatrixCombinationSynchronizer.VariantCombinationResult>  results = matrixCombinationSynchronizer.syncMatrixCombination(existingVariants, combinations);
         assertThat(results)
                 .extracting(this::extractTemplateFrom)
                 .containsExactly(desiredCombination );

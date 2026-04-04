@@ -4,22 +4,22 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.domain.service.VariationKeyGenerator;
+import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.valueobject.VariantCombination;
-import com.catalog.domain.service.VariationCombinationManager;
+import com.catalog.domain.service.MatrixCombinationSynchronizer;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
 @RequiredArgsConstructor
-public class DefaultVariationCombinationManager implements VariationCombinationManager {
-    private static final Logger log = Loggers.getLogger(DefaultVariationCombinationManager.class);
+public class DefaultMatrixCombinationSynchronizer implements MatrixCombinationSynchronizer {
+    private static final Logger log = Loggers.getLogger(DefaultMatrixCombinationSynchronizer.class);
 
-    private final VariationKeyGenerator keyGenerator;
+    private final MatrixKeyGenerator keyGenerator;
 
     @Override
-    public List<VariantCombinationResult> syncCombinations(List<ProductVariant> existingVariants, List<VariantCombination> combinations) {
+    public List<VariantCombinationResult> syncMatrixCombination(List<ProductVariant> existingVariants, List<VariantCombination> combinations) {
         log.info(
                 "Syncing variant combinations: existingVariants={}, requestedCombinations={}",
                 existingVariants.size(),
@@ -119,6 +119,6 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
                 .filter(v -> commonTypeIds.contains(v.getTypeId()))
                 .toList();
         log.debug("Generating sorted variation key from {} filtered variations", filtered.size());
-        return keyGenerator.generateVariationKey(filtered);
+        return keyGenerator.generateKey(filtered);
     }
 }

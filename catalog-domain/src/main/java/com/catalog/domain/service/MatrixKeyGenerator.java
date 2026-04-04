@@ -4,6 +4,6 @@ import com.catalog.domain.valueobject.ProductVariation;
 
 import java.util.List;
 
-public interface VariationKeyGenerator {
-    String generateVariationKey(List<ProductVariation> variations);
+public interface MatrixKeyGenerator {
+    String generateKey(List<ProductVariation> variations);
 }

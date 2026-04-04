@@ -1,11 +1,9 @@
 package com.catalog.domain.exception;
 
-import com.catalog.domain.aggregate.VariantOption;
-import com.catalog.domain.aggregate.VariantType;
-import com.catalog.domain.service.VariantCombinationService;
+import com.catalog.domain.service.MatrixCombinationService;
 import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
-import com.catalog.domain.service.impl.DefaultVariantCombinationService;
+import com.catalog.domain.service.impl.DefaultMatrixCombinationService;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import org.junit.jupiter.api.Test;
@@ -52,10 +50,10 @@ class CatalogDomainErrorContractTest {
 
     @Test
     void variantCombination_tooManyCombinations_shouldThrowTypedValidationError() {
-        VariantCombinationService service = new DefaultVariantCombinationService();
+        MatrixCombinationService service = new DefaultMatrixCombinationService();
         var variantTypes = createVariantTypesWithCombinationsOverLimit();
 
-        assertThatThrownBy(() -> service.generateCombinations(variantTypes))
+        assertThatThrownBy(() -> service.generateMatrixCombination(variantTypes))
                 .isInstanceOf(CatalogDomainValidationException.class)
                 .satisfies(exception -> {
                     CatalogDomainValidationException typed = (CatalogDomainValidationException) exception;

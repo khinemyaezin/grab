@@ -3,9 +3,9 @@ package com.grab.store.catalog.internal.command.handler;
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.service.SkuGenerator;
-import com.catalog.domain.service.VariantCombinationService;
-import com.catalog.domain.service.VariationCombinationManager;
-import com.catalog.domain.service.VariationKeyGenerator;
+import com.catalog.domain.service.MatrixCombinationService;
+import com.catalog.domain.service.MatrixCombinationSynchronizer;
+import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -18,7 +18,7 @@ import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.CreateProductSetCommand;
 import com.grab.store.catalog.internal.command.CreateProductSetResult;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
-import com.grab.store.catalog.internal.util.StandaloneVariantDefaults;
+import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,11 +61,11 @@ class CreateProductSetCommandHandlerTest {
     @Mock
     private SkuGenerator skuGenerator;
     @Mock
-    private VariantCombinationService variantCombinationService;
+    private MatrixCombinationService matrixCombinationService;
     @Mock
-    private VariationCombinationManager variationCombinationManager;
+    private MatrixCombinationSynchronizer matrixCombinationSynchronizer;
     @Mock
-    private VariationKeyGenerator variationKeyGenerator;
+    private MatrixKeyGenerator matrixKeyGenerator;
 
     @Captor
     private ArgumentCaptor<Product> productCaptor;
@@ -110,17 +110,17 @@ class CreateProductSetCommandHandlerTest {
         when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
         when(idGenerator.generateId()).thenReturn(productId, variantId);
         when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
-        when(variantCombinationService.generateCombinations(anyList())).thenReturn(List.of(
+        when(matrixCombinationService.generateMatrixCombination(anyList())).thenReturn(List.of(
                 List.of(new VariantOptionSelection(redOptionId, colorTypeId))
         ));
-        when(variationCombinationManager.syncCombinations(anyList(), anyList())).thenReturn(List.of(
-                new VariationCombinationManager.VariantCombinationResult(
+        when(matrixCombinationSynchronizer.syncMatrixCombination(anyList(), anyList())).thenReturn(List.of(
+                new MatrixCombinationSynchronizer.VariantCombinationResult(
                         new VariantCombination(List.of(redVariation)),
                         null,
-                        VariationCombinationManager.VariantCombinationResult.MatchedType.NEW
+                        MatrixCombinationSynchronizer.VariantCombinationResult.MatchedType.NEW
                 )
         ));
-        when(variationKeyGenerator.generateVariationKey(List.of(redVariation))).thenReturn(RED_MATRIX_KEY);
+        when(matrixKeyGenerator.generateKey(List.of(redVariation))).thenReturn(RED_MATRIX_KEY);
 
         CreateProductSetResult result = handler.handle(command);
 
@@ -205,11 +205,11 @@ class CreateProductSetCommandHandlerTest {
         assertThat(savedProduct.getVariants().getFirst().getSku()).isEqualTo("SMP");
         assertThat(savedProduct.getVariants().getFirst().getVariations()).hasSize(1);
         assertThat(savedProduct.getVariants().getFirst().getVariations().iterator().next().getTypeId().getValue())
-                .isEqualTo(StandaloneVariantDefaults.TYPE_ID);
+                .isEqualTo(StandaloneVariationFactory.TYPE_ID);
         assertThat(savedProduct.getVariants().getFirst().getVariations().iterator().next().getOptionId().getValue())
-                .isEqualTo(StandaloneVariantDefaults.OPTION_ID);
+                .isEqualTo(StandaloneVariationFactory.OPTION_ID);
         assertThat(savedProduct.getVariants().getFirst().getStatus()).isEqualTo(ProductVariantStatus.ACTIVE);
-        verifyNoInteractions(variantCombinationService, variationCombinationManager, variationKeyGenerator);
+        verifyNoInteractions(matrixCombinationService, matrixCombinationSynchronizer, matrixKeyGenerator);
     }
 
     @Test
@@ -254,10 +254,10 @@ class CreateProductSetCommandHandlerTest {
         when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
         when(idGenerator.generateId()).thenReturn(productId);
         when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
-        when(variantCombinationService.generateCombinations(anyList())).thenReturn(List.of(
+        when(matrixCombinationService.generateMatrixCombination(anyList())).thenReturn(List.of(
                 List.of(new VariantOptionSelection(redOptionId, colorTypeId))
         ));
-        when(variationCombinationManager.syncCombinations(anyList(), anyList())).thenReturn(List.of());
+        when(matrixCombinationSynchronizer.syncMatrixCombination(anyList(), anyList())).thenReturn(List.of());
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(IllegalStateException.class)

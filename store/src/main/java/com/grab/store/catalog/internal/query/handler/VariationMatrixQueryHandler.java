@@ -23,8 +23,8 @@ public class VariationMatrixQueryHandler implements QueryHandler<VariationMatrix
 
     private static final Logger log = Loggers.getLogger(VariationMatrixQueryHandler.class);
 
-    private final VariantCombinationService variantCombinationService;
-    private final VariationKeyGenerator variationKeyGenerator;
+    private final MatrixCombinationService matrixCombinationService;
+    private final MatrixKeyGenerator matrixKeyGenerator;
     private final IdGenerator idGenerator;
 
     @Override
@@ -47,13 +47,13 @@ public class VariationMatrixQueryHandler implements QueryHandler<VariationMatrix
         }
 
         List<VariantTypeSelection> variantTypes = convertToVariantTypeSelectionList(query.variantTypes());
-        List<List<VariantOptionSelection>> combinations = variantCombinationService.generateCombinations(variantTypes);
+        List<List<VariantOptionSelection>> combinations = matrixCombinationService.generateMatrixCombination(variantTypes);
         List<VariationMatrixResult.Variant> result = new ArrayList<>(combinations.size());
         Map<String, VariationMatrixQuery.Variant> variantByMatrixKey = variantByMatrixKeyInOrder(query.variants());
 
         for(List<VariantOptionSelection> combination : combinations) {
             List<ProductVariation> productVariations = convertToProductVariationList(combination);
-            String key = variationKeyGenerator.generateVariationKey(productVariations);
+            String key = matrixKeyGenerator.generateKey(productVariations);
 
             VariationMatrixQuery.Variant variant = variantByMatrixKey.get(key);
             if(Objects.isNull(variant)) {

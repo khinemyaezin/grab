@@ -2,7 +2,7 @@ package com.catalog.domain.service.impl;
 
 import com.catalog.domain.exception.CatalogDomainError;
 import com.catalog.domain.exception.CatalogDomainValidationException;
-import com.catalog.domain.service.VariantCombinationService;
+import com.catalog.domain.service.MatrixCombinationService;
 import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.grab.framework.logger.Logger;
@@ -12,11 +12,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DefaultVariantCombinationService implements VariantCombinationService {
+public class DefaultMatrixCombinationService implements MatrixCombinationService {
 
-    private static final Logger log = Loggers.getLogger(DefaultVariantCombinationService.class);
+    private static final Logger log = Loggers.getLogger(DefaultMatrixCombinationService.class);
 
-    public List<List<VariantOptionSelection>> generateCombinations(List<VariantTypeSelection> variantTypes) {
+    public List<List<VariantOptionSelection>> generateMatrixCombination(List<VariantTypeSelection> variantTypes) {
         // Early return for empty input
         if (variantTypes == null || variantTypes.isEmpty()) {
             log.debug("Skipping variant combination generation because no variant types were provided");

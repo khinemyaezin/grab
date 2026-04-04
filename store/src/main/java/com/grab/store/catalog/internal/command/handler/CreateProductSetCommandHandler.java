@@ -8,9 +8,8 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.service.SkuGenerator;
-import com.catalog.domain.service.VariantCombinationService;
-import com.catalog.domain.service.VariationCombinationManager;
-import com.catalog.domain.service.VariationKeyGenerator;
+import com.catalog.domain.service.MatrixCombinationService;
+import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.catalog.domain.valueobject.ListingCondition;
@@ -25,10 +24,11 @@ import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.command.CreateProductSetCommand;
 import com.grab.store.catalog.internal.command.CreateProductSetResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
+import com.grab.store.catalog.internal.exception.CatalogCommandHandlerError;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.util.CatalogPolicyValidator;
-import com.grab.store.catalog.internal.util.StandaloneVariantDefaults;
+import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -37,22 +37,21 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class CreateProductSetCommandHandler implements CommandHandler<CreateProductSetCommand, CreateProductSetResult> {
-
     private static final Logger log = Loggers.getLogger(CreateProductSetCommandHandler.class);
+
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final UniqueSlugResolver uniqueSlugResolver;
     private final IdGenerator idGenerator;
     private final SkuGenerator skuGenerator;
-    private final VariantCombinationService variantCombinationService;
-    private final VariationCombinationManager variationCombinationManager;
-    private final VariationKeyGenerator variationKeyGenerator;
+    private final MatrixCombinationService matrixCombinationService;
+    private final MatrixKeyGenerator matrixKeyGenerator;
 
     @Override
     @CatalogTransactional
@@ -63,15 +62,9 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
         CatalogPolicyValidator.validateCategoryPolicy(category);
 
         Product product = createProductDraft(command.product());
-        List<ProductVariant> variants = materializeVariants(command);
+        List<ProductVariant> variants = buildVariants(command.product().name(), command.product().variants(), command.variantTypes());
+        addVariants(product, variants);
 
-        for (ProductVariant variant : variants) {
-            if (!product.addVariant(variant)) {
-                throw new CatalogServiceException(
-                        new CatalogServiceError.VariantAddFailed(variant.getSku())
-                );
-            }
-        }
         productRepository.save(product);
 
         log.info("Product saved successfully with {} variants", product.getVariants().size());
@@ -123,7 +116,11 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
             return List.of();
         }
         return descriptions.stream()
-                .map(d -> new Description(null, d.name(), d.title(), d.description()))
+                .map(d -> new Description(
+                        idGenerator.generateId(),
+                        d.name(),
+                        d.title(),
+                        d.description()))
                 .toList();
     }
 
@@ -132,7 +129,11 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
             return List.of();
         }
         return medias.stream()
-                .map(media -> new ProductMedia(null, media.type(), media.path()))
+                .map(media -> new ProductMedia(
+                        idGenerator.generateId(),
+                        media.type(),
+                        media.path())
+                )
                 .toList();
     }
 
@@ -150,53 +151,83 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
         ));
     }
 
-    private List<ProductVariant> materializeVariants(CreateProductSetCommand command) {
-        if (command.variantTypes() == null || command.variantTypes().isEmpty()) {
-            return List.of(fallbackToStandaloneVariant(command));
+    private List<ProductVariant> buildVariants(String productName,
+                                               List<CreateProductSetCommand.Variant> overrideVariants,
+                                               List<CreateProductSetCommand.VariantType> variantTypes) {
+        if (variantTypes == null || variantTypes.isEmpty()) {
+            log.info("No variant types specified");
+            return List.of(fallbackToStandaloneVariant(productName, overrideVariants));
         }
-        List<VariantTypeSelection> variantTypes = convertToVariantTypeSelectionList(command.variantTypes());
-        List<List<VariantOptionSelection>> combinations = variantCombinationService.generateCombinations(variantTypes);
-        List<VariantCombination> variantCombinations = convertToVariantCombinations(combinations);
 
-        List<VariationCombinationManager.VariantCombinationResult> syncResults =
-                variationCombinationManager.syncCombinations(List.of(), variantCombinations);
+        List<VariantTypeSelection> variantTypeSelections = convertToVariantTypeSelectionList(variantTypes);
+        List<VariantCombination> combinations = generateVariantCombinations(variantTypeSelections);
+        Map<String, VariantCombination> combinationMapByMatrixKey = buildCombinationMap(combinations);
+        return buildTargetVariants(productName, overrideVariants, combinationMapByMatrixKey);
+    }
 
-        Map<String, CreateProductSetCommand.Variant> variantByMatrixKey =
-                createInputVariantMapByMatrixKey(command.product().variants());
+    private List<ProductVariant> buildTargetVariants(
+            String productName,
+            List<CreateProductSetCommand.Variant> overrides,
+            Map<String, VariantCombination> combinationResultMap) {
 
-        List<ProductVariant> resultVariants = new ArrayList<>(syncResults.size());
-        for(VariationCombinationManager.VariantCombinationResult  combinationResult : syncResults) {
-            List<ProductVariation> variations = combinationResult.variantCombination().variations();
-            String key = variationKeyGenerator.generateVariationKey(variations);
-            CreateProductSetCommand.Variant variantInput = variantByMatrixKey.get(key);
-            if(variantInput == null) { continue;}
+        List<ProductVariant> resultVariants = new ArrayList<>(overrides.size());
 
-            ProductVariant variant = createVariant(command.product().name(), variantInput, variations);
-            resultVariants.add(variant);
+        for (CreateProductSetCommand.Variant overrideVariant : overrides) {
+            ProductVariant targetVariant = resolveOrCreateVariant(productName, overrideVariant, combinationResultMap);
+            resultVariants.add(targetVariant);
         }
 
         return resultVariants;
     }
 
-    private void validateInputsBelongToMatrix(Set<String> inputKeys, Set<String> desiredKeys) {
-        for (String inputKey : inputKeys) {
-            if (!desiredKeys.contains(inputKey)) {
-                throw new IllegalArgumentException(
-                        "Input combination does not belong to calculated matrix: " + inputKey
-                );
-            }
+    private ProductVariant resolveOrCreateVariant(
+            String productName,
+            CreateProductSetCommand.Variant overrideVariant,
+            Map<String, VariantCombination> combinationResultMap) {
+
+        VariantCombination combination = combinationResultMap.get(overrideVariant.matrixKey());
+
+        if (combination == null) {
+            log.error("Override variant with matrixKey={} does not match any generated combination", overrideVariant.matrixKey());
+            throw new CatalogServiceException(
+                    new CatalogCommandHandlerError.VariantOverrideCombinationNotFound(overrideVariant.matrixKey())
+            );
         }
+
+        return createVariant(
+                productName,
+                overrideVariant,
+                combination.variations()
+        );
     }
 
-    private Map<String, CreateProductSetCommand.Variant> createInputVariantMapByMatrixKey(List<CreateProductSetCommand.Variant> variants) {
-        if (variants == null) {
+    private List<VariantCombination> generateVariantCombinations(List<VariantTypeSelection> variantTypes) {
+        List<List<VariantOptionSelection>> combinations = matrixCombinationService.generateMatrixCombination(variantTypes);
+        return mapVariantCombinations(combinations);
+    }
+
+    private List<VariantCombination> mapVariantCombinations(List<List<VariantOptionSelection>> combinations) {
+        return combinations.stream()
+                .map(options -> new VariantCombination(
+                        options.stream()
+                                .map(optionSelection -> new ProductVariation(
+                                        optionSelection.valueId(),
+                                        optionSelection.typeId()
+                                ))
+                                .toList()
+                ))
+                .toList();
+    }
+
+    private Map<String, VariantCombination> buildCombinationMap(List<VariantCombination> variantCombinations) {
+        if (variantCombinations == null) {
             return Map.of();
         }
 
-        return variants.stream()
+        return variantCombinations.stream()
                 .collect(Collectors.toMap(
-                        CreateProductSetCommand.Variant::matrixKey,
-                        v -> v));
+                        combination-> matrixKeyGenerator.generateKey(combination.variations()),
+                        Function.identity()));
     }
 
     private ProductVariant createVariant(String productName, CreateProductSetCommand.Variant inputVariant,  List<ProductVariation> variations) {
@@ -225,13 +256,13 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
                 .toList();
     }
 
-    public ProductVariant fallbackToStandaloneVariant(CreateProductSetCommand command) {
-        CreateProductSetCommand.Variant defVariant = command.product().variants().stream().findFirst().orElse(null);
-        return createStandaloneVariant(command.product().name(), defVariant);
+    public ProductVariant fallbackToStandaloneVariant(String productName, List<CreateProductSetCommand.Variant> overrideVariants) {
+        CreateProductSetCommand.Variant defVariant = overrideVariants.stream().findFirst().orElse(null);
+        return createStandaloneVariant(productName, defVariant);
     }
 
     public ProductVariant createStandaloneVariant(String productName, CreateProductSetCommand.Variant variant) {
-        List<ProductVariation> variations = StandaloneVariantDefaults.defaultVariations(idGenerator);
+        List<ProductVariation> variations = StandaloneVariationFactory.create(idGenerator);
         String sku = variant != null && StringUtils.hasText(variant.sku()) ? variant.sku() : generateSku(productName, variations);
 
         return ProductVariant.create(
@@ -243,5 +274,15 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
 
     private String generateSku(String productName, List<ProductVariation> variations) {
         return skuGenerator.generate(new SkuGenerator.Context(productName, variations));
+    }
+
+    private void addVariants(Product product, List<ProductVariant> variants) {
+        for (ProductVariant variant : variants) {
+            if (!product.addVariant(variant)) {
+                throw new CatalogServiceException(
+                        new CatalogServiceError.VariantAddFailed(variant.getSku())
+                );
+            }
+        }
     }
 }

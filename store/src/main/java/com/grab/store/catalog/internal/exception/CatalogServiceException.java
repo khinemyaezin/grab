@@ -1,10 +1,11 @@
 package com.grab.store.catalog.internal.exception;
 
 import com.grab.framework.exception.DomainException;
+import com.grab.framework.exception.MessageSource;
 
 public class CatalogServiceException extends DomainException {
 
-    public CatalogServiceException(CatalogServiceError error) {
+    public CatalogServiceException(MessageSource error) {
         super(error, error.code());
     }
 

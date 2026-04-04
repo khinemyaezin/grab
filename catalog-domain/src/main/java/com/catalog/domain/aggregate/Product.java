@@ -190,6 +190,12 @@ public class Product extends AggregateRoot<Id> {
                 .findFirst();
     }
 
+    public Optional<ProductVariant> findVariantByVariation(Set<ProductVariation> variations) {
+        return variants.stream()
+                .filter(v -> v.getVariations().equals(variations))
+                .findFirst();
+    }
+
     public boolean restoreVariant(Id id) {
         return findVariantById(id)
                 .filter(ProductVariant::isDeleted)

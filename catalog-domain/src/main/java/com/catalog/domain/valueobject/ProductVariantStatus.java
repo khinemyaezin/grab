@@ -15,6 +15,7 @@ public enum ProductVariantStatus {
      * The variant remains in storage to prevent its combination
      * from being recreated when new variant types are added.
      */
-    DELETED
+    DELETED,
+    ARCHIVED
 
 }

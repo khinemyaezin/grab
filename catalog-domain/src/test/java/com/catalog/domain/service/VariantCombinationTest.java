@@ -3,7 +3,7 @@ package com.catalog.domain.service;
 import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.grab.framework.id.Id;
-import com.catalog.domain.service.impl.DefaultVariantCombinationService;
+import com.catalog.domain.service.impl.DefaultMatrixCombinationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -12,11 +12,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VariantCombinationTest {
-    private VariantCombinationService variantCombination;
+    private MatrixCombinationService variantCombination;
 
     @BeforeEach
     void setUp() {
-        variantCombination = new DefaultVariantCombinationService();
+        variantCombination = new DefaultMatrixCombinationService();
     }
 
     /**
@@ -37,7 +37,7 @@ class VariantCombinationTest {
         var large = new VariantOptionSelection(id("large"), idSize);
         var size = new VariantTypeSelection(idSize, List.of(small, large));
 
-        List<List<VariantOptionSelection>> combinations = variantCombination.generateCombinations(List.of(color, size));
+        List<List<VariantOptionSelection>> combinations = variantCombination.generateMatrixCombination(List.of(color, size));
 
         List<List<VariantOptionSelection>> expected = List.of(
                 List.of(yellow, small),
@@ -54,9 +54,9 @@ class VariantCombinationTest {
         var color = new VariantTypeSelection(id("color"), List.of());
         // no options added
 
-        assertThat(variantCombination.generateCombinations(List.of(color))).isEmpty();
-        assertThat(variantCombination.generateCombinations(List.of())).isEmpty();
-        assertThat(variantCombination.generateCombinations(null)).isEmpty();
+        assertThat(variantCombination.generateMatrixCombination(List.of(color))).isEmpty();
+        assertThat(variantCombination.generateMatrixCombination(List.of())).isEmpty();
+        assertThat(variantCombination.generateMatrixCombination(null)).isEmpty();
     }
 
     private Id id(String value) {

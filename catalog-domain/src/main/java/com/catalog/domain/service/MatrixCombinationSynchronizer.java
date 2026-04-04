@@ -1,12 +1,11 @@
 package com.catalog.domain.service;
 
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.service.dto.ProductVariantSelection;
 import com.catalog.domain.valueobject.VariantCombination;
 
 import java.util.List;
 
-public interface VariationCombinationManager {
+public interface MatrixCombinationSynchronizer {
 
     record VariantCombinationResult (
             VariantCombination variantCombination,
@@ -20,5 +19,5 @@ public interface VariationCombinationManager {
         }
     }
 
-    List<VariantCombinationResult> syncCombinations(List<ProductVariant> existingVariants, List<VariantCombination> combinations);
+    List<VariantCombinationResult> syncMatrixCombination(List<ProductVariant> existingVariants, List<VariantCombination> combinations);
 }
