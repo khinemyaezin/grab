@@ -113,13 +113,6 @@ class CreateProductSetCommandHandlerTest {
         when(matrixCombinationService.generateMatrixCombination(anyList())).thenReturn(List.of(
                 List.of(new VariantOptionSelection(redOptionId, colorTypeId))
         ));
-        when(matrixCombinationSynchronizer.syncMatrixCombination(anyList(), anyList())).thenReturn(List.of(
-                new MatrixCombinationSynchronizer.VariantCombinationResult(
-                        new VariantCombination(List.of(redVariation)),
-                        null,
-                        MatrixCombinationSynchronizer.VariantCombinationResult.MatchedType.NEW
-                )
-        ));
         when(matrixKeyGenerator.generateKey(List.of(redVariation))).thenReturn(RED_MATRIX_KEY);
 
         CreateProductSetResult result = handler.handle(command);
@@ -249,7 +242,7 @@ class CreateProductSetCommandHandlerTest {
                         List.of(new CreateProductSetCommand.VariantOption(RED_OPTION_ID))
                 ))
         );
-
+        when(matrixKeyGenerator.generateKey(anyList())).thenReturn(RED_MATRIX_KEY);
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
         when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
         when(idGenerator.generateId()).thenReturn(productId);
@@ -257,10 +250,9 @@ class CreateProductSetCommandHandlerTest {
         when(matrixCombinationService.generateMatrixCombination(anyList())).thenReturn(List.of(
                 List.of(new VariantOptionSelection(redOptionId, colorTypeId))
         ));
-        when(matrixCombinationSynchronizer.syncMatrixCombination(anyList(), anyList())).thenReturn(List.of());
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Duplicate key");
+                .isInstanceOf(CatalogServiceException.class)
+                .hasMessageContaining("cat.service.variant.add_failed");
     }
 }
