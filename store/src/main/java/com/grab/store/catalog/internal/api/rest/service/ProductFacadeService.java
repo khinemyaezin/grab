@@ -26,8 +26,8 @@ public class ProductFacadeService {
         return productQueryService.getStorefrontProduct(productId);
     }
 
-    public EntityModel<ProductCombinationResponse> getProductCombination(ProductCombinationRequest request) {
-        return productQueryService.getProductCombination(request);
+    public EntityModel<VariationMatrixResponse> getMatrixCombination(VariationMatrixRequest request) {
+        return productQueryService.getMatrixCombination(request);
     }
 
     public String saveProduct(SaveProductRequest request) {

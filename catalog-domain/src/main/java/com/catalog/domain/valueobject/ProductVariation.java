@@ -12,16 +12,12 @@ import java.util.Objects;
  */
 @Getter
 public class ProductVariation extends ValueObject {
-    private final String optionName; // yellow
     private final Id optionId;
     private final Id typeId;
-    private final String typeName;
 
-    public ProductVariation(String optionName, Id optionId, String typeName, Id typeId) {
-        this.optionName = optionName;
+    public ProductVariation(Id optionId, Id typeId) {
         this.optionId = optionId;
         this.typeId = typeId;
-        this.typeName = typeName;
     }
 
     @Override

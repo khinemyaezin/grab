@@ -1,9 +1,9 @@
 package com.catalog.domain.service;
 
+import com.catalog.domain.service.dto.VariantOptionSelection;
+import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.grab.framework.id.Id;
-import com.catalog.domain.aggregate.VariantOption;
-import com.catalog.domain.aggregate.VariantType;
-import com.catalog.domain.service.impl.DefaultVariantCombinationService;
+import com.catalog.domain.service.impl.DefaultMatrixCombinationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -12,11 +12,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VariantCombinationTest {
-    private VariantCombinationService variantCombination;
+    private MatrixCombinationService variantCombination;
 
     @BeforeEach
     void setUp() {
-        variantCombination = new DefaultVariantCombinationService();
+        variantCombination = new DefaultMatrixCombinationService();
     }
 
     /**
@@ -27,37 +27,36 @@ class VariantCombinationTest {
      */
     @Test
     void generatesCartesianProductInStableOrder() {
-        VariantType color = new VariantType(id("color"), "Color");
-        VariantOption yellow = new VariantOption(id("color-yellow"), "Yellow", color);
-        VariantOption red = new VariantOption(id("color-red"), "Red", color);
-        color.addOption(yellow);
-        color.addOption(red);
+        var idColor = id("color");
+        var yellow = new VariantOptionSelection(id("yellow"), idColor);
+        var red = new VariantOptionSelection(id("red"), idColor);
+        var color = new VariantTypeSelection(idColor, List.of(yellow, red));
 
-        VariantType size = new VariantType(id("size"), "Size");
-        VariantOption small = new VariantOption(id("size-small"), "Small", size);
-        VariantOption large = new VariantOption(id("size-large"), "Large", size);
-        size.addOption(small);
-        size.addOption(large);
+        var idSize = id("size");
+        var small = new VariantOptionSelection(id("small"),idSize);
+        var large = new VariantOptionSelection(id("large"), idSize);
+        var size = new VariantTypeSelection(idSize, List.of(small, large));
 
-        List<List<VariantOption>> combinations = variantCombination.generateCombinations(List.of(color, size));
+        List<List<VariantOptionSelection>> combinations = variantCombination.generateMatrixCombination(List.of(color, size));
+
+        List<List<VariantOptionSelection>> expected = List.of(
+                List.of(yellow, small),
+                List.of(yellow, large),
+                List.of(red, small),
+                List.of(red, large)
+        );
         assertThat(combinations)
-                .extracting(combo -> combo.getFirst().getName() + "-" + combo.get(1).getName())
-                .containsExactly(
-                        "Yellow-Small",
-                        "Yellow-Large",
-                        "Red-Small",
-                        "Red-Large"
-                );
+                .containsExactlyInAnyOrderElementsOf(expected);
     }
 
     @Test
     void returnsEmptyWhenMissingOptions() {
-        VariantType color = new VariantType(id("color"), "Color");
+        var color = new VariantTypeSelection(id("color"), List.of());
         // no options added
 
-        assertThat(variantCombination.generateCombinations(List.of(color))).isEmpty();
-        assertThat(variantCombination.generateCombinations(List.of())).isEmpty();
-        assertThat(variantCombination.generateCombinations(null)).isEmpty();
+        assertThat(variantCombination.generateMatrixCombination(List.of(color))).isEmpty();
+        assertThat(variantCombination.generateMatrixCombination(List.of())).isEmpty();
+        assertThat(variantCombination.generateMatrixCombination(null)).isEmpty();
     }
 
     private Id id(String value) {

@@ -5,7 +5,8 @@ import com.catalog.domain.valueobject.VariantCombination;
 
 import java.util.List;
 
-public interface VariationCombinationManager {
+public interface MatrixCombinationSynchronizer {
+
     record VariantCombinationResult (
             VariantCombination variantCombination,
             ProductVariant matchedVariant,
@@ -18,5 +19,5 @@ public interface VariationCombinationManager {
         }
     }
 
-    List<VariantCombinationResult> syncCombinations(List<ProductVariant> existingVariants, List<VariantCombination> combinations);
+    List<VariantCombinationResult> syncMatrixCombination(List<ProductVariant> existingVariants, List<VariantCombination> combinations);
 }

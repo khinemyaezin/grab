@@ -1,9 +1,10 @@
 package com.catalog.domain.service;
 
+import com.catalog.domain.service.dto.ProductVariantSelection;
+import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.VariantType;
 
 import java.util.List;
 import java.util.Set;
@@ -17,13 +18,11 @@ public interface VariantDeletionStrategy {
      * Filters the desired variant types based on deletion rules.
      * Called before generating combinations to exclude option values that should be hard deleted.
      *
-     * @param product            the product being synchronized
+     * @param variants            the product being synchronized
      * @param desiredVariantTypes the original desired variant types
      * @return filtered variant types (may exclude certain options based on strategy)
      */
-    List<VariantType> filterVariantTypes(Product product, List<VariantType> desiredVariantTypes);
-
-    List<VariantType> filterVariantTypes(List<ProductVariant> variants, List<VariantType> desiredVariantTypes);
+    List<VariantTypeSelection> filterVariantTypes(List<ProductVariantSelection> variants, List<VariantTypeSelection> desiredVariantTypes);
     /**
      * Removes obsolete variants from the product after synchronization.
      *

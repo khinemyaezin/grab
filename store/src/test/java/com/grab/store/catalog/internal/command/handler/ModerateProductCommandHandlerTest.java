@@ -150,7 +150,7 @@ class ModerateProductCommandHandlerTest {
         product.addVariant(ProductVariant.create(
                 id("variant-" + productId.getValue()),
                 "SKU-" + productId.getValue(),
-                List.of(new ProductVariation("Red", id("opt-red"), "Color", id("type-color")))
+                List.of(new ProductVariation(id("opt-red"), id("type-color")))
         ));
         product.submitForReview();
         product.pullEvents();

@@ -1,10 +1,12 @@
 package com.catalog.domain.service.impl;
 
+import com.catalog.domain.service.dto.ProductVariantSelection;
+import com.catalog.domain.service.dto.VariantOptionSelection;
+import com.catalog.domain.service.dto.VariantTypeSelection;
+import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.id.Id;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.aggregate.VariantOption;
-import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.service.VariantDeletionStrategy;
 import com.catalog.domain.valueobject.ProductVariation;
 
@@ -20,23 +22,9 @@ import java.util.stream.Collectors;
  * rather than kept as soft-deleted.</p>
  */
 public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
-    @Override
-    public List<VariantType> filterVariantTypes(Product product, List<VariantType> desiredVariantTypes) {
-        if (product.getVariants().isEmpty() || desiredVariantTypes == null || desiredVariantTypes.isEmpty()) {
-            return desiredVariantTypes;
-        }
-
-        Set<String> fullyDeletedOptions = findFullyDeletedOptions(product);
-
-        if (fullyDeletedOptions.isEmpty()) {
-            return desiredVariantTypes;
-        }
-
-        return filterOutDeletedOptions(desiredVariantTypes, fullyDeletedOptions);
-    }
 
     @Override
-    public List<VariantType> filterVariantTypes(List<ProductVariant> targetVariants, List<VariantType> desiredVariantTypes) {
+    public List<VariantTypeSelection> filterVariantTypes(List<ProductVariantSelection> targetVariants, List<VariantTypeSelection> desiredVariantTypes) {
         if (targetVariants.isEmpty() || desiredVariantTypes == null || desiredVariantTypes.isEmpty()) {
             return desiredVariantTypes;
         }
@@ -50,20 +38,22 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
         return filterOutDeletedOptions(desiredVariantTypes, fullyDeletedOptions);
     }
 
-    private Set<String> findFullyDeletedOptions(List<ProductVariant> targetVariants) {
+    private Set<String> findFullyDeletedOptions(List<ProductVariantSelection> targetVariants) {
         // Group variants by each option value they contain
         // Key: "Size:Large", Value: list of variants containing Large
-        Map<String, List<ProductVariant>> variantsByOption = new HashMap<>();
+        Map<String, List<ProductVariantSelection>> variantsByOption = new HashMap<>();
 
-        for (ProductVariant variant : targetVariants) {
-            for (ProductVariation variation : variant.getVariations()) {
+        for (ProductVariantSelection variant : targetVariants) {
+            for (ProductVariation variation : variant.variations()) {
                 String key = buildOptionKey(variation.getTypeId(), variation.getOptionId());
                 variantsByOption.computeIfAbsent(key, k -> new ArrayList<>()).add(variant);
             }
         }
 
         return variantsByOption.entrySet().stream()
-                .filter(entry -> entry.getValue().stream().allMatch(ProductVariant::isDeleted))
+                .filter(entry -> entry.getValue().stream()
+                        .allMatch(v -> Objects.equals(v.status(),
+                                ProductVariantStatus.DELETED)))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
@@ -84,44 +74,19 @@ public class FullOptionHardDeleteStrategy implements VariantDeletionStrategy {
                 .toList();
     }
 
-    /**
-     * Finds option values where ALL variants containing that option are DELETED.
-     *
-     * @param product the product to analyze
-     * @return set of "TypeName:OptionName" keys for fully deleted options
-     */
-    private Set<String> findFullyDeletedOptions(Product product) {
-        // Group variants by each option value they contain
-        // Key: "Size:Large", Value: list of variants containing Large
-        Map<String, List<ProductVariant>> variantsByOption = new HashMap<>();
-
-        for (ProductVariant variant : product.getVariants()) {
-            for (ProductVariation variation : variant.getVariations()) {
-                String key = buildOptionKey(variation.getTypeId(), variation.getOptionId());
-                variantsByOption.computeIfAbsent(key, k -> new ArrayList<>()).add(variant);
-            }
-        }
-
-        return variantsByOption.entrySet().stream()
-                .filter(entry -> entry.getValue().stream().allMatch(ProductVariant::isDeleted))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    private List<VariantType> filterOutDeletedOptions(
-            List<VariantType> desiredVariantTypes,
+    private List<VariantTypeSelection> filterOutDeletedOptions(
+            List<VariantTypeSelection> desiredVariantTypes,
             Set<String> fullyDeletedOptions) {
 
-        List<VariantType> filtered = new ArrayList<>();
+        List<VariantTypeSelection> filtered = new ArrayList<>();
 
-        for (VariantType type : desiredVariantTypes) {
-            List<VariantOption> remainingOptions = type.getOptions().stream()
-                    .filter(opt -> !fullyDeletedOptions.contains(buildOptionKey(type.getId(), opt.getId())))
+        for (VariantTypeSelection type : desiredVariantTypes) {
+            List<VariantOptionSelection> remainingOptions = type.options().stream()
+                    .filter(opt -> !fullyDeletedOptions.contains(buildOptionKey(type.typeId(), opt.valueId())))
                     .toList();
 
             if (!remainingOptions.isEmpty()) {
-                VariantType filteredType = new VariantType(type.getId(), type.getName());
-                remainingOptions.forEach(filteredType::addOption);
+                VariantTypeSelection filteredType = new VariantTypeSelection(type.typeId(), remainingOptions);
                 filtered.add(filteredType);
             }
         }

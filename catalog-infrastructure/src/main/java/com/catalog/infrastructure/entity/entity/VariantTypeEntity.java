@@ -21,6 +21,9 @@ public class VariantTypeEntity {
 
     private String name;
 
+    @Column(name = "status")
+    private String status;
+
     @Column(name = "code", unique = true)
     private String code;
 

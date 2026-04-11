@@ -4,9 +4,14 @@ import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.service.MatrixCombinationService;
+import com.catalog.domain.service.MatrixCombinationSynchronizer;
+import com.catalog.domain.service.MatrixKeyGenerator;
+import com.catalog.domain.service.SkuGenerator;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
@@ -36,6 +41,16 @@ class UpdateProductCommandHandlerTest {
     private CategoryRepository categoryRepository;
     @Mock
     private UniqueSlugResolver uniqueSlugResolver;
+    @Mock
+    private IdGenerator idGenerator;
+    @Mock
+    private SkuGenerator skuGenerator;
+    @Mock
+    private MatrixCombinationService matrixCombinationService;
+    @Mock
+    private MatrixCombinationSynchronizer matrixCombinationSynchronizer;
+    @Mock
+    private MatrixKeyGenerator matrixKeyGenerator;
 
     @Captor
     private ArgumentCaptor<Product> productCaptor;
@@ -48,7 +63,16 @@ class UpdateProductCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new UpdateProductCommandHandler(productRepository, categoryRepository, uniqueSlugResolver);
+        handler = new UpdateProductCommandHandler(
+                productRepository,
+                categoryRepository,
+                uniqueSlugResolver,
+                idGenerator,
+                skuGenerator,
+                matrixCombinationService,
+                matrixCombinationSynchronizer,
+                matrixKeyGenerator
+                );
     }
 
     @Test
@@ -66,10 +90,11 @@ class UpdateProductCommandHandlerTest {
                 productId,
                 "New Name",
                 newCategoryId,
-                null,
+                new CommonId(""),
                 null,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null
@@ -106,6 +131,7 @@ class UpdateProductCommandHandlerTest {
                 false,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -136,6 +162,7 @@ class UpdateProductCommandHandlerTest {
                 null,
                 null,
                 false,
+                null,
                 null,
                 null,
                 null

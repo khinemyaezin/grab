@@ -15,6 +15,6 @@ public record ProductSearchCriteria(
     String sellerType,
     Boolean offerEligible,
     ProductStatus productStatus,
-    Boolean feature,
-    List<String> variations){
+    Boolean feature)
+{
 }

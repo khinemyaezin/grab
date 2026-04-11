@@ -196,7 +196,7 @@ public sealed interface CatalogServiceError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("variantId", variantId);
+            return Map.of("sku", variantId);
         }
     }
 
@@ -213,7 +213,7 @@ public sealed interface CatalogServiceError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("variantId", variantId);
+            return Map.of("sku", variantId);
         }
     }
 
@@ -230,7 +230,7 @@ public sealed interface CatalogServiceError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("variantId", variantId);
+            return Map.of("sku", variantId);
         }
     }
 
@@ -247,11 +247,11 @@ public sealed interface CatalogServiceError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("variantId", variantId);
+            return Map.of("sku", variantId);
         }
     }
 
-    record VariantAddFailed(String variantId) implements CatalogServiceError {
+    record VariantAddFailed(String sku) implements CatalogServiceError {
         @Override
         public ErrorCategory kind() {
             return ErrorCategory.CONFLICT;
@@ -264,7 +264,7 @@ public sealed interface CatalogServiceError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("variantId", variantId);
+            return Map.of("sku", sku);
         }
     }
 

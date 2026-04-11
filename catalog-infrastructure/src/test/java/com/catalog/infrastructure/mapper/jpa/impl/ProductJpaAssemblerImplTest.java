@@ -152,12 +152,12 @@ class ProductJpaAssemblerImplTest {
         product.addVariant(ProductVariant.create(
                 id("v1"),
                 "SKU-001-UPDATED",
-                List.of(new ProductVariation("Blue", id("blue"), "Color", id("color")))
+                List.of(new ProductVariation(id("blue"), id("color")))
         ));
         product.addVariant(ProductVariant.create(
                 id("v3"),
                 "SKU-003",
-                List.of(new ProductVariation("Green", id("green"), "Color", id("color")))
+                List.of(new ProductVariation(id("green"), id("color")))
         ));
 
         ProductEntity existingEntity = new ProductEntity();
@@ -172,9 +172,7 @@ class ProductJpaAssemblerImplTest {
         existingEntity.addVariant(existingV1);
         existingV1.addProductVariation(new ProductVariationEntity(
                 new ProductVariationEntity.ProductVariationId("old-opt", "old-type", null),
-                null,
-                "Old Option",
-                "Old Type"
+                null
         ));
 
         ProductVariantEntity orphanV2 = new ProductVariantEntity();
@@ -233,9 +231,7 @@ class ProductJpaAssemblerImplTest {
 
         variant.addProductVariation(new ProductVariationEntity(
                 new ProductVariationEntity.ProductVariationId("opt-red", "type-color", null),
-                null,
-                "Red",
-                "Color"
+                null
         ));
 
         Product result = assembler.toFullDomainGraph(entity);
@@ -263,8 +259,6 @@ class ProductJpaAssemblerImplTest {
         ProductVariation variation = mappedVariant.getVariations().iterator().next();
         assertThat(variation.getOptionId().getValue()).isEqualTo("opt-red");
         assertThat(variation.getTypeId().getValue()).isEqualTo("type-color");
-        assertThat(variation.getOptionName()).isEqualTo("Red");
-        assertThat(variation.getTypeName()).isEqualTo("Color");
     }
 
     private Product createProduct(String productId, String name) {

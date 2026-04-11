@@ -10,9 +10,7 @@ import org.mapstruct.Mapping;
 @Mapper(config = CentralMapperConfig.class,uses = {IdGenerator.class})
 public abstract class ProductVariationMapper {
 
-    @Mapping(source = "variantOptionValue", target = "optionName")
     @Mapping(source = "id.variantOptionUuid", target = "optionId")
     @Mapping(source = "id.variantTypeUuid", target = "typeId")
-    @Mapping(source = "variantTypeValue", target = "typeName")
     public abstract ProductVariation toDomain(ProductVariationEntity productVariationEntity);
 }

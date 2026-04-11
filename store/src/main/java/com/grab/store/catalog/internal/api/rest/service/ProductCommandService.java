@@ -35,8 +35,8 @@ public class ProductCommandService {
     public String saveProduct(SaveProductRequest request) {
         log.info("Saving product: {}", request.product().name());
 
-        SaveProductCommand command = saveProductDtoMapper.toCommand(request);
-        SaveProductResult result = commandBus.dispatch(command);
+        CreateProductSetCommand command = saveProductDtoMapper.toCommand(request);
+        CreateProductSetResult result = commandBus.dispatch(command);
 
         return result.productId();
     }

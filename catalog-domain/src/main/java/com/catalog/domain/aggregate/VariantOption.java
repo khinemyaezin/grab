@@ -13,12 +13,16 @@ import java.util.Objects;
 @Getter
 public class VariantOption extends Entity<Id> {
     private final String name;
-    private final VariantType variantType;
+    private final Id variantTypeId;
 
-    public VariantOption(Id id, String name, VariantType variantType) {
+    public VariantOption(Id id, String name, Id variantTypeId) {
         super(id);
         this.name = name;
-        this.variantType = variantType;
+        this.variantTypeId = variantTypeId;
+    }
+
+    public static VariantOption create(Id id, String name, Id variantTypeId){
+        return new VariantOption(id,name,variantTypeId);
     }
 
     @Override
@@ -26,13 +30,12 @@ public class VariantOption extends Entity<Id> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         VariantOption that = (VariantOption) o;
-        return Objects.equals(name, that.name) &&
-                Objects.equals(variantType, that.variantType);
+        return Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, variantType);
+        return Objects.hash(getId());
     }
 
     @Override

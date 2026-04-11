@@ -27,7 +27,7 @@ public class DeleteVariantCommandHandler implements CommandHandler<DeleteVariant
     @Override
     @CatalogTransactional
     public DeleteVariantResult handle(DeleteVariantCommand command) {
-        log.debug("Handling DeleteVariantCommand for productId={}, variantId={}", command.productId(), command.variantId());
+        log.debug("Handling DeleteVariantCommand for productId={}, sku={}", command.productId(), command.variantId());
 
         Optional<Product> hasProduct = productRepository.find(command.productId());
         if (hasProduct.isEmpty()) {

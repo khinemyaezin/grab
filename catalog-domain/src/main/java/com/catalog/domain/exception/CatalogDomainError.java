@@ -12,7 +12,12 @@ public sealed interface CatalogDomainError extends MessageSource permits
         CatalogDomainError.TooManyVariantCombinations,
         CatalogDomainError.ListingIncomplete,
         CatalogDomainError.C2CConditionRequired,
-        CatalogDomainError.OfferEligibilityOnlyForC2C {
+        CatalogDomainError.OfferEligibilityOnlyForC2C,
+        CatalogDomainError.InvalidVariantTypeName,
+        CatalogDomainError.InvalidVariantOptionName,
+        CatalogDomainError.DuplicateVariantOption,
+        CatalogDomainError.VariantOptionTypeMismatch,
+        CatalogDomainError.DuplicateCategoryVariantTypeLink {
 
     record InvalidProductStatusTransition(String currentStatus, String newStatus) implements CatalogDomainError {
         @Override
@@ -136,6 +141,103 @@ public sealed interface CatalogDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of();
+        }
+    }
+
+    record InvalidVariantTypeName(String typeId) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.invalid_variant_type_name";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("typeId", typeId);
+        }
+    }
+
+    record InvalidVariantOptionName(String typeId, String optionId) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.invalid_variant_option_name";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "typeId", typeId,
+                    "optionId", optionId
+            );
+        }
+    }
+
+    record DuplicateVariantOption(String optionName, String typeName) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.duplicate_variant_option_id";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "optionName", optionName,
+                    "typeName", typeName
+            );
+        }
+    }
+
+    record VariantOptionTypeMismatch(String typeId, String optionId) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.variant_option_type_mismatch";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "typeId", typeId,
+                    "optionId", optionId
+            );
+        }
+    }
+
+    record DuplicateCategoryVariantTypeLink(String categoryId, String typeId) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.duplicate_category_variant_type_link";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "categoryId", categoryId,
+                    "typeId", typeId
+            );
         }
     }
 }

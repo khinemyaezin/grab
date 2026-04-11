@@ -1,9 +1,9 @@
 package com.catalog.domain.exception;
 
-import com.catalog.domain.aggregate.VariantOption;
-import com.catalog.domain.aggregate.VariantType;
-import com.catalog.domain.service.VariantCombinationService;
-import com.catalog.domain.service.impl.DefaultVariantCombinationService;
+import com.catalog.domain.service.MatrixCombinationService;
+import com.catalog.domain.service.dto.VariantOptionSelection;
+import com.catalog.domain.service.dto.VariantTypeSelection;
+import com.catalog.domain.service.impl.DefaultMatrixCombinationService;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import org.junit.jupiter.api.Test;
@@ -50,10 +50,10 @@ class CatalogDomainErrorContractTest {
 
     @Test
     void variantCombination_tooManyCombinations_shouldThrowTypedValidationError() {
-        VariantCombinationService service = new DefaultVariantCombinationService();
-        List<VariantType> variantTypes = createVariantTypesWithCombinationsOverLimit();
+        MatrixCombinationService service = new DefaultMatrixCombinationService();
+        var variantTypes = createVariantTypesWithCombinationsOverLimit();
 
-        assertThatThrownBy(() -> service.generateCombinations(variantTypes))
+        assertThatThrownBy(() -> service.generateMatrixCombination(variantTypes))
                 .isInstanceOf(CatalogDomainValidationException.class)
                 .satisfies(exception -> {
                     CatalogDomainValidationException typed = (CatalogDomainValidationException) exception;
@@ -62,18 +62,15 @@ class CatalogDomainErrorContractTest {
                 });
     }
 
-    private static List<VariantType> createVariantTypesWithCombinationsOverLimit() {
-        List<VariantType> types = new ArrayList<>();
+    private static List<VariantTypeSelection> createVariantTypesWithCombinationsOverLimit() {
+        List<VariantTypeSelection> types = new ArrayList<>();
         for (int type = 0; type < 6; type++) {
-            VariantType variantType = new VariantType(id("type-" + type), "Type-" + type);
+            Id idType = id("type-" + type);
+            List<VariantOptionSelection>  variantOptions = new ArrayList<>();
             for (int option = 0; option < 10; option++) {
-                variantType.addOption(new VariantOption(
-                        id("opt-" + type + "-" + option),
-                        "Option-" + option,
-                        variantType
-                ));
+                variantOptions.add(new VariantOptionSelection(id("opt-" + type + "-" + option), idType));
             }
-            types.add(variantType);
+            types.add(new VariantTypeSelection(idType, variantOptions));
         }
         return types;
     }

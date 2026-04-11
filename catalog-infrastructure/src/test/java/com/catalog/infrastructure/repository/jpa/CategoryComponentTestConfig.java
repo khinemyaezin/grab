@@ -65,6 +65,16 @@ public class CategoryComponentTestConfig {
     }
 
     @Bean
+    VariantTypeJpaRepo variantTypeJpaRepo(EntityManager entityManager) {
+        return new JpaRepositoryFactory(entityManager).getRepository(VariantTypeJpaRepo.class);
+    }
+
+    @Bean
+    VariantOptionQueryRepository variantOptionJpaRepo(EntityManager entityManager) {
+        return new JpaRepositoryFactory(entityManager).getRepository(VariantOptionQueryRepository.class);
+    }
+
+    @Bean
     CategoryJpaInsertingDelegate categoryJpaInsertingDelegate(
             JpaNestedSetRepositoryConfiguration<CategoryEntity, Long> config
     ) {

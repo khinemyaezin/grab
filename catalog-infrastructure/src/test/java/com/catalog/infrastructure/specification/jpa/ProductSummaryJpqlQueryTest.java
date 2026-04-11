@@ -156,32 +156,6 @@ class ProductSummaryJpqlQueryTest {
     }
 
     @Test
-    void search_withVariationOptionValue_returnMatchedProducts() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .variations(List.of("Red"))
-                .build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
-
-        assertEquals(1, page.getTotalElements());
-        assertEquals("Premium Cotton T-Shirt", page.getContent().getFirst().getName());
-    }
-
-    @Test
-    void search_withMultipleVariationValues_returnMatchedProducts() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .variations(List.of("Black", "M"))
-                .build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
-
-        assertEquals(1, page.getTotalElements());
-        assertEquals("Slim Fit Jeans", page.getContent().getFirst().getName());
-    }
-
-    @Test
     void search_withPageNumberAndPageSize_returnCorrectPageWithLimitedSize() {
         ProductSearchCriteria criteria = ProductSearchCriteria.builder().build();
 
@@ -249,8 +223,6 @@ class ProductSummaryJpqlQueryTest {
                 ProductVariationEntity variationEntity = new ProductVariationEntity();
                 variationEntity.setId(new ProductVariationEntity.ProductVariationId(
                         vd.optionId, vd.typeId, null));
-                variationEntity.setVariantOptionValue(vd.optionValue);
-                variationEntity.setVariantTypeValue(vd.typeValue);
                 variantEntity.addProductVariation(variationEntity);
                 entityManager.persist(variationEntity);
             }

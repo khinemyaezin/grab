@@ -39,7 +39,7 @@ public class ModerateProductCommandHandler implements CommandHandler<ModeratePro
 
         switch (action) {
             case SUBMIT_REVIEW -> {
-                CatalogPolicyValidator.validateCategoryPolicy(category, product);
+                CatalogPolicyValidator.validateCategoryPolicy(category);
                 product.submitForReview();
             }
             case APPROVE -> {
@@ -49,7 +49,7 @@ public class ModerateProductCommandHandler implements CommandHandler<ModeratePro
             case REJECT -> product.reject(command.reason());
             case SUSPEND -> product.suspend(command.reason());
             case RESTORE -> {
-                CatalogPolicyValidator.validateCategoryPolicy(category, product);
+                CatalogPolicyValidator.validateCategoryPolicy(category);
                 product.restore();
             }
         }

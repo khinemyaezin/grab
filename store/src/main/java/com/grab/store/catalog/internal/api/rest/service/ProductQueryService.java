@@ -7,7 +7,7 @@ import com.grab.store.catalog.internal.api.rest.assembler.GetProductBySlugModelA
 import com.grab.store.catalog.internal.api.rest.assembler.GetProductModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.ProductCombinationModelAssembler;
 import com.grab.store.catalog.internal.api.rest.assembler.ProductSummaryModelAssembler;
-import com.grab.store.catalog.internal.api.rest.dto.request.ProductCombinationRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.VariationMatrixRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
@@ -29,7 +29,7 @@ public class ProductQueryService {
     private final GetProductBySlugDtoMapper getProductBySlugDtoMapper;
     private final GetProductModelAssembler getProductModelAssembler;
     private final GetProductBySlugModelAssembler getProductBySlugModelAssembler;
-    private final ProductCombinationDtoMapper productCombinationDtoMapper;
+    private final VariationMatrixQueryMapper variationMatrixQueryMapper;
     private final ProductCombinationModelAssembler productCombinationModelAssembler;
     private final ProductSummaryModelAssembler productSummaryModelAssembler;
     private final ProductSummaryQueryMapper productSummaryQueryMapper;
@@ -80,12 +80,12 @@ public class ProductQueryService {
         return getProductModelAssembler.toModel(response);
     }
 
-    public EntityModel<ProductCombinationResponse> getProductCombination(ProductCombinationRequest request) {
-        log.info("Product combination: {}", request.product().name());
+    public EntityModel<VariationMatrixResponse> getMatrixCombination(VariationMatrixRequest request) {
+        log.info("Product combination");
 
-        ProductCombinationQuery query = productCombinationDtoMapper.toQuery(request);
-        ProductCombinationResult result = queryBus.dispatch(query);
-        ProductCombinationResponse response = productCombinationDtoMapper.toResponse(result);
+        VariationMatrixQuery query = variationMatrixQueryMapper.toQuery(request);
+        VariationMatrixResult result = queryBus.dispatch(query);
+        VariationMatrixResponse response = variationMatrixQueryMapper.toResponse(result);
         return productCombinationModelAssembler.toModel(response);
     }
 

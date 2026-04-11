@@ -1,10 +1,10 @@
 package com.catalog.domain.service.impl;
 
-import com.catalog.domain.aggregate.VariantOption;
-import com.catalog.domain.aggregate.VariantType;
 import com.catalog.domain.exception.CatalogDomainError;
 import com.catalog.domain.exception.CatalogDomainValidationException;
-import com.catalog.domain.service.VariantCombinationService;
+import com.catalog.domain.service.MatrixCombinationService;
+import com.catalog.domain.service.dto.VariantOptionSelection;
+import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
@@ -12,11 +12,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DefaultVariantCombinationService implements VariantCombinationService {
+public class DefaultMatrixCombinationService implements MatrixCombinationService {
 
-    private static final Logger log = Loggers.getLogger(DefaultVariantCombinationService.class);
+    private static final Logger log = Loggers.getLogger(DefaultMatrixCombinationService.class);
 
-    public List<List<VariantOption>> generateCombinations(List<VariantType> variantTypes) {
+    public List<List<VariantOptionSelection>> generateMatrixCombination(List<VariantTypeSelection> variantTypes) {
         // Early return for empty input
         if (variantTypes == null || variantTypes.isEmpty()) {
             log.debug("Skipping variant combination generation because no variant types were provided");
@@ -26,15 +26,15 @@ public class DefaultVariantCombinationService implements VariantCombinationServi
         log.info("Generating variant combinations for {} variant types", variantTypes.size());
 
         // Pre-process and validate in single pass
-        List<List<VariantOption>> optionLists = new ArrayList<>(variantTypes.size());
+        List<List<VariantOptionSelection>> optionLists = new ArrayList<>(variantTypes.size());
         int totalCombinations = 1;
 
-        for (VariantType variantType : variantTypes) {
-            if (variantType == null || variantType.getOptions().isEmpty()) {
+        for (VariantTypeSelection variantType : variantTypes) {
+            if (variantType == null || variantType.options().isEmpty()) {
                 log.warn("Skipping combination generation because a variant type is null or has no options");
                 return Collections.emptyList();
             }
-            List<VariantOption> options = new ArrayList<>(variantType.getOptions());
+            List<VariantOptionSelection> options = new ArrayList<>(variantType.options());
             optionLists.add(options);
             totalCombinations *= options.size();
 
@@ -49,15 +49,15 @@ public class DefaultVariantCombinationService implements VariantCombinationServi
         }
 
         // Generate combinations iteratively
-        List<List<VariantOption>> combinations = generateIterativeCombinations(optionLists, totalCombinations);
+        List<List<VariantOptionSelection>> combinations = generateIterativeCombinations(optionLists, totalCombinations);
         log.info("Generated {} variant combinations", combinations.size());
         return combinations;
     }
 
-    private List<List<VariantOption>> generateIterativeCombinations(
-            List<List<VariantOption>> optionLists, int totalCombinations) {
+    private List<List<VariantOptionSelection>> generateIterativeCombinations(
+            List<List<VariantOptionSelection>> optionLists, int totalCombinations) {
 
-        List<List<VariantOption>> combinations = new ArrayList<>(totalCombinations);
+        List<List<VariantOptionSelection>> combinations = new ArrayList<>(totalCombinations);
 
         // Initialize with empty lists
         for (int i = 0; i < totalCombinations; i++) {
@@ -65,7 +65,7 @@ public class DefaultVariantCombinationService implements VariantCombinationServi
         }
 
         int period = totalCombinations;
-        for (List<VariantOption> options : optionLists) {
+        for (List<VariantOptionSelection> options : optionLists) {
             period /= options.size();
             int optionIndex = 0;
 

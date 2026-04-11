@@ -1,25 +1,25 @@
 package com.catalog.domain.service.impl;
 
+import com.catalog.domain.aggregate.ProductVariant;
 import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.service.VariationKeyGenerator;
+import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.valueobject.VariantCombination;
-import com.catalog.domain.service.VariationCombinationManager;
+import com.catalog.domain.service.MatrixCombinationSynchronizer;
 import lombok.RequiredArgsConstructor;
 
 import java.util.*;
 
 @RequiredArgsConstructor
-public class DefaultVariationCombinationManager implements VariationCombinationManager {
-    private static final Logger log = Loggers.getLogger(DefaultVariationCombinationManager.class);
+public class DefaultMatrixCombinationSynchronizer implements MatrixCombinationSynchronizer {
+    private static final Logger log = Loggers.getLogger(DefaultMatrixCombinationSynchronizer.class);
 
-    private final VariationKeyGenerator keyGenerator;
+    private final MatrixKeyGenerator keyGenerator;
 
     @Override
-    public List<VariantCombinationResult> syncCombinations(List<ProductVariant> existingVariants, List<VariantCombination> combinations) {
+    public List<VariantCombinationResult> syncMatrixCombination(List<ProductVariant> existingVariants, List<VariantCombination> combinations) {
         log.info(
                 "Syncing variant combinations: existingVariants={}, requestedCombinations={}",
                 existingVariants.size(),
@@ -48,11 +48,11 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         Set<String> usedKeys = new HashSet<>(combinations.size());
 
         for (VariantCombination combination : combinations) {
-            String key = generateSortedKey(combination.getVariations(), commonTypeIds);
+            String key = generateSortedKey(combination.variations(), commonTypeIds);
             ProductVariant match = existingVariantByKey.get(key);
             VariantCombinationResult result;
 
-            if (match != null && !usedKeys.contains(key) && match.getVariations().size() == combination.getVariations().size()) {
+            if (match != null && !usedKeys.contains(key) && match.getVariations().size() == combination.variations().size()) {
                 result = new VariantCombinationResult(combination, match, VariantCombinationResult.MatchedType.UNCHANGED);
             } else if (match != null) {
                 result = new VariantCombinationResult(combination, match, VariantCombinationResult.MatchedType.EXTENDED);
@@ -90,7 +90,7 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
         }
         Set<Id> combinationTypeIds = new HashSet<>();
         for (VariantCombination combo : combinations) {
-            for (ProductVariation v : combo.getVariations()) {
+            for (ProductVariation v : combo.variations()) {
                 combinationTypeIds.add(v.getTypeId());
             }
         }
@@ -119,6 +119,6 @@ public class DefaultVariationCombinationManager implements VariationCombinationM
                 .filter(v -> commonTypeIds.contains(v.getTypeId()))
                 .toList();
         log.debug("Generating sorted variation key from {} filtered variations", filtered.size());
-        return keyGenerator.generateVariationKey(filtered);
+        return keyGenerator.generateKey(filtered);
     }
 }

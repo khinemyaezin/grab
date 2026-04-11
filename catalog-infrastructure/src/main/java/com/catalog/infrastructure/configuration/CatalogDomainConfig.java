@@ -1,9 +1,9 @@
 package com.catalog.infrastructure.configuration;
 
-import com.catalog.domain.service.VariantCombinationService;
+import com.catalog.domain.service.MatrixCombinationService;
 import com.catalog.domain.service.VariantDeletionStrategy;
-import com.catalog.domain.service.VariationCombinationManager;
-import com.catalog.domain.service.VariationKeyGenerator;
+import com.catalog.domain.service.MatrixCombinationSynchronizer;
+import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.service.impl.*;
 import com.catalog.domain.valueobject.ProductVariation;
 import org.springframework.context.annotation.Bean;
@@ -15,8 +15,8 @@ import java.util.Comparator;
 public class CatalogDomainConfig {
 
     @Bean
-    public VariantCombinationService variantCombination() {
-        return new DefaultVariantCombinationService();
+    public MatrixCombinationService variantCombination() {
+        return new DefaultMatrixCombinationService();
     }
 
     @Bean
@@ -30,12 +30,12 @@ public class CatalogDomainConfig {
     }
 
     @Bean
-    public VariationKeyGenerator variationKeyGenerator(Comparator<ProductVariation> getVariationComparator) {
-        return new DefaultVariationKeyGenerator(getVariationComparator);
+    public MatrixKeyGenerator variationKeyGenerator(Comparator<ProductVariation> getVariationComparator) {
+        return new DefaultMatrixKeyGenerator(getVariationComparator);
     }
 
     @Bean
-    public VariationCombinationManager variantCombinationManager(VariationKeyGenerator variationKeyGenerator){
-        return new DefaultVariationCombinationManager(variationKeyGenerator);
+    public MatrixCombinationSynchronizer variantCombinationManager(MatrixKeyGenerator matrixKeyGenerator){
+        return new DefaultMatrixCombinationSynchronizer(matrixKeyGenerator);
     }
 }

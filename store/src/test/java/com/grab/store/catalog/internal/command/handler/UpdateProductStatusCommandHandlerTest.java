@@ -138,7 +138,7 @@ class UpdateProductStatusCommandHandlerTest {
     private void addActiveVariant(Product product, String variantIdValue) {
         Id variantId = new CommonId(variantIdValue);
         ProductVariation variation = new ProductVariation(
-                "Red", new CommonId("opt-red"), "Color", new CommonId("type-color"));
+                new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-" + variantIdValue, List.of(variation));
         product.addVariant(variant);
     }

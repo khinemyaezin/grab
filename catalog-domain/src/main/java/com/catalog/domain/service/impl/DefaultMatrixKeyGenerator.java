@@ -1,7 +1,7 @@
 package com.catalog.domain.service.impl;
 
 import com.grab.framework.id.Id;
-import com.catalog.domain.service.VariationKeyGenerator;
+import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.valueobject.ProductVariation;
 import lombok.AllArgsConstructor;
 
@@ -10,13 +10,13 @@ import java.util.Comparator;
 import java.util.List;
 
 @AllArgsConstructor
-public class DefaultVariationKeyGenerator implements VariationKeyGenerator {
+public class DefaultMatrixKeyGenerator implements MatrixKeyGenerator {
     private final Comparator<ProductVariation> VARIATION_COMPARATOR;
 
     private static final String KEY_SEPARATOR = "|";
     private static final String KEY_VALUE_SEPARATOR = "=";
 
-    public String generateVariationKey(List<ProductVariation> variations) {
+    public String generateKey(List<ProductVariation> variations) {
         List<ProductVariation> sortedVariations = new ArrayList<>(variations);
         sortedVariations.sort(VARIATION_COMPARATOR);
 

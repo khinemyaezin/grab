@@ -146,18 +146,6 @@ public class ProductSummaryJpqlQuery {
             params.put("variantStatus", criteria.variantStatus());
         }
 
-        if (criteria.variations() != null && !criteria.variations().isEmpty()) {
-            conditions.add(
-                    "(" +
-                            "SELECT COUNT(vo) FROM ProductVariantEntity v " +
-                            "JOIN v." + ProductVariantEntity_.PRODUCT_VARIATIONS + " vo " +
-                            "WHERE v." + ProductVariantEntity_.PRODUCT + " = p " +
-                            "AND LOWER(vo." + ProductVariationEntity_.VARIANT_OPTION_VALUE + ") IN :variations" +
-                    ") >= :variationsSize");
-            params.put("variations", criteria.variations().stream().map(String::toLowerCase).toList());
-            params.put("variationsSize", (long) criteria.variations().size());
-        }
-
         if (conditions.isEmpty()) {
             return "";
         }

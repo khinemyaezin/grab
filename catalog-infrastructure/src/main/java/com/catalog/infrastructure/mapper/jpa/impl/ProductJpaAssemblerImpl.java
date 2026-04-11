@@ -132,9 +132,7 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
                         productVariation.getTypeId().getValue(),
                         null
                 ),
-                null,
-                productVariation.getOptionName(),
-                productVariation.getTypeName()
+                null
         );
     }
 
@@ -185,10 +183,7 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
             domainKeys.add(key);
             ProductVariationEntity existingEntity = existingByKey.get(key);
 
-            if (existingEntity != null) {
-                existingEntity.setVariantOptionValue(variation.getOptionName());
-                existingEntity.setVariantTypeValue(variation.getTypeName());
-            } else {
+            if (existingEntity == null) {
                 ProductVariationEntity newEntity = toProductVariationEntity(variation);
                 variantEntity.addProductVariation(newEntity);
             }

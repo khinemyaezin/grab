@@ -1,6 +1,6 @@
 package com.grab.store.catalog.internal.api.rest.assembler;
 
-import com.grab.store.catalog.internal.api.rest.dto.response.ProductCombinationResponse;
+import com.grab.store.catalog.internal.api.rest.dto.response.VariationMatrixResponse;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -8,12 +8,12 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ProductCombinationModelAssembler
-        implements RepresentationModelAssembler<ProductCombinationResponse, EntityModel<ProductCombinationResponse>> {
+        implements RepresentationModelAssembler<VariationMatrixResponse, EntityModel<VariationMatrixResponse>> {
 
     @Override
-    public EntityModel<ProductCombinationResponse> toModel(ProductCombinationResponse response) {
+    public EntityModel<VariationMatrixResponse> toModel(VariationMatrixResponse response) {
         return EntityModel.of(response,
-                Link.of("/api/v1/products/combination").withSelfRel(),
+                Link.of("/api/v1/products/variation-matrix").withSelfRel(),
                 Link.of("/api/v1/products").withRel("products")
         );
     }

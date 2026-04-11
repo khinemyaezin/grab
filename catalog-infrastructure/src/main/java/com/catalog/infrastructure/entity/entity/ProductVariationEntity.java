@@ -24,12 +24,6 @@ public class ProductVariationEntity {
     @JoinColumn(name = "variant_id")
     private ProductVariantEntity productVariant;
 
-    @Column(name = "variant_option_value")
-    private String variantOptionValue;
-
-    @Column(name = "variant_type_value")
-    private String variantTypeValue;
-
     @Embeddable
     @Data
     @NoArgsConstructor

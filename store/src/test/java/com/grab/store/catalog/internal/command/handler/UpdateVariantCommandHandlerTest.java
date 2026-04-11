@@ -55,7 +55,7 @@ class UpdateVariantCommandHandlerTest {
 
         Product product = Product.create(productId, "Product", categoryId);
         ProductVariation variation = new ProductVariation(
-                "Red", new CommonId("opt-red"), "Color", new CommonId("type-color"));
+                new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "OLD-SKU", List.of(variation));
         product.addVariant(variant);
 
@@ -117,7 +117,7 @@ class UpdateVariantCommandHandlerTest {
 
         Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
         ProductVariation variation = new ProductVariation(
-                "Red", new CommonId("opt-red"), "Color", new CommonId("type-color"));
+                new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
         product.addVariant(variant);
         variant.markAsDeleted();
@@ -142,7 +142,7 @@ class UpdateVariantCommandHandlerTest {
 
         Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
         ProductVariation variation = new ProductVariation(
-                "Red", new CommonId("opt-red"), "Color", new CommonId("type-color"));
+                new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
         product.addVariant(variant);
 
