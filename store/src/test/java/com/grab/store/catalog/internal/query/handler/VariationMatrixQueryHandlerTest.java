@@ -35,12 +35,15 @@ class VariationMatrixQueryHandlerTest {
         handler = new VariationMatrixQueryHandler(
                 matrixCombinationService, matrixKeyGenerator, new UuidGenerator()
         );
+    }
 
+    private void mockMatrixKeyGenerator() {
         when(matrixKeyGenerator.generateKey(anyList()))
                 .thenAnswer(invocation -> {
                     List<ProductVariation> options = invocation.getArgument(0);
                     return options.stream()
                             .map(option -> option.getOptionId().getValue())
+                            //.sorted() // Sort for deterministic keys
                             .reduce((a, b) -> a + "-" + b)
                             .orElse("");
                 });
@@ -103,6 +106,8 @@ class VariationMatrixQueryHandlerTest {
         );
 
         // When
+        mockMatrixKeyGenerator();
+
         when(matrixCombinationService.generateMatrixCombination(anyList()))
                 .thenReturn(List.of(
                         List.of(
@@ -229,6 +234,8 @@ class VariationMatrixQueryHandlerTest {
         );
 
         //when
+        mockMatrixKeyGenerator();
+
         when(matrixCombinationService.generateMatrixCombination(anyList()))
                 .thenReturn(List.of(
                         List.of(
@@ -275,6 +282,132 @@ class VariationMatrixQueryHandlerTest {
                 new String[]{
                         "i-m-1-s", "i-m-2-s", "i-s-2-s", "i-x-1-s", "i-x-2-s"
                 },
+                result.variants()
+                        .stream().map(VariationMatrixResult.Variant::matrixKey)
+                        .toArray(String[]::new)
+        );
+    }
+
+    @Test
+    public void handle_withEmptyVariantTypes_shouldReturnEmptyResult() {
+        // Given
+        VariationMatrixQuery query = new VariationMatrixQuery(
+                List.of(),
+                List.of()
+        );
+
+        // When
+        VariationMatrixResult result = handler.handle(query);
+
+        // Then
+        Assertions.assertTrue(result.variants().isEmpty());
+        Assertions.assertTrue(result.variantTypes().isEmpty());
+    }
+
+    @Test
+    public void handle_withSingleVariantTypeAndOption_shouldReturnSingleCombination() {
+        // Given
+        VariationMatrixQuery query = new VariationMatrixQuery(
+                List.of(
+                        new VariationMatrixQuery.Variant(
+                                "yellow",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("yellow", "color")
+                                )
+                        )
+                ),
+                List.of(
+                        new VariationMatrixQuery.VariantType(
+                                "color",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("yellow")
+                                )
+                        )
+                )
+        );
+
+        // When
+        mockMatrixKeyGenerator();
+
+        when(matrixCombinationService.generateMatrixCombination(anyList()))
+                .thenReturn(List.of(
+                        List.of(
+                                new VariantOptionSelection(new CommonId("yellow"), new CommonId("color"))
+                        )
+                ));
+
+        VariationMatrixResult result = handler.handle(query);
+
+        // Then
+        Assertions.assertArrayEquals(
+                new String[]{
+                        "yellow"
+                },
+                result.variants()
+                        .stream().map(VariationMatrixResult.Variant::matrixKey)
+                        .toArray(String[]::new)
+        );
+    }
+
+    @Test
+    public void handle_withAllOptionsDifferent_shouldReturnAllMatrixCombinations() {
+        // Given - override variants have completely different options from matrix
+        VariationMatrixQuery query = new VariationMatrixQuery(
+                List.of(
+                        new VariationMatrixQuery.Variant(
+                                "x-y",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("x", "t1"),
+                                        new VariationMatrixQuery.Variation("y", "t2")
+                                )
+                        )
+                ),
+                List.of(
+                        new VariationMatrixQuery.VariantType(
+                                "t1",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("a"),
+                                        new VariationMatrixQuery.VariantOption("b")
+                                )
+                        ),
+                        new VariationMatrixQuery.VariantType(
+                                "t2",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("1"),
+                                        new VariationMatrixQuery.VariantOption("2")
+                                )
+                        )
+                )
+        );
+
+        // When
+        mockMatrixKeyGenerator();
+
+        when(matrixCombinationService.generateMatrixCombination(anyList()))
+                .thenReturn(List.of(
+                        List.of(
+                                new VariantOptionSelection(new CommonId("a"), new CommonId("t1")),
+                                new VariantOptionSelection(new CommonId("1"), new CommonId("t2"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("a"), new CommonId("t1")),
+                                new VariantOptionSelection(new CommonId("2"), new CommonId("t2"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("b"), new CommonId("t1")),
+                                new VariantOptionSelection(new CommonId("1"), new CommonId("t2"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("b"), new CommonId("t1")),
+                                new VariantOptionSelection(new CommonId("2"), new CommonId("t2"))
+                        )
+                ));
+
+        VariationMatrixResult result = handler.handle(query);
+
+        Assertions.assertEquals(4, result.variants().size());
+        Assertions.assertArrayEquals(
+                new String[]{"a-1", "a-2", "b-1", "b-2"},
                 result.variants()
                         .stream().map(VariationMatrixResult.Variant::matrixKey)
                         .toArray(String[]::new)
