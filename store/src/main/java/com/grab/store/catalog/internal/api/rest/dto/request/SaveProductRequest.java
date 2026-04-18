@@ -13,7 +13,6 @@ public record SaveProductRequest(
 ) implements Serializable {
 
     public record Product(
-            String id,
             @NotBlank String name,
             @NotBlank String categoryId,
             @NotBlank String sellerId,
@@ -40,26 +39,20 @@ public record SaveProductRequest(
 
     public record VariantType(
             @NotBlank String typeId,
-            @NotBlank String typeName,
             @Valid List<VariantOption> options
     ) {}
 
     public record VariantOption(
-            @NotBlank String optionId,
-            @NotBlank String optionName
+            @NotBlank String optionId
     ) {}
 
     public record Variant(
-            @NotBlank String id,
             @NotBlank String sku,
-            @NotBlank String status,
             @Valid List<Variation> variations
     ) {}
 
     public record Variation(
-            @NotBlank String optionName,
             @NotBlank String optionId,
-            @NotBlank String typeId,
-            @NotBlank String typeName
+            @NotBlank String typeId
     ) {}
 }

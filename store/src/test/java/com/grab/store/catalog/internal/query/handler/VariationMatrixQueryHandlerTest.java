@@ -2,7 +2,9 @@ package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.service.MatrixCombinationService;
 import com.catalog.domain.service.MatrixKeyGenerator;
+import com.catalog.domain.service.VariationMatrixMatcher;
 import com.catalog.domain.service.dto.VariantOptionSelection;
+import com.catalog.domain.service.impl.DefaultVariationMatrixMatcher;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.framework.id.impl.CommonId;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -32,8 +35,9 @@ class VariationMatrixQueryHandlerTest {
 
     @BeforeEach
     void setUp() {
+        VariationMatrixMatcher matcher = new DefaultVariationMatrixMatcher(matrixKeyGenerator);
         handler = new VariationMatrixQueryHandler(
-                matrixCombinationService, matrixKeyGenerator, new UuidGenerator()
+                matrixCombinationService, matrixKeyGenerator, new UuidGenerator(), matcher
         );
     }
 
@@ -43,20 +47,23 @@ class VariationMatrixQueryHandlerTest {
                     List<ProductVariation> options = invocation.getArgument(0);
                     return options.stream()
                             .map(option -> option.getOptionId().getValue())
-                            //.sorted() // Sort for deterministic keys
                             .reduce((a, b) -> a + "-" + b)
                             .orElse("");
                 });
     }
 
+    private String getTemplate(VariationMatrixResult.Variant v){
+        return String.format("%s:%s", v.matrixKey(), StringUtils.hasText(v.sku()) ? v.sku() : "");
+    }
+
     @Test
-    public void handle_withDeletedVariationMatrix_shouldReturnWithoutDeletedVariationMatrix() {
+    public void handle_deleteVariantManually_returnCombination() {
         // Given
         // (Setup a product with a deleted variation matrix)
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "y-m-1",
+                                "y-m-1","ym1",
                                 List.of(
                                         new VariationMatrixQuery.Variation("y", "c"),
                                         new VariationMatrixQuery.Variation("m", "s"),
@@ -64,7 +71,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "y-m-2",
+                                "y-m-2","ym2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("y", "c"),
                                         new VariationMatrixQuery.Variation("m", "s"),
@@ -72,7 +79,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "y-s-2",
+                                "y-s-2","ys2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("y", "c"),
                                         new VariationMatrixQuery.Variation("s", "s"),
@@ -157,21 +164,21 @@ class VariationMatrixQueryHandlerTest {
         // Then
         Assertions.assertArrayEquals(
                 new String[]{
-                        "y-m-1", "y-m-2", "y-s-2", "b-m-1", "b-m-2", "b-s-1", "b-s-2"
+                        "y-m-1:ym1", "y-m-2:ym2", "y-s-2:ys2", "b-m-1:", "b-m-2:", "b-s-1:", "b-s-2:"
                 },
                 result.variants()
-                        .stream().map(VariationMatrixResult.Variant::matrixKey)
+                        .stream().map(this::getTemplate)
                         .toArray(String[]::new)
         );
 
     }
 
     @Test
-    public void handle_withTypeRemovedAndOptionAdded_returnCombination() {
+    public void handle_removeTypeAndAddOption_returnCombination() {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "i-y-m-1-s",
+                                "i-y-m-1-s","iym1s",
                                 List.of(
                                         new VariationMatrixQuery.Variation("i", "b"),
                                         new VariationMatrixQuery.Variation("y", "c"),
@@ -181,7 +188,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "i-y-m-2-s",
+                                "i-y-m-2-s","iym2s",
                                 List.of(
                                         new VariationMatrixQuery.Variation("i", "b"),
                                         new VariationMatrixQuery.Variation("y", "c"),
@@ -191,7 +198,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "i-y-s-2-s",
+                                "i-y-s-2-s","iys2s",
                                 List.of(
                                         new VariationMatrixQuery.Variation("i", "b"),
                                         new VariationMatrixQuery.Variation("y", "c"),
@@ -280,10 +287,338 @@ class VariationMatrixQueryHandlerTest {
         // Then
         Assertions.assertArrayEquals(
                 new String[]{
-                        "i-m-1-s", "i-m-2-s", "i-s-2-s", "i-x-1-s", "i-x-2-s"
+                        "i-m-1-s:iym1s", "i-m-2-s:iym2s", "i-s-2-s:iys2s", "i-x-1-s:", "i-x-2-s:"
                 },
                 result.variants()
-                        .stream().map(VariationMatrixResult.Variant::matrixKey)
+                        .stream().map(this::getTemplate)
+                        .toArray(String[]::new)
+        );
+    }
+
+    @Test
+    public void handle_addOptionAndRemoveVariant_returnCombination() {
+        VariationMatrixQuery query = new VariationMatrixQuery(
+                List.of(
+                        new VariationMatrixQuery.Variant(
+                                "m-1","m1",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "size"),
+                                        new VariationMatrixQuery.Variation("1", "number")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "m-2","m2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "size"),
+                                        new VariationMatrixQuery.Variation("2", "number")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "s-2","s2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("s", "size"),
+                                        new VariationMatrixQuery.Variation("2", "number")
+                                )
+                        )
+                ),
+                List.of(
+                        new VariationMatrixQuery.VariantType(
+                                "size",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("m"),
+                                        new VariationMatrixQuery.VariantOption("s"),
+                                        new VariationMatrixQuery.VariantOption("x")
+                                )
+                        ),
+                        new VariationMatrixQuery.VariantType(
+                                "number",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("1"),
+                                        new VariationMatrixQuery.VariantOption("2")
+                                )
+                        )
+                )
+
+        );
+        //when
+        mockMatrixKeyGenerator();
+
+        when(matrixCombinationService.generateMatrixCombination(anyList()))
+                .thenReturn(List.of(
+                        List.of(
+                                new VariantOptionSelection(new CommonId("m"),new CommonId("size")),
+                                new VariantOptionSelection(new CommonId("1"),new CommonId("number"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("m"),new CommonId("size")),
+                                new VariantOptionSelection(new CommonId("2"),new CommonId("number"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("s"),new CommonId("size")),
+                                new VariantOptionSelection(new CommonId("1"),new CommonId("number"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("s"),new CommonId("size")),
+                                new VariantOptionSelection(new CommonId("2"),new CommonId("number"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("x"),new CommonId("size")),
+                                new VariantOptionSelection(new CommonId("1"),new CommonId("number"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("x"),new CommonId("size")),
+                                new VariantOptionSelection(new CommonId("2"),new CommonId("number"))
+                        )
+                ));
+        VariationMatrixResult result = handler.handle(query);
+
+        // Then
+        Assertions.assertArrayEquals(
+                new String[]{
+                        "m-1:m1", "m-2:m2", "s-2:s2", "x-1:", "x-2:"
+                },
+                result.variants()
+                        .stream().map(this::getTemplate)
+                        .toArray(String[]::new)
+        );
+    }
+
+    @Test
+    public void handle_addTypeAndRemoveVariant_returnCombination() {
+        VariationMatrixQuery query = new VariationMatrixQuery(
+                List.of(
+                        new VariationMatrixQuery.Variant(
+                                "m-1",
+                                "m1",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "s"),
+                                        new VariationMatrixQuery.Variation("1", "n")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "m-2",
+                                "m2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "s"),
+                                        new VariationMatrixQuery.Variation("2", "n")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "s-2","s2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("s", "s"),
+                                        new VariationMatrixQuery.Variation("2", "n")
+                                )
+                        )
+                ),
+                List.of(
+                        new VariationMatrixQuery.VariantType(
+                                "c",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("y")
+                                )
+                        ),
+                        new VariationMatrixQuery.VariantType(
+                                "s",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("m"),
+                                        new VariationMatrixQuery.VariantOption("s")
+                                )
+                        ),
+                        new VariationMatrixQuery.VariantType(
+                                "n",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("1"),
+                                        new VariationMatrixQuery.VariantOption("2")
+                                )
+                        )
+                )
+
+        );
+
+        //when
+        mockMatrixKeyGenerator();
+
+        when(matrixCombinationService.generateMatrixCombination(anyList()))
+                .thenReturn(List.of(
+                        List.of(
+                                new VariantOptionSelection(new CommonId("y"),new CommonId("c")),
+                                new VariantOptionSelection(new CommonId("m"),new CommonId("s")),
+                                new VariantOptionSelection(new CommonId("1"),new CommonId("n"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("y"),new CommonId("c")),
+                                new VariantOptionSelection(new CommonId("m"),new CommonId("s")),
+                                new VariantOptionSelection(new CommonId("2"),new CommonId("n"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("y"),new CommonId("c")),
+                                new VariantOptionSelection(new CommonId("s"),new CommonId("s")),
+                                new VariantOptionSelection(new CommonId("1"),new CommonId("n"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("y"),new CommonId("c")),
+                                new VariantOptionSelection(new CommonId("s"),new CommonId("s")),
+                                new VariantOptionSelection(new CommonId("2"),new CommonId("n"))
+                        )
+                ));
+        VariationMatrixResult result = handler.handle(query);
+
+        // Then
+        Assertions.assertArrayEquals(
+                new String[]{
+                        "y-m-1:m1", "y-m-2:m2", "y-s-2:s2"
+                },
+                result.variants()
+                        .stream().map(this::getTemplate)
+                        .toArray(String[]::new)
+        );
+    }
+
+    @Test
+    public void handle_removeOption_returnCombination() {
+        VariationMatrixQuery query = new VariationMatrixQuery(
+                List.of(
+                        new VariationMatrixQuery.Variant(
+                                "m-1",
+                                "m1",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "s"),
+                                        new VariationMatrixQuery.Variation("1", "n")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "m-2",
+                                "m2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "s"),
+                                        new VariationMatrixQuery.Variation("2", "n")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "s-2",
+                                "s2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("s", "s"),
+                                        new VariationMatrixQuery.Variation("2", "n")
+                                )
+                        )
+                ),
+                List.of(
+                        new VariationMatrixQuery.VariantType(
+                                "s",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("s")
+                               )
+                        ),
+                        new VariationMatrixQuery.VariantType(
+                                "n",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("1"),
+                                        new VariationMatrixQuery.VariantOption("2")
+                                )
+                        )
+                )
+
+        );
+
+        //when
+        mockMatrixKeyGenerator();
+
+        when(matrixCombinationService.generateMatrixCombination(anyList()))
+                .thenReturn(List.of(
+                        List.of(
+                                new VariantOptionSelection(new CommonId("s"),new CommonId("s")),
+                                new VariantOptionSelection(new CommonId("1"),new CommonId("n"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("s"),new CommonId("s")),
+                                new VariantOptionSelection(new CommonId("2"),new CommonId("n"))
+                        )
+                ));
+        VariationMatrixResult result = handler.handle(query);
+
+        // Then
+        Assertions.assertArrayEquals(
+                new String[]{
+                        "s-2:s2"
+                },
+                result.variants()
+                        .stream().map(this::getTemplate)
+                        .toArray(String[]::new)
+        );
+    }
+
+    @Test
+    public void handle_addTypeOnTopAndRemoveTypeOnEnd_returnCombination() {
+        VariationMatrixQuery query = new VariationMatrixQuery(
+                List.of(
+                        new VariationMatrixQuery.Variant(
+                                "m-1",
+                                "m1",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "s"),
+                                        new VariationMatrixQuery.Variation("1", "n")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "m-2",
+                                "m2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("m", "s"),
+                                        new VariationMatrixQuery.Variation("2", "n")
+                                )
+                        ),
+                        new VariationMatrixQuery.Variant(
+                                "s-2",
+                                "s2",
+                                List.of(
+                                        new VariationMatrixQuery.Variation("s", "s"),
+                                        new VariationMatrixQuery.Variation("2", "n")
+                                )
+                        )
+                ),
+                List.of(
+                        new VariationMatrixQuery.VariantType(
+                                "c",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("y")
+                                )
+                        ),
+                        new VariationMatrixQuery.VariantType(
+                                "s",
+                                List.of(
+                                        new VariationMatrixQuery.VariantOption("m"),
+                                        new VariationMatrixQuery.VariantOption("s")
+                                )
+                        )
+                )
+
+        );
+
+        //when
+        mockMatrixKeyGenerator();
+
+        when(matrixCombinationService.generateMatrixCombination(anyList()))
+                .thenReturn(List.of(
+                        List.of(
+                                new VariantOptionSelection(new CommonId("y"),new CommonId("c")),
+                                new VariantOptionSelection(new CommonId("m"),new CommonId("s"))
+                        ),
+                        List.of(
+                                new VariantOptionSelection(new CommonId("y"),new CommonId("c")),
+                                new VariantOptionSelection(new CommonId("s"),new CommonId("s"))
+                        )
+                ));
+        VariationMatrixResult result = handler.handle(query);
+
+        // Then
+        Assertions.assertArrayEquals(
+                new String[]{
+                        "y-m:m1", "y-s:s2"
+                },
+                result.variants()
+                        .stream().map(this::getTemplate)
                         .toArray(String[]::new)
         );
     }
@@ -310,7 +645,7 @@ class VariationMatrixQueryHandlerTest {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "yellow",
+                                "yellow","",
                                 List.of(
                                         new VariationMatrixQuery.Variation("yellow", "color")
                                 )
@@ -355,7 +690,7 @@ class VariationMatrixQueryHandlerTest {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "x-y",
+                                "x-y","",
                                 List.of(
                                         new VariationMatrixQuery.Variation("x", "t1"),
                                         new VariationMatrixQuery.Variation("y", "t2")

@@ -4,6 +4,9 @@ import com.grab.framework.exception.DomainException;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.exception.MessageResolver;
 import com.grab.framework.exception.MessageSource;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+import com.grab.store.catalog.internal.command.handler.CreateProductSetCommandHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.MDC;
@@ -23,6 +26,7 @@ import java.util.Objects;
 
 @RestControllerAdvice
 public class GlobalApiExceptionHandler {
+    private static final Logger log = Loggers.getLogger(GlobalApiExceptionHandler.class);
 
     private static final String TRACE_ID_KEY = "traceId";
 
@@ -34,6 +38,7 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(DomainException.class)
     public ProblemDetail handleDomainException(DomainException exception, HttpServletRequest request) {
+        log.error(exception.getMessage(), exception);
         return toProblem(
                 statusFromCategory(exception.getMessageSource().kind()),
                 exception.getMessageSource(),
@@ -44,6 +49,7 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidationException(MethodArgumentNotValidException exception, HttpServletRequest request) {
+        log.error(exception.getMessage(), exception);
         List<Map<String, Object>> errors = exception.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -55,6 +61,7 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleConstraintViolation(ConstraintViolationException exception, HttpServletRequest request) {
+        log.error(exception.getMessage(), exception);
         List<Map<String, Object>> errors = exception.getConstraintViolations()
                 .stream()
                 .map(violation -> Map.<String, Object>of(
@@ -69,6 +76,7 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail handleMalformedBody(HttpMessageNotReadableException exception, HttpServletRequest request) {
+        log.error(exception.getMessage(), exception);
         exception.getMostSpecificCause();
         String reason = Objects.toString(
                 exception.getMostSpecificCause().getMessage(),
@@ -79,6 +87,7 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpectedException(Exception exception, HttpServletRequest request) {
+        log.error(exception.getMessage(), exception);
         return handleDomainException(SharedErrors.internalUnexpected(), request);
     }
 

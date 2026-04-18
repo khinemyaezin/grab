@@ -95,7 +95,12 @@ class DefaultMatrixCombinationSynchronizerTest {
                         .map( variation -> variation.getOptionId().getValue())
                         .filter(Objects::nonNull)
                         .collect(Collectors.joining()),
-                variantCombinationResult.matchedVariant() == null ? "ACTIVE" : variantCombinationResult.matchedVariant().getStatus(),
+                variantCombinationResult.productVariants() == null
+                        || variantCombinationResult.productVariants().isEmpty()
+                        ? "ACTIVE"
+                        : variantCombinationResult.productVariants().size() == 2
+                            ? variantCombinationResult.productVariants().get(1).getStatus()
+                            : variantCombinationResult.productVariants().get(0).getStatus(),
                 variantCombinationResult.matchedType());
     }
 
@@ -125,7 +130,8 @@ class DefaultMatrixCombinationSynchronizerTest {
     @BeforeEach
     public void init() {
         var keyFactory = new DefaultMatrixKeyGenerator(new ProductVariationComparator());
-        matrixCombinationSynchronizer = new DefaultMatrixCombinationSynchronizer(keyFactory);
+        var matcher = new DefaultVariationMatrixMatcher(keyFactory);
+        matrixCombinationSynchronizer = new DefaultMatrixCombinationSynchronizer(keyFactory, matcher);
     }
 
     @Test

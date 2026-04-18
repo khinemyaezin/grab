@@ -47,7 +47,6 @@ public record CreateProductSetCommand(
 
     public record Variant(
             String sku,
-            String matrixKey,
             List<Variation> variations
     ) {}
 

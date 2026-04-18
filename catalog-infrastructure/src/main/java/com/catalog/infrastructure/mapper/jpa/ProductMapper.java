@@ -14,7 +14,7 @@ import java.util.List;
 @Mapper(config = CentralMapperConfig.class, uses = {IdGenerator.class})
 public abstract class ProductMapper {
 
-    @Mapping(source = "entity." + ProductEntity_.ID, target="id")
+    @Mapping(source = "entity." + ProductEntity_.UUID, target="id")
     @Mapping(source = "entity." + ProductEntity_.NAME , target="name")
     @Mapping(source = "entity." + ProductEntity_.CATEGORY_ENTITY , target="categoryId")
     @Mapping(source = "entity." + ProductEntity_.SELLER_ID , target="sellerId")

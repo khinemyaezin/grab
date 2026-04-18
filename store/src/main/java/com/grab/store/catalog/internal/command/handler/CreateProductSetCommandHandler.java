@@ -185,12 +185,13 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
             CreateProductSetCommand.Variant overrideVariant,
             Map<String, VariantCombination> combinationResultMap) {
 
-        VariantCombination combination = combinationResultMap.get(overrideVariant.matrixKey());
+        String overrideMatrixKey = matrixKeyGenerator.generateKey(convertToProductVariations(overrideVariant.variations()));
+        VariantCombination combination = combinationResultMap.get(overrideMatrixKey);
 
         if (combination == null) {
-            log.error("Override variant with matrixKey={} does not match any generated combination", overrideVariant.matrixKey());
+            log.error("Override variant with matrixKey={} does not match any generated combination", overrideMatrixKey);
             throw new CatalogServiceException(
-                    new CatalogCommandHandlerError.VariantOverrideCombinationNotFound(overrideVariant.matrixKey())
+                    new CatalogCommandHandlerError.VariantOverrideCombinationNotFound(overrideMatrixKey)
             );
         }
 
@@ -199,6 +200,12 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
                 overrideVariant,
                 combination.variations()
         );
+    }
+
+    private List<ProductVariation> convertToProductVariations(List<CreateProductSetCommand.Variation> variations){
+        return variations.stream()
+                .map(variation -> new ProductVariation(variation.optionId(), variation.typeId()))
+                .toList();
     }
 
     private List<VariantCombination> generateVariantCombinations(List<VariantTypeSelection> variantTypes) {
@@ -241,19 +248,6 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
                 sku,
                 variations
         );
-    }
-
-    private List<VariantCombination> convertToVariantCombinations(List<List<VariantOptionSelection>> combinations) {
-        return combinations.stream()
-                .map(options -> new VariantCombination(
-                        options.stream()
-                                .map(optionSelection -> new ProductVariation(
-                                        optionSelection.valueId(),
-                                        optionSelection.typeId()
-                                ))
-                                .toList()
-                ))
-                .toList();
     }
 
     public ProductVariant fallbackToStandaloneVariant(String productName, List<CreateProductSetCommand.Variant> overrideVariants) {

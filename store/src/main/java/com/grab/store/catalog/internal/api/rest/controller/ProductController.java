@@ -32,9 +32,8 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    @RequestMapping(
+    @PutMapping(
             value = "/{productId}",
-            method = {RequestMethod.PUT, RequestMethod.PATCH},
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
