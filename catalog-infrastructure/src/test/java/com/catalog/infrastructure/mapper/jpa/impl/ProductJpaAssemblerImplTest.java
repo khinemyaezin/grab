@@ -236,7 +236,7 @@ class ProductJpaAssemblerImplTest {
 
         Product result = assembler.toFullDomainGraph(entity);
 
-        assertThat(result.getId().getValue()).isEqualTo("1");
+        assertThat(result.getId().getValue()).isEqualTo("p1");
         assertThat(result.getName()).isEqualTo("Phone");
         assertThat(result.getCategoryId().getValue()).isEqualTo("electronics");
         assertThat(result.getStatus()).isEqualTo(ProductStatus.ACTIVE);
