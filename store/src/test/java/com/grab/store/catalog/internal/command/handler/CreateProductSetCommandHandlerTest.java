@@ -88,15 +88,8 @@ class CreateProductSetCommandHandlerTest {
                         categoryId,
                         null,
                         null,
-                        null,
-                        false,
-                        null,
-                        false,
-                        List.of(),
-                        List.of(),
                         List.of(new CreateProductSetCommand.Variant(
                                 "SKU-RED-001",
-                                RED_MATRIX_KEY,
                                 List.of(new CreateProductSetCommand.Variation(redOptionId, colorTypeId))
                         ))
                 ),
@@ -139,12 +132,6 @@ class CreateProductSetCommandHandlerTest {
                         categoryId,
                         null,
                         null,
-                        null,
-                        false,
-                        null,
-                        false,
-                        List.of(),
-                        List.of(),
                         List.of()
                 ),
                 List.of()
@@ -170,12 +157,6 @@ class CreateProductSetCommandHandlerTest {
                         categoryId,
                         null,
                         null,
-                        null,
-                        false,
-                        null,
-                        false,
-                        List.of(),
-                        List.of(),
                         List.of()
                 ),
                 List.of()
@@ -218,21 +199,13 @@ class CreateProductSetCommandHandlerTest {
                         categoryId,
                         null,
                         null,
-                        null,
-                        false,
-                        null,
-                        false,
-                        List.of(),
-                        List.of(),
                         List.of(
                                 new CreateProductSetCommand.Variant(
                                         "SKU-RED-001",
-                                        RED_MATRIX_KEY,
                                         List.of(new CreateProductSetCommand.Variation(redOptionId, colorTypeId))
                                 ),
                                 new CreateProductSetCommand.Variant(
                                         "SKU-RED-002",
-                                        RED_MATRIX_KEY,
                                         List.of(new CreateProductSetCommand.Variation(redOptionId, colorTypeId))
                                 )
                         )

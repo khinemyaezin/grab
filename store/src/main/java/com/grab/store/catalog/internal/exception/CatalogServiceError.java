@@ -28,7 +28,9 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.ProductMediaNotFound,
         CatalogServiceError.InvalidProductDescriptionPatch,
         CatalogServiceError.InvalidProductMediaPatch,
-        CatalogServiceError.ProductAlreadyExisted {
+        CatalogServiceError.ProductAlreadyExisted,
+        CatalogServiceError.EmptyVariantOverrides,
+        CatalogServiceError.InvalidEnumValue {
 
     record ProductNotFound(String productId) implements CatalogServiceError {
         @Override
@@ -418,6 +420,40 @@ public sealed interface CatalogServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("name", name);
+        }
+    }
+
+    record EmptyVariantOverrides(String intent) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.variant.empty_overrides";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("intent", intent);
+        }
+    }
+
+    record InvalidEnumValue(String enumName, String value) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.invalid_enum_value";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("enumName", enumName, "value", value);
         }
     }
 }

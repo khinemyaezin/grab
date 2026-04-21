@@ -74,13 +74,9 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId().getValue(),
-                product.getSellerId() == null ? null : product.getSellerId().getValue(),
-                product.getSellerType() == null ? null : product.getSellerType().name(),
                 product.getListingCondition() == null ? null : product.getListingCondition().name(),
-                product.isOfferEligible(),
                 product.getStatus().name(),
                 product.getSlug(),
-                product.isFeatured(),
                 product.getDescriptions().stream()
                         .map(description -> new GetProductResult.Description(
                                 description.getId() == null ? null : description.getId().getValue(),
@@ -92,7 +88,6 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getMedias().stream()
                         .map(this::mapToResultMedia)
                         .toList(),
-                product.getModerationNote(),
                 variants,
                 variantTypes
         );

@@ -32,20 +32,8 @@ public class ProductEntity implements Serializable {
     private String categoryId;
 
     @Setter
-    @Column(name = "seller_id")
-    private String sellerId;
-
-    @Setter
-    @Column(name = "seller_type")
-    private String sellerType;
-
-    @Setter
     @Column(name = "listing_condition")
     private String listingCondition;
-
-    @Setter
-    @Column(name = "offer_eligible", nullable = false)
-    private boolean offerEligible = false;
 
     @Setter
     @Column(name = "moderation_note", length = 500)
@@ -69,10 +57,6 @@ public class ProductEntity implements Serializable {
     @Setter
     @Column(name = "slug", unique = true)
     private String slug;
-
-    @Setter
-    @Column(name = "featured", nullable = false)
-    private boolean featured = false;
 
     public void addProductDescription(ProductDescriptionEntity productDescriptionEntity) {
         productDescriptionEntity.setProduct(this);

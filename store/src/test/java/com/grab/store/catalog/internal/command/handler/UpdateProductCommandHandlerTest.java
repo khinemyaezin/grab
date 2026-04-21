@@ -90,11 +90,6 @@ class UpdateProductCommandHandlerTest {
                 productId,
                 "New Name",
                 newCategoryId,
-                new CommonId(""),
-                null,
-                null,
-                false,
-                null,
                 null,
                 null,
                 null
@@ -113,7 +108,6 @@ class UpdateProductCommandHandlerTest {
         assertThat(result.categoryId()).isEqualTo(NEW_CATEGORY_ID);
         assertThat(result.status()).isEqualTo(ProductStatus.DRAFT.name());
         assertThat(result.slug()).isEqualTo("new-name");
-        assertThat(result.featured()).isFalse();
     }
 
     @Test
@@ -125,11 +119,6 @@ class UpdateProductCommandHandlerTest {
                 productId,
                 "Name",
                 new CommonId(CATEGORY_ID),
-                null,
-                null,
-                null,
-                false,
-                null,
                 null,
                 null,
                 null
@@ -158,11 +147,6 @@ class UpdateProductCommandHandlerTest {
                 productId,
                 "New Name",
                 missingCategoryId,
-                null,
-                null,
-                null,
-                false,
-                null,
                 null,
                 null,
                 null

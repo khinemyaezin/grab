@@ -9,7 +9,7 @@ public interface MatrixCombinationSynchronizer {
 
     record VariantCombinationResult (
             VariantCombination variantCombination,
-            ProductVariant matchedVariant,
+            List<ProductVariant> productVariants,
             MatchedType matchedType
     ){
         public enum MatchedType {

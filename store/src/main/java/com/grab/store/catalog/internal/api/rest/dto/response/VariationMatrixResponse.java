@@ -5,6 +5,7 @@ import java.util.List;
 
 public record VariationMatrixResponse(
         List<Variant> variants,
+        List<String> collapsedSku,
         List<VariantType> variantTypes
 ) implements Serializable {
 
@@ -19,6 +20,7 @@ public record VariationMatrixResponse(
 
     public record Variant(
             String matrixKey,
+            String sku,
             List<Variation> variations
     ) {}
 

@@ -20,6 +20,7 @@ public record VariationMatrixQuery(
 
     public record Variant(
             String matrixKey,
+            String sku,
             List<Variation> variations
     ){}
 

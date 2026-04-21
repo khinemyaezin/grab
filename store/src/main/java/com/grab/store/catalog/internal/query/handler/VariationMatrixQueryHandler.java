@@ -2,6 +2,10 @@ package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.service.MatrixCombinationService;
 import com.catalog.domain.service.MatrixKeyGenerator;
+import com.catalog.domain.service.VariationMatrixMatcher;
+import com.catalog.domain.service.VariationMatrixMatcher.MatchingResult;
+import com.catalog.domain.service.VariationMatrixMatcher.VariantInput;
+import com.catalog.domain.service.VariationMatrixMatcher.VariantMatch;
 import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -16,8 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -27,14 +29,33 @@ public class VariationMatrixQueryHandler implements QueryHandler<VariationMatrix
     private final MatrixCombinationService matrixCombinationService;
     private final MatrixKeyGenerator matrixKeyGenerator;
     private final IdGenerator idGenerator;
+    private final VariationMatrixMatcher matcher;
 
     @Override
     @CatalogReadTransactional
     public VariationMatrixResult handle(VariationMatrixQuery query) {
-        log.debug("Handling ProductCombinationQuery for product");
+        log.debug("Handling VariationMatrixQuery");
 
-        List<VariationMatrixResult.Variant> previewVariants = calculateMatrixCombination(query);
-        return getProductCombinationResult(query.variantTypes(), previewVariants);
+        if (query.variantTypes() == null || query.variantTypes().isEmpty()) {
+            return new VariationMatrixResult(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList()
+            );
+        }
+
+        List<List<ProductVariation>> combinations = generateCombinations(query.variantTypes());
+        List<VariantInput<String>> existingInputs = toVariantInputs(query.variants());
+
+        MatchingResult<String> matchResult = matcher.match(existingInputs, combinations);
+
+        List<VariationMatrixResult.Variant> variants = matchResult.matches().stream()
+                .map(this::toResultVariant)
+                .toList();
+
+        List<String> collapsedSkus = matchResult.collapsed();
+
+        return buildResult(query.variantTypes(), variants, collapsedSkus);
     }
 
     @Override
@@ -42,177 +63,71 @@ public class VariationMatrixQueryHandler implements QueryHandler<VariationMatrix
         return VariationMatrixQuery.class;
     }
 
-    private List<VariationMatrixResult.Variant> calculateMatrixCombination(VariationMatrixQuery query) {
-        if(query.variantTypes() == null || query.variantTypes().isEmpty()) {
+    private List<List<ProductVariation>> generateCombinations(List<VariationMatrixQuery.VariantType> variantTypes) {
+        List<VariantTypeSelection> selections = variantTypes.stream()
+                .map(vt -> new VariantTypeSelection(
+                        idGenerator.convertIdFrom(vt.typeId()),
+                        vt.options().stream()
+                                .map(opt -> new VariantOptionSelection(
+                                        idGenerator.convertIdFrom(opt.optionId()),
+                                        idGenerator.convertIdFrom(vt.typeId())))
+                                .toList()
+                ))
+                .toList();
+
+        List<List<VariantOptionSelection>> rawCombinations =
+                matrixCombinationService.generateMatrixCombination(selections);
+
+        return rawCombinations.stream()
+                .map(combo -> combo.stream()
+                        .map(opt -> new ProductVariation(opt.valueId(), opt.typeId()))
+                        .toList())
+                .toList();
+    }
+
+    private List<VariantInput<String>> toVariantInputs(List<VariationMatrixQuery.Variant> variants) {
+        if (variants == null || variants.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<VariantTypeSelection> variantTypes = convertToVariantTypeSelectionList(query.variantTypes());
-        List<List<VariantOptionSelection>> matrixCombination = matrixCombinationService.generateMatrixCombination(variantTypes);
-
-        Map<String, List<VariantOptionSelection>> matrixByKey = buildMatrixKeyMap(matrixCombination);
-
-        Set<String> overrideOptionIds = extractOverrideOptionIds(query.variants());
-        Set<String> matrixOptionIds = extractMatrixOptionIds(matrixCombination);
-        Set<String> changedOptionIds = calculateSymmetricDifference(overrideOptionIds, matrixOptionIds);
-
-        Map<String, VariationMatrixQuery.Variant> overrideVariantByKey = buildOverrideVariantMap(
-                query.variants(), changedOptionIds
-        );
-
-        // 5. Build result keys: common keys (intersection) + new matrix keys
-        Set<String> resultKeys = buildResultSetKeys(overrideVariantByKey.keySet(), matrixByKey.keySet(), changedOptionIds);
-
-        // 6. Build result variants
-        return buildResultVariants(resultKeys, matrixByKey);
-    }
-
-    private Map<String, List<VariantOptionSelection>> buildMatrixKeyMap(List<List<VariantOptionSelection>> matrixCombination) {
-        return matrixCombination.stream()
-                .collect(Collectors.toMap(
-                        combination -> matrixKeyGenerator.generateKey(convertToProductVariationList(combination)),
-                        Function.identity(),
-                        (a, b) -> b,
-                        LinkedHashMap::new
-                ));
-    }
-
-    private Set<String> extractOverrideOptionIds(List<VariationMatrixQuery.Variant> overrideVariants) {
-        return overrideVariants.stream()
-                .flatMap(v -> v.variations().stream())
-                .map(VariationMatrixQuery.Variation::optionId)
-                .collect(Collectors.toSet());
-    }
-
-    private Set<String> extractMatrixOptionIds(List<List<VariantOptionSelection>> matrixCombination) {
-        return matrixCombination.stream()
-                .flatMap(List::stream)
-                .map(variantOption -> variantOption.valueId().getValue())
-                .collect(Collectors.toSet());
-    }
-
-    private Set<String> calculateSymmetricDifference(Set<String> setA, Set<String> setB) {
-        Set<String> symmetricDiff = new HashSet<>(setA);
-        symmetricDiff.addAll(setB);
-        
-        Set<String> intersection = new HashSet<>(setA);
-        intersection.retainAll(setB);
-        
-        symmetricDiff.removeAll(intersection);
-        return symmetricDiff;
-    }
-
-    private Map<String, VariationMatrixQuery.Variant> buildOverrideVariantMap(
-            List<VariationMatrixQuery.Variant> variants, Set<String> changedOptionIds) {
-        
         return variants.stream()
-                .collect(Collectors.toMap(
-                        v -> buildNormalizedKey(v.variations(), changedOptionIds),
-                        Function.identity(),
-                        (a, b) -> b,
-                        LinkedHashMap::new
-                ));
-    }
-
-    private String buildNormalizedKey(List<VariationMatrixQuery.Variation> variations, Set<String> changedOptionIds) {
-        List<ProductVariation> stableVariations = variations.stream()
-                .filter(variation -> !changedOptionIds.contains(variation.optionId()))
-                .map(variation -> new ProductVariation(
-                        idGenerator.convertIdFrom(variation.optionId()),
-                        idGenerator.convertIdFrom(variation.typeId())))
-                .toList();
-        return matrixKeyGenerator.generateKey(stableVariations);
-    }
-
-    /**
-     * Builds the complete set of result keys by combining:
-     * 1. Common keys (exist in both override variants and matrix)
-     * 2. New keys (matrix combinations containing changed options)
-     */
-    private Set<String> buildResultSetKeys(
-            Set<String> overrideKeys, Set<String> matrixKeys, Set<String> changedOptionIds) {
-        
-        Set<String> resultKeys = new LinkedHashSet<>(overrideKeys);
-        resultKeys.retainAll(matrixKeys);
-
-        Set<String> newKeys = matrixKeys.stream()
-                .filter(key -> containsChangedOption(key, changedOptionIds))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        
-        resultKeys.addAll(newKeys);
-        return resultKeys;
-    }
-
-    private boolean containsChangedOption(String matrixKey, Set<String> changedOptionIds) {
-        for (String optionId : changedOptionIds) {
-            if (matrixKey.contains(optionId)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private List<VariationMatrixResult.Variant> buildResultVariants(
-            Set<String> resultKeys, Map<String, List<VariantOptionSelection>> matrixByKey) {
-        
-        List<VariationMatrixResult.Variant> result = new ArrayList<>(resultKeys.size());
-        for (String key : resultKeys) {
-            List<VariantOptionSelection> matrix = matrixByKey.get(key);
-            List<ProductVariation> productVariations = convertToProductVariationList(matrix);
-            result.add(new VariationMatrixResult.Variant(key, convertToResultVariationList(productVariations)));
-        }
-        return result;
-    }
-
-    private List<ProductVariation> convertToProductVariationList(List<VariantOptionSelection> combination) {
-        return combination.stream()
-                .map(optionSelection -> new ProductVariation(
-                        optionSelection.valueId(),
-                        optionSelection.typeId()
-                )).toList();
-    }
-
-    private List<VariantTypeSelection> convertToVariantTypeSelectionList(List<VariationMatrixQuery.VariantType> variantTypes) {
-        if (variantTypes == null || variantTypes.isEmpty()) {
-            return List.of();
-        }
-        return variantTypes.stream()
-                .map(variantType -> new VariantTypeSelection(
-                        idGenerator.convertIdFrom(variantType.typeId()),
-                       variantType.options().stream()
-                                .map(option -> new VariantOptionSelection(
-                                        idGenerator.convertIdFrom(option.optionId()),
-                                        idGenerator.convertIdFrom(variantType.typeId())))
-                                .toList()
+                .map(v -> new VariantInput<>(
+                        v.variations().stream()
+                                .map(var -> new ProductVariation(
+                                        idGenerator.convertIdFrom(var.optionId()),
+                                        idGenerator.convertIdFrom(var.typeId())))
+                                .toList(),
+                        v.sku()
                 ))
                 .toList();
     }
 
-    private List<VariationMatrixResult.Variation> convertToResultVariationList(List<ProductVariation> variations) {
-        List<VariationMatrixResult.Variation> resultVariations = new ArrayList<>(variations.size());
-        for (ProductVariation variation : variations) {
-            VariationMatrixResult.Variation resultVariation = new VariationMatrixResult.Variation(
-                    variation.getOptionId().getValue(),
-                    variation.getTypeId().getValue()
-            );
-            resultVariations.add(resultVariation);
-        }
-        return resultVariations;
+    private VariationMatrixResult.Variant toResultVariant(VariantMatch<String> match) {
+        return new VariationMatrixResult.Variant(
+                matrixKeyGenerator.generateKey(match.combination()),
+                match.matchedPayload() != null ? match.matchedPayload() : "",
+                match.combination().stream()
+                        .map(v -> new VariationMatrixResult.Variation(
+                                v.getOptionId().getValue(),
+                                v.getTypeId().getValue()
+                        ))
+                        .toList()
+        );
     }
 
-
-    private VariationMatrixResult getProductCombinationResult(List<VariationMatrixQuery.VariantType> variantTypes,
-                                                              List<VariationMatrixResult.Variant> previewVariants) {
+    private VariationMatrixResult buildResult(List<VariationMatrixQuery.VariantType> variantTypes,
+                                              List<VariationMatrixResult.Variant> variants,
+                                              List<String> collapsedSkus) {
         return new VariationMatrixResult(
-                previewVariants,
+                variants,
+                collapsedSkus,
                 variantTypes.stream()
-                        .map(variantType -> new VariationMatrixResult.VariantType(
-                                variantType.typeId(),
-                                variantType.options().stream()
-                                        .map(option -> new VariationMatrixResult.VariantOption(
-                                                option.optionId()
-                                        )).toList()
-                        )).toList()
+                        .map(vt -> new VariationMatrixResult.VariantType(
+                                vt.typeId(),
+                                vt.options().stream()
+                                        .map(opt -> new VariationMatrixResult.VariantOption(opt.optionId()))
+                                        .toList()))
+                        .toList()
         );
     }
 }

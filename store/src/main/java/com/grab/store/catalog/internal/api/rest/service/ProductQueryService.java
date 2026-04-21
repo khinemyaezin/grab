@@ -60,16 +60,11 @@ public class ProductQueryService {
                 result.id(),
                 result.name(),
                 result.categoryId(),
-                result.sellerId(),
-                result.sellerType(),
                 result.condition(),
-                result.offerEligible(),
                 result.status(),
                 result.slug(),
-                result.featured(),
                 result.descriptions(),
                 result.medias(),
-                result.moderationNote(),
                 result.variants().stream()
                         .filter(variant -> "ACTIVE".equalsIgnoreCase(variant.status()))
                         .toList(),

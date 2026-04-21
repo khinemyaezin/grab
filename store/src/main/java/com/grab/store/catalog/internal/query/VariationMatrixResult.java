@@ -6,6 +6,7 @@ import java.util.List;
 
 public record VariationMatrixResult(
         List<Variant> variants,
+        List<String> collapsedSku,
         List<VariantType> variantTypes
 ) {
 
@@ -27,6 +28,7 @@ public record VariationMatrixResult(
 
     public record Variant(
             String matrixKey,
+            String sku,
             List<Variation> variations
     ){}
 

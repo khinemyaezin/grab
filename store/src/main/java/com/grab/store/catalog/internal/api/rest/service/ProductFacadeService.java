@@ -97,86 +97,8 @@ public class ProductFacadeService {
     public EntityModel<BulkUpsertProductsResponse> bulkUpsertProducts(BulkUpsertProductsRequest request) {
         List<BulkUpsertProductsResponse.Entry> results = new ArrayList<>();
         for (SaveProductRequest productRequest : request.products()) {
-            String productId = productRequest.product().id();
-            boolean hasId = productId != null && !productId.isBlank();
-            if (!hasId) {
-                String createdId = productCommandService.saveProduct(productRequest);
-                results.add(new BulkUpsertProductsResponse.Entry(createdId, "CREATED"));
-                continue;
-            }
-
-            try {
-                productQueryService.getProduct(productId);
-                UpdateProductRequest updateRequest = new UpdateProductRequest(
-                        productRequest.product().name(),
-                        productRequest.product().categoryId(),
-                        productRequest.product().sellerId(),
-                        productRequest.product().sellerType(),
-                        productRequest.product().condition(),
-                        productRequest.product().offerEligible(),
-                        productRequest.product().slug(),
-                        productRequest.product().featured(),
-                        null
-                );
-                productCommandService.updateProduct(productId, updateRequest);
-                if (productRequest.product().descriptions() != null) {
-                    productCommandService.replaceProductDescriptions(productId, new ReplaceProductDescriptionsRequest(
-                            productRequest.product().descriptions().stream()
-                                    .map(description -> new ReplaceProductDescriptionsRequest.Description(
-                                            null,
-                                            description.name(),
-                                            description.title(),
-                                            description.description()
-                                    ))
-                                    .toList()
-                    ));
-                }
-                if (productRequest.product().medias() != null) {
-                    productCommandService.replaceProductMedia(productId, new ReplaceProductMediaRequest(
-                            productRequest.product().medias().stream()
-                                    .map(media -> new ReplaceProductMediaRequest.Media(
-                                            null,
-                                            media.type(),
-                                            media.path()
-                                    ))
-                                    .toList()
-                    ));
-                }
-                if (productRequest.product().variants() != null && !productRequest.product().variants().isEmpty()) {
-                    variantCommandService.syncVariants(productId, new SyncVariantsRequest(
-                            productRequest.variantTypes() == null ? List.of() : productRequest.variantTypes().stream()
-                                    .map(type -> new SyncVariantsRequest.VariantType(
-                                            type.typeId(),
-                                            type.typeName(),
-                                            type.options() == null ? List.of() : type.options().stream()
-                                                    .map(option -> new SyncVariantsRequest.VariantOption(option.optionId(), option.optionName()))
-                                                    .toList()
-                                    ))
-                                    .toList(),
-                            productRequest.product().variants().stream()
-                                    .map(variant -> new SyncVariantsRequest.Variant(
-                                            variant.id(),
-                                            variant.sku(),
-                                            variant.variations() == null ? List.of() : variant.variations().stream()
-                                                    .map(variation -> new SyncVariantsRequest.Variation(
-                                                            variation.optionName(),
-                                                            variation.optionId(),
-                                                            variation.typeId(),
-                                                            variation.typeName()
-                                                    ))
-                                                    .toList()
-                                    ))
-                                    .toList()
-                    ));
-                }
-                results.add(new BulkUpsertProductsResponse.Entry(productId, "UPDATED"));
-            } catch (CatalogServiceException ex) {
-                if (!"cat.service.product.not_found".equals(ex.getMessageSource().code())) {
-                    throw ex;
-                }
-                String createdId = productCommandService.saveProduct(productRequest);
-                results.add(new BulkUpsertProductsResponse.Entry(createdId, "CREATED"));
-            }
+            String createdId = productCommandService.saveProduct(productRequest);
+            results.add(new BulkUpsertProductsResponse.Entry(createdId, "CREATED"));
         }
         return EntityModel.of(new BulkUpsertProductsResponse(results));
     }

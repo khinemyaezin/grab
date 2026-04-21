@@ -96,7 +96,6 @@ class ModerateProductCommandHandlerTest {
         verify(productRepository).save(productCaptor.capture());
         Product saved = productCaptor.getValue();
         assertThat(saved.getStatus()).isEqualTo(ProductStatus.DRAFT);
-        assertThat(saved.getModerationNote()).isEqualTo("Missing details");
         assertThat(result.reason()).isEqualTo("Missing details");
     }
 
@@ -110,12 +109,10 @@ class ModerateProductCommandHandlerTest {
 
         ModerateProductResult suspendResult = handler.handle(new ModerateProductCommand(product.getId(), "SUSPEND", "Policy violation"));
         assertThat(suspendResult.newStatus()).isEqualTo(ProductStatus.SUSPENDED.name());
-        assertThat(product.getModerationNote()).isEqualTo("Policy violation");
 
         ModerateProductResult restoreResult = handler.handle(new ModerateProductCommand(product.getId(), "RESTORE", null));
         assertThat(restoreResult.oldStatus()).isEqualTo(ProductStatus.SUSPENDED.name());
         assertThat(restoreResult.newStatus()).isEqualTo(ProductStatus.DRAFT.name());
-        assertThat(product.getModerationNote()).isNull();
     }
 
     @Test
@@ -134,11 +131,7 @@ class ModerateProductCommandHandlerTest {
                 productId,
                 "Product",
                 categoryId,
-                id("seller-1"),
-                SellerType.C2C,
                 ListingCondition.USED,
-                true,
-                false,
                 "product",
                 List.of(new Description(null, "default", "Product", "Description")),
                 List.of(new ProductMedia(null, "IMAGE", "/images/product.jpg"))

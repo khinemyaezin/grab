@@ -70,16 +70,11 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId() != null ? product.getCategoryId().getValue() : "",
-                product.getSellerId() != null ? product.getSellerId().getValue() : "",
-                product.getSellerType() != null ? product.getSellerType().name() : null,
                 product.getListingCondition() != null ? product.getListingCondition().name() : null,
-                product.isOfferEligible(),
                 product.getStatus() != null ? product.getStatus().name() : null,
                 product.getSlug(),
-                product.isFeatured(),
                 mapPayloadDescriptions(product.getDescriptions()),
-                mapPayloadMedias(product.getMedias()),
-                product.getModerationNote()
+                mapPayloadMedias(product.getMedias())
         );
     }
 
@@ -106,13 +101,8 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return new ProductMetadata(
                 command.name() != null ? command.name() : current.name(),
                 category.getId(),
-                command.sellerId() != null ? command.sellerId() : current.sellerId(),
-                mapSellerType(command.sellerType()) != null ? mapSellerType(command.sellerType()) : current.sellerType(),
-                mapCondition(command.condition()) != null ? mapCondition(command.condition()) : current.condition(),
-                command.offerEligible() != null ? command.offerEligible() : current.offerEligible(),
-                command.featured() != null ? command.featured() : current.featured(),
-                resolveSlug(command, existingProduct),
-                command.moderationNote() != null ? command.moderationNote() : current.moderationNote()
+                mapConditionCached(command.condition(), current.condition()),
+                resolveSlug(command, existingProduct)
         );
     }
 
@@ -126,7 +116,10 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         switch (intent) {
             case LEAVE_AS_IS -> {
             }
-            case COLLAPSE_TO_STANDALONE -> syncProductVariants(product, List.of(createStandaloneVariant(command)));
+            case COLLAPSE_TO_STANDALONE -> {
+                validateOverridesPresent(variantSync, UpdateProductCommand.VariantSyncIntent.COLLAPSE_TO_STANDALONE);
+                syncProductVariants(product, List.of(createStandaloneVariant(command)));
+            }
             case FULL_SYNC -> handleFullSync(product, variantSync);
         }
 
@@ -134,7 +127,9 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
 
     private void handleFullSync(Product product, UpdateProductCommand.VariantSync variantSync) {
         if (variantSync.overrides() == null || variantSync.overrides().isEmpty()) {
-            return;
+            throw new CatalogServiceException(
+                    new CatalogServiceError.EmptyVariantOverrides(UpdateProductCommand.VariantSyncIntent.FULL_SYNC.name())
+            );
         }
 
         List<VariantTypeSelection> variantTypes = resolveVariantTypes(variantSync);
@@ -197,8 +192,9 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
             );
         }
 
-        if (combinationResult.matchedType() == MatrixCombinationSynchronizer.VariantCombinationResult.MatchedType.UNCHANGED) {
-            return combinationResult.matchedVariant();
+        if (combinationResult.matchedType() ==
+                MatrixCombinationSynchronizer.VariantCombinationResult.MatchedType.UNCHANGED) {
+            return combinationResult.productVariants().getFirst();
         }
 
         return createVariant(
@@ -234,7 +230,23 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     }
 
     private List<VariantTypeSelection> getVariantTypeSelectionList(List<UpdateProductCommand.Variant> variants) {
-        return null;
+        if (variants == null || variants.isEmpty()) {
+            return List.of();
+        }
+        return variants.stream()
+                .flatMap(variant -> variant.variations().stream())
+                .collect(Collectors.groupingBy(
+                        UpdateProductCommand.Variation::typeId,
+                        Collectors.mapping(
+                                variation -> new VariantOptionSelection(
+                                        variation.optionId(),
+                                        variation.typeId()),
+                                Collectors.toList()
+                        )
+                ))
+                .entrySet().stream()
+                .map(entry -> new VariantTypeSelection(entry.getKey(), entry.getValue()))
+                .toList();
     }
 
     private ProductVariant createStandaloneVariant(UpdateProductCommand command) {
@@ -256,15 +268,17 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return skuGenerator.generate(new SkuGenerator.Context(productName, variations));
     }
 
+    private void validateOverridesPresent(UpdateProductCommand.VariantSync variantSync, UpdateProductCommand.VariantSyncIntent intent) {
+        if (variantSync == null || variantSync.overrides() == null || variantSync.overrides().isEmpty()) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.EmptyVariantOverrides(intent.name())
+            );
+        }
+    }
+
     private void syncProductVariants(Product product, List<ProductVariant> targetVariants) {
         for (ProductVariant targetVariant : targetVariants) {
-            Optional<ProductVariant> existing = product.findVariantById(targetVariant.getId());
-            if (existing.isPresent()) {
-                updateVariant(product, existing.get(), targetVariant);
-                continue;
-            }
-
-            existing = product.findVariantByVariation(targetVariant.getVariations());
+            Optional<ProductVariant> existing = product.findVariantByVariation(targetVariant.getVariations());
             if (existing.isPresent()) {
                 updateVariant(product, existing.get(), targetVariant);
             } else {
@@ -279,7 +293,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
 
         Set<Id> targetVariantIds = targetVariants.stream()
                 .map(ProductVariant::getId)
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         List<Id> existingVariantIds = product.getVariants().stream()
                 .map(ProductVariant::getId)
@@ -330,12 +344,30 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                 .toList();
     }
 
-    private SellerType mapSellerType(String sellerType) {
-        return sellerType == null ? null : SellerType.valueOf(sellerType);
+    private SellerType mapSellerTypeCached(String sellerType, SellerType currentType) {
+        if (sellerType == null) {
+            return currentType;
+        }
+        try {
+            return SellerType.valueOf(sellerType);
+        } catch (IllegalArgumentException e) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.InvalidEnumValue(SellerType.class.getSimpleName(), sellerType)
+            );
+        }
     }
 
-    private ListingCondition mapCondition(String condition) {
-        return condition == null || condition.isBlank() ? null : ListingCondition.valueOf(condition);
+    private ListingCondition mapConditionCached(String condition, ListingCondition currentCondition) {
+        if (condition == null || condition.isBlank()) {
+            return currentCondition;
+        }
+        try {
+            return ListingCondition.valueOf(condition);
+        } catch (IllegalArgumentException e) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.InvalidEnumValue(ListingCondition.class.getSimpleName(), condition)
+            );
+        }
     }
 
     private List<GetProductPayload.Description> mapPayloadDescriptions(List<Description> descriptions) {

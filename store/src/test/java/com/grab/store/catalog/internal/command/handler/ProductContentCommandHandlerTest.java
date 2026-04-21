@@ -120,10 +120,6 @@ class ProductContentCommandHandlerTest {
                 new CommonId(CATEGORY_ID),
                 null,
                 null,
-                null,
-                false,
-                false,
-                null,
                 List.of(new Description(new CommonId("description-1"), "summary", "Summary", "Original body")),
                 List.of(new ProductMedia(new CommonId("media-1"), "IMAGE", "/images/original.png"))
         );

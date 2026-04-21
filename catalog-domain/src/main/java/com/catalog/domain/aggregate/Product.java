@@ -53,22 +53,7 @@ public class Product extends AggregateRoot<Id> {
     private String slug;
 
     @Getter
-    private boolean featured;
-
-    @Getter
-    private Id sellerId;
-
-    @Getter
-    private SellerType sellerType;
-
-    @Getter
     private ListingCondition listingCondition;
-
-    @Getter
-    private boolean offerEligible;
-
-    @Getter
-    private String moderationNote;
 
     private Product(Id id, String name, Id categoryId) {
         super(id);
@@ -76,22 +61,15 @@ public class Product extends AggregateRoot<Id> {
         this.categoryId = Objects.requireNonNull(categoryId);
         this.status = ProductStatus.DRAFT;
         this.slug = generateSlug(name);
-        this.featured = false;
-        this.offerEligible = false;
     }
 
     public Product(
             Id id,
             String name,
             Id categoryId,
-            Id sellerId,
-            SellerType sellerType,
             ListingCondition listingCondition,
-            boolean offerEligible,
             ProductStatus status,
             String slug,
-            boolean featured,
-            String moderationNote,
             List<Description> descriptions,
             List<ProductMedia> medias,
             List<ProductVariant> variants
@@ -99,14 +77,9 @@ public class Product extends AggregateRoot<Id> {
         super(id);
         this.name = Objects.requireNonNull(name);
         this.categoryId = Objects.requireNonNull(categoryId);
-        this.sellerId = sellerId;
-        this.sellerType = sellerType;
         this.listingCondition = listingCondition;
-        this.offerEligible = offerEligible;
         this.status = status == null ? ProductStatus.DRAFT : status;
         this.slug = slug == null ? generateSlug(name) : slug;
-        this.featured = featured;
-        this.moderationNote = moderationNote;
         if (descriptions != null) {
             this.descriptions.addAll(descriptions);
         }
@@ -116,7 +89,6 @@ public class Product extends AggregateRoot<Id> {
         if (variants != null) {
             this.variants.addAll(variants);
         }
-        validateOwnershipAndOfferPolicy();
     }
 
     public static Product create(Id id, String name, Id categoryId) {
@@ -127,21 +99,13 @@ public class Product extends AggregateRoot<Id> {
             Id id,
             String name,
             Id categoryId,
-            Id sellerId,
-            SellerType sellerType,
             ListingCondition condition,
-            boolean offerEligible,
-            boolean featured,
             String slug,
             List<Description> descriptions,
             List<ProductMedia> medias
     ) {
         Product product = new Product(id, name, categoryId);
-        product.sellerId = sellerId;
-        product.sellerType = sellerType;
         product.listingCondition = condition;
-        product.offerEligible = offerEligible;
-        product.featured = featured;
         if (slug != null && !slug.isBlank()) {
             product.slug = slug;
         }
@@ -151,7 +115,6 @@ public class Product extends AggregateRoot<Id> {
         if (medias != null) {
             product.medias.addAll(medias);
         }
-        product.validateOwnershipAndOfferPolicy();
         return product;
     }
 
@@ -280,8 +243,7 @@ public class Product extends AggregateRoot<Id> {
 
     public ProductMetadata metadata() {
         return new ProductMetadata(
-                name, categoryId, sellerId, sellerType,
-                listingCondition, offerEligible, featured, slug, moderationNote
+                name, categoryId, listingCondition, slug
         );
     }
 
@@ -297,15 +259,9 @@ public class Product extends AggregateRoot<Id> {
         }
 
         this.name = next.name();
-        this.sellerId = next.sellerId();
-        this.sellerType = next.sellerType();
         this.listingCondition = next.condition();
-        this.offerEligible = next.offerEligible();
-        this.featured = next.featured();
         this.slug = next.slug();
-        this.moderationNote = next.moderationNote();
 
-        validateOwnershipAndOfferPolicy();
         addEvent(new ProductUpdatedEvent(getId(), this.name, this.categoryId));
     }
 
@@ -368,7 +324,6 @@ public class Product extends AggregateRoot<Id> {
     public void submitForReview() {
         ensureReadyForReview();
         changeStatus(ProductStatus.IN_REVIEW);
-        this.moderationNote = null;
         super.addEvent(new ProductReviewSubmittedEvent(this.getId(), this.getCategoryId()));
     }
 
@@ -378,19 +333,16 @@ public class Product extends AggregateRoot<Id> {
     }
 
     public void reject(String reason) {
-        this.moderationNote = reason;
         changeStatus(ProductStatus.DRAFT);
         super.addEvent(new ProductReviewRejectedEvent(this.getId(), reason));
     }
 
     public void suspend(String reason) {
-        this.moderationNote = reason;
         changeStatus(ProductStatus.SUSPENDED);
         super.addEvent(new ProductSuspendedEvent(this.getId(), reason));
     }
 
     public void restore() {
-        this.moderationNote = null;
         changeStatus(ProductStatus.DRAFT);
         super.addEvent(new ProductRestoredEvent(this.getId()));
     }
@@ -419,10 +371,7 @@ public class Product extends AggregateRoot<Id> {
     }
 
     public void ensureReadyForReview() {
-        validateOwnershipAndOfferPolicy();
-        if (this.sellerId == null
-                || this.sellerType == null
-                || this.descriptions.isEmpty()
+        if (this.descriptions.isEmpty()
                 || this.medias.isEmpty()) {
             throw new CatalogDomainValidationException(
                     new CatalogDomainError.ListingIncomplete(),
@@ -468,22 +417,6 @@ public class Product extends AggregateRoot<Id> {
                 ),
                 "Cannot delete the last active variant from an active product."
         );
-    }
-
-    private void validateOwnershipAndOfferPolicy() {
-        if (this.offerEligible && this.sellerType != SellerType.C2C) {
-            throw new CatalogDomainValidationException(
-                    new CatalogDomainError.OfferEligibilityOnlyForC2C(),
-                    "Offer eligibility is only allowed for C2C listings."
-            );
-        }
-
-        if (this.sellerType == SellerType.C2C && this.listingCondition == null) {
-            throw new CatalogDomainValidationException(
-                    new CatalogDomainError.C2CConditionRequired(),
-                    "C2C listings require item condition."
-            );
-        }
     }
 
     private static String generateSlug(String name) {
