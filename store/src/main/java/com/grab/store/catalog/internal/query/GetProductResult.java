@@ -6,16 +6,11 @@ public record GetProductResult(
         String id,
         String name,
         String categoryId,
-        String sellerId,
-        String sellerType,
         String condition,
-        boolean offerEligible,
         String status,
         String slug,
-        boolean featured,
         List<Description> descriptions,
         List<Media> medias,
-        String moderationNote,
         List<Variant> variants,
         List<VariantType> variantTypes
 ) {

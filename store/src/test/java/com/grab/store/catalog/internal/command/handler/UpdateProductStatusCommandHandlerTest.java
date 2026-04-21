@@ -148,11 +148,7 @@ class UpdateProductStatusCommandHandlerTest {
                 productId,
                 "Product",
                 new CommonId(CATEGORY_ID),
-                new CommonId("seller-1"),
-                SellerType.RETAILER,
                 null,
-                false,
-                false,
                 "product",
                 List.of(new Description(null, "default", "Product", "Description")),
                 List.of(new ProductMedia(null, "IMAGE", "/images/product.jpg"))

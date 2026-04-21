@@ -10,13 +10,8 @@ public record UpdateProductCommand(
         Id productId,
         String name,
         Id categoryId,
-        Id sellerId,
-        String sellerType,
         String condition,
-        Boolean offerEligible,
         String slug,
-        Boolean featured,
-        String moderationNote,
         VariantSync variantSync
 ) implements Command<UpdateProductResult> {
 

@@ -23,14 +23,8 @@ public record CreateProductSetCommand(
     public record Product(
             String name,
             Id categoryId,
-            Id sellerId,
-            String sellerType,
             String condition,
-            Boolean offerEligible,
             String slug,
-            Boolean featured,
-            List<Description> descriptions,
-            List<Media> medias,
             List<Variant> variants
     ) {}
 

@@ -123,11 +123,7 @@ class DeleteVariantCommandHandlerTest {
                 productId,
                 "Product",
                 new CommonId(CATEGORY_ID),
-                new CommonId("seller-1"),
-                SellerType.RETAILER,
                 null,
-                false,
-                false,
                 null,
                 List.of(new Description(null, "summary", "Summary", "Product summary")),
                 List.of(new ProductMedia(null, "IMAGE", "/images/product.png"))

@@ -1,20 +1,13 @@
 package com.grab.store.catalog.internal.api.rest.dto.request;
 
-import com.grab.framework.id.Id;
-
 import java.io.Serializable;
 import java.util.List;
 
 public record UpdateProductRequest(
         String name,
         String categoryId,
-        String sellerId,
-        String sellerType,
         String condition,
-        Boolean offerEligible,
         String slug,
-        Boolean featured,
-        String moderationNote,
         VariantSync variantSync
 ) implements Serializable {
 
@@ -37,17 +30,17 @@ public record UpdateProductRequest(
     ) {}
 
     public record Variation(
-            Id typeId,
-            Id optionId
+            String typeId,
+            String optionId
     ){}
 
     public record VariantType(
-            Id typeId,
+            String typeId,
             List<VariantOption> options
     ) {}
 
     public record VariantOption(
-            Id optionId,
+            String optionId,
             String optionName
     ) {}
 }

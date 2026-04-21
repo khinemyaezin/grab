@@ -15,11 +15,7 @@ public class ProductEntity_ {
     public static volatile SingularAttribute<ProductEntity, String> uuid;
     public static volatile SingularAttribute<ProductEntity, String> name;
     public static volatile SingularAttribute<ProductEntity, String> categoryId;
-    public static volatile SingularAttribute<ProductEntity, String> sellerId;
-    public static volatile SingularAttribute<ProductEntity, String> sellerType;
     public static volatile SingularAttribute<ProductEntity, String> listingCondition;
-    public static volatile SingularAttribute<ProductEntity, Boolean> offerEligible;
-    public static volatile SingularAttribute<ProductEntity, String> moderationNote;
     public static volatile SetAttribute<ProductEntity, MediaEntity> medias;
     public static volatile SetAttribute<ProductEntity, ProductDescriptionEntity> descriptions;
     public static volatile SetAttribute<ProductEntity, ProductVariantEntity> productVariants;
@@ -31,15 +27,10 @@ public class ProductEntity_ {
     public static final String UUID = "uuid";
     public static final String NAME = "name";
     public static final String CATEGORY_ENTITY = "categoryId";
-    public static final String SELLER_ID = "sellerId";
-    public static final String SELLER_TYPE = "sellerType";
     public static final String LISTING_CONDITION = "listingCondition";
-    public static final String OFFER_ELIGIBLE = "offerEligible";
-    public static final String MODERATION_NOTE = "moderationNote";
     public static final String MEDIA_ENTITIES = "medias";
     public static final String DESCRIPTION_ENTITIES = "descriptions";
     public static final String PRODUCT_VARIANT_ENTITIES = "productVariants";
     public static final String STATUS = "status";
     public static final String SLUG = "slug";
-    public static final String FEATURED = "featured";
 }

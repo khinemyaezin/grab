@@ -100,41 +100,11 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
                 productId,
                 product.name(),
                 product.categoryId(),
-                product.sellerId(),
-                convertToSellerType(product.sellerType()),
                 convertToCondition(product.condition()),
-                Boolean.TRUE.equals(product.offerEligible()),
-                Boolean.TRUE.equals(product.featured()),
                 slug,
-                convertToDescriptions(product.descriptions()),
-                convertToProductMedia(product.medias())
+                List.of(),
+                List.of()
         );
-    }
-
-    private List<Description> convertToDescriptions(List<CreateProductSetCommand.Description> descriptions) {
-        if (descriptions == null) {
-            return List.of();
-        }
-        return descriptions.stream()
-                .map(d -> new Description(
-                        idGenerator.generateId(),
-                        d.name(),
-                        d.title(),
-                        d.description()))
-                .toList();
-    }
-
-    private List<ProductMedia> convertToProductMedia(List<CreateProductSetCommand.Media> medias) {
-        if (medias == null) {
-            return List.of();
-        }
-        return medias.stream()
-                .map(media -> new ProductMedia(
-                        idGenerator.generateId(),
-                        media.type(),
-                        media.path())
-                )
-                .toList();
     }
 
     private SellerType convertToSellerType(String sellerType) {

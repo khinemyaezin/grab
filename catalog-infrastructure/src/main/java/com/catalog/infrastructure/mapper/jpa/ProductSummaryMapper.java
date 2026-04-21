@@ -18,12 +18,8 @@ public interface ProductSummaryMapper {
 
     @Mapping(source = ProductEntity_.UUID, target = "id")
     @Mapping(source = ProductEntity_.NAME, target = "name")
-    @Mapping(source = ProductEntity_.SELLER_ID, target = "sellerId")
-    @Mapping(source = ProductEntity_.SELLER_TYPE, target = "sellerType")
-    @Mapping(source = ProductEntity_.OFFER_ELIGIBLE, target = "offerEligible")
     @Mapping(source = ProductEntity_.STATUS, target = "status")
     @Mapping(source = ProductEntity_.SLUG, target = "slug")
-    @Mapping(source = ProductEntity_.FEATURED, target = "featured")
     @Mapping(source = ProductEntity_.PRODUCT_VARIANT_ENTITIES, target = "variantSummary", qualifiedByName = "VariantSummary")
     ProductSummary toProductSummary(ProductEntity productEntity);
 

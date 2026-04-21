@@ -15,14 +15,8 @@ public record SaveProductRequest(
     public record Product(
             @NotBlank String name,
             @NotBlank String categoryId,
-            @NotBlank String sellerId,
-            @NotBlank String sellerType,
             String condition,
-            Boolean offerEligible,
             String slug,
-            Boolean featured,
-            @Valid List<Description> descriptions,
-            @Valid List<Media> medias,
             @Valid List<Variant> variants
     ) {}
 

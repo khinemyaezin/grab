@@ -70,16 +70,11 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId() != null ? product.getCategoryId().getValue() : "",
-                product.getSellerId() != null ? product.getSellerId().getValue() : "",
-                product.getSellerType() != null ? product.getSellerType().name() : null,
                 product.getListingCondition() != null ? product.getListingCondition().name() : null,
-                product.isOfferEligible(),
                 product.getStatus() != null ? product.getStatus().name() : null,
                 product.getSlug(),
-                product.isFeatured(),
                 mapPayloadDescriptions(product.getDescriptions()),
-                mapPayloadMedias(product.getMedias()),
-                product.getModerationNote()
+                mapPayloadMedias(product.getMedias())
         );
     }
 
@@ -106,13 +101,8 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return new ProductMetadata(
                 command.name() != null ? command.name() : current.name(),
                 category.getId(),
-                command.sellerId() != null ? command.sellerId() : current.sellerId(),
-                mapSellerTypeCached(command.sellerType(), current.sellerType()),
                 mapConditionCached(command.condition(), current.condition()),
-                command.offerEligible() != null ? command.offerEligible() : current.offerEligible(),
-                command.featured() != null ? command.featured() : current.featured(),
-                resolveSlug(command, existingProduct),
-                command.moderationNote() != null ? command.moderationNote() : current.moderationNote()
+                resolveSlug(command, existingProduct)
         );
     }
 

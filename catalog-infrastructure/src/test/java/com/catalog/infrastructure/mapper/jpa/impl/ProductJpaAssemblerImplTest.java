@@ -68,10 +68,6 @@ class ProductJpaAssemblerImplTest {
                 id("clothing"),
                 null,
                 null,
-                null,
-                false,
-                false,
-                null,
                 List.of(
                         new Description(id("1001"), "summary", "Updated Summary", "Updated body"),
                         new Description(id("1002"), "details", "Details", "Detailed body")
@@ -117,10 +113,6 @@ class ProductJpaAssemblerImplTest {
                 "Camera",
                 id("electronics"),
                 null,
-                null,
-                null,
-                false,
-                false,
                 null,
                 List.of(),
                 List.of(new ProductMedia(id("3001"), "IMAGE", "/images/camera/main.jpg"))
@@ -213,9 +205,6 @@ class ProductJpaAssemblerImplTest {
         entity.setCategoryId("electronics");
         entity.setStatus(ProductStatus.ACTIVE);
         entity.setSlug("phone");
-        entity.setFeatured(true);
-        entity.setOfferEligible(false);
-
         ProductDescriptionEntity description = descriptionRow(41L, "desc-1", "summary", "Summary", "Body");
         entity.addProductDescription(description);
 
@@ -241,7 +230,6 @@ class ProductJpaAssemblerImplTest {
         assertThat(result.getCategoryId().getValue()).isEqualTo("electronics");
         assertThat(result.getStatus()).isEqualTo(ProductStatus.ACTIVE);
         assertThat(result.getSlug()).isEqualTo("phone");
-        assertThat(result.isFeatured()).isTrue();
 
         assertThat(result.getDescriptions()).hasSize(1);
         assertThat(result.getDescriptions().getFirst().getId().getValue()).isEqualTo("41");
