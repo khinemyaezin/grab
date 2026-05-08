@@ -31,7 +31,6 @@ class VariantTypeJpaRepositoryTest {
     private VariantTypeJpaAssembler variantTypeJpaAssembler;
     private VariantTypeJpaRepo variantTypeJpaRepo;
     private DomainEventProducer domainEventProducer;
-    private CatalogPersistenceExecutor executor;
     private VariantTypeJpaRepository repository;
 
     @BeforeEach
@@ -39,8 +38,9 @@ class VariantTypeJpaRepositoryTest {
         variantTypeJpaAssembler = mock(VariantTypeJpaAssembler.class);
         variantTypeJpaRepo = mock(VariantTypeJpaRepo.class);
         domainEventProducer = mock(DomainEventProducer.class);
-        executor = new CatalogPersistenceExecutor();
-        repository = new VariantTypeJpaRepository(variantTypeJpaAssembler, variantTypeJpaRepo, domainEventProducer, executor);
+        repository = new VariantTypeJpaRepository(
+                variantTypeJpaAssembler, variantTypeJpaRepo,
+                domainEventProducer, new CatalogPersistenceExecutor());
     }
 
     @Test

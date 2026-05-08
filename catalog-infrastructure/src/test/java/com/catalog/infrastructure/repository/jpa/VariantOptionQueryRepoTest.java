@@ -17,7 +17,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 class VariantOptionQueryRepoTest extends CategoryRepositoryTestConfig {
 
     @Autowired
-    private VariantOptionQueryRepository variantOptionJpaRepo;
+    private VariantOptionQueryJpaRepo variantOptionJpaRepo;
 
     @Autowired
     private EntityManager entityManager;
