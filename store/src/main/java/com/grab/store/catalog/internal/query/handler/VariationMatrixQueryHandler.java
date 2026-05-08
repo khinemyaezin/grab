@@ -53,9 +53,9 @@ public class VariationMatrixQueryHandler implements QueryHandler<VariationMatrix
                 .map(this::toResultVariant)
                 .toList();
 
-        List<String> collapsedSkus = matchResult.collapsed();
+        List<String> collapsedOriginal = matchResult.collapsed();
 
-        return buildResult(query.variantTypes(), variants, collapsedSkus);
+        return buildResult(query.variantTypes(), variants, collapsedOriginal);
     }
 
     @Override
@@ -97,15 +97,16 @@ public class VariationMatrixQueryHandler implements QueryHandler<VariationMatrix
                                         idGenerator.convertIdFrom(var.optionId()),
                                         idGenerator.convertIdFrom(var.typeId())))
                                 .toList(),
-                        v.sku()
+                        v.matrixKey()
                 ))
                 .toList();
     }
 
     private VariationMatrixResult.Variant toResultVariant(VariantMatch<String> match) {
+        String newKey = matrixKeyGenerator.generateKey(match.combination());
         return new VariationMatrixResult.Variant(
                 matrixKeyGenerator.generateKey(match.combination()),
-                match.matchedPayload() != null ? match.matchedPayload() : "",
+                match.matchedPayload() != null ? match.matchedPayload() : newKey,
                 match.combination().stream()
                         .map(v -> new VariationMatrixResult.Variation(
                                 v.getOptionId().getValue(),

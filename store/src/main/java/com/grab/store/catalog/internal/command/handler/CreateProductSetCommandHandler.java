@@ -1,9 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
-import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
@@ -14,7 +12,6 @@ import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.catalog.domain.valueobject.ListingCondition;
 import com.catalog.domain.valueobject.ProductVariation;
-import com.catalog.domain.valueobject.SellerType;
 import com.catalog.domain.valueobject.VariantCombination;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.id.Id;
@@ -105,10 +102,6 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
                 List.of(),
                 List.of()
         );
-    }
-
-    private SellerType convertToSellerType(String sellerType) {
-        return sellerType == null ? null : SellerType.valueOf(sellerType);
     }
 
     private ListingCondition convertToCondition(String condition) {

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -53,7 +52,7 @@ class VariationMatrixQueryHandlerTest {
     }
 
     private String getTemplate(VariationMatrixResult.Variant v){
-        return String.format("%s:%s", v.matrixKey(), StringUtils.hasText(v.sku()) ? v.sku() : "");
+        return String.format("%s:%s", v.matrixKey(), v.originalMatrixKey().replace("-",""));
     }
 
     @Test
@@ -63,7 +62,7 @@ class VariationMatrixQueryHandlerTest {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "y-m-1","ym1",
+                                "y-m-1",
                                 List.of(
                                         new VariationMatrixQuery.Variation("y", "c"),
                                         new VariationMatrixQuery.Variation("m", "s"),
@@ -71,7 +70,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "y-m-2","ym2",
+                                "y-m-2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("y", "c"),
                                         new VariationMatrixQuery.Variation("m", "s"),
@@ -79,7 +78,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "y-s-2","ys2",
+                                "y-s-2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("y", "c"),
                                         new VariationMatrixQuery.Variation("s", "s"),
@@ -164,7 +163,7 @@ class VariationMatrixQueryHandlerTest {
         // Then
         Assertions.assertArrayEquals(
                 new String[]{
-                        "y-m-1:ym1", "y-m-2:ym2", "y-s-2:ys2", "b-m-1:", "b-m-2:", "b-s-1:", "b-s-2:"
+                        "y-m-1:ym1", "y-m-2:ym2", "y-s-2:ys2", "b-m-1:bm1", "b-m-2:bm2", "b-s-1:bs1", "b-s-2:bs2"
                 },
                 result.variants()
                         .stream().map(this::getTemplate)
@@ -178,7 +177,7 @@ class VariationMatrixQueryHandlerTest {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "i-y-m-1-s","iym1s",
+                                "i-y-m-1-s",
                                 List.of(
                                         new VariationMatrixQuery.Variation("i", "b"),
                                         new VariationMatrixQuery.Variation("y", "c"),
@@ -188,7 +187,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "i-y-m-2-s","iym2s",
+                                "i-y-m-2-s",
                                 List.of(
                                         new VariationMatrixQuery.Variation("i", "b"),
                                         new VariationMatrixQuery.Variation("y", "c"),
@@ -198,7 +197,7 @@ class VariationMatrixQueryHandlerTest {
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "i-y-s-2-s","iys2s",
+                                "i-y-s-2-s",
                                 List.of(
                                         new VariationMatrixQuery.Variation("i", "b"),
                                         new VariationMatrixQuery.Variation("y", "c"),
@@ -287,7 +286,7 @@ class VariationMatrixQueryHandlerTest {
         // Then
         Assertions.assertArrayEquals(
                 new String[]{
-                        "i-m-1-s:iym1s", "i-m-2-s:iym2s", "i-s-2-s:iys2s", "i-x-1-s:", "i-x-2-s:"
+                        "i-m-1-s:iym1s", "i-m-2-s:iym2s", "i-s-2-s:iys2s", "i-x-1-s:ix1s", "i-x-2-s:ix2s"
                 },
                 result.variants()
                         .stream().map(this::getTemplate)
@@ -300,21 +299,21 @@ class VariationMatrixQueryHandlerTest {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "m-1","m1",
+                                "m-1",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "size"),
                                         new VariationMatrixQuery.Variation("1", "number")
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "m-2","m2",
+                                "m-2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "size"),
                                         new VariationMatrixQuery.Variation("2", "number")
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "s-2","s2",
+                                "s-2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("s", "size"),
                                         new VariationMatrixQuery.Variation("2", "number")
@@ -375,7 +374,7 @@ class VariationMatrixQueryHandlerTest {
         // Then
         Assertions.assertArrayEquals(
                 new String[]{
-                        "m-1:m1", "m-2:m2", "s-2:s2", "x-1:", "x-2:"
+                        "m-1:m1", "m-2:m2", "s-2:s2", "x-1:x1", "x-2:x2"
                 },
                 result.variants()
                         .stream().map(this::getTemplate)
@@ -389,7 +388,6 @@ class VariationMatrixQueryHandlerTest {
                 List.of(
                         new VariationMatrixQuery.Variant(
                                 "m-1",
-                                "m1",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "s"),
                                         new VariationMatrixQuery.Variation("1", "n")
@@ -397,14 +395,13 @@ class VariationMatrixQueryHandlerTest {
                         ),
                         new VariationMatrixQuery.Variant(
                                 "m-2",
-                                "m2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "s"),
                                         new VariationMatrixQuery.Variation("2", "n")
                                 )
                         ),
                         new VariationMatrixQuery.Variant(
-                                "s-2","s2",
+                                "s-2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("s", "s"),
                                         new VariationMatrixQuery.Variation("2", "n")
@@ -481,7 +478,6 @@ class VariationMatrixQueryHandlerTest {
                 List.of(
                         new VariationMatrixQuery.Variant(
                                 "m-1",
-                                "m1",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "s"),
                                         new VariationMatrixQuery.Variation("1", "n")
@@ -489,7 +485,6 @@ class VariationMatrixQueryHandlerTest {
                         ),
                         new VariationMatrixQuery.Variant(
                                 "m-2",
-                                "m2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "s"),
                                         new VariationMatrixQuery.Variation("2", "n")
@@ -497,7 +492,6 @@ class VariationMatrixQueryHandlerTest {
                         ),
                         new VariationMatrixQuery.Variant(
                                 "s-2",
-                                "s2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("s", "s"),
                                         new VariationMatrixQuery.Variation("2", "n")
@@ -555,7 +549,6 @@ class VariationMatrixQueryHandlerTest {
                 List.of(
                         new VariationMatrixQuery.Variant(
                                 "m-1",
-                                "m1",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "s"),
                                         new VariationMatrixQuery.Variation("1", "n")
@@ -563,7 +556,6 @@ class VariationMatrixQueryHandlerTest {
                         ),
                         new VariationMatrixQuery.Variant(
                                 "m-2",
-                                "m2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("m", "s"),
                                         new VariationMatrixQuery.Variation("2", "n")
@@ -571,7 +563,6 @@ class VariationMatrixQueryHandlerTest {
                         ),
                         new VariationMatrixQuery.Variant(
                                 "s-2",
-                                "s2",
                                 List.of(
                                         new VariationMatrixQuery.Variation("s", "s"),
                                         new VariationMatrixQuery.Variation("2", "n")
@@ -645,7 +636,7 @@ class VariationMatrixQueryHandlerTest {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "yellow","",
+                                "yellow",
                                 List.of(
                                         new VariationMatrixQuery.Variation("yellow", "color")
                                 )
@@ -690,7 +681,7 @@ class VariationMatrixQueryHandlerTest {
         VariationMatrixQuery query = new VariationMatrixQuery(
                 List.of(
                         new VariationMatrixQuery.Variant(
-                                "x-y","",
+                                "x-y",
                                 List.of(
                                         new VariationMatrixQuery.Variation("x", "t1"),
                                         new VariationMatrixQuery.Variation("y", "t2")
