@@ -30,7 +30,6 @@ public record VariationMatrixRequest(
     @Schema(name = "MatrixVariant")
     public record Variant(
             @NotBlank String matrixKey,
-            @NotBlank String sku,
             @Valid List<Variation> variations
     ){}
 

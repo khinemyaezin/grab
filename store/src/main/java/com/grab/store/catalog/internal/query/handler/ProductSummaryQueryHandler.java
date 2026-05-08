@@ -53,12 +53,8 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                 .map(summary -> new ProductSummaryResult.Product(
                         summary.id(),
                         summary.name(),
-                        summary.sellerId(),
-                        summary.sellerType(),
-                        summary.offerEligible(),
                         summary.status(),
                         summary.slug(),
-                        summary.featured(),
                         new ProductSummaryResult.VariantSummary(
                                 summary.variantSummary().available(),
                                 extractVariantTypes(summary.variantSummary())

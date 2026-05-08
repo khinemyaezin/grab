@@ -17,7 +17,6 @@ public class DefaultMatrixCombinationService implements MatrixCombinationService
     private static final Logger log = Loggers.getLogger(DefaultMatrixCombinationService.class);
 
     public List<List<VariantOptionSelection>> generateMatrixCombination(List<VariantTypeSelection> variantTypes) {
-        // Early return for empty input
         if (variantTypes == null || variantTypes.isEmpty()) {
             log.debug("Skipping variant combination generation because no variant types were provided");
             return Collections.emptyList();
@@ -25,7 +24,6 @@ public class DefaultMatrixCombinationService implements MatrixCombinationService
 
         log.info("Generating variant combinations for {} variant types", variantTypes.size());
 
-        // Pre-process and validate in single pass
         List<List<VariantOptionSelection>> optionLists = new ArrayList<>(variantTypes.size());
         int totalCombinations = 1;
 
@@ -38,7 +36,6 @@ public class DefaultMatrixCombinationService implements MatrixCombinationService
             optionLists.add(options);
             totalCombinations *= options.size();
 
-            // Safety check for combinatorial explosion
             if (totalCombinations > 100_000) {
                 log.warn("Rejected variant combination generation because totalCombinations={} exceeds limit={}", totalCombinations, 100_000);
                 throw new CatalogDomainValidationException(
@@ -48,7 +45,6 @@ public class DefaultMatrixCombinationService implements MatrixCombinationService
             }
         }
 
-        // Generate combinations iteratively
         List<List<VariantOptionSelection>> combinations = generateIterativeCombinations(optionLists, totalCombinations);
         log.info("Generated {} variant combinations", combinations.size());
         return combinations;
@@ -59,7 +55,6 @@ public class DefaultMatrixCombinationService implements MatrixCombinationService
 
         List<List<VariantOptionSelection>> combinations = new ArrayList<>(totalCombinations);
 
-        // Initialize with empty lists
         for (int i = 0; i < totalCombinations; i++) {
             combinations.add(new ArrayList<>(optionLists.size()));
         }

@@ -28,7 +28,7 @@ public record VariationMatrixResult(
 
     public record Variant(
             String matrixKey,
-            String sku,
+            String originalMatrixKey,
             List<Variation> variations
     ){}
 

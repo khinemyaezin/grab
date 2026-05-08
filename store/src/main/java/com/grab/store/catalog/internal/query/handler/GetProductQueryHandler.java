@@ -1,6 +1,5 @@
 package com.grab.store.catalog.internal.query.handler;
 
-import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
 import com.catalog.infrastructure.view.VariantOptionView;
 import com.grab.framework.id.Id;
@@ -19,6 +18,7 @@ import com.grab.store.catalog.internal.query.GetProductResult;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.store.catalog.internal.util.ParentChildTransformer;
+import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -77,23 +77,14 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getListingCondition() == null ? null : product.getListingCondition().name(),
                 product.getStatus().name(),
                 product.getSlug(),
-                product.getDescriptions().stream()
-                        .map(description -> new GetProductResult.Description(
-                                description.getId() == null ? null : description.getId().getValue(),
-                                description.getName(),
-                                description.getTitle(),
-                                description.getDescription()
-                        ))
-                        .toList(),
-                product.getMedias().stream()
-                        .map(this::mapToResultMedia)
-                        .toList(),
                 variants,
                 variantTypes
         );
     }
 
     private List<GetProductResult.VariantType> extractVariantTypes(List<VariantOptionView> optionViews) {
+        if( optionViews == null || optionViews.isEmpty() ) return Collections.emptyList();
+
         ParentChildTransformer<VariantOptionView, Id, GetProductResult.VariantType, GetProductResult.VariantOption> transformer =
                 ParentChildTransformer.of(
                         view -> idGenerator.convertIdFrom(view.typeId()),
@@ -106,7 +97,6 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                         }
                 );
         return transformer.apply(optionViews);
-
     }
 
     private List<VariantOptionView> fetchVariantOptions(List<String> optionIds) {
@@ -114,40 +104,36 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     }
 
     private List<GetProductResult.Variant> mapToResultVariantList(List<ProductVariant> variantList, List<VariantOptionView> optionViews) {
-        Map<String, VariantOptionView> variationMapByOptionId = optionViews.stream()
-                .collect(Collectors.toMap(
-                        VariantOptionView::optionId,
-                        Function.identity()));
-        List<GetProductResult.Variant> result = new ArrayList<>(variantList.size());
-        for(ProductVariant variant : variantList) {
-            List<GetProductResult.Variation> variations = new ArrayList<>();
-            for(ProductVariation productVariation : variant.getVariations()) {
-                VariantOptionView variantOptionView = variationMapByOptionId.get(productVariation.getOptionId().getValue());
-                GetProductResult.Variation variation = new GetProductResult.Variation(
-                        variantOptionView.optionId(),
-                        variantOptionView.optionName(),
-                        variantOptionView.typeId(),
-                        variantOptionView.typeName()
-                );
-                variations.add(variation);
-            }
+        Map<String, VariantOptionView> variationMapByOptionId = Optional.ofNullable(optionViews)
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .collect(Collectors.toMap(VariantOptionView::optionId, Function.identity(), (a, b) -> a));
 
-            GetProductResult.Variant resultVariant = new GetProductResult.Variant(
+        return variantList.stream().map(variant -> {
+            List<GetProductResult.Variation> variations = variant.getVariations().stream()
+                    .map(pv -> mapToVariation(pv, variationMapByOptionId))
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            return new GetProductResult.Variant(
                     variant.getId().getValue(),
                     variant.getSku(),
                     variant.getStatus().name(),
                     variations
             );
-            result.add(resultVariant);
-        }
-        return result;
+        }).toList();
     }
 
-    private GetProductResult.Media mapToResultMedia(ProductMedia media) {
-        return new GetProductResult.Media(
-                media.getId() == null ? null : media.getId().getValue(),
-                media.getType(),
-                media.getPath()
-        );
+    private GetProductResult.Variation mapToVariation(ProductVariation pv, Map<String, VariantOptionView> viewMap) {
+        if (StandaloneVariationFactory.isStandAloneVariation(pv)) {
+            return null;
+        }
+
+        String optId = Optional.ofNullable(pv.getOptionId()).map(Id::getValue).orElse(null);
+        VariantOptionView view = viewMap.get(optId);
+
+        return (view != null)
+                ? new GetProductResult.Variation(view.optionId(), view.optionName(), view.typeId(), view.typeName())
+                : new GetProductResult.Variation(optId, "", pv.getTypeId().getValue(), "");
     }
 }

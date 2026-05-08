@@ -20,7 +20,7 @@ public record VariationMatrixResponse(
 
     public record Variant(
             String matrixKey,
-            String sku,
+            String originalMatrixKey,
             List<Variation> variations
     ) {}
 
