@@ -13,7 +13,7 @@ public record ProductSummaryResult(
             String name,
             String status,
             String slug,
-            VariantSummary variants
+            VariantSummary variant
     ) {}
 
     public record VariantSummary(

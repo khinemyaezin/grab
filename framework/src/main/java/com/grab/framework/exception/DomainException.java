@@ -8,6 +8,11 @@ public abstract class DomainException extends RuntimeException {
         this.messageSource = messageSource;
     }
 
+    public DomainException(MessageSource messageSource, String defaultMessage, Throwable cause) {
+        super(defaultMessage, cause);
+        this.messageSource = messageSource;
+    }
+
     public MessageSource getMessageSource() {
         return messageSource;
     }

@@ -11,10 +11,6 @@ public record ProductSearchCriteria(
     String sku,
     String variantStatus,
     String categoryId,
-    String sellerId,
-    String sellerType,
-    Boolean offerEligible,
-    ProductStatus productStatus,
-    Boolean feature)
-{
-}
+    String productStatus
+)
+{ }

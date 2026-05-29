@@ -16,8 +16,8 @@ import lombok.AllArgsConstructor;
 import java.util.*;
 
 @AllArgsConstructor
-public class ProductJpaRepository implements ProductRepository {
-    private static final Logger log = Loggers.getLogger(ProductJpaRepository.class);
+public class ProductRepositoryImpl implements ProductRepository {
+    private static final Logger log = Loggers.getLogger(ProductRepositoryImpl.class);
 
     private final ProductJpaAssembler productJpaAssembler;
     private final ProductJpaRepo productJpaRepo;

@@ -7,7 +7,9 @@ import java.util.*;
 
 @Getter
 @Entity
-@Table(name = "product_variant")
+@Table(name = "product_variant", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"sku", "product_id"})
+})
 public class ProductVariantEntity {
     @Setter
     @Id
@@ -15,7 +17,7 @@ public class ProductVariantEntity {
     private Long id;
 
     @Setter
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String sku;
 
     @Setter

@@ -1,6 +1,7 @@
 package com.catalog.infrastructure.repository.jpa;
 
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
+import com.catalog.infrastructure.repository.jpa.config.CategoryRepositoryTestConfig;
 import com.catalog.infrastructure.view.CategoryChildrenView;
 import com.catalog.infrastructure.view.CategoryNodeView;
 import com.catalog.infrastructure.view.CategoryView;

@@ -10,7 +10,6 @@ import org.junit.platform.suite.api.*;
         CategoryJpaRetrievingDelegateImplTest.class,
         CategoryNodeRepositoryImplTest.class,
         CategoryQueryRepositoryTest.class,
-        VariantOptionQueryRepoTest.class
 })
 public class CategoryRepositorySuite {
 }

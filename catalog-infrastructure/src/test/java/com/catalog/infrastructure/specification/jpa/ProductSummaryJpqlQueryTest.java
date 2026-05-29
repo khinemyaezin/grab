@@ -3,40 +3,27 @@ package com.catalog.infrastructure.specification.jpa;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
+import com.catalog.infrastructure.repository.jpa.config.ProductRepositoryTestConfig;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.data.jpa.repository.JpaContext;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DataJpaTest
-@ContextConfiguration(classes = ProductSummaryJpqlQueryTest.TestConfig.class)
-@TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
-        "spring.datasource.driverClassName=org.h2.Driver",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
-})
-class ProductSummaryJpqlQueryTest {
-
-    @EnableAutoConfiguration
-    @EntityScan(basePackages = "com.catalog.infrastructure.entity")
-    static class TestConfig {
-    }
+class ProductSummaryJpqlQueryTest  extends ProductRepositoryTestConfig {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private JpaContext jpaContext;
 
     @BeforeEach
     void setUp() {
@@ -190,19 +177,6 @@ class ProductSummaryJpqlQueryTest {
         assertEquals(1, page.getTotalElements());
         assertEquals("Slim Fit Jeans", page.getContent().getFirst().getName());
     }
-
-    @Test
-    void search_withNoFeatured_returnProductsUnderGivenCategoryId() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .feature(false)
-                .build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
-
-        assertEquals(3, page.getTotalElements());
-    }
-
 
     private void persistProduct(String name, String categoryId, VariantData... variants) {
         ProductEntity product = new ProductEntity();

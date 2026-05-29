@@ -2,6 +2,7 @@ package com.catalog.infrastructure.repository.jpa;
 
 import com.catalog.infrastructure.entity.entity.VariantOptionEntity;
 import com.catalog.infrastructure.entity.entity.VariantTypeEntity;
+import com.catalog.infrastructure.repository.jpa.config.VariationRepositoryTestConfig;
 import com.catalog.infrastructure.view.VariantOptionView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,10 +15,10 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
-class VariantOptionQueryRepoTest extends CategoryRepositoryTestConfig {
+class VariantOptionQueryRepoTest extends VariationRepositoryTestConfig {
 
     @Autowired
-    private VariantOptionQueryRepository variantOptionJpaRepo;
+    private VariantOptionJpaRepo variantOptionJpaRepo;
 
     @Autowired
     private EntityManager entityManager;
@@ -59,6 +60,41 @@ class VariantOptionQueryRepoTest extends CategoryRepositoryTestConfig {
                         tuple("opt-blue", "Blue", "type-color", "Color"),
                         tuple("opt-small", "Small", "type-size", "Size")
                 );
+    }
+
+    @Test
+    void findByNameContainingIgnoreCaseAndTypeId_withoutTypeId_returnsVariantOptions() {
+        String optionName = "blue";
+        List<VariantOptionView> matchedViewList = variantOptionJpaRepo.findByNameContainingIgnoreCaseAndTypeId(optionName, null);
+
+        assertThat(matchedViewList)
+                .extracting(VariantOptionView::optionId, VariantOptionView::optionName)
+                .containsExactlyInAnyOrder(
+                        tuple("opt-blue", "Blue")
+                );
+    }
+
+    @Test
+    void findByNameContainingIgnoreCaseAndTypeId_withTypeIdAndName_returnsVariantOptions() {
+        String optionName = "blue";
+        String typeId = "type-color";
+        List<VariantOptionView> matchedViewList = variantOptionJpaRepo.findByNameContainingIgnoreCaseAndTypeId(optionName, typeId);
+
+        assertThat(matchedViewList)
+                .extracting(VariantOptionView::optionId, VariantOptionView::optionName)
+                .containsExactlyInAnyOrder(
+                        tuple("opt-blue", "Blue")
+                );
+    }
+
+    @Test
+    void findByNameContainingIgnoreCaseAndTypeId_withDiffTypeIdAndName_returnsEmptyVariantOptions() {
+        String optionName = "blue";
+        String typeId = "type-size";
+        List<VariantOptionView> matchedViewList = variantOptionJpaRepo.findByNameContainingIgnoreCaseAndTypeId(optionName, typeId);
+
+        assertThat(matchedViewList)
+                .isEmpty();
     }
 
     private void persistTypeWithOptions(String typeUuid, String typeName, VariantOptionEntity... options) {

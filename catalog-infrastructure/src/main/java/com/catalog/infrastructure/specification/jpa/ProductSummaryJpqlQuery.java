@@ -101,7 +101,7 @@ public class ProductSummaryJpqlQuery {
             params.put("categoryId", criteria.categoryId());
         }
 
-        if(Objects.nonNull(criteria.productStatus())) {
+        if(StringUtils.hasLength(criteria.productStatus())) {
             conditions.add("p." + ProductEntity_.STATUS + " = :productStatus");
             params.put("productStatus", criteria.productStatus());
         }

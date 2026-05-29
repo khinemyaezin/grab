@@ -1,4 +1,4 @@
-package com.catalog.infrastructure.repository.jpa;
+package com.catalog.infrastructure.repository.jpa.config;
 
 import com.catalog.infrastructure.adapter.category.CategoryNodeInserter;
 import com.catalog.infrastructure.adapter.category.CategoryNodeRemover;
@@ -8,12 +8,14 @@ import com.catalog.infrastructure.adapter.category.impl.CategoryNodeRemoverImpl;
 import com.catalog.infrastructure.adapter.category.impl.CategoryNodeRetrieverImpl;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.factory.CategoryComponentFactory;
+import com.catalog.infrastructure.repository.jpa.*;
 import com.catalog.infrastructure.repository.jpa.adapter.CategoryJpaInsertingDelegateImpl;
 import com.catalog.infrastructure.repository.jpa.adapter.CategoryJpaRemovingDelegateImpl;
 import com.catalog.infrastructure.repository.jpa.adapter.CategoryJpaRetrievingDelegateImpl;
 import com.catalog.infrastructure.repository.jpa.adapter.CategoryNestedSetNodeRepositoryImpl;
 import com.catalog.infrastructure.repository.jpa.impl.CategoryNodeRepositoryImpl;
 import com.catalog.infrastructure.repository.jpa.impl.CategoryQueryRepositoryImpl;
+import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
 import com.nestedset.app.config.JpaNestedSetRepositoryConfiguration;
 import com.nestedset.app.service.TreeBuilder;
 import com.nestedset.app.service.TreeBuilderImpl;
@@ -22,7 +24,6 @@ import jakarta.persistence.EntityManagerFactory;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.data.jpa.repository.support.DefaultJpaContext;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
@@ -70,8 +71,8 @@ public class CategoryComponentTestConfig {
     }
 
     @Bean
-    VariantOptionQueryRepository variantOptionJpaRepo(EntityManager entityManager) {
-        return new JpaRepositoryFactory(entityManager).getRepository(VariantOptionQueryRepository.class);
+    VariantOptionJpaRepo variantOptionJpaRepo(EntityManager entityManager) {
+        return new JpaRepositoryFactory(entityManager).getRepository(VariantOptionJpaRepo.class);
     }
 
     @Bean
@@ -140,6 +141,6 @@ public class CategoryComponentTestConfig {
             CategoryJpaRepo categoryJpaRepo,
             CategoryNodeRepository categoryNodeRepository
     ) {
-        return new CategoryQueryRepositoryImpl(categoryJpaRepo, categoryNodeRepository);
+        return new CategoryQueryRepositoryImpl(categoryJpaRepo, categoryNodeRepository, new CatalogPersistenceExecutor());
     }
 }

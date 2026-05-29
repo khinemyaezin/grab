@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Optional;
 
 @AllArgsConstructor
-public class VariantTypeJpaRepository implements VariantTypeRepository {
-    private static final Logger log = Loggers.getLogger(VariantTypeJpaRepository.class);
+public class VariantTypeRepositoryImpl implements VariantTypeRepository {
+    private static final Logger log = Loggers.getLogger(VariantTypeRepositoryImpl.class);
 
     private final VariantTypeJpaAssembler variantTypeJpaAssembler;
     private final VariantTypeJpaRepo repository;

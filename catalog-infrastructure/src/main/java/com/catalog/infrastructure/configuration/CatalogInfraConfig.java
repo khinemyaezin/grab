@@ -22,6 +22,7 @@ import com.catalog.infrastructure.outbox.CatalogOutboxEventProducer;
 import com.catalog.infrastructure.repository.jpa.*;
 import com.catalog.infrastructure.repository.jpa.adapter.*;
 import com.catalog.infrastructure.repository.jpa.impl.*;
+import com.catalog.infrastructure.repository.jpa.impl.VariantOptionQueryRepositoryImpl;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
@@ -121,7 +122,7 @@ public class CatalogInfraConfig {
             ProductJpaRepo productJpaRepo,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
-        return new ProductJpaRepository(
+        return new ProductRepositoryImpl(
                 jpaAssembler, productJpaRepo, domainEventProducer, executor
         );
     }
@@ -138,7 +139,7 @@ public class CatalogInfraConfig {
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new VariantTypeJpaRepository(
+        return new VariantTypeRepositoryImpl(
                 variantTypeJpaAssembler,
                 variantTypeJpaRepo,
                 domainEventProducer,
@@ -152,7 +153,7 @@ public class CatalogInfraConfig {
             ProductSummaryMapper productSummaryMapper,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new ProductQueryJpqlRepository(
+        return new ProductQueryRepositoryImpl(
                 context.getEntityManagerByManagedType(ProductEntity.class),
                 productSummaryMapper,
                 executor
@@ -248,7 +249,7 @@ public class CatalogInfraConfig {
             CategoryJpaAssembler categoryJpaAssembler,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
-        return new CategoryJpaRepository(
+        return new CategoryJpaRepositoryImpl(
                 categoryNodeRepository,
                 categoryJpaRepository,
                 categoryJpaAssembler,
@@ -268,8 +269,25 @@ public class CatalogInfraConfig {
     @Bean
     public CategoryQueryRepository categoryQueryRepository(
             CategoryJpaRepo categoryJpaRepo,
-            CategoryNodeRepository categoryNodeRepository
+            CategoryNodeRepository categoryNodeRepository,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new CategoryQueryRepositoryImpl(categoryJpaRepo, categoryNodeRepository);
+        return new CategoryQueryRepositoryImpl(categoryJpaRepo, categoryNodeRepository, executor);
+    }
+
+    @Bean
+    public VariantOptionQueryRepository variantOptionQueryRepository(
+            VariantOptionJpaRepo variantOptionQueryJpaRepo,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new VariantOptionQueryRepositoryImpl(variantOptionQueryJpaRepo, executor);
+    }
+
+    @Bean
+    public VariantTypeQueryRepository variantTypeQueryRepository(
+            VariantTypeJpaRepo variantTypeJpaRepo,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new VariantTypeQueryRepositoryImpl(variantTypeJpaRepo, executor);
     }
 }

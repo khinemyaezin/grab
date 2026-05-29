@@ -19,6 +19,7 @@ public class VariantTypeEntity {
     @Column(name = "uuid", unique = true)
     private String uuid;
 
+    @Column(name = "name")
     private String name;
 
     @Column(name = "status")

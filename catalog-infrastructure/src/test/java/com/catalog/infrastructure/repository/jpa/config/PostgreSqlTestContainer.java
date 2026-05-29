@@ -1,4 +1,4 @@
-package com.catalog.infrastructure.repository.jpa;
+package com.catalog.infrastructure.repository.jpa.config;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
