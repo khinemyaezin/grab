@@ -25,9 +25,14 @@ public class UniqueSlugResolver {
             return baseSlug;
         }
 
-        Optional<Integer> maxSuffix = productRepository.findMaxSlugSuffix(baseSlug);
-        int nextSuffix = maxSuffix.map(max -> max + 1).orElse(2);
-        return baseSlug + "-" + nextSuffix;
+        int suffix = 2;
+        String nextSlug = baseSlug + "-" + suffix;
+        while (productRepository.isSlugTaken(nextSlug, currentProductId)) {
+            suffix++;
+            nextSlug = baseSlug + "-" + suffix;
+        }
+        
+        return nextSlug;
     }
 
     private String normalize(String value) {

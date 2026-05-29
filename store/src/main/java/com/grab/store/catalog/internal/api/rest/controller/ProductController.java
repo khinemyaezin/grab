@@ -164,14 +164,6 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping(value = "/featured", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<ProductSummaryResponse>> getFeaturedProducts(
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "20") int size) {
-        EntityModel<ProductSummaryResponse> response = productFacadeService.getFeaturedProducts(page, size);
-        return ResponseEntity.ok(response);
-    }
-
     @PostMapping(value = "/{productId}/submit-review", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntityModel<ProductModerationResponse>> submitForReview(
             @PathVariable("productId") String productId,

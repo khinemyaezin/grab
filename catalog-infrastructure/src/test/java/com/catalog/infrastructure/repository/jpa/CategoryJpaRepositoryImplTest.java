@@ -3,7 +3,7 @@ package com.catalog.infrastructure.repository.jpa;
 import com.catalog.domain.aggregate.Category;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.mapper.jpa.CategoryJpaAssembler;
-import com.catalog.infrastructure.repository.jpa.impl.CategoryJpaRepository;
+import com.catalog.infrastructure.repository.jpa.impl.CategoryJpaRepositoryImpl;
 import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
@@ -19,14 +19,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class CategoryJpaRepositoryTest {
+class CategoryJpaRepositoryImplTest {
 
     private CategoryNodeRepository categoryNodeRepository;
     private CategoryJpaRepo categoryJpaRepo;
     private CategoryJpaAssembler categoryJpaAssembler;
     private DomainEventProducer domainEventProducer;
     private CatalogPersistenceExecutor executor;
-    private CategoryJpaRepository repository;
+    private CategoryJpaRepositoryImpl repository;
 
     @BeforeEach
     void setUp() {
@@ -35,7 +35,7 @@ class CategoryJpaRepositoryTest {
         categoryJpaAssembler = mock(CategoryJpaAssembler.class);
         domainEventProducer = mock(DomainEventProducer.class);
         executor = new CatalogPersistenceExecutor();
-        repository = new CategoryJpaRepository(
+        repository = new CategoryJpaRepositoryImpl(
                 categoryNodeRepository,
                 categoryJpaRepo,
                 categoryJpaAssembler,

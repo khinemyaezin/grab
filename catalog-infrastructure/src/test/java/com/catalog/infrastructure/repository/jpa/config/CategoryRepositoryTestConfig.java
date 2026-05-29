@@ -1,4 +1,4 @@
-package com.catalog.infrastructure.repository.jpa;
+package com.catalog.infrastructure.repository.jpa.config;
 
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;

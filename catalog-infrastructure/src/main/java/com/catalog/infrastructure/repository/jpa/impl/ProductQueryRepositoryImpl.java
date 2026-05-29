@@ -14,8 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 @AllArgsConstructor
-public class ProductQueryJpqlRepository implements ProductQueryRepository {
-    private static final Logger log = Loggers.getLogger(ProductQueryJpqlRepository.class);
+public class ProductQueryRepositoryImpl implements ProductQueryRepository {
+    private static final Logger log = Loggers.getLogger(ProductQueryRepositoryImpl.class);
 
     private final EntityManager entityManager;
     private final ProductSummaryMapper productSummaryMapper;
@@ -24,8 +24,11 @@ public class ProductQueryJpqlRepository implements ProductQueryRepository {
     @Override
     public Page<ProductSummary> search(ProductSearchCriteria criteria, Pageable pageable) {
         log.debug("Searching product summaries with pageable={}", pageable);
-        Page<ProductSummary> page = executor.query("Product", () -> ProductSummaryJpqlQuery.search(entityManager, criteria, pageable)
+
+        Page<ProductSummary> page = executor.query("Product", () ->
+                ProductSummaryJpqlQuery.search(entityManager, criteria, pageable)
                 .map(productSummaryMapper::toProductSummary));
+
         log.debug("Product summary search returned {} elements", page.getTotalElements());
         return page;
     }

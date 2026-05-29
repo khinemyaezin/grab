@@ -9,7 +9,7 @@ import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.exception.CatalogInfraException;
 import com.grab.framework.event.DomainEventProducer;
 import com.catalog.infrastructure.mapper.jpa.ProductJpaAssembler;
-import com.catalog.infrastructure.repository.jpa.impl.ProductJpaRepository;
+import com.catalog.infrastructure.repository.jpa.impl.ProductRepositoryImpl;
 import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,21 +23,19 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class ProductJpaRepositoryTest {
+class ProductRepositoryImplTest {
 
     private ProductJpaAssembler productJpaAssembler;
     private ProductJpaRepo productJpaRepo;
     private DomainEventProducer domainEventProducer;
-    private CatalogPersistenceExecutor executor;
-    private ProductJpaRepository repository;
+    private ProductRepositoryImpl repository;
 
     @BeforeEach
     void setUp() {
         productJpaAssembler = mock(ProductJpaAssembler.class);
         productJpaRepo = mock(ProductJpaRepo.class);
         domainEventProducer = mock(DomainEventProducer.class);
-        executor = new CatalogPersistenceExecutor();
-        repository = new ProductJpaRepository(productJpaAssembler, productJpaRepo, domainEventProducer, executor);
+        repository = new ProductRepositoryImpl(productJpaAssembler, productJpaRepo, domainEventProducer, new CatalogPersistenceExecutor());
     }
 
     @Test

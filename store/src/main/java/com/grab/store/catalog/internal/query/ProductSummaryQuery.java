@@ -9,10 +9,7 @@ public record ProductSummaryQuery(
         String sku,
         String variantStatus,
         String categoryId,
-        String sellerId,
-        String sellerType,
-        Boolean offerEligible,
-        List<String> variations,
+        String productStatus,
         int page,
         int size
 ) implements Query<ProductSummaryResult> {

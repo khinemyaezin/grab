@@ -32,7 +32,6 @@ public class ProductQueryService {
     private final VariationMatrixQueryMapper variationMatrixQueryMapper;
     private final ProductCombinationModelAssembler productCombinationModelAssembler;
     private final ProductSummaryModelAssembler productSummaryModelAssembler;
-    private final ProductSummaryQueryMapper productSummaryQueryMapper;
     private final ProductSummaryDtoMapper productSummaryDtoMapper;
     private final ProductAuditDtoMapper productAuditDtoMapper;
 
@@ -66,15 +65,12 @@ public class ProductQueryService {
     public EntityModel<ProductSummaryResponse> getProductSummary(ProductSummaryRequest request) {
         log.info("Searching products");
 
-        ProductSummaryQuery query = productSummaryQueryMapper.toQuery(
+        ProductSummaryQuery query = new ProductSummaryQuery(
                 request.productName(),
                 request.sku(),
                 request.variantStatus(),
                 request.categoryId(),
-                request.sellerId(),
-                request.sellerType(),
-                request.offerEligible(),
-                request.variations(),
+                request.productStatus(),
                 request.page(),
                 request.size()
         );
@@ -102,16 +98,6 @@ public class ProductQueryService {
         GetProductBySlugResponse response = getProductBySlugDtoMapper.toResponse(result);
 
         return getProductBySlugModelAssembler.toModel(response);
-    }
-
-    public EntityModel<ProductSummaryResponse> getFeaturedProducts(int page, int size) {
-        log.info("Getting featured products");
-
-        GetFeaturedProductsQuery query = new GetFeaturedProductsQuery(page, size);
-        ProductSummaryResult result = queryBus.dispatch(query);
-        ProductSummaryResponse response = productSummaryDtoMapper.toResponse(result);
-
-        return productSummaryModelAssembler.toModel(response);
     }
 
     public EntityModel<ProductAuditResponse> getProductAudit(String productId) {

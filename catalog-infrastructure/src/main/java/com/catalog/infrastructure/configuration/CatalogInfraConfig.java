@@ -122,7 +122,7 @@ public class CatalogInfraConfig {
             ProductJpaRepo productJpaRepo,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
-        return new ProductJpaRepository(
+        return new ProductRepositoryImpl(
                 jpaAssembler, productJpaRepo, domainEventProducer, executor
         );
     }
@@ -139,7 +139,7 @@ public class CatalogInfraConfig {
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new VariantTypeJpaRepository(
+        return new VariantTypeRepositoryImpl(
                 variantTypeJpaAssembler,
                 variantTypeJpaRepo,
                 domainEventProducer,
@@ -153,7 +153,7 @@ public class CatalogInfraConfig {
             ProductSummaryMapper productSummaryMapper,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new ProductQueryJpqlRepository(
+        return new ProductQueryRepositoryImpl(
                 context.getEntityManagerByManagedType(ProductEntity.class),
                 productSummaryMapper,
                 executor
@@ -249,7 +249,7 @@ public class CatalogInfraConfig {
             CategoryJpaAssembler categoryJpaAssembler,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
-        return new CategoryJpaRepository(
+        return new CategoryJpaRepositoryImpl(
                 categoryNodeRepository,
                 categoryJpaRepository,
                 categoryJpaAssembler,
@@ -277,9 +277,17 @@ public class CatalogInfraConfig {
 
     @Bean
     public VariantOptionQueryRepository variantOptionQueryRepository(
-            VariantOptionQueryJpaRepo variantOptionQueryJpaRepo,
+            VariantOptionJpaRepo variantOptionQueryJpaRepo,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new VariantOptionQueryRepositoryImpl(variantOptionQueryJpaRepo, executor);
+    }
+
+    @Bean
+    public VariantTypeQueryRepository variantTypeQueryRepository(
+            VariantTypeJpaRepo variantTypeJpaRepo,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new VariantTypeQueryRepositoryImpl(variantTypeJpaRepo, executor);
     }
 }

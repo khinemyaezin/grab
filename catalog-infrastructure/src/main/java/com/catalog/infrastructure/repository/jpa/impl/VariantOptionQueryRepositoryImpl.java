@@ -1,6 +1,6 @@
 package com.catalog.infrastructure.repository.jpa.impl;
 
-import com.catalog.infrastructure.repository.jpa.VariantOptionQueryJpaRepo;
+import com.catalog.infrastructure.repository.jpa.VariantOptionJpaRepo;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
 import com.catalog.infrastructure.view.VariantOptionView;
 import com.grab.framework.logger.Logger;
@@ -15,7 +15,7 @@ import java.util.List;
 public class VariantOptionQueryRepositoryImpl implements VariantOptionQueryRepository {
     private static final Logger log = Loggers.getLogger(VariantOptionQueryRepositoryImpl.class);
 
-    private final VariantOptionQueryJpaRepo variantOptionQueryJpaRepo;
+    private final VariantOptionJpaRepo variantOptionQueryJpaRepo;
     private final PersistenceExecutor executor;
 
     @Override
@@ -25,5 +25,15 @@ public class VariantOptionQueryRepositoryImpl implements VariantOptionQueryRepos
         }
         log.debug("Querying variant options for uuids={}", uuids);
         return executor.query("VariantOption", () -> variantOptionQueryJpaRepo.findAllByUuidIn(uuids));
+    }
+
+    @Override
+    public List<VariantOptionView> findByNameAndTypeId(String name, String typeUuid) {
+        if (name == null || name.isBlank()) {
+            return Collections.emptyList();
+        }
+        log.debug("Querying variant options by name={}", name);
+        return executor.query("VariantOption", () ->
+                variantOptionQueryJpaRepo.findByNameContainingIgnoreCaseAndTypeId(name, typeUuid));
     }
 }

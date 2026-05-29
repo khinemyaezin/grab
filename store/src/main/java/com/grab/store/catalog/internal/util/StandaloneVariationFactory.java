@@ -26,4 +26,8 @@ public final class StandaloneVariationFactory {
         return Objects.equals(variation.getOptionId().getValue(), OPTION_ID)
                 && Objects.equals(variation.getTypeId().getValue(), TYPE_ID);
     }
+
+    public static boolean isStandAloneVariation(String id) {
+        return OPTION_ID.equals(id) || TYPE_ID.equals(id);
+    }
 }

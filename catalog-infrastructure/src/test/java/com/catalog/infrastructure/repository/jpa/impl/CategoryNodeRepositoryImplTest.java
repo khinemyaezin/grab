@@ -4,6 +4,7 @@ import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.exception.CatalogInfraError;
 import com.catalog.infrastructure.exception.CatalogInfraException;
 import com.catalog.infrastructure.repository.jpa.*;
+import com.catalog.infrastructure.repository.jpa.config.CategoryRepositoryTestConfig;
 import com.catalog.infrastructure.view.CategoryTreeNode;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class CategoryNodeRepositoryImplTest extends CategoryRepositoryTestConfig  {
+public class CategoryNodeRepositoryImplTest extends CategoryRepositoryTestConfig {
 
     @Autowired
     private CategoryNodeRepository categoryNodeRepository;

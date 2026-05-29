@@ -2,7 +2,7 @@ package com.catalog.infrastructure.repository.jpa.adapter;
 
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.repository.jpa.CategoryJpaRetrievingDelegate;
-import com.catalog.infrastructure.repository.jpa.CategoryRepositoryTestConfig;
+import com.catalog.infrastructure.repository.jpa.config.CategoryRepositoryTestConfig;
 import com.nestedset.app.config.JpaNestedSetRepositoryConfiguration;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;

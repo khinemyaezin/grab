@@ -82,10 +82,6 @@ public class ProductFacadeService {
         return productQueryService.getProductBySlug(slug);
     }
 
-    public EntityModel<ProductSummaryResponse> getFeaturedProducts(int page, int size) {
-        return productQueryService.getFeaturedProducts(page, size);
-    }
-
     public EntityModel<ProductModerationResponse> moderateProduct(String productId, String action, ProductModerationRequest request) {
         return productCommandService.moderateProduct(productId, action, request);
     }

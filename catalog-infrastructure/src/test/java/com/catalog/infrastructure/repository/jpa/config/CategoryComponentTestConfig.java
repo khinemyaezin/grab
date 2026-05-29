@@ -1,4 +1,4 @@
-package com.catalog.infrastructure.repository.jpa;
+package com.catalog.infrastructure.repository.jpa.config;
 
 import com.catalog.infrastructure.adapter.category.CategoryNodeInserter;
 import com.catalog.infrastructure.adapter.category.CategoryNodeRemover;
@@ -8,6 +8,7 @@ import com.catalog.infrastructure.adapter.category.impl.CategoryNodeRemoverImpl;
 import com.catalog.infrastructure.adapter.category.impl.CategoryNodeRetrieverImpl;
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.factory.CategoryComponentFactory;
+import com.catalog.infrastructure.repository.jpa.*;
 import com.catalog.infrastructure.repository.jpa.adapter.CategoryJpaInsertingDelegateImpl;
 import com.catalog.infrastructure.repository.jpa.adapter.CategoryJpaRemovingDelegateImpl;
 import com.catalog.infrastructure.repository.jpa.adapter.CategoryJpaRetrievingDelegateImpl;
@@ -70,8 +71,8 @@ public class CategoryComponentTestConfig {
     }
 
     @Bean
-    VariantOptionQueryJpaRepo variantOptionJpaRepo(EntityManager entityManager) {
-        return new JpaRepositoryFactory(entityManager).getRepository(VariantOptionQueryJpaRepo.class);
+    VariantOptionJpaRepo variantOptionJpaRepo(EntityManager entityManager) {
+        return new JpaRepositoryFactory(entityManager).getRepository(VariantOptionJpaRepo.class);
     }
 
     @Bean

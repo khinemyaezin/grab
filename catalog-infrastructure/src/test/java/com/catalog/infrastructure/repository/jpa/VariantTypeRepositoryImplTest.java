@@ -5,7 +5,7 @@ import com.catalog.domain.aggregate.VariantType;
 import com.catalog.infrastructure.entity.entity.VariantTypeEntity;
 import com.catalog.infrastructure.mapper.jpa.VariantTypeJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
-import com.catalog.infrastructure.repository.jpa.impl.VariantTypeJpaRepository;
+import com.catalog.infrastructure.repository.jpa.impl.VariantTypeRepositoryImpl;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
@@ -26,19 +26,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class VariantTypeJpaRepositoryTest {
+class VariantTypeRepositoryImplTest {
 
     private VariantTypeJpaAssembler variantTypeJpaAssembler;
     private VariantTypeJpaRepo variantTypeJpaRepo;
     private DomainEventProducer domainEventProducer;
-    private VariantTypeJpaRepository repository;
+    private VariantTypeRepositoryImpl repository;
 
     @BeforeEach
     void setUp() {
         variantTypeJpaAssembler = mock(VariantTypeJpaAssembler.class);
         variantTypeJpaRepo = mock(VariantTypeJpaRepo.class);
         domainEventProducer = mock(DomainEventProducer.class);
-        repository = new VariantTypeJpaRepository(
+        repository = new VariantTypeRepositoryImpl(
                 variantTypeJpaAssembler, variantTypeJpaRepo,
                 domainEventProducer, new CatalogPersistenceExecutor());
     }

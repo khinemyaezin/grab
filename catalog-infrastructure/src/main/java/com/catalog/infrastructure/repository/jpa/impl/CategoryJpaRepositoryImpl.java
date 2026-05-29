@@ -16,8 +16,8 @@ import lombok.AllArgsConstructor;
 import java.util.Optional;
 
 @AllArgsConstructor
-public class CategoryJpaRepository implements CategoryRepository {
-    private static final Logger log = Loggers.getLogger(CategoryJpaRepository.class);
+public class CategoryJpaRepositoryImpl implements CategoryRepository {
+    private static final Logger log = Loggers.getLogger(CategoryJpaRepositoryImpl.class);
 
     private final CategoryNodeRepository categoryNodeRepository;
     private final CategoryJpaRepo categoryJpaRepository;
