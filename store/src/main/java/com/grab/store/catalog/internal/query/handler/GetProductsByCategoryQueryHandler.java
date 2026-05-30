@@ -1,8 +1,10 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.valueobject.ProductStatus;
+import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
+import com.catalog.infrastructure.view.CategoryView;
 import com.catalog.infrastructure.view.ProductSummary;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.framework.logger.Logger;
@@ -17,6 +19,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class GetProductsByCategoryQueryHandler implements QueryHandler<GetProduc
     private static final Logger log = Loggers.getLogger(GetProductsByCategoryQueryHandler.class);
 
     private final ProductQueryRepository productQueryRepository;
+    private final CategoryQueryRepository categoryQueryRepository;
 
     @Override
     @CatalogReadTransactional
@@ -47,12 +52,20 @@ public class GetProductsByCategoryQueryHandler implements QueryHandler<GetProduc
     }
 
     private List<ProductSummaryResult.Product> mapToResultProducts(List<ProductSummary> summaries) {
+        List<String> categoryIds = summaries.stream().map(ProductSummary::categoryId).toList();
+        List<CategoryView> categoryViews = fetchCategories(categoryIds);
+        Map<String, String> categoryViewMap = categoryViews.stream().collect(Collectors.toMap(
+                CategoryView::id,
+                CategoryView::name
+        ));
+
         return summaries.stream()
                 .map(summary -> new ProductSummaryResult.Product(
                         summary.id(),
                         summary.name(),
                         summary.status(),
                         summary.slug(),
+                        resolveCategoryName(categoryViewMap, summary.categoryId()),
                         new ProductSummaryResult.VariantSummary(
                                 summary.variantSummary().available(),
                                 extractVariantTypes(summary.variantSummary())
@@ -78,5 +91,15 @@ public class GetProductsByCategoryQueryHandler implements QueryHandler<GetProduc
     @Override
     public Class<GetProductsByCategoryQuery> getQueryType() {
         return GetProductsByCategoryQuery.class;
+    }
+
+    private List<CategoryView> fetchCategories(List<String> categoryIds) {
+        return categoryQueryRepository.findViewByIds(categoryIds);
+    }
+
+    private String resolveCategoryName(Map<String, String> categoryViewMap, String categoryId) {
+        String name = categoryViewMap.get(categoryId);
+        log.info("Resolving category name:{} by Id:{} ", name, categoryId);
+        return name != null ? name : categoryId;
     }
 }

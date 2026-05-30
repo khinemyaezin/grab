@@ -76,6 +76,13 @@ public class CategoryQueryRepositoryImpl implements CategoryQueryRepository {
                 .toList());
     }
 
+    @Override
+    public List<CategoryView> findViewByIds(List<String> ids) {
+        log.debug("Searching nodes by ids={}", ids);
+        return executor.query("Category", ()->
+            categoryJpaRepo.findAllByUuids(ids));
+    }
+
     private CategoryNodeView toNodeView(CategoryTreeNode node) {
         return new CategoryNodeView(
                 node.entity().getUuid(),

@@ -20,6 +20,7 @@ public interface ProductSummaryMapper {
     @Mapping(source = ProductEntity_.NAME, target = "name")
     @Mapping(source = ProductEntity_.STATUS, target = "status")
     @Mapping(source = ProductEntity_.SLUG, target = "slug")
+    @Mapping(source = ProductEntity_.CATEGORY_ENTITY, target = "categoryId")
     @Mapping(source = ProductEntity_.PRODUCT_VARIANT_ENTITIES, target = "variantSummary", qualifiedByName = "VariantSummary")
     ProductSummary toProductSummary(ProductEntity productEntity);
 

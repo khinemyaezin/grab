@@ -22,6 +22,7 @@ public abstract class PostgreSqlTestContainer {
         registry.add("spring.datasource.username", POSTGRESQL::getUsername);
         registry.add("spring.datasource.password", POSTGRESQL::getPassword);
         registry.add("spring.datasource.driver-class-name", POSTGRESQL::getDriverClassName);
+        registry.add("spring.jpa.hibernate.show_sql", () -> "true");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 }

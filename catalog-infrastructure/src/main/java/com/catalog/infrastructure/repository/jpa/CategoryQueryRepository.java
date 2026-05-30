@@ -20,4 +20,6 @@ public interface CategoryQueryRepository {
     Optional<CategoryView> findParent(String categoryId);
 
     List<CategoryView> findLeafNodesByName(String name);
+
+    List<CategoryView> findViewByIds(List<String> ids);
 }
