@@ -7,7 +7,7 @@ public record ProductSummary(
         String name,
         String status,
         String slug,
-        boolean featured,
+        String categoryId,
         VariantSummary variantSummary
 ) {
 

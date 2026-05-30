@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
@@ -37,7 +38,7 @@ public class GetCategoryQueryHandler implements QueryHandler<GetCategoryQuery, C
         return new CategoryResult(
                 category.getId().getValue(),
                 category.getName(),
-                category.getParentId().map(id -> id.getValue()).orElse(null),
+                category.getParentId().map(Id::getValue).orElse(null),
                 category.isActive(),
                 category.isListingAllowed(),
                 category.isReviewRequired(),

@@ -1,9 +1,12 @@
 package com.grab.store.catalog.internal.query.handler;
 
-import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.domain.repository.CategoryRepository;
+import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
+import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
+import com.catalog.infrastructure.view.CategoryView;
 import com.catalog.infrastructure.view.ProductSummary;
 import com.catalog.infrastructure.view.VariantOptionView;
 import com.grab.framework.cqrs.query.QueryHandler;
@@ -31,6 +34,7 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
 
     private final ProductQueryRepository productQueryRepository;
     private final VariantOptionQueryRepository variantOptionQueryRepository;
+    private final CategoryQueryRepository categoryRepository;
 
     @Override
     @CatalogReadTransactional
@@ -71,6 +75,12 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                 .stream()
                 .collect(Collectors.toMap(VariantOptionView::optionId, Function.identity(), (a, b) -> a));
 
+        List<String> categoryIds = summaries.stream().map(ProductSummary::categoryId).toList();
+        List<CategoryView> categoryViews = fetchCategories(categoryIds);
+        Map<String, String> categoryViewMap = categoryViews.stream().collect(Collectors.toMap(
+                CategoryView::id,
+                CategoryView::name
+        ));
 
         return summaries.stream()
                 .map(summary -> new ProductSummaryResult.Product(
@@ -78,6 +88,7 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                         summary.name(),
                         summary.status(),
                         summary.slug(),
+                        resolveCategoryName(categoryViewMap, summary.categoryId()),
                         new ProductSummaryResult.VariantSummary(
                                 summary.variantSummary().available(),
                                 extractVariantTypes(summary.variantSummary(), variationMapByOptionId)
@@ -115,5 +126,15 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
 
     private List<VariantOptionView> fetchVariantOptions(List<String> optionIds) {
         return variantOptionQueryRepository.findAllByUuidIn(optionIds);
+    }
+
+    private List<CategoryView> fetchCategories(List<String> categoryIds) {
+        return categoryRepository.findViewByIds(categoryIds);
+    }
+
+    private String resolveCategoryName(Map<String, String> categoryViewMap, String categoryId) {
+        String name = categoryViewMap.get(categoryId);
+        log.info("Resolving category name:{} by Id:{} ", name, categoryId);
+        return name != null ? name : categoryId;
     }
 }
