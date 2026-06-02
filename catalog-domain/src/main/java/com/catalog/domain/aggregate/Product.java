@@ -159,6 +159,12 @@ public class Product extends AggregateRoot<Id> {
                 .findFirst();
     }
 
+    public Optional<ProductVariant> findVariantBySku(String sku) {
+        return variants.stream()
+                .filter(v -> v.getSku().equalsIgnoreCase(sku))
+                .findFirst();
+    }
+
     public boolean restoreVariant(Id id) {
         return findVariantById(id)
                 .filter(ProductVariant::isDeleted)
@@ -170,14 +176,21 @@ public class Product extends AggregateRoot<Id> {
                 .orElse(false);
     }
 
-    public boolean addVariant(ProductVariant variant) {
-        return addVariant(variant, this.variants.size());
+    /**
+     * @param variant the variant to be added. Its ID can be null or non-null, but if non-null, it must not conflict with existing variants.
+     * @throws CatalogDomainValidationException if the variant has duplicate SKU or duplicate variation combination with existing variants.
+     */
+    public void addVariant(ProductVariant variant) throws CatalogDomainValidationException{
+        addVariant(variant, this.variants.size());
     }
 
-    public boolean addVariant(ProductVariant variant, int index) {
-        if (hasDuplicateVariant(variant, index)) return false;
+    public void addVariant(ProductVariant variant, int index) throws CatalogDomainValidationException{
+        if (hasDuplicateVariant(variant, index))
+            throw new CatalogDomainValidationException(
+                    new CatalogDomainError.DuplicateSKU(variant.getSku()),
+                    "Duplicate variant with SKU: " + variant.getSku()
+            );
         this.variants.add(index, variant);
-        return true;
     }
 
     private boolean hasDuplicateVariant(ProductVariant candidate, int ignoredVariantIndex) {

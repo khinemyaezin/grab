@@ -3,9 +3,11 @@ package com.grab.store.catalog.internal.query.handler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
+import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
@@ -36,13 +38,21 @@ class GetProductQueryHandlerTest {
     @Mock
     private VariantOptionQueryRepository variantOptionQueryRepository;
     @Mock
+    private CategoryQueryRepository categoryQueryRepository;
+    @Mock
     private IdGenerator idGenerator;
+    @Mock
+    private MatrixKeyGenerator matrixKeyGenerator;
 
     private GetProductQueryHandler getProductQueryHandler;
 
     @BeforeEach
     void setUp() {
-        getProductQueryHandler = new GetProductQueryHandler(productRepository, variantOptionQueryRepository, idGenerator);
+        getProductQueryHandler = new GetProductQueryHandler(productRepository,
+                variantOptionQueryRepository,
+                idGenerator,
+                categoryQueryRepository,
+                matrixKeyGenerator);
     }
 
     @Test

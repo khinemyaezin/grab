@@ -266,6 +266,7 @@ ALTER TABLE product ADD COLUMN featured BOOLEAN NOT NULL DEFAULT FALSE;
 | P2       | `GET`  | `/api/v1/products/featured`               | `page`, `size`        | `ProductSummaryResponse` (paginated)|
 
 #### FullProductResponse
+
 ```json
 {
   "id": "prod-001",
@@ -273,15 +274,28 @@ ALTER TABLE product ADD COLUMN featured BOOLEAN NOT NULL DEFAULT FALSE;
   "slug": "classic-t-shirt",
   "status": "ACTIVE",
   "featured": true,
-  "categoryId": "cat-001",
+  "category": {
+    "id": "category-1",
+    "name": "Men-Clothing"
+  },
   "variants": [
     {
       "id": "var-001",
       "sku": "TSHIRT-RED-L",
       "status": "ACTIVE",
       "variations": [
-        { "typeId": "type-1", "typeName": "Color", "optionId": "opt-1", "optionName": "Red" },
-        { "typeId": "type-2", "typeName": "Size", "optionId": "opt-4", "optionName": "L" }
+        {
+          "typeId": "type-1",
+          "typeName": "Color",
+          "optionId": "opt-1",
+          "optionName": "Red"
+        },
+        {
+          "typeId": "type-2",
+          "typeName": "Size",
+          "optionId": "opt-4",
+          "optionName": "L"
+        }
       ]
     }
   ],
@@ -290,8 +304,14 @@ ALTER TABLE product ADD COLUMN featured BOOLEAN NOT NULL DEFAULT FALSE;
       "typeId": "type-1",
       "typeName": "Color",
       "options": [
-        { "optionId": "opt-1", "optionName": "Red" },
-        { "optionId": "opt-2", "optionName": "Blue" }
+        {
+          "optionId": "opt-1",
+          "optionName": "Red"
+        },
+        {
+          "optionId": "opt-2",
+          "optionName": "Blue"
+        }
       ]
     }
   ]

@@ -1,6 +1,8 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.*;
+import com.catalog.domain.exception.CatalogDomainError;
+import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.service.SkuGenerator;
@@ -11,6 +13,7 @@ import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.catalog.domain.valueobject.*;
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.exception.DomainException;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
@@ -109,17 +112,12 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     private void applyVariantSync(Product product, UpdateProductCommand command) {
         UpdateProductCommand.VariantSync variantSync = command.variantSync();
         UpdateProductCommand.VariantSyncIntent intent =
-                        Objects.isNull(variantSync) || Objects.isNull(variantSync.intent())
+                Objects.isNull(variantSync) || Objects.isNull(variantSync.intent())
                         ? UpdateProductCommand.VariantSyncIntent.LEAVE_AS_IS
                         : variantSync.intent();
 
         switch (intent) {
-            case LEAVE_AS_IS -> {
-            }
-            case COLLAPSE_TO_STANDALONE -> {
-                validateOverridesPresent(variantSync, UpdateProductCommand.VariantSyncIntent.COLLAPSE_TO_STANDALONE);
-                syncProductVariants(product, List.of(createStandaloneVariant(command)));
-            }
+            case COLLAPSE_TO_STANDALONE -> syncProductVariants(product, List.of(createStandaloneVariant(command)));
             case FULL_SYNC -> handleFullSync(product, variantSync);
         }
 
@@ -192,9 +190,15 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
             );
         }
 
-        if (combinationResult.matchedType() ==
-                MatrixCombinationSynchronizer.VariantCombinationResult.MatchedType.UNCHANGED) {
-            return combinationResult.productVariants().getFirst();
+        if (Objects.equals(combinationResult.matchedType(),
+                MatrixCombinationSynchronizer.VariantCombinationResult.MatchedType.UNCHANGED)) {
+            ProductVariant existingVariant = combinationResult.productVariants().getFirst();
+
+            return ProductVariant.create(
+                    existingVariant.getId(),
+                    overrideVariant.sku(),
+                    new ArrayList<>(existingVariant.getVariations())
+            );
         }
 
         return createVariant(
@@ -251,9 +255,11 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
 
     private ProductVariant createStandaloneVariant(UpdateProductCommand command) {
         UpdateProductCommand.Variant variant = command.variantSync().overrides().stream()
-                .findFirst().orElse(null);
+                .findFirst()
+                .orElse(null);
         List<ProductVariation> variations = StandaloneVariationFactory.create(idGenerator);
-        String sku = variant != null && StringUtils.hasText(variant.sku())
+        String sku = variant != null
+                && StringUtils.hasText(variant.sku())
                 ? variant.sku()
                 : generateSku(command.name(), variations);
 
@@ -268,26 +274,13 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return skuGenerator.generate(new SkuGenerator.Context(productName, variations));
     }
 
-    private void validateOverridesPresent(UpdateProductCommand.VariantSync variantSync, UpdateProductCommand.VariantSyncIntent intent) {
-        if (variantSync == null || variantSync.overrides() == null || variantSync.overrides().isEmpty()) {
-            throw new CatalogServiceException(
-                    new CatalogServiceError.EmptyVariantOverrides(intent.name())
-            );
-        }
-    }
-
     private void syncProductVariants(Product product, List<ProductVariant> targetVariants) {
         for (ProductVariant targetVariant : targetVariants) {
             Optional<ProductVariant> existing = product.findVariantByVariation(targetVariant.getVariations());
             if (existing.isPresent()) {
                 updateVariant(product, existing.get(), targetVariant);
             } else {
-                boolean added = product.addVariant(targetVariant);
-                if (!added) {
-                    throw new CatalogServiceException(
-                            new CatalogServiceError.VariantAddFailed(targetVariant.getId().getValue())
-                    );
-                }
+                product.addVariant(targetVariant);
             }
         }
 

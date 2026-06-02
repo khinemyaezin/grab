@@ -17,7 +17,8 @@ public sealed interface CatalogDomainError extends MessageSource permits
         CatalogDomainError.InvalidVariantOptionName,
         CatalogDomainError.DuplicateVariantOption,
         CatalogDomainError.VariantOptionTypeMismatch,
-        CatalogDomainError.DuplicateCategoryVariantTypeLink {
+        CatalogDomainError.DuplicateCategoryVariantTypeLink,
+        CatalogDomainError.DuplicateSKU {
 
     record InvalidProductStatusTransition(String currentStatus, String newStatus) implements CatalogDomainError {
         @Override
@@ -237,6 +238,26 @@ public sealed interface CatalogDomainError extends MessageSource permits
             return Map.of(
                     "categoryId", categoryId,
                     "typeId", typeId
+            );
+        }
+    }
+
+
+    record DuplicateSKU(String sku) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.duplicate_sku";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "sku", sku
             );
         }
     }

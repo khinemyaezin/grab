@@ -235,11 +235,7 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
 
     private void addVariants(Product product, List<ProductVariant> variants) {
         for (ProductVariant variant : variants) {
-            if (!product.addVariant(variant)) {
-                throw new CatalogServiceException(
-                        new CatalogServiceError.VariantAddFailed(variant.getSku())
-                );
-            }
+            product.addVariant(variant);
         }
     }
 }

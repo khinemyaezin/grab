@@ -1,6 +1,9 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.domain.service.MatrixKeyGenerator;
+import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
+import com.catalog.infrastructure.view.CategoryView;
 import com.catalog.infrastructure.view.VariantOptionView;
 import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
@@ -35,6 +38,8 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     private final ProductRepository productRepository;
     private final VariantOptionQueryRepository variantOptionQueryRepository;
     private final IdGenerator idGenerator;
+    private final CategoryQueryRepository categoryQueryRepository;
+    private final MatrixKeyGenerator matrixKeyGenerator;
 
     @Override
     @CatalogReadTransactional
@@ -54,7 +59,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         return GetProductQuery.class;
     }
 
-    public  GetProductResult mapToResult(Product product) {
+    public GetProductResult mapToResult(Product product) {
         List<ProductVariation> allVariations = product.getVariants().stream()
                 .flatMap(v -> v.getVariations().stream())
                 .toList();
@@ -65,15 +70,16 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 .toList();
 
         List<VariantOptionView> optionViews = fetchVariantOptions(optionIds);
-
         List<GetProductResult.Variant> variants = mapToResultVariantList(product.getVariants(), optionViews);
-
         List<GetProductResult.VariantType> variantTypes = extractVariantTypes(optionViews);
+        GetProductResult.Category category = findCategoryById(product.getCategoryId())
+                .map(this::mapToCategory)
+                .orElse(null);
 
         return new GetProductResult(
                 product.getId().getValue(),
                 product.getName(),
-                product.getCategoryId().getValue(),
+                category,
                 product.getListingCondition() == null ? null : product.getListingCondition().name(),
                 product.getStatus().name(),
                 product.getSlug(),
@@ -83,7 +89,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     }
 
     private List<GetProductResult.VariantType> extractVariantTypes(List<VariantOptionView> optionViews) {
-        if( optionViews == null || optionViews.isEmpty() ) return Collections.emptyList();
+        if (optionViews == null || optionViews.isEmpty()) return Collections.emptyList();
 
         ParentChildTransformer<VariantOptionView, Id, GetProductResult.VariantType, GetProductResult.VariantOption> transformer =
                 ParentChildTransformer.of(
@@ -115,10 +121,13 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                     .filter(Objects::nonNull)
                     .toList();
 
+            String matrixKey = matrixKeyGenerator.generateKey(new ArrayList<>(variant.getVariations()));
+
             return new GetProductResult.Variant(
                     variant.getId().getValue(),
                     variant.getSku(),
                     variant.getStatus().name(),
+                    matrixKey,
                     variations
             );
         }).toList();
@@ -135,5 +144,18 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         return (view != null)
                 ? new GetProductResult.Variation(view.optionId(), view.optionName(), view.typeId(), view.typeName())
                 : new GetProductResult.Variation(optId, "", pv.getTypeId().getValue(), "");
+    }
+
+    private Optional<CategoryView> findCategoryById(Id id) {
+        List<CategoryView> matchedCategoryViews = this.categoryQueryRepository.findViewByIds(List.of(id.getValue()));
+        if (!matchedCategoryViews.isEmpty()) {
+            return Optional.of(matchedCategoryViews.getFirst());
+        }
+        log.error("Category id {} not found", id);
+        return Optional.empty();
+    }
+
+    private GetProductResult.Category mapToCategory(CategoryView categoryView) {
+        return new GetProductResult.Category(categoryView.id(), categoryView.name());
     }
 }

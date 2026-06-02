@@ -1,6 +1,7 @@
 package com.catalog.domain.specification;
 
 import com.catalog.domain.aggregate.*;
+import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.id.Id;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -57,8 +58,8 @@ public class ProductVariantDuplicateTest {
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
-        assertTrue(product.addVariant(variant1));
-        assertFalse(product.addVariant(variant2));
+        assertDoesNotThrow(() -> product.addVariant(variant1));
+        assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
         assertEquals(1, product.getVariants().size());
     }
 
@@ -76,8 +77,8 @@ public class ProductVariantDuplicateTest {
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
 
-        product.addVariant(variant1);
-        assertFalse(product.addVariant(variant2));
+        assertDoesNotThrow(() -> product.addVariant(variant1));
+        assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
     }
 
     @Test
@@ -94,8 +95,8 @@ public class ProductVariantDuplicateTest {
                 new ProductVariation(new CommonId("red"), new CommonId("color"))
         ));
 
-        assertTrue(product.addVariant(variant1));
-        assertFalse(product.addVariant(variant2));
+        assertDoesNotThrow(() -> product.addVariant(variant1));
+        assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
         assertEquals(1, product.getVariants().size());
     }
     @Test
@@ -112,8 +113,8 @@ public class ProductVariantDuplicateTest {
                 new ProductVariation(new CommonId("red"), new CommonId("color"))
         ));
 
-        assertTrue(product.addVariant(variant1));
-        assertFalse(product.addVariant(variant2));
+        assertDoesNotThrow(() -> product.addVariant(variant1));
+        assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
         assertEquals(1, product.getVariants().size());
     }
 
@@ -131,8 +132,8 @@ public class ProductVariantDuplicateTest {
                 new ProductVariation(new CommonId("blue"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
         ));
-        assertTrue(product.addVariant(variant1));
-        assertTrue(product.addVariant(variant2));
+        assertDoesNotThrow(() -> product.addVariant(variant1));
+        assertDoesNotThrow(() -> product.addVariant(variant2));
         assertEquals(2, product.getVariants().size());
     }
 } 
