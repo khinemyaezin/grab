@@ -5,7 +5,7 @@ import java.util.List;
 public record GetProductResult(
         String id,
         String name,
-        String categoryId,
+        Category category,
         String condition,
         String status,
         String slug,
@@ -13,10 +13,16 @@ public record GetProductResult(
         List<VariantType> variantTypes
 ) {
 
+    public record Category(
+            String id,
+            String name
+    ){}
+
     public record Variant(
             String id,
             String sku,
             String status,
+            String matrixKey,
             List<Variation> variations
     ) {}
 

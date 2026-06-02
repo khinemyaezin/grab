@@ -1,5 +1,8 @@
 package com.grab.framework.exception;
 
+import lombok.Getter;
+
+@Getter
 public abstract class DomainException extends RuntimeException {
     protected final MessageSource messageSource;
 
@@ -13,7 +16,4 @@ public abstract class DomainException extends RuntimeException {
         this.messageSource = messageSource;
     }
 
-    public MessageSource getMessageSource() {
-        return messageSource;
-    }
 }
