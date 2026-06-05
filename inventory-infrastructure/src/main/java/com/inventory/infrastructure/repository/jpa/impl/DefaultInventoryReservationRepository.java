@@ -61,16 +61,16 @@ public class DefaultInventoryReservationRepository implements InventoryReservati
     }
 
     @Override
-    public Page<InventoryReservationView> queryByInventoryItemId(Id inventoryItemId, Pageable pageable) {
+    public Page<InventoryReservationView> queryByInventoryItemId(String inventoryItemId, Pageable pageable) {
         return executor.query("InventoryReservation", () -> jpaRepository.findAllByInventoryItemUuid(
-                inventoryItemId.getValue(),
+                inventoryItemId,
                 pageable
         ));
     }
 
     @Override
-    public Page<InventoryReservationView> queryActiveByOrderId(Id orderId, Pageable pageable) {
+    public Page<InventoryReservationView> queryActiveByOrderId(String orderId, Pageable pageable) {
         return executor.query("InventoryReservation", () ->
-                jpaRepository.findAllByOrderIdAndStatus(orderId.getValue(), InventoryReservationStatus.ACTIVE, pageable));
+                jpaRepository.findAllByOrderIdAndStatus(orderId, InventoryReservationStatus.ACTIVE, pageable));
     }
 }

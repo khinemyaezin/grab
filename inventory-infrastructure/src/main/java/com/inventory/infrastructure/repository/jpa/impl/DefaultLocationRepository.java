@@ -46,19 +46,19 @@ public class DefaultLocationRepository implements LocationRepository, LocationQu
     }
 
     @Override
-    public Page<LocationView> queryAll(Id sellerId, Pageable pageable) {
-        return executor.query("Location", () -> jpaRepository.findAllBySellerId(sellerId.getValue(), pageable));
+    public Page<LocationView> queryAll(String sellerId, Pageable pageable) {
+        return executor.query("Location", () -> jpaRepository.findAllBySellerId(sellerId, pageable));
     }
 
     @Override
-    public Page<LocationView> queryByActive(Id sellerId, Pageable pageable) {
+    public Page<LocationView> queryByActive(String sellerId, Pageable pageable) {
         return executor.query("Location", () ->
-                jpaRepository.findAllBySellerIdAndActiveTrue(sellerId.getValue(), pageable));
+                jpaRepository.findAllBySellerIdAndActiveTrue(sellerId, pageable));
     }
 
     @Override
-    public Page<LocationView> queryByType(Id sellerId, LocationType type, Pageable pageable) {
-        return executor.query("Location", () -> jpaRepository.findAllBySellerIdAndType(sellerId.getValue(), type, pageable));
+    public Page<LocationView> queryByType(String sellerId, LocationType type, Pageable pageable) {
+        return executor.query("Location", () -> jpaRepository.findAllBySellerIdAndType(sellerId, type, pageable));
     }
 
     @Override

@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface LocationQueryRepository {
-    Page<LocationView> queryAll(Id sellerId, Pageable pageable);
-    Page<LocationView> queryByActive(Id sellerId, Pageable pageable);
-    Page<LocationView> queryByType(Id sellerId, LocationType type, Pageable pageable);
+    Page<LocationView> queryAll(String sellerId, Pageable pageable);
+    Page<LocationView> queryByActive(String sellerId, Pageable pageable);
+    Page<LocationView> queryByType(String sellerId, LocationType type, Pageable pageable);
 }

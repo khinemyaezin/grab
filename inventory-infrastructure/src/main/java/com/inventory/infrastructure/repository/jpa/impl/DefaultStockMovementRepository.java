@@ -54,18 +54,18 @@ public class DefaultStockMovementRepository implements StockMovementRepository, 
     }
 
     @Override
-    public Page<StockMovementView> queryByInventoryItemId(Id inventoryItemId, Pageable pageable) {
+    public Page<StockMovementView> queryByInventoryItemId(String inventoryItemId, Pageable pageable) {
         return executor.query("StockMovement", () ->
                 jpaRepository.findAllByInventoryItemUuidOrderByCreatedAtDesc(
-                        inventoryItemId.getValue(),
+                        inventoryItemId,
                         pageable
                 ));
     }
 
     @Override
-    public Page<StockMovementView> queryByInventoryItemIdAndDateRange(Id inventoryItemId, LocalDateTime from, LocalDateTime to, Pageable pageable) {
+    public Page<StockMovementView> queryByInventoryItemIdAndDateRange(String inventoryItemId, LocalDateTime from, LocalDateTime to, Pageable pageable) {
         return executor.query("StockMovement", () ->
-                jpaRepository.findByInventoryItemUuidAndDateRange(inventoryItemId.getValue(), from, to, pageable));
+                jpaRepository.findByInventoryItemUuidAndDateRange(inventoryItemId, from, to, pageable));
     }
 
     @Override
@@ -89,8 +89,8 @@ public class DefaultStockMovementRepository implements StockMovementRepository, 
     }
 
     @Override
-    public int countByInventoryItemIdAndType(Id inventoryItemId, StockMovementType type) {
+    public int countByInventoryItemIdAndType(String inventoryItemId, StockMovementType type) {
         return executor.query("StockMovement", () ->
-                jpaRepository.countByInventoryItemUuidAndType(inventoryItemId.getValue(), type));
+                jpaRepository.countByInventoryItemUuidAndType(inventoryItemId, type));
     }
 }

@@ -6,6 +6,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface InventoryReservationQueryRepository {
-    Page<InventoryReservationView> queryByInventoryItemId(Id inventoryItemUuid, Pageable pageable);
-    Page<InventoryReservationView> queryActiveByOrderId(Id orderId, Pageable pageable);
+    Page<InventoryReservationView> queryByInventoryItemId(String inventoryItemUuid, Pageable pageable);
+    Page<InventoryReservationView> queryActiveByOrderId(String orderId, Pageable pageable);
 }

@@ -9,10 +9,10 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 
 public interface StockMovementQueryRepository {
-    Page<StockMovementView> queryByInventoryItemId(Id inventoryItemId, Pageable pageable);
-    Page<StockMovementView> queryByInventoryItemIdAndDateRange(Id inventoryItemId, LocalDateTime from, LocalDateTime to, Pageable pageable);
+    Page<StockMovementView> queryByInventoryItemId(String inventoryItemId, Pageable pageable);
+    Page<StockMovementView> queryByInventoryItemIdAndDateRange(String inventoryItemId, LocalDateTime from, LocalDateTime to, Pageable pageable);
     Page<StockMovementView> queryByReferenceId(String referenceId, Pageable pageable);
     Page<StockMovementView> queryByType(StockMovementType type, Pageable pageable);
     Page<StockMovementView> queryRecentMovements(int days, Pageable pageable);
-    int countByInventoryItemIdAndType(Id inventoryItemId, StockMovementType type);
+    int countByInventoryItemIdAndType(String inventoryItemId, StockMovementType type);
 }

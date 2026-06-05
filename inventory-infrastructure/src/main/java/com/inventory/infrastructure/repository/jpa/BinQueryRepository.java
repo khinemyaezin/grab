@@ -6,6 +6,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface BinQueryRepository {
-    Page<BinView> queryByZoneId(Id zoneId, Pageable pageable);
-    Page<BinView> queryByZoneIdAndActive(Id zoneId, boolean active, Pageable pageable);
+    Page<BinView> queryByZoneId(String zoneId, Pageable pageable);
+    Page<BinView> queryByZoneIdAndActive(String zoneId, boolean active, Pageable pageable);
 }

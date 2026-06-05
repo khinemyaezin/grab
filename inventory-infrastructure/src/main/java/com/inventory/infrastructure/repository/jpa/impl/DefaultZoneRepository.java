@@ -39,15 +39,15 @@ public class DefaultZoneRepository implements ZoneRepository, ZoneQueryRepositor
     }
 
     @Override
-    public Page<ZoneView> queryByLocationId(Id locationId, Pageable pageable) {
-        log.debug("Loading zones by locationId={}", locationId.getValue());
-        return executor.query("Zone", () -> jpaRepository.findAllByLocationId(locationId.getValue(), pageable));
+    public Page<ZoneView> queryByLocationId(String locationId, Pageable pageable) {
+        log.debug("Loading zones by locationId={}", locationId);
+        return executor.query("Zone", () -> jpaRepository.findAllByLocationId(locationId, pageable));
     }
 
     @Override
-    public Page<ZoneView> queryByLocationIdAndActive(Id locationId, boolean active, Pageable pageable) {
-        log.debug("Loading zones by locationId={} and active={}", locationId.getValue(), active);
-        return executor.query("Zone", () -> jpaRepository.findAllByLocationIdAndActive(locationId.getValue(), active, pageable));
+    public Page<ZoneView> queryByLocationIdAndActive(String locationId, boolean active, Pageable pageable) {
+        log.debug("Loading zones by locationId={} and active={}", locationId, active);
+        return executor.query("Zone", () -> jpaRepository.findAllByLocationIdAndActive(locationId, active, pageable));
     }
 
     @Override

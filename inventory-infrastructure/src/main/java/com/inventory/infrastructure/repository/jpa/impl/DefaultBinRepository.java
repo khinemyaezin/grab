@@ -45,15 +45,15 @@ public class DefaultBinRepository implements BinRepository, BinQueryRepository {
     }
 
     @Override
-    public Page<BinView> queryByZoneId(Id zoneId, Pageable pageable) {
-        log.debug("Loading bins by zoneId={}", zoneId.getValue());
-        return executor.query("Bin", () -> jpaRepository.findAllByZoneId(zoneId.getValue(), pageable));
+    public Page<BinView> queryByZoneId(String zoneId, Pageable pageable) {
+        log.debug("Loading bins by zoneId={}", zoneId);
+        return executor.query("Bin", () -> jpaRepository.findAllByZoneId(zoneId, pageable));
     }
 
     @Override
-    public Page<BinView> queryByZoneIdAndActive(Id zoneId, boolean active, Pageable pageable) {
-        log.debug("Loading bins by zoneId={} and active={}", zoneId.getValue(), active);
-        return executor.query("Bin", () -> jpaRepository.findAllByZoneIdAndActive(zoneId.getValue(), active, pageable));
+    public Page<BinView> queryByZoneIdAndActive(String zoneId, boolean active, Pageable pageable) {
+        log.debug("Loading bins by zoneId={} and active={}", zoneId, active);
+        return executor.query("Bin", () -> jpaRepository.findAllByZoneIdAndActive(zoneId, active, pageable));
     }
 
     @Override
