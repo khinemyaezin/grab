@@ -1,4 +1,4 @@
-# ADR-002: Product as Aggregate Root with Variant Model and CQRS
+# ADR-006: Product as Aggregate Root with Variant Model and CQRS
 
 ## Status
 Accepted

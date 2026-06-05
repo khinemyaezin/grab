@@ -32,7 +32,6 @@ public class BinEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "zone_id", nullable = false)
-    private ZoneEntity zone;
+    @Column(name = "zone_id", nullable = false)
+    private String zoneId;
 }

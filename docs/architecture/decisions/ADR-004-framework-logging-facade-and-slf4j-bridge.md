@@ -1,4 +1,4 @@
-# ADR-010: Modular Logging Framework With Pluggable Providers
+# ADR-004: Modular Logging Framework With Pluggable Providers
 
 ## Status
 

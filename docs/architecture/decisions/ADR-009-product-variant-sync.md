@@ -1,4 +1,4 @@
-# ADR-004: Sync Product Variants by Desired Combinations
+# ADR-009: Sync Product Variants by Desired Combinations
 
 ## Status
 Proposed

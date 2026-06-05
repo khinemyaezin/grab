@@ -1,7 +1,12 @@
 package com.inventory.infrastructure.repository.jpa;
 
 import com.inventory.infrastructure.entity.BinEntity;
+import com.inventory.infrastructure.view.BinView;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,11 +17,13 @@ public interface BinJpaRepository extends JpaRepository<BinEntity, Long> {
 
     Optional<BinEntity> findByUuid(String uuid);
 
-    Optional<BinEntity> findByCodeAndZoneId(String code, Long zoneId);
+    Optional<BinEntity> findByCodeAndZoneId(String code, String zoneId);
 
-    List<BinEntity> findAllByZoneId(Long zoneId);
+    boolean existsByCodeAndZoneId(String code, String zoneId);
 
-    List<BinEntity> findAllByActiveTrue();
+    Page<BinView> findAllByZoneId(String zoneId, Pageable pageable);
 
-    boolean existsByCodeAndZoneId(String code, Long zoneId);
+    Page<BinView> findAllByZoneIdAndActive(String zoneId, boolean active, Pageable pageable);
+
+    Page<BinView> findAllByActive(boolean active, Pageable pageable);
 }

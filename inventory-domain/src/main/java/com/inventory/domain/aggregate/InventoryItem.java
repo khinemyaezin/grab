@@ -6,6 +6,7 @@ import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.enums.AdjustmentReason;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.enums.StockMovementType;
+import com.inventory.domain.event.InventoryItemDiscontinuedEvent;
 import com.inventory.domain.event.LowStockAlertEvent;
 import com.inventory.domain.event.StockAdjustedEvent;
 import com.inventory.domain.event.StockReceivedEvent;
@@ -16,7 +17,6 @@ import com.inventory.domain.exception.InventoryDomainValidationException;
 import com.inventory.domain.valueobject.InventoryQuantity;
 import com.inventory.domain.valueobject.ReorderConfig;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -25,21 +25,18 @@ import java.util.Objects;
 public class InventoryItem extends AggregateRoot<Id> {
 
     private final String sku;
+    private final Id sellerId;
     private final Id productVariantId;
     private final Id locationId;
-
-    @Setter
+    private final ReorderConfig reorderConfig;
     private InventoryQuantity quantity;
-    @Setter
-    private ReorderConfig reorderConfig;
-    @Setter
     private InventoryStatus status;
-
     private LocalDateTime lastUpdated;
 
     public InventoryItem(
             Id id,
             String sku,
+            Id sellerId,
             Id productVariantId,
             Id locationId,
             InventoryQuantity quantity,
@@ -49,6 +46,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     ) {
         super(id);
         this.sku = Objects.requireNonNull(sku, "sku is required");
+        this.sellerId = Objects.requireNonNull(sellerId, "sellerId is required");
         this.productVariantId = productVariantId;
         this.locationId = Objects.requireNonNull(locationId, "locationId is required");
         this.quantity = quantity != null ? quantity : InventoryQuantity.zero();
@@ -60,13 +58,14 @@ public class InventoryItem extends AggregateRoot<Id> {
     public static InventoryItem create(
             Id id,
             String sku,
+            Id sellerId,
             Id productVariantId,
             Id locationId,
             int initialQuantity,
             ReorderConfig reorderConfig
     ) {
         InventoryItem item = new InventoryItem(
-                id, sku, productVariantId, locationId,
+                id, sku, sellerId, productVariantId, locationId,
                 InventoryQuantity.withOnHand(initialQuantity),
                 reorderConfig,
                 InventoryStatus.ACTIVE,
@@ -76,6 +75,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         if (initialQuantity > 0) {
             item.addEvent(new StockReceivedEvent(id, sku, initialQuantity, locationId, LocalDateTime.now()));
         }
+        item.checkAndRaiseLowStockAlert();
 
         return item;
     }
@@ -85,6 +85,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     }
 
     public StockMovement receiveStock(int qty, StockMovementType type, String referenceId, String notes, Id userId, Id movementId) {
+        validateNotBlocked();
         validateReceiveType(type);
         validatePositiveQuantity(qty);
 
@@ -104,6 +105,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     }
 
     public StockMovement reserveStock(int qty, String orderId, Id userId, Id movementId) {
+        validateNotBlocked();
         validatePositiveQuantity(qty);
         if (qty > getAvailableQuantity()) {
             throw new InventoryDomainValidationException(
@@ -120,16 +122,17 @@ public class InventoryItem extends AggregateRoot<Id> {
         );
 
         addEvent(new StockReservedEvent(getId(), sku, qty, orderId, LocalDateTime.now()));
-
+        checkAndRaiseLowStockAlert();
         return movement;
     }
 
     public StockMovement releaseReservation(int qty, String orderId, Id userId, Id movementId) {
+        validateNotBlocked();
         validatePositiveQuantity(qty);
         if (qty > quantity.reserved()) {
             throw new InventoryDomainValidationException(
-                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
-                    "Cannot reserve " + qty + " units. Only " + getAvailableQuantity() + " available.");
+                    new InventoryDomainError.InsufficientQuantity(quantity.reserved(), qty),
+                    "Cannot release " + qty + " units. Only " + quantity.reserved() + " reserved.");
         }
 
         int before = quantity.onHand();
@@ -146,11 +149,12 @@ public class InventoryItem extends AggregateRoot<Id> {
     }
 
     public StockMovement shipStock(int qty, String orderId, Id userId, Id movementId) {
+        validateNotBlocked();
         validatePositiveQuantity(qty);
         if (qty > quantity.reserved()) {
             throw new InventoryDomainValidationException(
-                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
-                    "Cannot reserve " + qty + " units. Only " + getAvailableQuantity() + " available.");
+                    new InventoryDomainError.InsufficientQuantity(quantity.reserved(), qty),
+                    "Cannot ship " + qty + " units. Only " + quantity.reserved() + " reserved.");
         }
 
         int before = quantity.onHand();
@@ -162,13 +166,13 @@ public class InventoryItem extends AggregateRoot<Id> {
         );
 
         addEvent(new StockShippedEvent(getId(), sku, qty, orderId, LocalDateTime.now()));
-        checkAndRaiseLowStockAlert();
         updateStatusBasedOnQuantity();
 
         return movement;
     }
 
     public StockMovement adjustStock(int newOnHandQuantity, AdjustmentReason reason, String notes, Id userId, Id movementId) {
+        validateNotBlocked();
         int before = quantity.onHand();
         int adjustment = newOnHandQuantity - before;
 
@@ -194,6 +198,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     }
 
     public StockMovement markDamaged(int qty, String notes, Id userId, Id movementId) {
+        validateNotBlocked();
         validatePositiveQuantity(qty);
 
         int before = quantity.onHand();
@@ -208,16 +213,18 @@ public class InventoryItem extends AggregateRoot<Id> {
 
         addEvent(new StockAdjustedEvent(getId(), sku, before, quantity.onHand(), AdjustmentReason.DAMAGED, LocalDateTime.now()));
         checkAndRaiseLowStockAlert();
+        updateStatusBasedOnQuantity();
 
         return movement;
     }
 
     public StockMovement writeOff(int qty, String reason, String notes, Id userId, Id movementId) {
+        validateNotBlocked();
         validatePositiveQuantity(qty);
         if (qty > getAvailableQuantity()) {
             throw new InventoryDomainValidationException(
                     new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
-                    "Cannot reserve " + qty + " units. Only " + getAvailableQuantity() + " available.");
+                    "Cannot write off " + qty + " units. Only " + getAvailableQuantity() + " available.");
         }
 
         int before = quantity.onHand();
@@ -234,9 +241,62 @@ public class InventoryItem extends AggregateRoot<Id> {
         return movement;
     }
 
+    public StockMovement transferOut(int qty, String transferId, Id userId, Id movementId) {
+        validateNotBlocked();
+        validatePositiveQuantity(qty);
+        if (qty > getAvailableQuantity()) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
+                    "Cannot transfer out " + qty + " units. Only " + getAvailableQuantity() + " available.");
+        }
+
+        int before = quantity.onHand();
+        this.quantity = quantity.subtractOnHand(qty);
+        this.lastUpdated = LocalDateTime.now();
+
+        StockMovement movement = StockMovement.create(
+                movementId, getId(), StockMovementType.TRANSFER_OUT, qty, before, before, quantity.reserved(), transferId, userId
+        );
+
+        checkAndRaiseLowStockAlert();
+        updateStatusBasedOnQuantity();
+
+        return movement;
+    }
+
+    public StockMovement returnToVendor(int qty, String reason, String notes, Id userId, Id movementId) {
+        validateNotBlocked();
+        validatePositiveQuantity(qty);
+        if (qty > getAvailableQuantity()) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.InsufficientQuantity(getAvailableQuantity(), qty),
+                    "Cannot return to vendor " + qty + " units. Only " + getAvailableQuantity() + " available.");
+        }
+
+        int before = quantity.onHand();
+        this.quantity = quantity.subtractOnHand(qty);
+        this.lastUpdated = LocalDateTime.now();
+
+        StockMovement movement = StockMovement.create(
+                movementId, getId(), StockMovementType.RETURN_TO_VENDOR, qty, before, before, quantity.reserved(), reason, userId
+        );
+
+        checkAndRaiseLowStockAlert();
+        updateStatusBasedOnQuantity();
+
+        return movement;
+    }
+
     public void discontinue() {
         this.status = InventoryStatus.DISCONTINUED;
         this.lastUpdated = LocalDateTime.now();
+        addEvent(new InventoryItemDiscontinuedEvent(
+                getId(),
+                sku,
+                productVariantId != null ? productVariantId.getValue() : null,
+                locationId,
+                LocalDateTime.now()
+        ));
     }
 
     public void suspend() {
@@ -286,6 +346,15 @@ public class InventoryItem extends AggregateRoot<Id> {
         }
     }
 
+    private void validateNotBlocked() {
+        if (status == InventoryStatus.SUSPENDED || status == InventoryStatus.DISCONTINUED) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.StockOperationBlocked(status.name(), sku),
+                    "Stock operations are blocked on " + status + " inventory item: " + sku
+            );
+        }
+    }
+
     private void validatePositiveQuantity(int qty) {
         if (qty < 0) {
             throw new InventoryDomainValidationException(
@@ -317,6 +386,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         return "InventoryItem{" +
                 "id=" + getId().getValue() +
                 ", sku='" + sku + '\'' +
+                ", sellerId=" + sellerId.getValue() +
                 ", locationId=" + locationId.getValue() +
                 ", available=" + getAvailableQuantity() +
                 ", onHand=" + quantity.onHand() +

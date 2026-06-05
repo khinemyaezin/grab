@@ -32,6 +32,9 @@ class DefaultReorderServiceTest {
     @Mock
     private InventoryRepository inventoryRepository;
 
+    @Mock
+    Id userId;
+
     private DefaultReorderService reorderService;
 
     @BeforeEach
@@ -41,7 +44,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withZeroAvailable_shouldReturnCritical() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 0, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 0);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -50,7 +53,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withAvailableBelowSafetyStock_shouldReturnCritical() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 5, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 5);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -59,7 +62,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withAvailableEqualSafetyStock_shouldReturnCritical() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 10, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 10);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -68,7 +71,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withAvailableBelowReorderPoint_shouldReturnHigh() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 15, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 15);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -77,7 +80,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withAvailableEqualReorderPoint_shouldReturnHigh() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 20, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 20);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -86,7 +89,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withAvailableWithin20PercentAboveReorderPoint_shouldReturnMedium() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 22, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 22);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -95,7 +98,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withAvailableAtExact20PercentAboveReorderPoint_shouldReturnMedium() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 24, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 24);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -104,7 +107,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withAvailableAbove20Percent_shouldReturnLow() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 25, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 25);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -113,7 +116,7 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculatePriority_withHighAvailable_shouldReturnLow() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100);
 
         ReorderPriority result = reorderService.calculatePriority(item);
 
@@ -122,28 +125,28 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculateReorderSuggestions_shouldReturnAllActiveItemsWithNonLowPriority() {
-        InventoryItem critical = createInventoryItem("critical", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem high = createInventoryItem("high", "SKU-002", "loc-1", 15, 10, 20, 50);
-        InventoryItem medium = createInventoryItem("medium", "SKU-003", "loc-1", 22, 10, 20, 50);
-        InventoryItem low = createInventoryItem("low", "SKU-004", "loc-1", 100, 10, 20, 50);
+        InventoryItem critical = createInventoryItem("critical", "SKU-001", "loc-1", 0);
+        InventoryItem high = createInventoryItem("high", "SKU-002", "loc-1", 15);
+        InventoryItem medium = createInventoryItem("medium", "SKU-003", "loc-1", 22);
+        InventoryItem low = createInventoryItem("low", "SKU-004", "loc-1", 100);
 
-        when(inventoryRepository.findAll()).thenReturn(List.of(critical, high, medium, low));
+        when(inventoryRepository.findAll( userId)).thenReturn(List.of(critical, high, medium, low));
 
-        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions();
+        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions(userId);
 
         assertThat(result).hasSize(3);
         assertThat(result.stream().map(ReorderSuggestion::sku).toList()).containsExactlyInAnyOrder("SKU-001", "SKU-002", "SKU-003");
-        verify(inventoryRepository).findAll();
+        verify(inventoryRepository).findAll(userId);
     }
 
     @Test
     void calculateReorderSuggestions_shouldFilterInactiveItems() {
-        InventoryItem active = createInventoryItem("active", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem inactive = createInactiveInventoryItem("inactive", "SKU-002", "loc-1", 0, 10, 20, 50);
+        InventoryItem active = createInventoryItem("active", "SKU-001", "loc-1", 0);
+        InventoryItem inactive = createInactiveInventoryItem("inactive", "SKU-002", "loc-1");
 
-        when(inventoryRepository.findAll()).thenReturn(List.of(active, inactive));
+        when(inventoryRepository.findAll(userId)).thenReturn(List.of(active, inactive));
 
-        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions();
+        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions(userId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().sku()).isEqualTo("SKU-001");
@@ -151,12 +154,12 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculateReorderSuggestions_shouldFilterLowPriorityItems() {
-        InventoryItem critical = createInventoryItem("critical", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem low = createInventoryItem("low", "SKU-002", "loc-1", 50, 10, 20, 50);
+        InventoryItem critical = createInventoryItem("critical", "SKU-001", "loc-1", 0);
+        InventoryItem low = createInventoryItem("low", "SKU-002", "loc-1", 50);
 
-        when(inventoryRepository.findAll()).thenReturn(List.of(critical, low));
+        when(inventoryRepository.findAll(userId)).thenReturn(List.of(critical, low));
 
-        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions();
+        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions(userId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().sku()).isEqualTo("SKU-001");
@@ -164,13 +167,13 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculateReorderSuggestions_shouldSortByPriority() {
-        InventoryItem medium = createInventoryItem("medium", "SKU-002", "loc-1", 22, 10, 20, 50);
-        InventoryItem high = createInventoryItem("high", "SKU-003", "loc-1", 15, 10, 20, 50);
-        InventoryItem critical = createInventoryItem("critical", "SKU-004", "loc-1", 0, 10, 20, 50);
+        InventoryItem medium = createInventoryItem("medium", "SKU-002", "loc-1", 22);
+        InventoryItem high = createInventoryItem("high", "SKU-003", "loc-1", 15);
+        InventoryItem critical = createInventoryItem("critical", "SKU-004", "loc-1", 0);
 
-        when(inventoryRepository.findAll()).thenReturn(List.of(medium, high, critical));
+        when(inventoryRepository.findAll(userId)).thenReturn(List.of(medium, high, critical));
 
-        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions();
+        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions(userId);
 
         assertThat(result).hasSize(3);
         assertThat(result.get(0).priority()).isEqualTo(ReorderPriority.CRITICAL);
@@ -180,22 +183,22 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculateReorderSuggestions_shouldReturnEmptyWhenNoActiveItems() {
-        InventoryItem suspended = createInactiveInventoryItem("suspended", "SKU-001", "loc-1", 0, 10, 20, 50);
+        InventoryItem suspended = createInactiveInventoryItem("suspended", "SKU-001", "loc-1");
 
-        when(inventoryRepository.findAll()).thenReturn(List.of(suspended));
+        when(inventoryRepository.findAll(userId)).thenReturn(List.of(suspended));
 
-        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions();
+        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions(userId);
 
         assertThat(result).isEmpty();
     }
 
     @Test
     void calculateReorderSuggestions_shouldMapAllFieldsCorrectly() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 15, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 15);
 
-        when(inventoryRepository.findAll()).thenReturn(List.of(item));
+        when(inventoryRepository.findAll(userId)).thenReturn(List.of(item));
 
-        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions();
+        List<ReorderSuggestion> result = reorderService.calculateReorderSuggestions(userId);
 
         assertThat(result).hasSize(1);
         ReorderSuggestion suggestion = result.getFirst();
@@ -213,7 +216,7 @@ class DefaultReorderServiceTest {
     @Test
     void calculateReorderSuggestionsForLocation_shouldReturnOnlySuggestionsForLocation() {
         Id locationId = id("loc-1");
-        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 0, 10, 20, 50);
+        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 0);
 
         when(inventoryRepository.findByLocation(locationId)).thenReturn(List.of(item1));
 
@@ -228,8 +231,8 @@ class DefaultReorderServiceTest {
     @Test
     void calculateReorderSuggestionsForLocation_shouldFilterInactiveItems() {
         Id locationId = id("loc-1");
-        InventoryItem active = createInventoryItem("active", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem inactive = createInactiveInventoryItem("inactive", "SKU-002", "loc-1", 0, 10, 20, 50);
+        InventoryItem active = createInventoryItem("active", "SKU-001", "loc-1", 0);
+        InventoryItem inactive = createInactiveInventoryItem("inactive", "SKU-002", "loc-1");
 
         when(inventoryRepository.findByLocation(locationId)).thenReturn(List.of(active, inactive));
 
@@ -242,8 +245,8 @@ class DefaultReorderServiceTest {
     @Test
     void calculateReorderSuggestionsForLocation_shouldSortByPriority() {
         Id locationId = id("loc-1");
-        InventoryItem high = createInventoryItem("high", "SKU-001", "loc-1", 15, 10, 20, 50);
-        InventoryItem critical = createInventoryItem("critical", "SKU-002", "loc-1", 0, 10, 20, 50);
+        InventoryItem high = createInventoryItem("high", "SKU-001", "loc-1", 15);
+        InventoryItem critical = createInventoryItem("critical", "SKU-002", "loc-1", 0);
 
         when(inventoryRepository.findByLocation(locationId)).thenReturn(List.of(high, critical));
 
@@ -257,8 +260,8 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculateReorderSuggestionsForSku_shouldReturnOnlySuggestionsForSku() {
-        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem item2 = createInventoryItem("item-2", "SKU-001", "loc-2", 0, 10, 20, 50);
+        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 0);
+        InventoryItem item2 = createInventoryItem("item-2", "SKU-001", "loc-2", 0);
 
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item1, item2));
 
@@ -272,8 +275,8 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculateReorderSuggestionsForSku_shouldFilterInactiveItems() {
-        InventoryItem active = createInventoryItem("active", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem inactive = createInactiveInventoryItem("inactive", "SKU-001", "loc-2", 0, 10, 20, 50);
+        InventoryItem active = createInventoryItem("active", "SKU-001", "loc-1", 0);
+        InventoryItem inactive = createInactiveInventoryItem("inactive", "SKU-001", "loc-2");
 
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(active, inactive));
 
@@ -285,8 +288,8 @@ class DefaultReorderServiceTest {
 
     @Test
     void calculateReorderSuggestionsForSku_shouldSortByPriority() {
-        InventoryItem high = createInventoryItem("high", "SKU-001", "loc-1", 15, 10, 20, 50);
-        InventoryItem critical = createInventoryItem("critical", "SKU-001", "loc-2", 0, 10, 20, 50);
+        InventoryItem high = createInventoryItem("high", "SKU-001", "loc-1", 15);
+        InventoryItem critical = createInventoryItem("critical", "SKU-001", "loc-2", 0);
 
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(high, critical));
 
@@ -300,14 +303,14 @@ class DefaultReorderServiceTest {
 
     @Test
     void getCriticalReorderItems_shouldReturnOutOfStockAndLowStockItems() {
-        InventoryItem outOfStock = createInventoryItem("out-of-stock", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem lowStock = createInventoryItem("low-stock", "SKU-002", "loc-1", 5, 10, 20, 50);
-        InventoryItem normal = createInventoryItem("normal", "SKU-003", "loc-1", 50, 10, 20, 50);
+        InventoryItem outOfStock = createInventoryItem("out-of-stock", "SKU-001", "loc-1", 0);
+        InventoryItem lowStock = createInventoryItem("low-stock", "SKU-002", "loc-1", 5);
+        InventoryItem normal = createInventoryItem("normal", "SKU-003", "loc-1", 50);
 
-        when(inventoryRepository.findOutOfStock()).thenReturn(List.of(outOfStock));
-        when(inventoryRepository.findLowStock()).thenReturn(List.of(lowStock));
+        when(inventoryRepository.findOutOfStock(userId)).thenReturn(List.of(outOfStock));
+        when(inventoryRepository.findLowStock(userId)).thenReturn(List.of(lowStock));
 
-        List<InventoryItem> result = reorderService.getCriticalReorderItems();
+        List<InventoryItem> result = reorderService.getCriticalReorderItems(userId);
 
         assertThat(result).hasSize(2);
         assertThat(result).contains(outOfStock, lowStock);
@@ -316,13 +319,13 @@ class DefaultReorderServiceTest {
 
     @Test
     void getCriticalReorderItems_shouldFilterInactiveItems() {
-        InventoryItem outOfStock = createInventoryItem("out-of-stock", "SKU-001", "loc-1", 0, 10, 20, 50);
-        InventoryItem outOfStockInactive = createInactiveInventoryItem("inactive-oos", "SKU-002", "loc-1", 0, 10, 20, 50);
+        InventoryItem outOfStock = createInventoryItem("out-of-stock", "SKU-001", "loc-1", 0);
+        InventoryItem outOfStockInactive = createInactiveInventoryItem("inactive-oos", "SKU-002", "loc-1");
 
-        when(inventoryRepository.findOutOfStock()).thenReturn(List.of(outOfStock, outOfStockInactive));
-        when(inventoryRepository.findLowStock()).thenReturn(List.of());
+        when(inventoryRepository.findOutOfStock(userId)).thenReturn(List.of(outOfStock, outOfStockInactive));
+        when(inventoryRepository.findLowStock(userId)).thenReturn(List.of());
 
-        List<InventoryItem> result = reorderService.getCriticalReorderItems();
+        List<InventoryItem> result = reorderService.getCriticalReorderItems(userId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst()).isEqualTo(outOfStock);
@@ -331,12 +334,12 @@ class DefaultReorderServiceTest {
 
     @Test
     void getCriticalReorderItems_shouldRemoveDuplicates() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 0, 10, 20, 50);
+        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 0);
 
-        when(inventoryRepository.findOutOfStock()).thenReturn(List.of(item));
-        when(inventoryRepository.findLowStock()).thenReturn(List.of(item));
+        when(inventoryRepository.findOutOfStock(userId)).thenReturn(List.of(item));
+        when(inventoryRepository.findLowStock(userId)).thenReturn(List.of(item));
 
-        List<InventoryItem> result = reorderService.getCriticalReorderItems();
+        List<InventoryItem> result = reorderService.getCriticalReorderItems(userId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst()).isEqualTo(item);
@@ -344,22 +347,22 @@ class DefaultReorderServiceTest {
 
     @Test
     void getCriticalReorderItems_shouldReturnEmptyWhenNoCriticalItems() {
-        when(inventoryRepository.findOutOfStock()).thenReturn(List.of());
-        when(inventoryRepository.findLowStock()).thenReturn(List.of());
+        when(inventoryRepository.findOutOfStock(userId)).thenReturn(List.of());
+        when(inventoryRepository.findLowStock(userId)).thenReturn(List.of());
 
-        List<InventoryItem> result = reorderService.getCriticalReorderItems();
+        List<InventoryItem> result = reorderService.getCriticalReorderItems(userId);
 
         assertThat(result).isEmpty();
     }
 
     @Test
     void getCriticalReorderItems_shouldHandleOnlyOutOfStock() {
-        InventoryItem outOfStock = createInventoryItem("out-of-stock", "SKU-001", "loc-1", 0, 10, 20, 50);
+        InventoryItem outOfStock = createInventoryItem("out-of-stock", "SKU-001", "loc-1", 0);
 
-        when(inventoryRepository.findOutOfStock()).thenReturn(List.of(outOfStock));
-        when(inventoryRepository.findLowStock()).thenReturn(List.of());
+        when(inventoryRepository.findOutOfStock(userId)).thenReturn(List.of(outOfStock));
+        when(inventoryRepository.findLowStock(userId)).thenReturn(List.of());
 
-        List<InventoryItem> result = reorderService.getCriticalReorderItems();
+        List<InventoryItem> result = reorderService.getCriticalReorderItems(userId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst()).isEqualTo(outOfStock);
@@ -367,12 +370,12 @@ class DefaultReorderServiceTest {
 
     @Test
     void getCriticalReorderItems_shouldHandleOnlyLowStock() {
-        InventoryItem lowStock = createInventoryItem("low-stock", "SKU-001", "loc-1", 5, 10, 20, 50);
+        InventoryItem lowStock = createInventoryItem("low-stock", "SKU-001", "loc-1", 5);
 
-        when(inventoryRepository.findOutOfStock()).thenReturn(List.of());
-        when(inventoryRepository.findLowStock()).thenReturn(List.of(lowStock));
+        when(inventoryRepository.findOutOfStock(userId)).thenReturn(List.of());
+        when(inventoryRepository.findLowStock(userId)).thenReturn(List.of(lowStock));
 
-        List<InventoryItem> result = reorderService.getCriticalReorderItems();
+        List<InventoryItem> result = reorderService.getCriticalReorderItems(userId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst()).isEqualTo(lowStock);
@@ -381,29 +384,30 @@ class DefaultReorderServiceTest {
 
     private InventoryItem createInventoryItem(
             String itemId, String sku, String locationId,
-            int onHand, int safetyStock, int reorderPoint, int reorderQuantity) {
+            int onHand) {
         return new InventoryItem(
                 id(itemId),
                 sku,
+                id("seller-1"),
                 id("variant-1"),
                 id(locationId),
                 InventoryQuantity.withOnHand(onHand),
-                ReorderConfig.of(safetyStock, reorderPoint, reorderQuantity),
+                ReorderConfig.of(10, 20, 50),
                 InventoryStatus.ACTIVE,
                 LocalDateTime.now()
         );
     }
 
     private InventoryItem createInactiveInventoryItem(
-            String itemId, String sku, String locationId,
-            int onHand, int safetyStock, int reorderPoint, int reorderQuantity) {
+            String itemId, String sku, String locationId) {
         return new InventoryItem(
                 id(itemId),
                 sku,
+                id("seller-1"),
                 id("variant-1"),
                 id(locationId),
-                InventoryQuantity.withOnHand(onHand),
-                ReorderConfig.of(safetyStock, reorderPoint, reorderQuantity),
+                InventoryQuantity.withOnHand(0),
+                ReorderConfig.of(10, 20, 50),
                 InventoryStatus.SUSPENDED,
                 LocalDateTime.now()
         );

@@ -12,13 +12,14 @@ import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.infrastructure.entity.InventoryItemEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
+import com.inventory.infrastructure.repository.jpa.InventoryQueryRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultInventoryRepository implements InventoryRepository {
+public class DefaultInventoryRepository implements InventoryRepository, InventoryQueryRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultInventoryRepository.class);
 
@@ -57,34 +58,19 @@ public class DefaultInventoryRepository implements InventoryRepository {
     }
 
     @Override
-    public List<InventoryItem> findByProductVariantId(String productVariantId) {
-        return executor.query("InventoryItem", () -> jpaRepository.findAll().stream()
-                .filter(e -> productVariantId.equals(e.getProductVariantId()))
-                .map(mapper::toFullDomainGraph)
-                .toList());
+    public List<InventoryItem> findLowStock(Id sellerId) {
+        return executor.query("InventoryItem", () ->
+                jpaRepository.findLowStockItemsAndSellerId(sellerId.getValue()).stream()
+                        .map(mapper::toFullDomainGraph)
+                        .toList());
     }
 
     @Override
-    public List<InventoryItem> findLowStock() {
-        return executor.query("InventoryItem", () -> jpaRepository.findAll().stream()
-                .map(mapper::toFullDomainGraph)
-                .filter(InventoryItem::isLowStock)
-                .toList());
-    }
-
-    @Override
-    public List<InventoryItem> findNeedsReorder() {
-        return executor.query("InventoryItem", () -> jpaRepository.findItemsBelowReorderPoint().stream()
-                .map(mapper::toFullDomainGraph)
-                .toList());
-    }
-
-    @Override
-    public List<InventoryItem> findOutOfStock() {
-        return executor.query("InventoryItem", () -> jpaRepository.findAll().stream()
-                .filter(e -> e.getStatus() == InventoryStatus.OUT_OF_STOCK)
-                .map(mapper::toFullDomainGraph)
-                .toList());
+    public List<InventoryItem> findOutOfStock(Id sellerId) {
+        return executor.query("InventoryItem", () ->
+                jpaRepository.findAllByStatusAndSellerId(InventoryStatus.OUT_OF_STOCK, sellerId.getValue()).stream()
+                        .map(mapper::toFullDomainGraph)
+                        .toList());
     }
 
     @Override
@@ -95,8 +81,8 @@ public class DefaultInventoryRepository implements InventoryRepository {
     }
 
     @Override
-    public List<InventoryItem> findAll() {
-        return executor.query("InventoryItem", () -> jpaRepository.findAll().stream()
+    public List<InventoryItem> findAll(Id sellerId) {
+        return executor.query("InventoryItem", () -> jpaRepository.findAllBySellerId(sellerId.getValue()).stream()
                 .map(mapper::toFullDomainGraph)
                 .toList());
     }

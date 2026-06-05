@@ -1,4 +1,4 @@
-# ADR-001: Category as Aggregate Root with Hierarchical Operations
+# ADR-005: Category as Aggregate Root with Hierarchical Operations
 
 ## Status
 Accepted

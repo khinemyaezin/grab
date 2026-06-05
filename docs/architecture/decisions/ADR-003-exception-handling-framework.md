@@ -1,4 +1,4 @@
-# ADR-009: MessageSource-Based Exception Handling Framework
+# ADR-003: MessageSource-Based Exception Handling Framework
 
 ## Status
 Proposed (March 9, 2026)

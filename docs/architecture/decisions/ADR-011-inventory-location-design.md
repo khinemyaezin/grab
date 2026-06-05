@@ -1,4 +1,4 @@
-# ADR-008: Complete Inventory Location Module as a First-Class Capability
+# ADR-011: Complete Inventory Location Module as a First-Class Capability
 
 ## Status
 Proposed (March 5, 2026)

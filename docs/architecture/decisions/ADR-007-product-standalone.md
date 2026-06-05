@@ -1,4 +1,4 @@
-# ADR-005: Default Variant Materialization on Product Create
+# ADR-007: Standalone Product
 
 ## Status
 Proposed

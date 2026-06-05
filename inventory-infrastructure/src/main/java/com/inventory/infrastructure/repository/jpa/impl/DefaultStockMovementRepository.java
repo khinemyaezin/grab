@@ -10,14 +10,17 @@ import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.infrastructure.entity.StockMovementEntity;
 import com.inventory.infrastructure.mapper.jpa.StockMovementJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.StockMovementJpaRepository;
+import com.inventory.infrastructure.repository.jpa.StockMovementQueryRepository;
+import com.inventory.infrastructure.view.StockMovementView;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultStockMovementRepository implements StockMovementRepository {
+public class DefaultStockMovementRepository implements StockMovementRepository, StockMovementQueryRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultStockMovementRepository.class);
 
@@ -51,44 +54,43 @@ public class DefaultStockMovementRepository implements StockMovementRepository {
     }
 
     @Override
-    public List<StockMovement> findByInventoryItemId(Id inventoryItemId) {
-        return executor.query("StockMovement", () -> jpaRepository.findAllByInventoryItemUuid(inventoryItemId.getValue()).stream()
-                .map(mapper::toFullDomainGraph)
-                .toList());
+    public Page<StockMovementView> queryByInventoryItemId(Id inventoryItemId, Pageable pageable) {
+        return executor.query("StockMovement", () ->
+                jpaRepository.findAllByInventoryItemUuidOrderByCreatedAtDesc(
+                        inventoryItemId.getValue(),
+                        pageable
+                ));
     }
 
     @Override
-    public List<StockMovement> findByInventoryItemIdAndDateRange(Id inventoryItemId, LocalDateTime from, LocalDateTime to) {
-        return executor.query("StockMovement", () -> jpaRepository.findByInventoryItemUuidAndDateRange(inventoryItemId.getValue(), from, to).stream()
-                .map(mapper::toFullDomainGraph)
-                .toList());
+    public Page<StockMovementView> queryByInventoryItemIdAndDateRange(Id inventoryItemId, LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        return executor.query("StockMovement", () ->
+                jpaRepository.findByInventoryItemUuidAndDateRange(inventoryItemId.getValue(), from, to, pageable));
     }
 
     @Override
-    public List<StockMovement> findByReferenceId(String referenceId) {
-        return executor.query("StockMovement", () -> jpaRepository.findAllByReferenceId(referenceId).stream()
-                .map(mapper::toFullDomainGraph)
-                .toList());
+    public Page<StockMovementView> queryByReferenceId(String referenceId, Pageable pageable) {
+        return executor.query("StockMovement", () ->
+                jpaRepository.findAllByReferenceId(referenceId, pageable));
     }
 
     @Override
-    public List<StockMovement> findByType(StockMovementType type) {
-        return executor.query("StockMovement", () -> jpaRepository.findAllByType(type).stream()
-                .map(mapper::toFullDomainGraph)
-                .toList());
+    public Page<StockMovementView> queryByType(StockMovementType type, Pageable pageable) {
+        return executor.query("StockMovement", () ->
+                jpaRepository.findAllByType(type, pageable));
     }
 
     @Override
-    public List<StockMovement> findRecentMovements(int days) {
+    public Page<StockMovementView> queryRecentMovements(int days, Pageable pageable) {
         LocalDateTime since = LocalDateTime.now().minusDays(days);
         log.debug("Loading recent stock movements since={} for days={}", since, days);
-        return executor.query("StockMovement", () -> jpaRepository.findRecentMovements(since).stream()
-                .map(mapper::toFullDomainGraph)
-                .toList());
+        return executor.query("StockMovement", () ->
+                jpaRepository.findRecentMovements(since, pageable));
     }
 
     @Override
     public int countByInventoryItemIdAndType(Id inventoryItemId, StockMovementType type) {
-        return executor.query("StockMovement", () -> jpaRepository.countByInventoryItemUuidAndType(inventoryItemId.getValue(), type));
+        return executor.query("StockMovement", () ->
+                jpaRepository.countByInventoryItemUuidAndType(inventoryItemId.getValue(), type));
     }
 }

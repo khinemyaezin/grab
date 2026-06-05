@@ -10,27 +10,23 @@ public interface InventoryRepository {
 
     Optional<InventoryItem> findById(Id id);
 
+    List<InventoryItem> findAll(Id sellerId);
+
     List<InventoryItem> findBySku(String sku);
 
-    Optional<InventoryItem> findBySkuAndLocation(String sku, Id locationId);
+    List<InventoryItem> findOutOfStock(Id sellerId);
+
+    List<InventoryItem> findLowStock(Id sellerId);
 
     List<InventoryItem> findByLocation(Id locationId);
 
-    List<InventoryItem> findByProductVariantId(String productVariantId);
-
-    List<InventoryItem> findLowStock();
-
-    List<InventoryItem> findNeedsReorder();
-
-    List<InventoryItem> findOutOfStock();
-
-    int getTotalAvailableQuantityBySku(String sku);
-
-    List<InventoryItem> findAll();
+    Optional<InventoryItem> findBySkuAndLocation(String sku, Id locationId);
 
     void save(InventoryItem item);
 
     void delete(Id id);
 
     boolean existsBySkuAndLocation(String sku, Id locationId);
+
+    int getTotalAvailableQuantityBySku(String sku);
 }

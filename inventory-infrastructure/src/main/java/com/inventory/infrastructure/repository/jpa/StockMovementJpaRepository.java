@@ -2,6 +2,7 @@ package com.inventory.infrastructure.repository.jpa;
 
 import com.inventory.domain.enums.StockMovementType;
 import com.inventory.infrastructure.entity.StockMovementEntity;
+import com.inventory.infrastructure.view.StockMovementView;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,23 +19,61 @@ public interface StockMovementJpaRepository extends JpaRepository<StockMovementE
 
     Optional<StockMovementEntity> findByUuid(String uuid);
 
-    List<StockMovementEntity> findAllByInventoryItemUuid(String inventoryItemUuid);
+    Page<StockMovementView> findAllByInventoryItemUuid(String inventoryItemUuid, Pageable pageable);
 
-    List<StockMovementEntity> findAllByReferenceId(String referenceId);
+    Page<StockMovementView> findAllByReferenceId(String referenceId, Pageable pageable);
 
-    List<StockMovementEntity> findAllByType(StockMovementType type);
+    Page<StockMovementView> findAllByType(StockMovementType type, Pageable pageable);
 
-    @Query("SELECT m FROM StockMovementEntity m WHERE m.inventoryItemUuid = :inventoryItemUuid " +
-            "AND m.createdAt BETWEEN :startDate AND :endDate ORDER BY m.createdAt DESC")
-    List<StockMovementEntity> findByInventoryItemUuidAndDateRange(
+    @Query(value = """
+                SELECT new com.inventory.infrastructure.view.StockMovementView(
+                        m.uuid,
+                        m.inventoryItemUuid,
+                        m.type,
+                        m.quantity,
+                        m.quantityBefore,
+                        m.quantityAfter,
+                        m.onHandBefore,
+                        m.onHandAfter,
+                        m.reservedBefore,
+                        m.reservedAfter,
+                        m.referenceId,
+                        m.createdAt,
+                        m.createdBy
+                    ) FROM StockMovementEntity m WHERE m.inventoryItemUuid = :inventoryItemUuid
+                AND m.createdAt BETWEEN :startDate AND :endDate
+            """,
+            countQuery = """
+                        SELECT count(m) FROM StockMovementEntity m
+                        WHERE m.inventoryItemUuid = :inventoryItemUuid
+                        AND m.createdAt BETWEEN :startDate AND :endDate
+                    """)
+    Page<StockMovementView> findByInventoryItemUuidAndDateRange(
             @Param("inventoryItemUuid") String inventoryItemUuid,
             @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate);
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable);
 
-    Page<StockMovementEntity> findAllByInventoryItemUuidOrderByCreatedAtDesc(String inventoryItemUuid, Pageable pageable);
+    Page<StockMovementView> findAllByInventoryItemUuidOrderByCreatedAtDesc(String inventoryItemUuid, Pageable pageable);
 
     int countByInventoryItemUuidAndType(String inventoryItemUuid, StockMovementType type);
 
-    @Query("SELECT m FROM StockMovementEntity m WHERE m.createdAt >= :since ORDER BY m.createdAt DESC")
-    List<StockMovementEntity> findRecentMovements(@Param("since") LocalDateTime since);
+    @Query("""
+            SELECT new com.inventory.infrastructure.view.StockMovementView(
+                        m.uuid,
+                        m.inventoryItemUuid,
+                        m.type,
+                        m.quantity,
+                        m.quantityBefore,
+                        m.quantityAfter,
+                        m.onHandBefore,
+                        m.onHandAfter,
+                        m.reservedBefore,
+                        m.reservedAfter,
+                        m.referenceId,
+                        m.createdAt,
+                        m.createdBy
+                    ) FROM StockMovementEntity m WHERE m.createdAt >= :since
+            """)
+    Page<StockMovementView> findRecentMovements(@Param("since") LocalDateTime since, Pageable pageable);
 }

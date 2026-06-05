@@ -79,6 +79,11 @@
             <artifactId>outbox-infrastructure</artifactId>
             <version>${outbox-infrastructure.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

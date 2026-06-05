@@ -28,7 +28,8 @@ public sealed interface InventoryDomainError extends MessageSource permits
         InventoryDomainError.InvalidReorderPoint,
         InventoryDomainError.InvalidReorderQuantity,
         InventoryDomainError.InvalidMaxStock,
-        InventoryDomainError.InvalidReorderConfig {
+        InventoryDomainError.InvalidReorderConfig,
+        InventoryDomainError.StockOperationBlocked {
 
     record QuantityNotPositive() implements InventoryDomainError {
         @Override
@@ -421,6 +422,23 @@ public sealed interface InventoryDomainError extends MessageSource permits
                     "safetyStock", safetyStock,
                     "reorderPoint", reorderPoint
             );
+        }
+    }
+
+    record StockOperationBlocked(String status, String sku) implements InventoryDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "inv.domain.stock_operation_blocked";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("status", status, "sku", sku);
         }
     }
 }

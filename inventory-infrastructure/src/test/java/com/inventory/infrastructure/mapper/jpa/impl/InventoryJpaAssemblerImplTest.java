@@ -75,6 +75,7 @@ class InventoryJpaAssemblerImplTest {
         return new InventoryItem(
                 id(id),
                 sku,
+                id("seller-1"),
                 id("variant-1"),
                 id("location-1"),
                 InventoryQuantity.withOnHand(100),

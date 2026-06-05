@@ -52,6 +52,7 @@ public record ReorderConfig(
     }
 
     public boolean isLowStock(int availableQuantity) {
+        if(safetyStock == 0) return false;
         return availableQuantity <= safetyStock;
     }
 

@@ -19,10 +19,10 @@ public class DefaultReorderService implements ReorderService {
     private final InventoryRepository inventoryRepository;
 
     @Override
-    public List<ReorderSuggestion> calculateReorderSuggestions() {
+    public List<ReorderSuggestion> calculateReorderSuggestions(Id sellerId) {
         log.info("Calculating reorder suggestions for all inventory items");
 
-        List<ReorderSuggestion> suggestions = inventoryRepository.findAll().stream()
+        List<ReorderSuggestion> suggestions = inventoryRepository.findAll(sellerId).stream()
                 .filter(InventoryItem::isActive)
                 .filter(this::shouldSuggestReorder)
                 .map(this::createSuggestion)
@@ -64,10 +64,10 @@ public class DefaultReorderService implements ReorderService {
     }
 
     @Override
-    public List<InventoryItem> getCriticalReorderItems() {
+    public List<InventoryItem> getCriticalReorderItems(Id sellerId) {
         List<InventoryItem> criticalItems = Stream.concat(
-                        inventoryRepository.findOutOfStock().stream(),
-                        inventoryRepository.findLowStock().stream()
+                        inventoryRepository.findOutOfStock(sellerId).stream(),
+                        inventoryRepository.findLowStock(sellerId).stream()
                 )
                 .filter(InventoryItem::isActive)
                 .distinct()

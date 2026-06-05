@@ -1,4 +1,4 @@
-# ADR-007: Module-Scoped Transactional Outbox
+# ADR-002: Module-Scoped Transactional Outbox
 
 ## Status
 Accepted (implemented on March 5, 2026)

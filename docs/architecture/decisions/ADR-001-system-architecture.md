@@ -1,4 +1,4 @@
-# ADR-006: Current System Architecture as a Modulith
+# ADR-001: Current System Architecture as a Modulith
 
 ## Status
 Accepted
