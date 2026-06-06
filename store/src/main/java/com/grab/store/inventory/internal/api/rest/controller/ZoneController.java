@@ -1,0 +1,76 @@
+package com.grab.store.inventory.internal.api.rest.controller;
+
+import com.grab.store.inventory.internal.api.rest.assembler.ZoneModelAssembler;
+import com.grab.store.inventory.internal.api.rest.dto.request.CreateZoneRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.UpdateZoneRequest;
+import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
+import com.grab.store.inventory.internal.api.rest.service.ZoneCommandService;
+import com.grab.store.inventory.internal.api.rest.service.ZoneQueryService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/zones")
+@RequiredArgsConstructor
+public class ZoneController {
+    private final ZoneCommandService zoneCommandService;
+    private final ZoneQueryService zoneQueryService;
+    private final ZoneModelAssembler zoneModelAssembler;
+
+    @PostMapping("/locations/{locationId}")
+    public ResponseEntity<EntityModel<ZoneResponse>> createZone(
+            @PathVariable String locationId,
+            @Valid @RequestBody CreateZoneRequest request,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+    ) {
+        ZoneResponse response = zoneCommandService.createZone(locationId, request, actorId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(zoneModelAssembler.toModel(response));
+    }
+
+    @PatchMapping("/{zoneId}")
+    public ResponseEntity<EntityModel<ZoneResponse>> updateZone(
+            @PathVariable String zoneId,
+            @Valid @RequestBody UpdateZoneRequest request,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+    ) {
+        ZoneResponse response = zoneCommandService.updateZone(zoneId, request, actorId);
+        return ResponseEntity.ok(zoneModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{zoneId}/activate")
+    public ResponseEntity<EntityModel<ZoneResponse>> activateZone(
+            @PathVariable String zoneId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+    ) {
+        ZoneResponse response = zoneCommandService.activateZone(zoneId, actorId);
+        return ResponseEntity.ok(zoneModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{zoneId}/deactivate")
+    public ResponseEntity<EntityModel<ZoneResponse>> deactivateZone(
+            @PathVariable String zoneId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+    ) {
+        ZoneResponse response = zoneCommandService.deactivateZone(zoneId, actorId);
+        return ResponseEntity.ok(zoneModelAssembler.toModel(response));
+    }
+
+    @GetMapping("/locations/{locationId}")
+    public ResponseEntity<PagedModel<EntityModel<ZoneResponse>>> listZones(
+            @PathVariable String locationId,
+            @RequestParam(value = "active", required = false) Boolean active,
+            PagedResourcesAssembler<ZoneResponse> pagedResourcesAssembler
+    ) {
+        Page<ZoneResponse> response = zoneQueryService.listZones(locationId, active);
+        PagedModel<EntityModel<ZoneResponse>> pageModel = pagedResourcesAssembler.toModel(response, zoneModelAssembler);
+        return ResponseEntity.ok(pageModel);
+    }
+}

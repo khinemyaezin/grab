@@ -1,8 +1,9 @@
 package com.grab.store.inventory.internal.api.rest.assembler;
 
+import com.grab.store.inventory.internal.api.rest.controller.InventoryController;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Link;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
@@ -13,8 +14,7 @@ public class InventoryModelAssembler
     @Override
     public EntityModel<InventoryResponse> toModel(InventoryResponse response) {
         return EntityModel.of(response,
-                Link.of("/api/v1/inventories/" + response.id()).withSelfRel(),
-                Link.of("/api/v1/inventories").withRel("inventories")
+                linkTo(methodOn(InventoryController.class).getInventory(response.id())).withRel("inventory")
         );
     }
 }

@@ -43,6 +43,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         InventoryItem item = InventoryItem.create(
                 idGenerator.generateId(),
                 command.sku(),
+                command.sellerId(),
                 command.productVariantId(),
                 command.locationId(),
                 command.initialQuantity(),
@@ -86,6 +87,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         return new InventoryItemResult(
                 item.getId().getValue(),
                 item.getSku(),
+                item.getSellerId().getValue(),
                 item.getProductVariantId() == null ? null : item.getProductVariantId().getValue(),
                 item.getLocationId().getValue(),
                 item.getQuantity().onHand(),

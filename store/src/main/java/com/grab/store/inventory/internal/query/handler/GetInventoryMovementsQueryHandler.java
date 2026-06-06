@@ -1,28 +1,28 @@
 package com.grab.store.inventory.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.inventory.domain.entity.StockMovement;
-import com.inventory.domain.repository.StockMovementRepository;
+import com.grab.framework.id.IdGenerator;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsQuery;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsResult;
+import com.inventory.infrastructure.repository.jpa.StockMovementQueryRepository;
+import com.inventory.infrastructure.view.StockMovementView;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class GetInventoryMovementsQueryHandler
-        implements QueryHandler<GetInventoryMovementsQuery, GetInventoryMovementsResult> {
-
-    private final StockMovementRepository stockMovementRepository;
+public class GetInventoryMovementsQueryHandler implements QueryHandler<GetInventoryMovementsQuery, Page<GetInventoryMovementsResult>> {
+    private final StockMovementQueryRepository stockMovementRepository;
+    private final IdGenerator idGenerator;
 
     @Override
     @InventoryReadTransactional
-    public GetInventoryMovementsResult handle(GetInventoryMovementsQuery query) {
-        List<StockMovement> movements = stockMovementRepository.findByInventoryItemId(query.inventoryItemId());
-        return mapToResult(query.inventoryItemId().getValue(), movements);
+    public Page<GetInventoryMovementsResult> handle(GetInventoryMovementsQuery query) {
+        return stockMovementRepository.queryByInventoryItemId(
+                query.inventoryItemId().getValue(), query.pageable())
+                .map(this::toMovement);
     }
 
     @Override
@@ -30,23 +30,20 @@ public class GetInventoryMovementsQueryHandler
         return GetInventoryMovementsQuery.class;
     }
 
-    private GetInventoryMovementsResult mapToResult(String inventoryItemId, List<StockMovement> movements) {
-        List<GetInventoryMovementsResult.Movement> items = movements.stream()
-                .map(movement -> new GetInventoryMovementsResult.Movement(
-                        movement.getId().getValue(),
-                        movement.getInventoryItemId().getValue(),
-                        movement.getType().name(),
-                        movement.getQuantity(),
-                        movement.getQuantityBefore(),
-                        movement.getQuantityAfter(),
-                        movement.getOnHandBefore(),
-                        movement.getOnHandAfter(),
-                        movement.getReservedBefore(),
-                        movement.getReservedAfter(),
-                        movement.getReferenceId(),
-                        movement.getCreatedAt()
-                ))
-                .toList();
-        return new GetInventoryMovementsResult(inventoryItemId, items);
+    private GetInventoryMovementsResult toMovement(StockMovementView movement) {
+        return new GetInventoryMovementsResult(
+                idGenerator.convertIdFrom(movement.uuid()),
+                idGenerator.convertIdFrom(movement.inventoryItemId()),
+                movement.type().name(),
+                movement.quantity(),
+                movement.quantityBefore(),
+                movement.quantityAfter(),
+                movement.onHandBefore(),
+                movement.onHandAfter(),
+                movement.reservedBefore(),
+                movement.reservedAfter(),
+                movement.referenceId(),
+                movement.createdAt()
+        );
     }
 }

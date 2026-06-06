@@ -3,10 +3,12 @@ package com.grab.store.inventory.internal.command.handler;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
+import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.InventoryReservation;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.InventoryReservationRepository;
+import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.grab.store.inventory.internal.command.InventoryReservationResult;
 import com.grab.store.inventory.internal.command.ReserveStockCommand;
@@ -23,6 +25,7 @@ public class ReserveStockCommandHandler implements CommandHandler<ReserveStockCo
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
+    private final LocationRepository locationRepository;
     private final IdGenerator idGenerator;
 
     @Override
@@ -38,6 +41,12 @@ public class ReserveStockCommandHandler implements CommandHandler<ReserveStockCo
 
         InventoryItem item = inventoryRepository.findById(command.inventoryItemId())
                 .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.InventoryNotFound(command.inventoryItemId().getValue())));
+
+        Location location = locationRepository.findById(item.getLocationId())
+                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(item.getLocationId().getValue())));
+        if (!location.isActive()) {
+            throw new InventoryServiceException(new InventoryServiceError.LocationInactive(item.getLocationId().getValue()));
+        }
 
         StockMovement movement = item.reserveStock(
                 command.quantity(),

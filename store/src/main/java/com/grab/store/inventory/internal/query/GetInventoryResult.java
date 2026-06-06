@@ -1,10 +1,12 @@
 package com.grab.store.inventory.internal.query;
 
+import com.grab.framework.id.Id;
+
 public record GetInventoryResult(
-        String id,
+        Id id,
         String sku,
         String productVariantId,
-        String locationId,
+        Id locationId,
         int onHand,
         int reserved,
         int damaged,

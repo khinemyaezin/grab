@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.service.SkuGenerator;
 import com.catalog.domain.service.MatrixCombinationService;
 import com.catalog.domain.service.MatrixCombinationSynchronizer;
@@ -225,7 +226,6 @@ class CreateProductSetCommandHandlerTest {
         ));
 
         assertThatThrownBy(() -> handler.handle(command))
-                .isInstanceOf(CatalogServiceException.class)
-                .hasMessageContaining("cat.service.variant.add_failed");
+                .isInstanceOf(CatalogDomainValidationException.class);
     }
 }

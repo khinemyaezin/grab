@@ -1,8 +1,23 @@
 package com.grab.store.inventory.internal.query;
 
-import java.util.List;
+import com.grab.framework.id.Id;
 
 public record ListLocationsResult(
-        List<GetLocationResult> items
+        Id id,
+        String code,
+        String name,
+        String type,
+        boolean active,
+        Address address
 ) {
+
+    public record Address(
+            String line1,
+            String line2,
+            String city,
+            String state,
+            String postalCode,
+            String country
+    ) {
+    }
 }

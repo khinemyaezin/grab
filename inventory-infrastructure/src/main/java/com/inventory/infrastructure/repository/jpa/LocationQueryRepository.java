@@ -1,6 +1,5 @@
 package com.inventory.infrastructure.repository.jpa;
 
-import com.grab.framework.id.Id;
 import com.inventory.domain.enums.LocationType;
 import com.inventory.infrastructure.view.LocationView;
 import org.springframework.data.domain.Page;
