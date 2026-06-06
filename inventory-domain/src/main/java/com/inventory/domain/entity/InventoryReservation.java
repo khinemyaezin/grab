@@ -17,7 +17,7 @@ public class InventoryReservation extends Entity<Id> {
     private final int quantity;
     private final String idempotencyKey;
     private InventoryReservationStatus status;
-    private LocalDateTime expiresAt;
+    private final LocalDateTime expiresAt;
     private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

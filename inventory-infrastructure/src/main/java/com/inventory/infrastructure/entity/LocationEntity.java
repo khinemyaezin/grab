@@ -5,9 +5,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Getter
 @Setter
 @Entity
@@ -29,6 +26,9 @@ public class LocationEntity {
 
     @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
+    private String sellerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -54,17 +54,4 @@ public class LocationEntity {
 
     @Column(nullable = false)
     private boolean active = true;
-
-    @OneToMany(mappedBy = "location", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<ZoneEntity> zones = new ArrayList<>();
-
-    public void addZone(ZoneEntity zone) {
-        zone.setLocation(this);
-        zones.add(zone);
-    }
-
-    public void removeZone(ZoneEntity zone) {
-        zones.remove(zone);
-        zone.setLocation(null);
-    }
 }

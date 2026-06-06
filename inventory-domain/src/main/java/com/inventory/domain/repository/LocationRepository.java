@@ -11,9 +11,6 @@ public interface LocationRepository {
 
     Optional<Location> findById(Id id);
     Optional<Location> findByCode(String code);
-    List<Location> findAll();
-    List<Location> findAllActive();
-    List<Location> findByType(LocationType type);
     Location save(Location location);
     void delete(Id id);
     boolean existsByCode(String code);

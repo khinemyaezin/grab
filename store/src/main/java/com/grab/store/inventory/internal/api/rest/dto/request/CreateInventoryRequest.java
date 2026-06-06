@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record CreateInventoryRequest(
         @NotBlank String sku,
+        @NotBlank String sellerId,
         String productVariantId,
         @NotBlank String locationId,
         @Min(0) int initialQuantity,

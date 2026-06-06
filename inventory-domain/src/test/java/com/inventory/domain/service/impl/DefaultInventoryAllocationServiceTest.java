@@ -59,7 +59,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withInactiveInventoryExists_returnFailure() {
-        InventoryItem inactiveItem = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.SUSPENDED);
+        InventoryItem inactiveItem = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.SUSPENDED);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(inactiveItem));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", idGenerator.generateId());
@@ -70,7 +70,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withZeroQuantityInventory_returnFailure() {
-        InventoryItem emptyItem = createInventoryItem("item-1", "SKU-001", "loc-1", 0, InventoryStatus.ACTIVE);
+        InventoryItem emptyItem = createInventoryItem("item-1", "loc-1", 0, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(emptyItem));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
@@ -81,8 +81,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withInsufficientTotalStock_returnFailure() {
-        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 5, InventoryStatus.ACTIVE);
-        InventoryItem item2 = createInventoryItem("item-2", "SKU-001", "loc-2", 3, InventoryStatus.ACTIVE);
+        InventoryItem item1 = createInventoryItem("item-1", "loc-1", 5, InventoryStatus.ACTIVE);
+        InventoryItem item2 = createInventoryItem("item-2", "loc-2", 3, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item1, item2));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
@@ -97,7 +97,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withSingleItem_shouldSuccessfullyAllocate() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
@@ -116,7 +116,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withExactAvailableQty_shouldAllocate() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 10, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 10, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
@@ -128,8 +128,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withMultipleInventoryItems_shouldAllocate() {
-        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 5, InventoryStatus.ACTIVE);
-        InventoryItem item2 = createInventoryItem("item-2", "SKU-001", "loc-2", 10, InventoryStatus.ACTIVE);
+        InventoryItem item1 = createInventoryItem("item-1", "loc-1", 5, InventoryStatus.ACTIVE);
+        InventoryItem item2 = createInventoryItem("item-2", "loc-2", 10, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item1, item2));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 12, "order-1", userId);
@@ -143,9 +143,9 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withMultipleInventoryItem_shouldPrioritizeHighestAvailableQuantity() {
-        InventoryItem smallItem = createInventoryItem("small", "SKU-001", "loc-1", 5, InventoryStatus.ACTIVE);
-        InventoryItem largeItem = createInventoryItem("large", "SKU-001", "loc-2", 100, InventoryStatus.ACTIVE);
-        InventoryItem mediumItem = createInventoryItem("medium", "SKU-001", "loc-3", 50, InventoryStatus.ACTIVE);
+        InventoryItem smallItem = createInventoryItem("small", "loc-1", 5, InventoryStatus.ACTIVE);
+        InventoryItem largeItem = createInventoryItem("large", "loc-2", 100, InventoryStatus.ACTIVE);
+        InventoryItem mediumItem = createInventoryItem("medium", "loc-3", 50, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(smallItem, largeItem, mediumItem));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
@@ -158,9 +158,9 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withInactiveItems_shouldSkip() {
-        InventoryItem activeItem = createInventoryItem("active", "SKU-001", "loc-1", 10, InventoryStatus.ACTIVE);
-        InventoryItem suspendedItem = createInventoryItem("suspended", "SKU-001", "loc-2", 100, InventoryStatus.SUSPENDED);
-        InventoryItem discontinuedItem = createInventoryItem("discontinued", "SKU-001", "loc-3", 100, InventoryStatus.DISCONTINUED);
+        InventoryItem activeItem = createInventoryItem("active", "loc-1", 10, InventoryStatus.ACTIVE);
+        InventoryItem suspendedItem = createInventoryItem("suspended", "loc-2", 100, InventoryStatus.SUSPENDED);
+        InventoryItem discontinuedItem = createInventoryItem("discontinued", "loc-3", 100, InventoryStatus.DISCONTINUED);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(activeItem, suspendedItem, discontinuedItem));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 10, "order-1", userId);
@@ -192,7 +192,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStockFromLocation_withSingleItem_shouldSuccessfullyAllocate() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySkuAndLocation("SKU-001", item.getLocationId())).thenReturn(Optional.of(item));
 
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", item.getLocationId(), 10, "order-1", userId);
@@ -224,7 +224,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStockFromLocation_withInactiveItem_shouldReturnFailure() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.SUSPENDED);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.SUSPENDED);
         when(inventoryRepository.findBySkuAndLocation("SKU-001", item.getLocationId())).thenReturn(Optional.of(item));
 
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", item.getLocationId(), 10, "order-1", userId);
@@ -238,7 +238,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStockFromLocation_withInsufficientStock_shouldReturnFailure() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 5, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 5, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySkuAndLocation("SKU-001", item.getLocationId())).thenReturn(Optional.of(item));
 
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", item.getLocationId(), 10, "order-1", userId);
@@ -273,7 +273,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStockFromLocation_withExactAvailableQuantity_shouldSucceed() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 10, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 10, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySkuAndLocation("SKU-001", item.getLocationId())).thenReturn(Optional.of(item));
 
         AllocationResult result = allocationService.allocateStockFromLocation("SKU-001", item.getLocationId(), 10, "order-1", userId);
@@ -288,7 +288,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void deallocateStock_withSingleLocation_shouldReleaseReservation() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
         item.reserveStock(20, "order-1", userId, id("mov-1"));
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
@@ -301,8 +301,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void deallocateStock_withMultipleLocations_shouldReleaseFromAll() {
-        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
-        InventoryItem item2 = createInventoryItem("item-2", "SKU-001", "loc-2", 100, InventoryStatus.ACTIVE);
+        InventoryItem item1 = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item2 = createInventoryItem("item-2", "loc-2", 100, InventoryStatus.ACTIVE);
         item1.reserveStock(10, "order-1", userId, id("mov-1"));
         item2.reserveStock(10, "order-1", userId, id("mov-2"));
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item1, item2));
@@ -317,7 +317,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void deallocateStock_withExactReservedAmount_shouldReleaseAll() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
         item.reserveStock(20, "order-1", userId, id("mov-1"));
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
@@ -329,7 +329,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void deallocateStock_withZeroReserved_shouldNotSaveOrCreateMovement() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
         allocationService.deallocateStock("SKU-001", 10, "order-1", userId);
@@ -341,7 +341,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void deallocateStock_withPartialRelease_shouldReleaseOnlyRequested() {
-        InventoryItem item = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
         item.reserveStock(30, "order-1", userId, id("mov-1"));
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
@@ -427,9 +427,9 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void findAvailableInventory_shouldReturnOnlyActiveItems() {
-        InventoryItem activeItem = createInventoryItem("active", "SKU-001", "loc-1", 10, InventoryStatus.ACTIVE);
-        InventoryItem suspendedItem = createInventoryItem("suspended", "SKU-001", "loc-2", 20, InventoryStatus.SUSPENDED);
-        InventoryItem discontinuedItem = createInventoryItem("discontinued", "SKU-001", "loc-3", 30, InventoryStatus.DISCONTINUED);
+        InventoryItem activeItem = createInventoryItem("active", "loc-1", 10, InventoryStatus.ACTIVE);
+        InventoryItem suspendedItem = createInventoryItem("suspended", "loc-2", 20, InventoryStatus.SUSPENDED);
+        InventoryItem discontinuedItem = createInventoryItem("discontinued", "loc-3", 30, InventoryStatus.DISCONTINUED);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(activeItem, suspendedItem, discontinuedItem));
 
         List<InventoryItem> result = allocationService.findAvailableInventory("SKU-001");
@@ -440,8 +440,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void findAvailableInventory_shouldFilterZeroQuantityItems() {
-        InventoryItem itemWithStock = createInventoryItem("with-stock", "SKU-001", "loc-1", 10, InventoryStatus.ACTIVE);
-        InventoryItem itemWithoutStock = createInventoryItem("no-stock", "SKU-001", "loc-2", 0, InventoryStatus.ACTIVE);
+        InventoryItem itemWithStock = createInventoryItem("with-stock", "loc-1", 10, InventoryStatus.ACTIVE);
+        InventoryItem itemWithoutStock = createInventoryItem("no-stock", "loc-2", 0, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(itemWithStock, itemWithoutStock));
 
         List<InventoryItem> result = allocationService.findAvailableInventory("SKU-001");
@@ -452,9 +452,9 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void findAvailableInventory_shouldSortByQuantityDescending() {
-        InventoryItem small = createInventoryItem("small", "SKU-001", "loc-1", 5, InventoryStatus.ACTIVE);
-        InventoryItem large = createInventoryItem("large", "SKU-001", "loc-2", 100, InventoryStatus.ACTIVE);
-        InventoryItem medium = createInventoryItem("medium", "SKU-001", "loc-3", 50, InventoryStatus.ACTIVE);
+        InventoryItem small = createInventoryItem("small", "loc-1", 5, InventoryStatus.ACTIVE);
+        InventoryItem large = createInventoryItem("large", "loc-2", 100, InventoryStatus.ACTIVE);
+        InventoryItem medium = createInventoryItem("medium", "loc-3", 50, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(small, large, medium));
 
         List<InventoryItem> result = allocationService.findAvailableInventory("SKU-001");
@@ -476,8 +476,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void findAvailableInventory_withAllInactiveOrZero_shouldReturnEmpty() {
-        InventoryItem suspended = createInventoryItem("suspended", "SKU-001", "loc-1", 10, InventoryStatus.SUSPENDED);
-        InventoryItem zeroStock = createInventoryItem("zero", "SKU-001", "loc-2", 0, InventoryStatus.ACTIVE);
+        InventoryItem suspended = createInventoryItem("suspended", "loc-1", 10, InventoryStatus.SUSPENDED);
+        InventoryItem zeroStock = createInventoryItem("zero", "loc-2", 0, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(suspended, zeroStock));
 
         List<InventoryItem> result = allocationService.findAvailableInventory("SKU-001");
@@ -487,9 +487,9 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withPartiallyReservedItems_shouldConsiderAvailableOnly() {
-        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 20, InventoryStatus.ACTIVE);
+        InventoryItem item1 = createInventoryItem("item-1", "loc-1", 20, InventoryStatus.ACTIVE);
         item1.reserveStock(15, "other-order", userId, id("mov-1")); // 5 available
-        InventoryItem item2 = createInventoryItem("item-2", "SKU-001", "loc-2", 30, InventoryStatus.ACTIVE);
+        InventoryItem item2 = createInventoryItem("item-2", "loc-2", 30, InventoryStatus.ACTIVE);
         item2.reserveStock(20, "other-order", userId, id("mov-2")); // 10 available
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item1, item2));
 
@@ -506,9 +506,9 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void allocateStock_withMixedActiveAndInactive_shouldAllocateFromActiveOnly() {
-        InventoryItem activeSmall = createInventoryItem("active-small", "SKU-001", "loc-1", 5, InventoryStatus.ACTIVE);
-        InventoryItem inactiveLarge = createInventoryItem("inactive-large", "SKU-001", "loc-2", 100, InventoryStatus.DISCONTINUED);
-        InventoryItem activeLarge = createInventoryItem("active-large", "SKU-001", "loc-3", 50, InventoryStatus.ACTIVE);
+        InventoryItem activeSmall = createInventoryItem("active-small", "loc-1", 5, InventoryStatus.ACTIVE);
+        InventoryItem inactiveLarge = createInventoryItem("inactive-large", "loc-2", 100, InventoryStatus.DISCONTINUED);
+        InventoryItem activeLarge = createInventoryItem("active-large", "loc-3", 50, InventoryStatus.ACTIVE);
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(activeSmall, inactiveLarge, activeLarge));
 
         AllocationResult result = allocationService.allocateStock("SKU-001", 20, "order-1", userId);
@@ -521,8 +521,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void deallocateStock_withMoreRequestedThanReserved_shouldReleaseOnlyReserved() {
-        InventoryItem item1 = createInventoryItem("item-1", "SKU-001", "loc-1", 100, InventoryStatus.ACTIVE);
-        InventoryItem item2 = createInventoryItem("item-2", "SKU-001", "loc-2", 100, InventoryStatus.ACTIVE);
+        InventoryItem item1 = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item2 = createInventoryItem("item-2", "loc-2", 100, InventoryStatus.ACTIVE);
         item1.reserveStock(5, "order-1", userId, id("mov-1"));
         item2.reserveStock(3, "order-1", userId, id("mov-2"));
         when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item1, item2));
@@ -534,10 +534,11 @@ class DefaultInventoryAllocationServiceTest {
         verify(inventoryRepository, times(2)).save(any());
     }
 
-    private InventoryItem createInventoryItem(String itemId, String sku, String locationId, int onHand, InventoryStatus status) {
+    private InventoryItem createInventoryItem(String itemId, String locationId, int onHand, InventoryStatus status) {
         return new InventoryItem(
                 id(itemId),
-                sku,
+                "SKU-001",
+                userId,
                 id("variant-1"),
                 id(locationId),
                 InventoryQuantity.withOnHand(onHand),

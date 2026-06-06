@@ -109,6 +109,12 @@ public record InventoryQuantity(
     }
 
     public InventoryQuantity markDamaged(int quantity) {
+        if (quantity <= 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.QuantityNotPositive(),
+                    "Quantity to mark as damaged must be greater than zero"
+            );
+        }
         int undamaged = onHand - damaged;
         if (quantity > undamaged) {
             throw new InventoryDomainValidationException(

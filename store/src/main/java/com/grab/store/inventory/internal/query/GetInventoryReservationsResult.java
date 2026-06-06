@@ -1,21 +1,17 @@
 package com.grab.store.inventory.internal.query;
 
+import com.grab.framework.id.Id;
+
 import java.time.LocalDateTime;
-import java.util.List;
 
 public record GetInventoryReservationsResult(
-        String inventoryItemId,
-        List<Reservation> reservations
+        Id id,
+        Id inventoryItemId,
+        String orderId,
+        String orderLineId,
+        int quantity,
+        String status,
+        LocalDateTime expiresAt,
+        String idempotencyKey
 ) {
-    public record Reservation(
-            String id,
-            String inventoryItemId,
-            String orderId,
-            String orderLineId,
-            int quantity,
-            String status,
-            LocalDateTime expiresAt,
-            String idempotencyKey
-    ) {
-    }
 }

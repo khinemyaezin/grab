@@ -10,7 +10,6 @@ import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
-import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -28,8 +27,9 @@ public class CreateLocationCommandHandler implements CommandHandler<CreateLocati
             throw new InventoryServiceException(new InventoryServiceError.LocationAlreadyExists(command.code()));
         }
 
-        Location location = new Location(
+        Location location = Location.create(
                 idGenerator.generateId(),
+                idGenerator.convertIdFrom(command.sellerId()),
                 command.code(),
                 command.name(),
                 command.type(),
@@ -44,7 +44,22 @@ public class CreateLocationCommandHandler implements CommandHandler<CreateLocati
         );
 
         Location saved = locationRepository.save(location);
-        return LocationResultMapper.toCommandResult(saved);
+
+        return new LocationResult(
+                saved.getId().getValue(),
+                saved.getCode(),
+                saved.getName(),
+                saved.getType().name(),
+                saved.isActive(),
+                new LocationResult.Address(
+                        saved.getAddress().line1(),
+                        saved.getAddress().line2(),
+                        saved.getAddress().city(),
+                        saved.getAddress().state(),
+                        saved.getAddress().postalCode(),
+                        saved.getAddress().country()
+                )
+        );
     }
 
     @Override

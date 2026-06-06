@@ -1,10 +1,7 @@
 package com.inventory.infrastructure.entity.meta;
 
 import com.inventory.infrastructure.entity.ZoneEntity;
-import com.inventory.infrastructure.entity.LocationEntity;
-import com.inventory.infrastructure.entity.BinEntity;
 import com.inventory.domain.enums.ZoneType;
-import jakarta.persistence.metamodel.ListAttribute;
 import jakarta.persistence.metamodel.SingularAttribute;
 import jakarta.persistence.metamodel.StaticMetamodel;
 
@@ -16,8 +13,7 @@ public class ZoneEntity_ {
     public static volatile SingularAttribute<ZoneEntity, String> name;
     public static volatile SingularAttribute<ZoneEntity, ZoneType> type;
     public static volatile SingularAttribute<ZoneEntity, Boolean> active;
-    public static volatile SingularAttribute<ZoneEntity, LocationEntity> location;
-    public static volatile ListAttribute<ZoneEntity, BinEntity> bins;
+    public static volatile SingularAttribute<ZoneEntity, String> locationId;
 
     public static final String ID = "id";
     public static final String UUID = "uuid";
@@ -25,6 +21,5 @@ public class ZoneEntity_ {
     public static final String NAME = "name";
     public static final String TYPE = "type";
     public static final String ACTIVE = "active";
-    public static final String LOCATION = "location";
-    public static final String BINS = "bins";
+    public static final String LOCATION_ID = "locationId";
 }

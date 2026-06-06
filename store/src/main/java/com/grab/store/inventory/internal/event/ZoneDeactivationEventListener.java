@@ -1,0 +1,50 @@
+package com.grab.store.inventory.internal.event;
+
+import com.grab.framework.cqrs.command.CommandBus;
+import com.inventory.domain.aggregate.Bin;
+import com.inventory.domain.event.ZoneDeactivatedEvent;
+import com.inventory.domain.repository.BinRepository;
+import com.grab.store.inventory.internal.command.DeactivateBinCommand;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
+
+import java.util.List;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ZoneDeactivationEventListener {
+
+    private final BinRepository binRepository;
+    private final CommandBus commandBus;
+
+    @TransactionalEventListener
+    public void handleZoneDeactivated(ZoneDeactivatedEvent event) {
+        log.info("Handling ZoneDeactivatedEvent for zoneId={}", event.zoneId().getValue());
+
+        List<Bin> activeBins = List.of();//binRepository.findByZoneIdAndActive(event.zoneId(), true);
+
+        if (activeBins.isEmpty()) {
+            log.info("No active bins found for zoneId={}", event.zoneId().getValue());
+            return;
+        }
+
+        log.info("Found {} active bins to deactivate for zoneId={}", activeBins.size(), event.zoneId().getValue());
+
+        for (Bin bin : activeBins) {
+            try {
+                DeactivateBinCommand command = new DeactivateBinCommand(
+                        bin.getId(),
+                        "system-cascade-deactivation"
+                );
+                commandBus.dispatch(command);
+                log.info("Dispatched DeactivateBinCommand for binId={}", bin.getId().getValue());
+            } catch (Exception e) {
+                log.error("Failed to deactivate binId={} during zone deactivation cascade",
+                        bin.getId().getValue(), e);
+            }
+        }
+    }
+}

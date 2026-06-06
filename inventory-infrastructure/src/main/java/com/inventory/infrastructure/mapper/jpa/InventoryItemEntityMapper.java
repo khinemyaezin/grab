@@ -15,6 +15,7 @@ public abstract class InventoryItemEntityMapper {
     @Mapping(ignore = true, target = InventoryItemEntity_.ID)
     @Mapping(source = "id", target = InventoryItemEntity_.UUID)
     @Mapping(source = "sku", target = InventoryItemEntity_.SKU)
+    @Mapping(source = "sellerId", target = InventoryItemEntity_.SELLER_ID)
     @Mapping(source = "productVariantId", target = InventoryItemEntity_.PRODUCT_VARIANT_ID)
     @Mapping(source = "locationId", target = InventoryItemEntity_.LOCATION_ID)
     @Mapping(source = "quantity.onHand", target = InventoryItemEntity_.ON_HAND)
@@ -27,5 +28,6 @@ public abstract class InventoryItemEntityMapper {
     @Mapping(source = "reorderConfig.maxStock", target = InventoryItemEntity_.MAX_STOCK)
     @Mapping(source = "status", target = InventoryItemEntity_.STATUS)
     @Mapping(ignore = true, target = InventoryItemEntity_.LAST_UPDATED)
+    @Mapping(ignore = true, target = InventoryItemEntity_.VERSION)
     public abstract void toEntity(InventoryItem source, @MappingTarget InventoryItemEntity destination);
 }

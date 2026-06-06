@@ -32,10 +32,10 @@ public class GetInventoryQueryHandler implements QueryHandler<GetInventoryQuery,
 
     private GetInventoryResult mapToResult(InventoryItem item) {
         return new GetInventoryResult(
-                item.getId().getValue(),
+                item.getId(),
                 item.getSku(),
                 item.getProductVariantId() == null ? null : item.getProductVariantId().getValue(),
-                item.getLocationId().getValue(),
+                item.getLocationId(),
                 item.getQuantity().onHand(),
                 item.getQuantity().reserved(),
                 item.getQuantity().damaged(),

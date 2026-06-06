@@ -8,7 +8,6 @@ import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.grab.store.inventory.internal.query.GetLocationQuery;
 import com.grab.store.inventory.internal.query.GetLocationResult;
-import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +22,22 @@ public class GetLocationQueryHandler implements QueryHandler<GetLocationQuery, G
     public GetLocationResult handle(GetLocationQuery query) {
         Location location = locationRepository.findById(query.locationId())
                 .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(query.locationId().getValue())));
-        return LocationResultMapper.toQueryResult(location);
+
+        return new GetLocationResult(
+                location.getId(),
+                location.getCode(),
+                location.getName(),
+                location.getType().name(),
+                location.isActive(),
+                new GetLocationResult.Address(
+                        location.getAddress().line1(),
+                        location.getAddress().line2(),
+                        location.getAddress().city(),
+                        location.getAddress().state(),
+                        location.getAddress().postalCode(),
+                        location.getAddress().country()
+                )
+        );
     }
 
     @Override

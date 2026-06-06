@@ -2,7 +2,12 @@ package com.inventory.infrastructure.repository.jpa;
 
 import com.inventory.domain.enums.ZoneType;
 import com.inventory.infrastructure.entity.ZoneEntity;
+import com.inventory.infrastructure.view.ZoneView;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,13 +18,15 @@ public interface ZoneJpaRepository extends JpaRepository<ZoneEntity, Long> {
 
     Optional<ZoneEntity> findByUuid(String uuid);
 
-    Optional<ZoneEntity> findByCodeAndLocationId(String code, Long locationId);
+    List<ZoneEntity> findAllByLocationIdAndActive(String locationId, boolean active);
 
-    List<ZoneEntity> findAllByLocationId(Long locationId);
+    boolean existsByCodeAndLocationId(String code, String locationId);
 
-    List<ZoneEntity> findAllByType(ZoneType type);
+    Page<ZoneView> findAllByLocationId(@Param("locationId") String locationId, Pageable pageable);
 
-    List<ZoneEntity> findAllByActiveTrue();
+    Page<ZoneView> findAllByLocationIdAndActive(@Param("locationId") String locationId, @Param("active") boolean active, Pageable pageable);
 
-    boolean existsByCodeAndLocationId(String code, Long locationId);
+    Page<ZoneView> findAllByType(@Param("type") ZoneType type, Pageable pageable);
+
+    Page<ZoneView> findAllByActive(@Param("active") boolean active, Pageable pageable);
 }

@@ -9,7 +9,6 @@ import com.grab.store.inventory.internal.command.UpdateLocationCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
-import com.grab.store.inventory.internal.support.LocationResultMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -29,23 +28,32 @@ public class UpdateLocationCommandHandler implements CommandHandler<UpdateLocati
             if (locationRepository.existsByCode(command.code())) {
                 throw new InventoryServiceException(new InventoryServiceError.LocationAlreadyExists(command.code()));
             }
-            location.setCode(command.code());
         }
 
-        if (command.name() != null && !command.name().isBlank()) {
-            location.setName(command.name());
-        }
-
-        if (command.type() != null) {
-            location.setType(command.type());
-        }
-
+        Address mergedAddress = null;
         if (command.addressProvided()) {
-            location.setAddress(mergeAddress(location.getAddress(), command));
+            mergedAddress = mergeAddress(location.getAddress(), command);
         }
+
+        location.update(command.code(), command.name(), command.type(), mergedAddress);
 
         Location saved = locationRepository.save(location);
-        return LocationResultMapper.toCommandResult(saved);
+
+        return new LocationResult(
+                saved.getId().getValue(),
+                saved.getCode(),
+                saved.getName(),
+                saved.getType().name(),
+                saved.isActive(),
+                new LocationResult.Address(
+                        saved.getAddress().line1(),
+                        saved.getAddress().line2(),
+                        saved.getAddress().city(),
+                        saved.getAddress().state(),
+                        saved.getAddress().postalCode(),
+                        saved.getAddress().country()
+                )
+        );
     }
 
     @Override

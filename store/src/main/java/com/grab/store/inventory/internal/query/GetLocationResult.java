@@ -1,15 +1,14 @@
 package com.grab.store.inventory.internal.query;
 
-import java.util.List;
+import com.grab.framework.id.Id;
 
 public record GetLocationResult(
-        String id,
+        Id id,
         String code,
         String name,
         String type,
         boolean active,
-        Address address,
-        List<Zone> zones
+        Address address
 ) {
     public record Address(
             String line1,
@@ -18,25 +17,6 @@ public record GetLocationResult(
             String state,
             String postalCode,
             String country
-    ) {
-    }
-
-    public record Zone(
-            String id,
-            String code,
-            String name,
-            String type,
-            boolean active,
-            List<Bin> bins
-    ) {
-    }
-
-    public record Bin(
-            String id,
-            String code,
-            String name,
-            Integer maxCapacity,
-            boolean active
     ) {
     }
 }

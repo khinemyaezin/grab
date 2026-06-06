@@ -2,100 +2,74 @@ package com.inventory.domain.aggregate;
 
 import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.id.Id;
-import com.inventory.domain.entity.Zone;
 import com.inventory.domain.enums.LocationType;
-import com.inventory.domain.enums.ZoneType;
+import com.inventory.domain.event.LocationActivatedEvent;
+import com.inventory.domain.event.LocationCreatedEvent;
+import com.inventory.domain.event.LocationDeactivatedEvent;
+import com.inventory.domain.event.LocationUpdatedEvent;
 import com.inventory.domain.valueobject.Address;
 import lombok.Getter;
-import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.Optional;
 
 @Getter
 public class Location extends AggregateRoot<Id> {
-
-    @Setter
     private String code;
-    @Setter
     private String name;
-    @Setter
+    private final Id sellerId;
     private LocationType type;
-    @Setter
     private Address address;
-    @Setter
     private boolean active;
 
-    private final List<Zone> zones;
-
-    public Location(Id id, String code, String name, LocationType type, Address address) {
+    public Location(Id id, Id sellerId, String code, String name, LocationType type, Address address, boolean active) {
         super(id);
         this.code = Objects.requireNonNull(code, "code is required");
         this.name = Objects.requireNonNull(name, "name is required");
+        this.sellerId = Objects.requireNonNull(sellerId, "sellerId is required");
         this.type = Objects.requireNonNull(type, "type is required");
+        this.active = active;
         this.address = address;
-        this.active = true;
-        this.zones = new ArrayList<>();
     }
 
-    public static Location createWarehouse(Id id, String code, String name, Address address) {
-        return new Location(id, code, name, LocationType.WAREHOUSE, address);
+    public static Location create(Id id, Id sellerId, String code, String name, LocationType type, Address address) {
+        Location location = new Location(id, sellerId, code, name, type, address, true);
+        location.addEvent(new LocationCreatedEvent(id, code, name, type, LocalDateTime.now()));
+        return location;
     }
 
-    public static Location createStore(Id id, String code, String name, Address address) {
-        return new Location(id, code, name, LocationType.STORE, address);
+    public static Location createWarehouse(Id id, String code, String name, Address address, Id sellerId) {
+        return new Location(id, sellerId, code, name, LocationType.WAREHOUSE, address, true);
     }
 
-    public List<Zone> getZones() {
-        return Collections.unmodifiableList(zones);
+    public static Location createStore(Id id, String code, String name, Address address, Id sellerId) {
+        return new Location(id, sellerId, code, name, LocationType.STORE, address, true);
     }
 
-    public List<Zone> getActiveZones() {
-        return zones.stream()
-                .filter(Zone::isActive)
-                .toList();
-    }
-
-    public List<Zone> getZonesByType(ZoneType type) {
-        return zones.stream()
-                .filter(z -> z.getType() == type)
-                .toList();
-    }
-
-    public boolean addZone(Zone zone) {
-        if (zone == null) return false;
-        if (findZoneByCode(zone.getCode()).isPresent()) {
-            return false;
+    public void update(String code, String name, LocationType type, Address address) {
+        if (code != null) {
+            this.code = code;
         }
-        return zones.add(zone);
-    }
-
-    public boolean removeZone(Id zoneId) {
-        return zones.removeIf(z -> Objects.equals(z.getId(), zoneId));
-    }
-
-    public Optional<Zone> findZoneById(Id zoneId) {
-        return zones.stream()
-                .filter(z -> Objects.equals(z.getId(), zoneId))
-                .findFirst();
-    }
-
-    public Optional<Zone> findZoneByCode(String code) {
-        return zones.stream()
-                .filter(z -> Objects.equals(z.getCode(), code))
-                .findFirst();
+        if (name != null) {
+            this.name = name;
+        }
+        if (type != null) {
+            this.type = type;
+        }
+        if (address != null) {
+            this.address = address;
+        }
+        addEvent(new LocationUpdatedEvent(getId(), this.code, this.name, this.type, LocalDateTime.now()));
     }
 
     public void deactivate() {
         this.active = false;
-        zones.forEach(Zone::deactivate);
+        addEvent(new LocationDeactivatedEvent(getId(), code, LocalDateTime.now()));
     }
 
     public void activate() {
         this.active = true;
+        addEvent(new LocationActivatedEvent(getId(), code, LocalDateTime.now()));
     }
 
     public boolean isWarehouse() {
@@ -106,20 +80,6 @@ public class Location extends AggregateRoot<Id> {
         return type == LocationType.STORE;
     }
 
-    public int getTotalZoneCount() {
-        return zones.size();
-    }
-
-    public int getActiveZoneCount() {
-        return (int) zones.stream().filter(Zone::isActive).count();
-    }
-
-    public int getTotalBinCount() {
-        return zones.stream()
-                .mapToInt(z -> z.getBins().size())
-                .sum();
-    }
-
     @Override
     public String toString() {
         return "Location{" +
@@ -127,7 +87,6 @@ public class Location extends AggregateRoot<Id> {
                 ", code='" + code + '\'' +
                 ", name='" + name + '\'' +
                 ", type=" + type +
-                ", zonesCount=" + zones.size() +
                 ", active=" + active +
                 '}';
     }

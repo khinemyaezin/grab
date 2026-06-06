@@ -1,23 +1,17 @@
 package com.grab.store.inventory.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
-import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
-import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementsModelAssembler;
-import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationsModelAssembler;
-import com.grab.store.inventory.internal.api.rest.dto.response.InventoryMovementsResponse;
-import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationsResponse;
+import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
-import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryDtoMapper;
-import com.grab.store.inventory.internal.api.rest.mapper.InventoryMovementsDtoMapper;
-import com.grab.store.inventory.internal.api.rest.mapper.InventoryReservationsDtoMapper;
-import com.grab.store.inventory.internal.query.GetInventoryMovementsQuery;
+import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsResult;
-import com.grab.store.inventory.internal.query.GetInventoryQuery;
-import com.grab.store.inventory.internal.query.GetInventoryReservationsQuery;
 import com.grab.store.inventory.internal.query.GetInventoryReservationsResult;
-import com.grab.store.inventory.internal.query.GetInventoryResult;
+import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryMovementsRequestMapper;
+import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryRequestMapper;
+import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryReservationsRequestMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.hateoas.EntityModel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,31 +19,25 @@ import org.springframework.stereotype.Service;
 public class InventoryQueryService {
 
     private final QueryBus queryBus;
-    private final GetInventoryDtoMapper getInventoryDtoMapper;
-    private final InventoryMovementsDtoMapper inventoryMovementsDtoMapper;
-    private final InventoryReservationsDtoMapper inventoryReservationsDtoMapper;
-    private final InventoryModelAssembler inventoryModelAssembler;
-    private final InventoryMovementsModelAssembler inventoryMovementsModelAssembler;
-    private final InventoryReservationsModelAssembler inventoryReservationsModelAssembler;
+    private final GetInventoryRequestMapper getInventoryRequestMapper;
+    private final GetInventoryMovementsRequestMapper getInventoryMovementsRequestMapper;
+    private final GetInventoryReservationsRequestMapper getInventoryReservationsRequestMapper;
 
-    public EntityModel<InventoryResponse> getInventory(String inventoryItemId) {
-        GetInventoryQuery query = getInventoryDtoMapper.toQuery(inventoryItemId);
-        GetInventoryResult result = queryBus.dispatch(query);
-        InventoryResponse response = getInventoryDtoMapper.toResponse(result);
-        return inventoryModelAssembler.toModel(response);
+    public InventoryResponse getInventory(String inventoryItemId) {
+        var query = getInventoryRequestMapper.toQuery(inventoryItemId);
+        var result = queryBus.dispatch(query);
+        return getInventoryRequestMapper.toResponse(result);
     }
 
-    public EntityModel<InventoryMovementsResponse> getMovements(String inventoryItemId) {
-        GetInventoryMovementsQuery query = inventoryMovementsDtoMapper.toQuery(inventoryItemId);
-        GetInventoryMovementsResult result = queryBus.dispatch(query);
-        InventoryMovementsResponse response = inventoryMovementsDtoMapper.toResponse(result);
-        return inventoryMovementsModelAssembler.toModel(response);
+    public Page<StockMovementResponse> getMovements(String inventoryItemId, Pageable pageable) {
+        var query = getInventoryMovementsRequestMapper.toQuery(inventoryItemId, pageable);
+        Page<GetInventoryMovementsResult> resultPage = queryBus.dispatch(query);
+        return resultPage.map(getInventoryMovementsRequestMapper::toResponse);
     }
 
-    public EntityModel<InventoryReservationsResponse> getReservations(String inventoryItemId) {
-        GetInventoryReservationsQuery query = inventoryReservationsDtoMapper.toQuery(inventoryItemId);
-        GetInventoryReservationsResult result = queryBus.dispatch(query);
-        InventoryReservationsResponse response = inventoryReservationsDtoMapper.toResponse(result);
-        return inventoryReservationsModelAssembler.toModel(response);
+    public Page<InventoryReservationResponse> getReservations(String inventoryItemId, Pageable pageable) {
+        var query = getInventoryReservationsRequestMapper.toQuery(inventoryItemId, pageable);
+        Page<GetInventoryReservationsResult> resultPage = queryBus.dispatch(query);
+        return resultPage.map(getInventoryReservationsRequestMapper::toResponse);
     }
 }

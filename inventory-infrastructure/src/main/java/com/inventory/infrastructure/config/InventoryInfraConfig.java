@@ -7,26 +7,34 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.grab.outbox.infrastructure.OutboxStore;
+import com.inventory.domain.repository.BinRepository;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.InventoryReservationRepository;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
+import com.inventory.domain.repository.ZoneRepository;
 import com.inventory.infrastructure.mapper.jpa.*;
+import com.inventory.infrastructure.mapper.jpa.impl.BinJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.InventoryJpaAssemblerImpl;
-import com.inventory.infrastructure.mapper.jpa.impl.LocationJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.InventoryReservationJpaAssemblerImpl;
+import com.inventory.infrastructure.mapper.jpa.impl.LocationJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.StockMovementJpaAssemblerImpl;
+import com.inventory.infrastructure.mapper.jpa.impl.ZoneJpaAssemblerImpl;
+import com.inventory.infrastructure.repository.jpa.BinJpaRepository;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
 import com.inventory.infrastructure.repository.jpa.InventoryReservationJpaRepository;
 import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
 import com.inventory.infrastructure.repository.jpa.StockMovementJpaRepository;
+import com.inventory.infrastructure.repository.jpa.ZoneJpaRepository;
 import com.inventory.infrastructure.outbox.InventoryOutboxEvent;
 import com.inventory.infrastructure.outbox.InventoryOutboxEventProcessor;
 import com.inventory.infrastructure.outbox.InventoryOutboxEventProducer;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultBinRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryReservationRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultLocationRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultStockMovementRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultZoneRepository;
 import com.inventory.infrastructure.repository.jpa.support.InventoryPersistenceExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -115,18 +123,32 @@ public class InventoryInfraConfig {
     @Bean
     public LocationJpaAssembler locationJpaAssembler(
             LocationEntityMapper locationEntityMapper,
-            ZoneEntityMapper zoneEntityMapper,
-            BinEntityMapper binEntityMapper,
-            LocationMapper locationMapper,
-            ZoneMapper zoneMapper,
-            BinMapper binMapper
+            LocationMapper locationMapper
     ) {
         return new LocationJpaAssemblerImpl(
                 locationEntityMapper,
+                locationMapper
+        );
+    }
+
+    @Bean
+    public ZoneJpaAssembler zoneJpaAssembler(
+            ZoneEntityMapper zoneEntityMapper,
+            ZoneMapper zoneMapper
+    ) {
+        return new ZoneJpaAssemblerImpl(
                 zoneEntityMapper,
+                zoneMapper
+        );
+    }
+
+    @Bean
+    public BinJpaAssembler binJpaAssembler(
+            BinEntityMapper binEntityMapper,
+            BinMapper binMapper
+    ) {
+        return new BinJpaAssemblerImpl(
                 binEntityMapper,
-                locationMapper,
-                zoneMapper,
                 binMapper
         );
     }
@@ -148,7 +170,7 @@ public class InventoryInfraConfig {
     }
 
     @Bean
-    public InventoryRepository inventoryRepository(InventoryItemJpaRepository jpaRepository,
+    public DefaultInventoryRepository inventoryRepository(InventoryItemJpaRepository jpaRepository,
                                                    InventoryJpaAssembler mapper,
                                                    @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
                                                    @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
@@ -161,21 +183,38 @@ public class InventoryInfraConfig {
     }
 
     @Bean
-    public InventoryReservationRepository inventoryReservationRepository(InventoryReservationJpaRepository jpaRepository,
+    public DefaultInventoryReservationRepository inventoryReservationRepository(InventoryReservationJpaRepository jpaRepository,
                                                                          InventoryReservationJpaAssembler mapper,
                                                                          @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new DefaultInventoryReservationRepository(jpaRepository, mapper, executor);
     }
 
     @Bean
-    public LocationRepository locationRepository(LocationJpaRepository jpaRepository,
+    public DefaultLocationRepository locationRepository(LocationJpaRepository jpaRepository,
                                                  LocationJpaAssembler mapper,
+                                                 @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
                                                  @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
-        return new DefaultLocationRepository(jpaRepository, mapper, executor);
+        return new DefaultLocationRepository(jpaRepository, mapper, domainEventProducer, executor);
     }
 
     @Bean
-    public StockMovementRepository stockMovementRepository(StockMovementJpaRepository jpaRepository,
+    public DefaultZoneRepository zoneRepository(ZoneJpaRepository jpaRepository,
+                                         ZoneJpaAssembler mapper,
+                                         @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                         @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultZoneRepository(jpaRepository, mapper, domainEventProducer, executor);
+    }
+
+    @Bean
+    public DefaultBinRepository binRepository(BinJpaRepository jpaRepository,
+                                       BinJpaAssembler mapper,
+                                       @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                       @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultBinRepository(jpaRepository, mapper, domainEventProducer, executor);
+    }
+
+    @Bean
+    public DefaultStockMovementRepository stockMovementRepository(StockMovementJpaRepository jpaRepository,
                                                            StockMovementJpaAssembler mapper,
                                                            @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor){
         return new DefaultStockMovementRepository(jpaRepository, mapper, executor);

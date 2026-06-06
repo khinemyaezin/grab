@@ -1,32 +1,27 @@
 package com.grab.store.inventory.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.inventory.domain.aggregate.Location;
-import com.inventory.domain.repository.LocationRepository;
+import com.grab.framework.id.IdGenerator;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
-import com.grab.store.inventory.internal.query.GetLocationResult;
 import com.grab.store.inventory.internal.query.ListLocationsQuery;
 import com.grab.store.inventory.internal.query.ListLocationsResult;
-import com.grab.store.inventory.internal.support.LocationResultMapper;
+import com.inventory.infrastructure.repository.jpa.LocationQueryRepository;
+import com.inventory.infrastructure.view.LocationView;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class ListLocationsQueryHandler implements QueryHandler<ListLocationsQuery, ListLocationsResult> {
-
-    private final LocationRepository locationRepository;
+public class ListLocationsQueryHandler implements QueryHandler<ListLocationsQuery, Page<ListLocationsResult>> {
+    private final LocationQueryRepository locationRepository;
+    private final IdGenerator idGenerator;
 
     @Override
     @InventoryReadTransactional
-    public ListLocationsResult handle(ListLocationsQuery query) {
-        List<Location> locations = fetchByFilter(query);
-        List<GetLocationResult> items = locations.stream()
-                .map(LocationResultMapper::toQueryResult)
-                .toList();
-        return new ListLocationsResult(items);
+    public Page<ListLocationsResult> handle(ListLocationsQuery query) {
+        return locationRepository.queryByType(query.sellerId().getValue(), query.type(), query.pageable())
+                .map(this::convertToLocation);
     }
 
     @Override
@@ -34,25 +29,21 @@ public class ListLocationsQueryHandler implements QueryHandler<ListLocationsQuer
         return ListLocationsQuery.class;
     }
 
-    private List<Location> fetchByFilter(ListLocationsQuery query) {
-        if (query.type() != null) {
-            List<Location> byType = locationRepository.findByType(query.type());
-            if (query.active() == null) {
-                return byType;
-            }
-            return byType.stream().filter(location -> location.isActive() == query.active()).toList();
-        }
-
-        if (query.active() == null) {
-            return locationRepository.findAll();
-        }
-
-        if (query.active()) {
-            return locationRepository.findAllActive();
-        }
-
-        return locationRepository.findAll().stream()
-                .filter(location -> !location.isActive())
-                .toList();
+    private ListLocationsResult convertToLocation(LocationView locationView){
+        return new ListLocationsResult(
+                idGenerator.convertIdFrom(locationView.uuid()),
+                locationView.code(),
+                locationView.name(),
+                locationView.type().name(),
+                locationView.active(),
+                new ListLocationsResult.Address(
+                        locationView.street(),
+                        locationView.street2(),
+                        locationView.city(),
+                        locationView.state(),
+                        locationView.postalCode(),
+                        locationView.country()
+                )
+        );
     }
 }

@@ -24,6 +24,5 @@ public abstract class LocationEntityMapper {
     @Mapping(source = "address.postalCode", target = LocationEntity_.POSTAL_CODE)
     @Mapping(source = "address.country", target = LocationEntity_.COUNTRY)
     @Mapping(source = "active", target = LocationEntity_.ACTIVE)
-    @Mapping(ignore = true, target = LocationEntity_.ZONES)
     public abstract void toEntity(Location source, @MappingTarget LocationEntity destination);
 }
