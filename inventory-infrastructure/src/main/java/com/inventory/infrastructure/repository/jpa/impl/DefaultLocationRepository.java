@@ -35,14 +35,14 @@ public class DefaultLocationRepository implements LocationRepository, LocationQu
     public Optional<Location> findById(Id id) {
         log.debug("Loading location by id={}", id.getValue());
         return executor.query("Location", () -> jpaRepository.findByUuid(id.getValue())
-                .map(mapper::toDomain));
+                .map(mapper::toFullDomainGraph));
     }
 
     @Override
     public Optional<Location> findByCode(String code) {
         log.debug("Loading location by code={}", code);
         return executor.query("Location", () -> jpaRepository.findByCode(code)
-                .map(mapper::toDomain));
+                .map(mapper::toFullDomainGraph));
     }
 
     @Override
@@ -66,14 +66,14 @@ public class DefaultLocationRepository implements LocationRepository, LocationQu
         return executor.command("Location", () -> {
             log.info("Persisting location id={}, code={}", location.getId().getValue(), location.getCode());
             Optional<LocationEntity> existingEntity = jpaRepository.findByUuid(location.getId().getValue());
-            LocationEntity entity = mapper.toEntity(location, existingEntity.orElse(null));
+            LocationEntity entity = mapper.buildFullEntityGraph(location, existingEntity.orElse(null));
             LocationEntity saved = jpaRepository.save(entity);
 
             List<Event> events = location.pullEvents();
             domainEventProducer.produce(location.getClass().getSimpleName(), location.getId().getValue(), events);
             log.info("Persisted location id={}, code={}, publishedEvents={}", location.getId().getValue(), location.getCode(), events.size());
 
-            return mapper.toDomain(saved);
+            return mapper.toFullDomainGraph(saved);
         });
     }
 
