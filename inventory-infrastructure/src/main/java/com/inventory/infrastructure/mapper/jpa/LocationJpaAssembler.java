@@ -4,6 +4,6 @@ import com.inventory.domain.aggregate.Location;
 import com.inventory.infrastructure.entity.LocationEntity;
 
 public interface LocationJpaAssembler {
-    LocationEntity toEntity(Location location, LocationEntity entity);
-    Location toDomain(LocationEntity entity);
+    LocationEntity buildFullEntityGraph(Location location, LocationEntity entity);
+    Location toFullDomainGraph(LocationEntity entity);
 }

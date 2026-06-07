@@ -16,6 +16,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -92,7 +93,7 @@ public class GlobalApiExceptionHandler {
         return handleDomainException(SharedErrors.internalUnexpected(), request);
     }
 
-    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ExceptionHandler({MissingServletRequestParameterException.class, MissingRequestHeaderException.class})
     public ProblemDetail handleDomainException(MissingServletRequestParameterException exception, HttpServletRequest request) {
         log.error(exception.getMessage(), exception);
         return toProblem(

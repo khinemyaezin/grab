@@ -31,9 +31,9 @@ public class LocationController {
     @PostMapping
     public ResponseEntity<EntityModel<LocationResponse>> createLocation(
             @Valid @RequestBody CreateLocationRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @RequestHeader(value = "X-Actor-Id") String sellerId
     ) {
-        LocationResponse response = locationCommandService.createLocation(request, actorId);
+        LocationResponse response = locationCommandService.createLocation(request, sellerId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationModelAssembler.toModel(response));
     }
@@ -42,27 +42,27 @@ public class LocationController {
     public ResponseEntity<EntityModel<LocationResponse>> updateLocation(
             @PathVariable String locationId,
             @Valid @RequestBody UpdateLocationRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
     ) {
-        LocationResponse response =  locationCommandService.updateLocation(locationId, request, actorId);
+        LocationResponse response =  locationCommandService.updateLocation(locationId, request, sellerId);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
     @PostMapping("/{locationId}/activate")
     public ResponseEntity<EntityModel<LocationResponse>> activateLocation(
             @PathVariable String locationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
     ) {
-        LocationResponse response = locationCommandService.activateLocation(locationId, actorId);
+        LocationResponse response = locationCommandService.activateLocation(locationId, sellerId);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
     @PostMapping("/{locationId}/deactivate")
     public ResponseEntity<EntityModel<LocationResponse>> deactivateLocation(
             @PathVariable String locationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
     ) {
-        LocationResponse response = locationCommandService.deactivateLocation(locationId, actorId);
+        LocationResponse response = locationCommandService.deactivateLocation(locationId, sellerId);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
@@ -81,7 +81,7 @@ public class LocationController {
 
     @GetMapping
     public ResponseEntity<PagedModel<EntityModel<LocationResponse>>> listLocations(
-            @RequestParam(value = "sellerId") String sellerId,
+            @RequestHeader(value = "X-Actor-Id") String sellerId,
             @RequestParam(value = "active", required = false) Boolean active,
             @RequestParam(value = "type", required = false) LocationType type,
             @PageableDefault(size = 20) Pageable pageable,

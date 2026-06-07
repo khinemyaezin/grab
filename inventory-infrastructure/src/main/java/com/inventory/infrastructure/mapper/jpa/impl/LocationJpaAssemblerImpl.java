@@ -13,7 +13,7 @@ public class LocationJpaAssemblerImpl implements LocationJpaAssembler {
     private final LocationMapper locationMapper;
 
     @Override
-    public LocationEntity toEntity(Location location, LocationEntity entity) {
+    public LocationEntity buildFullEntityGraph(Location location, LocationEntity entity) {
         if (entity == null) {
             entity = new LocationEntity();
         }
@@ -22,7 +22,7 @@ public class LocationJpaAssemblerImpl implements LocationJpaAssembler {
     }
 
     @Override
-    public Location toDomain(LocationEntity entity) {
+    public Location toFullDomainGraph(LocationEntity entity) {
         return locationMapper.toDomain(entity);
     }
 }

@@ -1,6 +1,7 @@
 package com.grab.store.inventory.internal.api.rest.assembler;
 
 import com.grab.store.inventory.internal.api.rest.controller.LocationController;
+import com.grab.store.inventory.internal.api.rest.controller.ZoneController;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -16,7 +17,8 @@ public class LocationModelAssembler
     @Override
     public EntityModel<LocationResponse> toModel(LocationResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(LocationController.class).getLocation(response.id())).withRel("getLocation")
+                linkTo(methodOn(LocationController.class).getLocation(response.id())).withRel("getLocation"),
+                linkTo(methodOn(ZoneController.class).listZones(response.id(), null, null)).withRel("getZones")
         );
     }
 }
