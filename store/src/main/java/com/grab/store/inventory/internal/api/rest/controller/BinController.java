@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/bins")
+@RequestMapping("/api/v1/inventory/bins")
 @RequiredArgsConstructor
 public class BinController {
 
@@ -47,7 +47,7 @@ public class BinController {
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
-    @PutMapping("/{binId}/activate")
+    @PatchMapping("/{binId}/activate")
     public ResponseEntity<EntityModel<BinResponse>> activateBin(
             @PathVariable String binId,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
@@ -56,7 +56,7 @@ public class BinController {
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
-    @PutMapping("/{binId}/deactivate")
+    @PatchMapping("/{binId}/deactivate")
     public ResponseEntity<EntityModel<BinResponse>> deactivateBin(
             @PathVariable String binId,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId

@@ -32,8 +32,10 @@ grab/ (root POM — packaging: pom)
 ├── inventory-infrastructure/     # Inventory bounded context — infrastructure layer
 └── store/                        # Application module — Spring Boot app, REST controllers, CQRS services, handlers
     └── com.grab.store
-        ├── shared/               # Cross-cutting: GlobalApiExceptionHandler, CqrsConfiguration, OpenApiConfiguration
-        ├── catalog/              # Catalog Spring Modulith module (@ApplicationModule)
+        ├── ApiRootController.java    # Tier 1 API root — hypermedia entry point (GET /api)
+        ├── shared/                   # Cross-cutting: GlobalApiExceptionHandler, CqrsConfiguration, OpenApiConfiguration, LinkRelations
+        ├── catalog/                  # Catalog Spring Modulith module (@ApplicationModule)
+        │   ├── CatalogRootApi.java   # Tier 2 Catalog root (GET /api/v1/catalog)
         │   └── internal/
         │       ├── api/rest/     # Controllers, DTOs, Services, Mappers, Assemblers
         │       ├── command/      # Command records + handler/ subdirectory
@@ -42,6 +44,7 @@ grab/ (root POM — packaging: pom)
         │       ├── event/        # Domain event listeners
         │       └── exception/    # Module-specific error codes + exception class
         └── inventory/            # Inventory Spring Modulith module (@ApplicationModule)
+            ├── InventoryRootController.java  # Tier 2 Inventory root (GET /api/v1/inventory)
             └── internal/         # (same structure as catalog)
 ```
 
@@ -117,10 +120,11 @@ Controller
 ## 4. Controller Layer Rules
 
 - Annotated with `@RestController`, `@RequestMapping("/api/v1/{resource}")`, `@RequiredArgsConstructor`.
-- Injects: `XxxCommandService`, `XxxQueryService`, and one or more `XxxModelAssembler` beans.
+- Injects: `XxxCommandService`, `XxxQueryService`, and one or more `XxxModelAssembler` 
 - For paginated endpoints, also injects `PagedResourcesAssembler<ResponseDto>` as a method parameter.
 - **MUST return** `ResponseEntity<EntityModel<T>>` for single-entity responses.
 - **MUST return** `ResponseEntity<PagedModel<EntityModel<T>>>` for collection/paginated responses.
+- **MAY return** `ResponseEntity<Void>` with `Location` header for creation endpoints that don't need a response body
 - Uses `@Valid @RequestBody` for request validation.
 - Uses `@RequestHeader(value = "X-Actor-Id")` for actor/seller identification.
 - **MUST NOT contain any business logic.**
@@ -426,7 +430,7 @@ public class XxxPagedModelProcessor
         // Extract parentId from page content (all items share the same parent)
         extractParentId(model).ifPresent(parentId ->
                 model.add(linkTo(methodOn(XxxController.class)
-                        .createXxx(parentId, null, null)).withRel("create"))
+                        .createXxx(parentId, null, null)).withRel(LinkRelations.CREATE))
         );
         return model;
     }
@@ -441,6 +445,201 @@ public class XxxPagedModelProcessor
 ```
 
 > **Note:** The `create` link will only appear when the page has content (non-empty). For empty pages, the link is omitted because the parent context (e.g., `parentId`) cannot be derived from the content.
+
+### 9.10 `LinkRelations` Constants Class
+
+All link relation names MUST be defined as constants in a shared `LinkRelations` class and referenced from there — **never use inline string literals** for rel names.
+
+#### Location & Structure
+- Located at: `store/.../shared/LinkRelations.java`
+- `public final class` with a private constructor to prevent instantiation.
+- Constants are `public static final String`, grouped by category.
+
+```java
+package com.grab.store.shared;
+
+public final class LinkRelations {
+    // Root navigation
+    public static final String SELF = "self";
+    public static final String {CONTEXT_A} = "{context-a}";
+    public static final String {CONTEXT_B} = "{context-b}";
+
+    // Module A resources
+    public static final String {RESOURCES_A} = "{resources-a}";
+    public static final String {RESOURCE_A} = "{resource-a}";
+
+    // Module B resources
+    public static final String {RESOURCES_B} = "{resources-b}";
+    public static final String {RESOURCE_B} = "{resource-b}";
+
+    // Actions
+    public static final String CREATE = "create";
+    public static final String UPDATE = "update";
+    public static final String ACTIVATE = "activate";
+    public static final String DEACTIVATE = "deactivate";
+
+    // Navigation / structural
+    public static final String PARENT = "parent";
+    public static final String CHILDREN = "children";
+    // ... add as needed
+
+    private LinkRelations() {}
+}
+```
+
+#### Rules
+1. **All new rel names MUST be added to `LinkRelations`** before use in any assembler or processor.
+2. **All assemblers and processors MUST reference `LinkRelations.XXX`** — never use raw string literals like `.withRel("items")`.
+3. Constants are grouped by domain (root, per-module resources, actions, navigation) with a private constructor to prevent instantiation.
+4. When adding a new bounded context, add a new section for its resource rels.
+
+### 9.11 API Root & Discovery Endpoints (3-Tier Hierarchy)
+
+The API implements a **3-tier hypermedia discovery hierarchy** that allows clients to navigate the entire API from a single entry point. All root endpoints produce `application/hal+json`.
+
+#### Tier 1: API Root (`/api`)
+- **Class**: `ApiRootController` at `store/.../ApiRootController.java`
+- Returns links to each bounded context root.
+- Uses `WebMvcLinkBuilder` for type-safe links.
+
+```java
+@RestController
+@RequestMapping("/api")
+public class ApiRootController {
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
+    public ResponseEntity<RepresentationModel<?>> root() {
+        RepresentationModel<?> model = new RepresentationModel<>();
+        model.add(linkTo(methodOn(ApiRootController.class).root()).withSelfRel());
+        model.add(linkTo(methodOn(ModuleARootApi.class).root()).withRel(LinkRelations.MODULE_A));
+        model.add(linkTo(methodOn(ModuleBRootController.class).root()).withRel(LinkRelations.MODULE_B));
+        return ResponseEntity.ok(model);
+    }
+}
+```
+
+#### Tier 2: Bounded Context Roots
+Each bounded context has its own root endpoint listing all top-level resources within that context.
+
+```java
+@RestController
+@RequestMapping("/api/v1/{context}")
+public class ModuleRootController {
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
+    public ResponseEntity<RepresentationModel<?>> root() {
+        RepresentationModel<?> model = new RepresentationModel<>();
+        model.add(Link.of("/api/v1/{context}").withSelfRel());
+        model.add(Link.of("/api/v1/{context}/{resources-a}").withRel(LinkRelations.RESOURCES_A));
+        model.add(Link.of("/api/v1/{context}/{resources-b}").withRel(LinkRelations.RESOURCES_B));
+        return ResponseEntity.ok(model);
+    }
+}
+```
+
+#### Rules for Root Endpoints
+1. **Every new bounded context MUST have a Tier 2 root endpoint** listing its top-level resources.
+2. **The API root (`ApiRootController`) MUST be updated** to link to any new bounded context root.
+3. Root endpoints MUST produce `MediaTypes.HAL_JSON_VALUE`.
+4. Root endpoints return `ResponseEntity<RepresentationModel<?>>` (not `EntityModel`).
+5. Use `Link.of(path)` for simple static paths in Tier 2 roots; use `WebMvcLinkBuilder` in Tier 1 root for type-safe cross-controller linking.
+6. All rel names MUST use `LinkRelations` constants.
+
+#### Discovery Flow
+```text
+GET /api                          → { self, module-a, module-b }
+  GET /api/v1/module-a            → { self, resources-a, resources-b, ... }
+  GET /api/v1/module-b            → { self, resources-c, resources-d, ... }
+```
+
+### 9.12 Controller Integration Pattern
+
+Controllers inject assemblers directly and call `.toModel()` inline. This is the **preferred pattern** for all modules.
+
+```java
+@RestController
+@RequestMapping("/api/v1/{resources}")
+@RequiredArgsConstructor
+public class XxxController {
+    private final XxxCommandService xxxCommandService;
+    private final XxxQueryService xxxQueryService;
+    private final XxxModelAssembler xxxModelAssembler;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EntityModel<XxxResponse>> getXxx(@PathVariable String id) {
+        XxxResponse response = xxxQueryService.getXxx(id);
+        return ResponseEntity.ok(xxxModelAssembler.toModel(response));
+    }
+
+    @GetMapping
+    public ResponseEntity<PagedModel<EntityModel<XxxResponse>>> listXxx(
+            @RequestParam String parentId,
+            @PageableDefault(size = 20) Pageable pageable,
+            PagedResourcesAssembler<XxxResponse> pagedAssembler) {
+        Page<XxxResponse> page = xxxQueryService.listXxx(parentId, pageable);
+        return ResponseEntity.ok(pagedAssembler.toModel(page, xxxModelAssembler));
+    }
+}
+```
+
+### 9.13 Bare `EntityModel.of()` — No-Link Responses
+
+Some endpoints (typically write-only or utility endpoints) may return `EntityModel.of(dto)` **without any links**. This is acceptable for:
+
+- Bulk operations
+- Utility responses with no meaningful navigable context
+- Audit/log responses
+
+> **Guideline:** Prefer adding at least a `self` link. Use bare `EntityModel.of()` only when the response has no meaningful navigable context.
+
+### 9.14 Creation Endpoints — `ResponseEntity<Void>` with `Location` Header
+
+Creation endpoints MAY return `201 Created` with a `Location` header instead of an `EntityModel` body. This is a valid REST pattern when the response body is not needed.
+
+```java
+@PostMapping
+public ResponseEntity<Void> createXxx(@Valid @RequestBody CreateXxxRequest request) {
+    String id = xxxCommandService.createXxx(request);
+    URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/{id}")
+            .buildAndExpand(id)
+            .toUri();
+    return ResponseEntity.created(location).build();
+}
+```
+
+### 9.15 HATEOAS Configuration
+
+The project relies entirely on **Spring Boot auto-configuration** from `spring-boot-starter-hateoas`. There is:
+- **No custom `HalConfiguration` bean**
+- **No `CurieProvider`** (no CURIE support)
+- **No Affordances API** usage
+- **No HATEOAS-specific `application.yml` settings**
+
+The only relevant server setting is `server.forward-headers-strategy: framework`, which ensures `WebMvcLinkBuilder` generates correct absolute URLs behind proxies/load balancers.
+
+#### Dependency
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-hateoas</artifactId>
+</dependency>
+```
+
+### 9.16 Complete HATEOAS Checklist
+
+Before generating any assembler, processor, or root endpoint, verify:
+
+1. ✅ All rel names are defined as constants in `LinkRelations` — no inline string literals.
+2. ✅ Every `toModel()` includes a `self` link via `.withSelfRel()`.
+3. ✅ Links are built using `linkTo(methodOn(...))` — never manual URL strings (except in Tier 2 root endpoints).
+4. ✅ `null` is passed for `@RequestBody`, `@RequestHeader`, `Pageable`, and `PagedResourcesAssembler` params in `methodOn(...)`.
+5. ✅ Conditional links use `if/else` on response DTO fields (e.g., `active` state).
+6. ✅ Cross-controller links are used where appropriate (e.g., parent assembler linking to child controller).
+7. ✅ Page-level action links (e.g., `create`) use `RepresentationModelProcessor`, not the item assembler.
+8. ✅ New bounded contexts have a Tier 2 root endpoint and are linked from `ApiRootController`.
+9. ✅ Root endpoints produce `MediaTypes.HAL_JSON_VALUE` and return `RepresentationModel<?>`.
+10. ✅ Controllers inject assemblers directly and call `.toModel()` inline.
 
 ---
 
@@ -590,6 +789,9 @@ Examples:
 | Mapper | `{Action}{Entity}RequestMapper` | `CreateInventoryRequestMapper` |
 | Model Assembler | `{Entity}ModelAssembler` | `InventoryModelAssembler` |
 | Paged Model Processor | `{Entity}PagedModelProcessor` | `ZonePagedModelProcessor` |
+| API Root Controller | `ApiRootController` | `ApiRootController` |
+| Bounded Context Root | `{Context}RootController` | `OrderRootController` |
+| Link Relations Constants | `LinkRelations` (single shared class) | `LinkRelations` |
 | Service Error | `{Module}ServiceError` (sealed interface) | `InventoryServiceError` |
 | Service Exception | `{Module}ServiceException` | `InventoryServiceException` |
 
@@ -624,3 +826,6 @@ Before generating or outputting any code, verify:
 11. ✅ DTOs are Java records in the appropriate `dto/request/` or `dto/response/` package.
 12. ✅ Errors follow the sealed interface pattern with `ErrorCategory` and i18n error codes.
 13. ✅ All files are placed in the correct package according to the module structure.
+14. ✅ All link rel names use `LinkRelations` constants — no inline string literals (§9.10).
+15. ✅ New bounded contexts include a Tier 2 root endpoint and are linked from `ApiRootController` (§9.11).
+16. ✅ Controllers inject assemblers directly and call `.toModel()` inline (§9.12).

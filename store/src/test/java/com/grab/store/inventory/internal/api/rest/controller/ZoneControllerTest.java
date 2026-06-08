@@ -74,7 +74,7 @@ class ZoneControllerTest {
         when(zoneCommandService.createZone(eq("loc-1"), any(CreateZoneRequest.class), eq("actor-1")))
                 .thenReturn(sampleZoneResponse);
 
-        mockMvc.perform(post("/api/v1/zones/locations/loc-1")
+        mockMvc.perform(post("/api/v1/inventory/zones/locations/loc-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
@@ -89,7 +89,7 @@ class ZoneControllerTest {
         when(zoneCommandService.createZone(eq("loc-1"), any(CreateZoneRequest.class), eq(null)))
                 .thenReturn(sampleZoneResponse);
 
-        mockMvc.perform(post("/api/v1/zones/locations/loc-1")
+        mockMvc.perform(post("/api/v1/inventory/zones/locations/loc-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
                 .andExpect(status().isCreated())
@@ -102,7 +102,7 @@ class ZoneControllerTest {
                 "", "", null
         );
 
-        mockMvc.perform(post("/api/v1/zones/locations/loc-1")
+        mockMvc.perform(post("/api/v1/inventory/zones/locations/loc-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalid)))
                 .andExpect(status().isBadRequest());
@@ -117,7 +117,7 @@ class ZoneControllerTest {
         when(zoneCommandService.updateZone(eq("zone-1"), any(UpdateZoneRequest.class), eq("actor-1")))
                 .thenReturn(updated);
 
-        mockMvc.perform(patch("/api/v1/zones/zone-1")
+        mockMvc.perform(patch("/api/v1/inventory/zones/zone-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleUpdateRequest)))
@@ -131,7 +131,7 @@ class ZoneControllerTest {
         when(zoneCommandService.activateZone("zone-1", "actor-1"))
                 .thenReturn(sampleZoneResponse);
 
-        mockMvc.perform(patch("/api/v1/zones/zone-1/activate")
+        mockMvc.perform(patch("/api/v1/inventory/zones/zone-1/activate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("zone-1"))
@@ -147,7 +147,7 @@ class ZoneControllerTest {
         when(zoneCommandService.deactivateZone("zone-1", "actor-1"))
                 .thenReturn(deactivated);
 
-        mockMvc.perform(patch("/api/v1/zones/zone-1/deactivate")
+        mockMvc.perform(patch("/api/v1/inventory/zones/zone-1/deactivate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("zone-1"))
@@ -160,7 +160,7 @@ class ZoneControllerTest {
         when(zoneQueryService.listZones(eq("loc-1"), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/zones/locations/loc-1"))
+        mockMvc.perform(get("/api/v1/inventory/zones/locations/loc-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.zoneResponseList").isArray())
                 .andExpect(jsonPath("$._embedded.zoneResponseList[0].id").value("zone-1"))
@@ -172,7 +172,7 @@ class ZoneControllerTest {
         when(zoneQueryService.getZone("zone-1"))
                 .thenReturn(sampleZoneResponse);
 
-        mockMvc.perform(get("/api/v1/zones/zone-1"))
+        mockMvc.perform(get("/api/v1/inventory/zones/zone-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("zone-1"))
                 .andExpect(jsonPath("$.code").value("Z-A1"));

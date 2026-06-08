@@ -83,7 +83,7 @@ class LocationControllerTest {
         when(locationCommandService.createLocation(any(CreateLocationRequest.class), eq("actor-1")))
                 .thenReturn(sampleLocationResponse);
 
-        mockMvc.perform(post("/api/v1/locations")
+        mockMvc.perform(post("/api/v1/inventory/locations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
@@ -98,7 +98,7 @@ class LocationControllerTest {
         when(locationCommandService.createLocation(any(CreateLocationRequest.class), eq(null)))
                 .thenReturn(sampleLocationResponse);
 
-        mockMvc.perform(post("/api/v1/locations")
+        mockMvc.perform(post("/api/v1/inventory/locations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
                 .andExpect(status().isBadRequest());
@@ -110,7 +110,7 @@ class LocationControllerTest {
                 "", "", null, null
         );
 
-        mockMvc.perform(post("/api/v1/locations")
+        mockMvc.perform(post("/api/v1/inventory/locations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalid)))
                 .andExpect(status().isBadRequest());
@@ -127,7 +127,7 @@ class LocationControllerTest {
         when(locationCommandService.updateLocation(eq("loc-1"), any(UpdateLocationRequest.class), eq("actor-1")))
                 .thenReturn(updated);
 
-        mockMvc.perform(patch("/api/v1/locations/loc-1")
+        mockMvc.perform(patch("/api/v1/inventory/locations/loc-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleUpdateRequest)))
@@ -141,7 +141,7 @@ class LocationControllerTest {
         when(locationCommandService.activateLocation("loc-1", "actor-1"))
                 .thenReturn(sampleLocationResponse);
 
-        mockMvc.perform(post("/api/v1/locations/loc-1/activate")
+        mockMvc.perform(patch("/api/v1/inventory/locations/loc-1/activate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("loc-1"))
@@ -159,7 +159,7 @@ class LocationControllerTest {
         when(locationCommandService.deactivateLocation("loc-1", "actor-1"))
                 .thenReturn(deactivated);
 
-        mockMvc.perform(post("/api/v1/locations/loc-1/deactivate")
+        mockMvc.perform(patch("/api/v1/inventory/locations/loc-1/deactivate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("loc-1"))
@@ -171,7 +171,7 @@ class LocationControllerTest {
         when(locationQueryService.getLocation("loc-1"))
                 .thenReturn(sampleLocationResponse);
 
-        mockMvc.perform(get("/api/v1/locations/loc-1"))
+        mockMvc.perform(get("/api/v1/inventory/locations/loc-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("loc-1"))
                 .andExpect(jsonPath("$.code").value("WH-001"));
@@ -182,7 +182,7 @@ class LocationControllerTest {
         when(locationQueryService.getLocationByCode("WH-001"))
                 .thenReturn(sampleLocationResponse);
 
-        mockMvc.perform(get("/api/v1/locations/code/WH-001"))
+        mockMvc.perform(get("/api/v1/inventory/locations/code/WH-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("loc-1"))
                 .andExpect(jsonPath("$.code").value("WH-001"));
@@ -197,7 +197,7 @@ class LocationControllerTest {
                 any()))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/locations")
+        mockMvc.perform(get("/api/v1/inventory/locations")
                         .header("X-Actor-Id", "seller-1")
                         .param("active", "true")
                         .param("type", "WAREHOUSE"))
@@ -213,7 +213,7 @@ class LocationControllerTest {
         when(locationQueryService.listLocations(eq("seller-1"), eq(null), eq(null), any()))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/locations")
+        mockMvc.perform(get("/api/v1/inventory/locations")
                 .header("X-Actor-Id", "seller-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.locationResponseList[0].id").value("loc-1"));
@@ -221,7 +221,7 @@ class LocationControllerTest {
 
     @Test
     void listLocations_withoutSellerId_shouldReturn400() throws Exception {
-        mockMvc.perform(get("/api/v1/locations"))
+        mockMvc.perform(get("/api/v1/inventory/locations"))
                 .andExpect(status().isBadRequest());
     }
 }

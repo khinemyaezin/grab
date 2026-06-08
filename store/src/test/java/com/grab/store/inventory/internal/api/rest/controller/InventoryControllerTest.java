@@ -123,7 +123,7 @@ class InventoryControllerTest {
         when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), eq("actor-1")))
                 .thenReturn(sampleInventoryResponse);
 
-        mockMvc.perform(post("/api/v1/inventories")
+        mockMvc.perform(post("/api/v1/inventory/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
@@ -138,7 +138,7 @@ class InventoryControllerTest {
         when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), eq(null)))
                 .thenReturn(sampleInventoryResponse);
 
-        mockMvc.perform(post("/api/v1/inventories")
+        mockMvc.perform(post("/api/v1/inventory/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
                 .andExpect(status().isCreated())
@@ -150,7 +150,7 @@ class InventoryControllerTest {
         when(inventoryQueryService.getInventory("inv-1"))
                 .thenReturn(sampleInventoryResponse);
 
-        mockMvc.perform(get("/api/v1/inventories/inv-1"))
+        mockMvc.perform(get("/api/v1/inventory/items/inv-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("inv-1"))
                 .andExpect(jsonPath("$.sku").value("SKU-001"));
@@ -161,7 +161,7 @@ class InventoryControllerTest {
         when(inventoryCommandService.receiveStock(eq("inv-1"), any(ReceiveStockRequest.class), eq("actor-1")))
                 .thenReturn(sampleInventoryResponse);
 
-        mockMvc.perform(post("/api/v1/inventories/inv-1/receive")
+        mockMvc.perform(post("/api/v1/inventory/items/inv-1/receive")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleReceiveRequest)))
@@ -176,7 +176,7 @@ class InventoryControllerTest {
                 eq("inv-1"), any(ReserveStockRequest.class), eq("idem-1"), eq("actor-1")))
                 .thenReturn(sampleReservationResponse);
 
-        mockMvc.perform(post("/api/v1/inventories/inv-1/reserve")
+        mockMvc.perform(post("/api/v1/inventory/items/inv-1/reserve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .header("Idempotency-Key", "idem-1")
@@ -192,7 +192,7 @@ class InventoryControllerTest {
                 eq("inv-1"), any(ReserveStockRequest.class), eq(null), eq("actor-1")))
                 .thenReturn(sampleReservationResponse);
 
-        mockMvc.perform(post("/api/v1/inventories/inv-1/reserve")
+        mockMvc.perform(post("/api/v1/inventory/items/inv-1/reserve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleReserveRequest)))
@@ -205,7 +205,7 @@ class InventoryControllerTest {
         when(inventoryCommandService.releaseReservation("inv-1", "res-1", "actor-1"))
                 .thenReturn(sampleReservationResponse);
 
-        mockMvc.perform(post("/api/v1/inventories/inv-1/reservations/res-1/release")
+        mockMvc.perform(post("/api/v1/inventory/items/inv-1/reservations/res-1/release")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("res-1"))
@@ -217,7 +217,7 @@ class InventoryControllerTest {
         when(inventoryCommandService.shipReservation("inv-1", "res-1", "actor-1"))
                 .thenReturn(sampleReservationResponse);
 
-        mockMvc.perform(post("/api/v1/inventories/inv-1/reservations/res-1/ship")
+        mockMvc.perform(post("/api/v1/inventory/items/inv-1/reservations/res-1/ship")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("res-1"));
@@ -228,7 +228,7 @@ class InventoryControllerTest {
         when(inventoryCommandService.adjustStock(eq("inv-1"), any(AdjustStockRequest.class), eq("actor-1")))
                 .thenReturn(sampleInventoryResponse);
 
-        mockMvc.perform(post("/api/v1/inventories/inv-1/adjust")
+        mockMvc.perform(post("/api/v1/inventory/items/inv-1/adjust")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleAdjustRequest)))
@@ -243,7 +243,7 @@ class InventoryControllerTest {
         when(inventoryQueryService.getMovements(eq("inv-1"), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/inventories/inv-1/movements"))
+        mockMvc.perform(get("/api/v1/inventory/items/inv-1/movements"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.stockMovementResponseList").isArray())
                 .andExpect(jsonPath("$._embedded.stockMovementResponseList[0].id").value("mov-1"))
@@ -256,7 +256,7 @@ class InventoryControllerTest {
         when(inventoryQueryService.getMovements(eq("inv-1"), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/inventories/inv-1/movements")
+        mockMvc.perform(get("/api/v1/inventory/items/inv-1/movements")
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isOk())
@@ -269,7 +269,7 @@ class InventoryControllerTest {
         when(inventoryQueryService.getReservations(eq("inv-1"), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/inventories/inv-1/reservations"))
+        mockMvc.perform(get("/api/v1/inventory/items/inv-1/reservations"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.inventoryReservationResponseList").isArray())
                 .andExpect(jsonPath("$._embedded.inventoryReservationResponseList[0].id").value("res-1"))
@@ -282,7 +282,7 @@ class InventoryControllerTest {
         when(inventoryQueryService.getReservations(eq("inv-1"), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/inventories/inv-1/reservations")
+        mockMvc.perform(get("/api/v1/inventory/items/inv-1/reservations")
                         .param("page", "0")
                         .param("size", "5"))
                 .andExpect(status().isOk())
@@ -295,7 +295,7 @@ class InventoryControllerTest {
                 "", "", null, "", -1, null, null, null, null
         );
 
-        mockMvc.perform(post("/api/v1/inventories")
+        mockMvc.perform(post("/api/v1/inventory/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
@@ -307,7 +307,7 @@ class InventoryControllerTest {
                 0, StockMovementType.SALE, null
         );
 
-        mockMvc.perform(post("/api/v1/inventories/inv-1/receive")
+        mockMvc.perform(post("/api/v1/inventory/items/inv-1/receive")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(invalidRequest)))

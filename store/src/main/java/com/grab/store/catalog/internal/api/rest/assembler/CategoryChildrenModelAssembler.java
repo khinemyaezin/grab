@@ -1,10 +1,13 @@
 package com.grab.store.catalog.internal.api.rest.assembler;
 
+import com.grab.store.catalog.internal.api.rest.controller.CategoryController;
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenResponse;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
 public class CategoryChildrenModelAssembler implements RepresentationModelAssembler<CategoryChildrenResponse, EntityModel<CategoryChildrenResponse>> {
@@ -13,9 +16,9 @@ public class CategoryChildrenModelAssembler implements RepresentationModelAssemb
     public EntityModel<CategoryChildrenResponse> toModel(CategoryChildrenResponse response) {
         String id = response.parentId();
         return EntityModel.of(response,
-                Link.of("/api/v1/categories/" + id + "/children").withSelfRel(),
-                Link.of("/api/v1/categories/" + id).withRel("category"),
-                Link.of("/api/v1/categories/" + id + "/tree").withRel("tree")
+                linkTo(methodOn(CategoryController.class).getCategoryChildren(id)).withSelfRel(),
+                linkTo(methodOn(CategoryController.class).getCategory(id)).withRel("category"),
+                linkTo(methodOn(CategoryController.class).getCategoryTree(id)).withRel("tree")
         );
     }
 }

@@ -20,7 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/zones")
+@RequestMapping("/api/v1/inventory/zones")
 @RequiredArgsConstructor
 public class ZoneController {
     private final ZoneCommandService zoneCommandService;

@@ -2,6 +2,7 @@ package com.grab.store.inventory.internal.api.rest.assembler;
 
 import com.grab.store.inventory.internal.api.rest.controller.ZoneController;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
+import com.grab.store.shared.LinkRelations;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.server.RepresentationModelProcessor;
@@ -19,7 +20,7 @@ public class ZonePagedModelProcessor implements RepresentationModelProcessor<Pag
     public PagedModel<EntityModel<ZoneResponse>> process(PagedModel<EntityModel<ZoneResponse>> model) {
         extractLocationId(model).ifPresent(locationId ->
                 model.add(linkTo(methodOn(ZoneController.class)
-                        .createZone(locationId, null, null)).withRel("create"))
+                        .createZone(locationId, null, null)).withRel(LinkRelations.CREATE))
         );
         return model;
     }
