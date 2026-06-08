@@ -4,6 +4,6 @@ import com.inventory.domain.aggregate.Zone;
 import com.inventory.infrastructure.entity.ZoneEntity;
 
 public interface ZoneJpaAssembler {
-    ZoneEntity toEntity(Zone zone, ZoneEntity entity);
-    Zone toDomain(ZoneEntity entity);
+    ZoneEntity buildFullEntityGraph(Zone zone, ZoneEntity entity);
+    Zone toFullDomainGraph(ZoneEntity entity);
 }

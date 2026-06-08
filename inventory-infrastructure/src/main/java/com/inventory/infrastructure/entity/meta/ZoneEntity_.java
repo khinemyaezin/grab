@@ -5,6 +5,8 @@ import com.inventory.domain.enums.ZoneType;
 import jakarta.persistence.metamodel.SingularAttribute;
 import jakarta.persistence.metamodel.StaticMetamodel;
 
+import java.time.LocalDateTime;
+
 @StaticMetamodel(ZoneEntity.class)
 public class ZoneEntity_ {
     public static volatile SingularAttribute<ZoneEntity, Long> id;
@@ -14,6 +16,8 @@ public class ZoneEntity_ {
     public static volatile SingularAttribute<ZoneEntity, ZoneType> type;
     public static volatile SingularAttribute<ZoneEntity, Boolean> active;
     public static volatile SingularAttribute<ZoneEntity, String> locationId;
+    public static volatile SingularAttribute<ZoneEntity, LocalDateTime> createdAt;
+    public static volatile SingularAttribute<ZoneEntity, LocalDateTime> updatedAt;
 
     public static final String ID = "id";
     public static final String UUID = "uuid";
@@ -22,4 +26,6 @@ public class ZoneEntity_ {
     public static final String TYPE = "type";
     public static final String ACTIVE = "active";
     public static final String LOCATION_ID = "locationId";
+    public static final String CREATED_AT = "createdAt";
+    public static final String UPDATED_AT = "updatedAt";
 }

@@ -7,7 +7,6 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.aggregate.Zone;
-import com.inventory.domain.enums.ZoneType;
 import com.inventory.domain.repository.ZoneRepository;
 import com.inventory.infrastructure.entity.ZoneEntity;
 import com.inventory.infrastructure.mapper.jpa.ZoneJpaAssembler;
@@ -35,7 +34,7 @@ public class DefaultZoneRepository implements ZoneRepository, ZoneQueryRepositor
     public Optional<Zone> findById(Id id) {
         log.debug("Loading zone by id={}", id.getValue());
         return executor.query("Zone", () -> jpaRepository.findByUuid(id.getValue())
-                .map(mapper::toDomain));
+                .map(mapper::toFullDomainGraph));
     }
 
     @Override
@@ -54,15 +53,16 @@ public class DefaultZoneRepository implements ZoneRepository, ZoneQueryRepositor
     public Zone save(Zone zone) {
         return executor.command("Zone", () -> {
             log.info("Persisting zone id={}, code={}", zone.getId().getValue(), zone.getCode());
+
             Optional<ZoneEntity> existingEntity = jpaRepository.findByUuid(zone.getId().getValue());
-            ZoneEntity entity = mapper.toEntity(zone, existingEntity.orElse(null));
+            ZoneEntity entity = mapper.buildFullEntityGraph(zone, existingEntity.orElse(null));
             ZoneEntity saved = jpaRepository.save(entity);
 
             List<Event> events = zone.pullEvents();
             domainEventProducer.produce(zone.getClass().getSimpleName(), zone.getId().getValue(), events);
             log.info("Persisted zone id={}, code={}, publishedEvents={}", zone.getId().getValue(), zone.getCode(), events.size());
 
-            return mapper.toDomain(saved);
+            return mapper.toFullDomainGraph(saved);
         });
     }
 

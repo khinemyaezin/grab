@@ -31,7 +31,7 @@ public class UpdateZoneCommandHandler implements CommandHandler<UpdateZoneComman
             }
         }
 
-        zone.update(command.code(), command.name(), command.type());
+        zone.updateMetadata(command.code(), command.name(), command.type());
 
         if (command.active() != null) {
             if (command.active()) {

@@ -15,6 +15,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -107,7 +109,7 @@ class ZoneControllerTest {
     }
 
     @Test
-    void updateZone_shouldReturn200() throws Exception {
+    void updateMetadataZone_shouldReturn200() throws Exception {
         ZoneResponse updated = new ZoneResponse(
                 "zone-1", "loc-1", "Z-A1", "Zone A1 Updated", "STORAGE", true
         );
@@ -129,7 +131,7 @@ class ZoneControllerTest {
         when(zoneCommandService.activateZone("zone-1", "actor-1"))
                 .thenReturn(sampleZoneResponse);
 
-        mockMvc.perform(post("/api/v1/zones/zone-1/activate")
+        mockMvc.perform(patch("/api/v1/zones/zone-1/activate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("zone-1"))
@@ -145,7 +147,7 @@ class ZoneControllerTest {
         when(zoneCommandService.deactivateZone("zone-1", "actor-1"))
                 .thenReturn(deactivated);
 
-        mockMvc.perform(post("/api/v1/zones/zone-1/deactivate")
+        mockMvc.perform(patch("/api/v1/zones/zone-1/deactivate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("zone-1"))
@@ -155,11 +157,10 @@ class ZoneControllerTest {
     @Test
     void listZones_shouldReturn200() throws Exception {
         Page<ZoneResponse> page = new PageImpl<>(List.of(sampleZoneResponse));
-        when(zoneQueryService.listZones("loc-1", true))
+        when(zoneQueryService.listZones(eq("loc-1"), any(Pageable.class)))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/zones/locations/loc-1")
-                        .param("active", "true"))
+        mockMvc.perform(get("/api/v1/zones/locations/loc-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.zoneResponseList").isArray())
                 .andExpect(jsonPath("$._embedded.zoneResponseList[0].id").value("zone-1"))
@@ -167,13 +168,13 @@ class ZoneControllerTest {
     }
 
     @Test
-    void listZones_withoutActive_shouldReturn200() throws Exception {
-        Page<ZoneResponse> page = new PageImpl<>(List.of(sampleZoneResponse));
-        when(zoneQueryService.listZones("loc-1", null))
-                .thenReturn(page);
+    void getZoneById_shouldReturn200() throws Exception {
+        when(zoneQueryService.getZone("zone-1"))
+                .thenReturn(sampleZoneResponse);
 
-        mockMvc.perform(get("/api/v1/zones/locations/loc-1"))
+        mockMvc.perform(get("/api/v1/zones/zone-1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._embedded.zoneResponseList[0].id").value("zone-1"));
+                .andExpect(jsonPath("$.id").value("zone-1"))
+                .andExpect(jsonPath("$.code").value("Z-A1"));
     }
 }

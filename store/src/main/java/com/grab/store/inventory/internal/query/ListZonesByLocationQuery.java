@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 
 public record ListZonesByLocationQuery(
         Id locationId,
-        Boolean active,
         Pageable pageable
 ) implements Query<Page<ListZonesResult>>, PageableQueryRequest {
 }

@@ -9,6 +9,9 @@ import com.grab.store.inventory.internal.api.rest.service.ZoneQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
@@ -45,7 +48,7 @@ public class ZoneController {
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
 
-    @PostMapping("/{zoneId}/activate")
+    @PatchMapping("/{zoneId}/activate")
     public ResponseEntity<EntityModel<ZoneResponse>> activateZone(
             @PathVariable String zoneId,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
@@ -54,7 +57,7 @@ public class ZoneController {
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
 
-    @PostMapping("/{zoneId}/deactivate")
+    @PatchMapping("/{zoneId}/deactivate")
     public ResponseEntity<EntityModel<ZoneResponse>> deactivateZone(
             @PathVariable String zoneId,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
@@ -66,11 +69,19 @@ public class ZoneController {
     @GetMapping("/locations/{locationId}")
     public ResponseEntity<PagedModel<EntityModel<ZoneResponse>>> listZones(
             @PathVariable String locationId,
-            @RequestParam(value = "active", required = false) Boolean active,
+            @PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable,
             PagedResourcesAssembler<ZoneResponse> pagedResourcesAssembler
     ) {
-        Page<ZoneResponse> response = zoneQueryService.listZones(locationId, active);
+        Page<ZoneResponse> response = zoneQueryService.listZones(locationId, pageable);
         PagedModel<EntityModel<ZoneResponse>> pageModel = pagedResourcesAssembler.toModel(response, zoneModelAssembler);
         return ResponseEntity.ok(pageModel);
+    }
+
+    @GetMapping("/{zoneId}")
+    public ResponseEntity<EntityModel<ZoneResponse>> getZoneById(
+            @PathVariable String zoneId
+    ) {
+        ZoneResponse response = zoneQueryService.getZone(zoneId);
+        return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
 }

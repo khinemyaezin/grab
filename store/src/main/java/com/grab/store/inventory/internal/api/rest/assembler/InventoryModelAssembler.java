@@ -14,7 +14,7 @@ public class InventoryModelAssembler
     @Override
     public EntityModel<InventoryResponse> toModel(InventoryResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(InventoryController.class).getInventory(response.id())).withRel("inventory")
+                linkTo(methodOn(InventoryController.class).getInventory(response.id())).withSelfRel()
         );
     }
 }
