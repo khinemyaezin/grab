@@ -16,9 +16,28 @@ public class LocationModelAssembler
 
     @Override
     public EntityModel<LocationResponse> toModel(LocationResponse response) {
-        return EntityModel.of(response,
-                linkTo(methodOn(LocationController.class).getLocation(response.id())).withRel("getLocation"),
-                linkTo(methodOn(ZoneController.class).listZones(response.id(), null, null)).withRel("getZones")
-        );
+        EntityModel<LocationResponse> entity = EntityModel.of(response);
+
+        entity.add(linkTo(methodOn(LocationController.class)
+                .getLocation(response.id())).withSelfRel());
+
+        entity.add(linkTo(methodOn(LocationController.class)
+                .createLocation(null, null)).withRel("create"));
+
+        entity.add(linkTo(methodOn(LocationController.class)
+                .updateLocation(response.id(), null, null)).withRel("update"));
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .listZones(response.id(), null, null)).withRel("zones"));
+
+        if (response.active()) {
+            entity.add(linkTo(methodOn(LocationController.class)
+                    .deactivateLocation(response.id(), null)).withRel("deactivate"));
+        } else {
+            entity.add(linkTo(methodOn(LocationController.class)
+                    .activateLocation(response.id(), null)).withRel("activate"));
+        }
+
+        return entity;
     }
 }

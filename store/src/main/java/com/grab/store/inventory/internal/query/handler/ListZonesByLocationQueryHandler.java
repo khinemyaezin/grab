@@ -17,17 +17,11 @@ public class ListZonesByLocationQueryHandler implements QueryHandler<ListZonesBy
 
     private final ZoneQueryRepository zoneRepository;
     private final IdGenerator idGenerator;
+
     @Override
     @InventoryReadTransactional
     public Page<ListZonesResult> handle(ListZonesByLocationQuery query) {
-        Page<ZoneView> zones;
-
-        if (query.active() != null) {
-            zones = zoneRepository.queryByLocationIdAndActive(query.locationId().getValue(), query.active(), query.pageable());
-        } else {
-            zones = zoneRepository.queryByLocationId(query.locationId().getValue(), query.pageable());
-        }
-
+        Page<ZoneView> zones = zoneRepository.queryByLocationId(query.locationId().getValue(), query.pageable());
         return zones.map(zone-> new ListZonesResult(
                 idGenerator.convertIdFrom(zone.uuid()),
                 idGenerator.convertIdFrom(zone.locationId()),

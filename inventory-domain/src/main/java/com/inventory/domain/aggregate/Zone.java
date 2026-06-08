@@ -37,7 +37,7 @@ public class Zone extends AggregateRoot<Id> {
         return zone;
     }
 
-    public void update(String code, String name, ZoneType type) {
+    public void updateMetadata(String code, String name, ZoneType type) {
         if (code != null) {
             this.code = code;
         }

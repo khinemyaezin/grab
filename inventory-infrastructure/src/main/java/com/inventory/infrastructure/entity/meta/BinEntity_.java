@@ -4,6 +4,8 @@ import com.inventory.infrastructure.entity.BinEntity;
 import jakarta.persistence.metamodel.SingularAttribute;
 import jakarta.persistence.metamodel.StaticMetamodel;
 
+import java.time.LocalDateTime;
+
 @StaticMetamodel(BinEntity.class)
 public class BinEntity_ {
     public static volatile SingularAttribute<BinEntity, Long> id;
@@ -13,6 +15,8 @@ public class BinEntity_ {
     public static volatile SingularAttribute<BinEntity, Integer> maxCapacity;
     public static volatile SingularAttribute<BinEntity, Boolean> active;
     public static volatile SingularAttribute<BinEntity, String> zoneId;
+    public static volatile SingularAttribute<BinEntity, LocalDateTime> createdAt;
+    public static volatile SingularAttribute<BinEntity, LocalDateTime> updatedAt;
 
     public static final String ID = "id";
     public static final String UUID = "uuid";
@@ -21,4 +25,6 @@ public class BinEntity_ {
     public static final String MAX_CAPACITY = "maxCapacity";
     public static final String ACTIVE = "active";
     public static final String ZONE_ID = "zoneId";
+    public static final String CREATED_AT = "createdAt";
+    public static final String UPDATED_AT = "updatedAt";
 }
