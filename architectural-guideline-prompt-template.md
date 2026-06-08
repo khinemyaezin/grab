@@ -86,7 +86,7 @@ Controller
         → repository.save(aggregate)
         → returns XxxResult
     → XxxRequestMapper.toResponse(result) → ResponseDto
-  → inventoryModelAssembler.toModel(responseDto) → EntityModel<ResponseDto>
+  → xxxModelAssembler.toModel(responseDto) → EntityModel<ResponseDto>
 ```
 
 #### Query (Read) Flow — Single Entity:
@@ -128,29 +128,29 @@ Controller
 ### Example Pattern:
 ```java
 @RestController
-@RequestMapping("/api/v1/inventories")
+@RequestMapping("/api/v1/{resources}")
 @RequiredArgsConstructor
-public class InventoryController {
-    private final InventoryCommandService inventoryCommandService;
-    private final InventoryQueryService inventoryQueryService;
-    private final InventoryModelAssembler inventoryModelAssembler;
+public class XxxController {
+    private final XxxCommandService xxxCommandService;
+    private final XxxQueryService xxxQueryService;
+    private final XxxModelAssembler xxxModelAssembler;
 
     @PostMapping
-    public ResponseEntity<EntityModel<InventoryResponse>> createInventory(
-            @Valid @RequestBody CreateInventoryRequest request,
+    public ResponseEntity<EntityModel<XxxResponse>> createXxx(
+            @Valid @RequestBody CreateXxxRequest request,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        InventoryResponse response = inventoryCommandService.createInventory(request, actorId);
+        XxxResponse response = xxxCommandService.createXxx(request, actorId);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(inventoryModelAssembler.toModel(response));
+                .body(xxxModelAssembler.toModel(response));
     }
 
-    @GetMapping("/{id}/movements")
-    public ResponseEntity<PagedModel<EntityModel<StockMovementResponse>>> getMovements(
+    @GetMapping("/{id}/yyy")
+    public ResponseEntity<PagedModel<EntityModel<YyyResponse>>> listYyy(
             @PathVariable String id,
             @PageableDefault(size = 20) Pageable pageable,
-            PagedResourcesAssembler<StockMovementResponse> pagedAssembler) {
-        Page<StockMovementResponse> page = inventoryQueryService.getMovements(id, pageable);
-        return ResponseEntity.ok(pagedAssembler.toModel(page, movementAssembler));
+            PagedResourcesAssembler<YyyResponse> pagedAssembler) {
+        Page<YyyResponse> page = xxxQueryService.listYyy(id, pageable);
+        return ResponseEntity.ok(pagedAssembler.toModel(page, yyyModelAssembler));
     }
 }
 ```
@@ -202,9 +202,9 @@ public interface CentralMapperConfig {}
 ### Example:
 ```java
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
-public abstract class CreateInventoryRequestMapper {
-    public abstract CreateInventoryCommand toCommand(CreateInventoryRequest request, String createdBy);
-    public abstract InventoryResponse toResponse(InventoryItemResult result);
+public abstract class CreateXxxRequestMapper {
+    public abstract CreateXxxCommand toCommand(CreateXxxRequest request, String createdBy);
+    public abstract XxxResponse toResponse(XxxResult result);
 }
 ```
 
@@ -218,10 +218,10 @@ public abstract class CreateInventoryRequestMapper {
 - Uses `Id` (from framework) for entity identifiers, not raw `String`.
 
 ```java
-public record CreateInventoryCommand(
-    String sku, Id sellerId, Id productVariantId, Id locationId,
-    int initialQuantity, Integer safetyStock, ...
-) implements Command<InventoryItemResult> {}
+public record CreateXxxCommand(
+    String field1, Id field2Id, Id field3Id,
+    int quantity, Integer threshold, ...
+) implements Command<XxxResult> {}
 ```
 
 ### 7.2 Query Record
@@ -230,9 +230,9 @@ public record CreateInventoryCommand(
 - For paginated queries: `R = Page<XxxResult>`, and the query record also implements `PageableQueryRequest`.
 
 ```java
-public record ListLocationsQuery(
-    Id sellerId, Boolean active, LocationType type, Pageable pageable
-) implements Query<Page<ListLocationsResult>>, PageableQueryRequest {}
+public record ListXxxQuery(
+    Id parentId, Boolean active, XxxType type, Pageable pageable
+) implements Query<Page<ListXxxResult>>, PageableQueryRequest {}
 ```
 
 ### 7.3 Result Record
@@ -248,7 +248,7 @@ public record ListLocationsQuery(
 - Annotated with `@Component`, `@RequiredArgsConstructor`.
 - Implements `CommandHandler<C extends Command<R>, R>`.
 - Must implement `handle(C command)` and `getCommandType()`.
-- Uses `@InventoryTransactional` (or `@CatalogTransactional`) for write operations.
+- Uses `@{Module}Transactional` (e.g., `@InventoryTransactional`, `@CatalogTransactional`) for write operations.
 - Interacts with **domain aggregates** and **domain repository interfaces**.
 
 ### 8.2 QueryHandler
@@ -256,7 +256,7 @@ public record ListLocationsQuery(
 - Annotated with `@Component`, `@RequiredArgsConstructor`.
 - Implements `QueryHandler<Q extends Query<R>, R>`.
 - Must implement `handle(Q query)` and `getQueryType()`.
-- Uses `@InventoryReadTransactional` (or `@CatalogReadTransactional`) for read-only operations.
+- Uses `@{Module}ReadTransactional` (e.g., `@InventoryReadTransactional`, `@CatalogReadTransactional`) for read-only operations.
 
 ---
 
@@ -316,48 +316,46 @@ The `withRel("...")` name is the **API contract** for link discovery. Follow the
 ### 9.5 Simple Example (Single Entity)
 ```java
 @Component
-public class InventoryModelAssembler
-        implements RepresentationModelAssembler<InventoryResponse, EntityModel<InventoryResponse>> {
+public class XxxModelAssembler
+        implements RepresentationModelAssembler<XxxResponse, EntityModel<XxxResponse>> {
     @Override
-    public EntityModel<InventoryResponse> toModel(InventoryResponse response) {
+    public EntityModel<XxxResponse> toModel(XxxResponse response) {
         return EntityModel.of(response,
-            linkTo(methodOn(InventoryController.class).getInventory(response.id())).withSelfRel()
+            linkTo(methodOn(XxxController.class).getXxx(response.id())).withSelfRel()
         );
     }
 }
 ```
 
-### 9.6 Advanced Example (CRUD + Conditional + Cross-Controller Links)
+### 9.6 Advanced Example (Conditional + Cross-Controller Links)
 ```java
 @Component
-public class ZoneModelAssembler
-        implements RepresentationModelAssembler<ZoneResponse, EntityModel<ZoneResponse>> {
+public class XxxModelAssembler
+        implements RepresentationModelAssembler<XxxResponse, EntityModel<XxxResponse>> {
 
     @Override
-    public EntityModel<ZoneResponse> toModel(ZoneResponse response) {
-        EntityModel<ZoneResponse> entity = EntityModel.of(response);
+    public EntityModel<XxxResponse> toModel(XxxResponse response) {
+        EntityModel<XxxResponse> entity = EntityModel.of(response);
 
         // Self link
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .getZoneById(response.id())).withSelfRel());
+        entity.add(linkTo(methodOn(XxxController.class)
+                .getXxxById(response.id())).withSelfRel());
 
-        // CRUD action links (pass null for @RequestBody and @RequestHeader params)
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .createZone(response.id(), null, null)).withRel("create"));
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .updateZone(response.id(), null, null)).withRel("update"));
+        // Item-level action links
+        entity.add(linkTo(methodOn(XxxController.class)
+                .updateXxx(response.id(), null, null)).withRel("update"));
 
-        // Related resource link (cross-controller: links back to parent's zone list)
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .listZones(response.locationId(), null, null)).withRel("zones"));
+        // Related resource link (links back to parent's list)
+        entity.add(linkTo(methodOn(XxxController.class)
+                .listXxx(response.parentId(), null, null)).withRel("xxx-list"));
 
         // Conditional links based on entity state
         if (response.active()) {
-            entity.add(linkTo(methodOn(ZoneController.class)
-                    .deactivateZone(response.id(), null)).withRel("deactivate"));
+            entity.add(linkTo(methodOn(XxxController.class)
+                    .deactivateXxx(response.id(), null)).withRel("deactivate"));
         } else {
-            entity.add(linkTo(methodOn(ZoneController.class)
-                    .activateZone(response.id(), null)).withRel("activate"));
+            entity.add(linkTo(methodOn(XxxController.class)
+                    .activateXxx(response.id(), null)).withRel("activate"));
         }
 
         return entity;
@@ -365,17 +363,19 @@ public class ZoneModelAssembler
 }
 ```
 
+> **Note:** The `create` link is NOT on individual items — it belongs on the **page/collection level** via a `RepresentationModelProcessor` (see §9.9).
+
 ### 9.7 Cross-Controller Links Example
 ```java
 @Component
-public class LocationModelAssembler
-        implements RepresentationModelAssembler<LocationResponse, EntityModel<LocationResponse>> {
+public class XxxModelAssembler
+        implements RepresentationModelAssembler<XxxResponse, EntityModel<XxxResponse>> {
 
     @Override
-    public EntityModel<LocationResponse> toModel(LocationResponse response) {
+    public EntityModel<XxxResponse> toModel(XxxResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(LocationController.class).getLocation(response.id())).withSelfRel(),
-                linkTo(methodOn(ZoneController.class).listZones(response.id(), null, null)).withRel("zones")
+                linkTo(methodOn(XxxController.class).getXxx(response.id())).withSelfRel(),
+                linkTo(methodOn(YyyController.class).listYyy(response.id(), null, null)).withRel("yyy-list")
         );
     }
 }
@@ -387,15 +387,60 @@ For paginated endpoints, the model assembler is passed to `PagedResourcesAssembl
 
 ```java
 // In the Controller:
-@GetMapping("/{locationId}/zones")
-public ResponseEntity<PagedModel<EntityModel<ZoneResponse>>> listZones(
-        @PathVariable String locationId,
+@GetMapping("/{parentId}/xxx")
+public ResponseEntity<PagedModel<EntityModel<XxxResponse>>> listXxx(
+        @PathVariable String parentId,
         @PageableDefault(size = 20) Pageable pageable,
-        PagedResourcesAssembler<ZoneResponse> pagedAssembler) {
-    Page<ZoneResponse> page = zoneQueryService.listZones(locationId, pageable);
-    return ResponseEntity.ok(pagedAssembler.toModel(page, zoneModelAssembler));
+        PagedResourcesAssembler<XxxResponse> pagedAssembler) {
+    Page<XxxResponse> page = xxxQueryService.listXxx(parentId, pageable);
+    return ResponseEntity.ok(pagedAssembler.toModel(page, xxxModelAssembler));
 }
 ```
+
+### 9.9 Page-Level Links with `RepresentationModelProcessor`
+
+For links that belong on the **collection/page** (not on individual items), use Spring HATEOAS's `RepresentationModelProcessor`. This is automatically invoked by the framework on any matching `RepresentationModel` before serialization — no controller changes needed.
+
+#### When to Use
+
+| Link Scope | Mechanism | Example |
+|---|---|---|
+| **Per-item** links (self, update, activate) | `RepresentationModelAssembler` | `XxxModelAssembler` |
+| **Page-level** links (create, bulk-import) | `RepresentationModelProcessor` | `XxxPagedModelProcessor` |
+
+#### Rules
+- Located at: `store/.../api/rest/assembler/` — same package as model assemblers.
+- Annotated with `@Component`.
+- Implements `RepresentationModelProcessor<PagedModel<EntityModel<ResponseDto>>>`.
+- Named `{Entity}PagedModelProcessor`.
+- Extract context (e.g., parent ID) from the page content items, not from the request.
+
+#### Example
+```java
+@Component
+public class XxxPagedModelProcessor
+        implements RepresentationModelProcessor<PagedModel<EntityModel<XxxResponse>>> {
+
+    @Override
+    public PagedModel<EntityModel<XxxResponse>> process(PagedModel<EntityModel<XxxResponse>> model) {
+        // Extract parentId from page content (all items share the same parent)
+        extractParentId(model).ifPresent(parentId ->
+                model.add(linkTo(methodOn(XxxController.class)
+                        .createXxx(parentId, null, null)).withRel("create"))
+        );
+        return model;
+    }
+
+    private Optional<String> extractParentId(PagedModel<EntityModel<XxxResponse>> model) {
+        return model.getContent().stream()
+                .findFirst()
+                .map(EntityModel::getContent)
+                .map(XxxResponse::parentId);
+    }
+}
+```
+
+> **Note:** The `create` link will only appear when the page has content (non-empty). For empty pages, the link is omitted because the parent context (e.g., `parentId`) cannot be derived from the content.
 
 ---
 
@@ -544,6 +589,7 @@ Examples:
 | Query Handler | `{Action}{Entity}QueryHandler` | `GetInventoryQueryHandler` |
 | Mapper | `{Action}{Entity}RequestMapper` | `CreateInventoryRequestMapper` |
 | Model Assembler | `{Entity}ModelAssembler` | `InventoryModelAssembler` |
+| Paged Model Processor | `{Entity}PagedModelProcessor` | `ZonePagedModelProcessor` |
 | Service Error | `{Module}ServiceError` (sealed interface) | `InventoryServiceError` |
 | Service Exception | `{Module}ServiceException` | `InventoryServiceException` |
 
@@ -573,7 +619,8 @@ Before generating or outputting any code, verify:
 6. ✅ Write handlers use `@{Module}Transactional`; read handlers use `@{Module}ReadTransactional`.
 7. ✅ No business logic leaks into the controller, service, or mapper layers.
 8. ✅ Controller returns `ResponseEntity<EntityModel<T>>` (single) or `ResponseEntity<PagedModel<EntityModel<T>>>` (paginated).
-9. ✅ Model assemblers implement `RepresentationModelAssembler` and add HATEOAS links.
-10. ✅ DTOs are Java records in the appropriate `dto/request/` or `dto/response/` package.
-11. ✅ Errors follow the sealed interface pattern with `ErrorCategory` and i18n error codes.
-12. ✅ All files are placed in the correct package according to the module structure.
+9. ✅ Model assemblers implement `RepresentationModelAssembler` and add HATEOAS links with proper rel naming (§9.3).
+10. ✅ Page-level links (e.g., `create`) use `RepresentationModelProcessor`, not inline controller code.
+11. ✅ DTOs are Java records in the appropriate `dto/request/` or `dto/response/` package.
+12. ✅ Errors follow the sealed interface pattern with `ErrorCategory` and i18n error codes.
+13. ✅ All files are placed in the correct package according to the module structure.

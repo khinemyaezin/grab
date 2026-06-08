@@ -3,7 +3,6 @@ package com.grab.store.inventory.internal.api.rest.assembler;
 import com.grab.store.inventory.internal.api.rest.controller.ZoneController;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
 
@@ -19,9 +18,6 @@ public class ZoneModelAssembler implements RepresentationModelAssembler<ZoneResp
 
         entity.add(linkTo(methodOn(ZoneController.class)
                 .getZoneById(response.id())).withSelfRel());
-
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .createZone(response.id(), null, null)).withRel("create"));
 
         entity.add(linkTo(methodOn(ZoneController.class)
                 .updateZone(response.id(), null, null)).withRel("update"));
@@ -40,3 +36,4 @@ public class ZoneModelAssembler implements RepresentationModelAssembler<ZoneResp
         return entity;
     }
 }
+

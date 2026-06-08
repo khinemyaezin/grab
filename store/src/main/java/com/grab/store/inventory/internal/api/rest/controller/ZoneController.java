@@ -74,6 +74,7 @@ public class ZoneController {
     ) {
         Page<ZoneResponse> response = zoneQueryService.listZones(locationId, pageable);
         PagedModel<EntityModel<ZoneResponse>> pageModel = pagedResourcesAssembler.toModel(response, zoneModelAssembler);
+
         return ResponseEntity.ok(pageModel);
     }
 
