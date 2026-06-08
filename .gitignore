@@ -33,6 +33,15 @@ build/
 ### VS Code ###
 .vscode/
 
+### macOS ###
+.DS_Store
+
+### IntelliJ Run Configurations ###
+.run/
+
+### OpenCode ###
+.opencode/
+
 ### Docker environment files ###
 .env
 .env.*
