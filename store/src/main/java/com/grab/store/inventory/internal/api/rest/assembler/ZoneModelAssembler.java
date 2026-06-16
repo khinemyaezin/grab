@@ -1,5 +1,6 @@
 package com.grab.store.inventory.internal.api.rest.assembler;
 
+import com.grab.store.inventory.internal.api.rest.controller.BinController;
 import com.grab.store.inventory.internal.api.rest.controller.ZoneController;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
 import org.springframework.hateoas.EntityModel;
@@ -17,23 +18,27 @@ public class ZoneModelAssembler implements RepresentationModelAssembler<ZoneResp
         EntityModel<ZoneResponse> entity = EntityModel.of(response);
 
         entity.add(linkTo(methodOn(ZoneController.class)
-                .getZoneById(response.id())).withSelfRel());
+                .getZoneById(response.id()))
+                .withSelfRel());
 
         entity.add(linkTo(methodOn(ZoneController.class)
-                .updateZone(response.id(), null, null)).withRel("update"));
-
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .listZones(response.locationId(), null, null)).withRel("zones"));
+                .updateZone(response.id(), null, null))
+                .withRel("edit-zone"));
 
         if (response.active()) {
             entity.add(linkTo(methodOn(ZoneController.class)
-                    .deactivateZone(response.id(), null)).withRel("deactivate"));
+                    .deactivateZone(response.id(), null))
+                    .withRel("deactivate-zone"));
         } else {
             entity.add(linkTo(methodOn(ZoneController.class)
-                    .activateZone(response.id(), null)).withRel("activate"));
+                    .activateZone(response.id(), null))
+                    .withRel("activate-zone"));
         }
+
+        entity.add(linkTo(methodOn(BinController.class)
+                .listBins(response.id(), null, null, null))
+                .withRel("paged-bin"));
 
         return entity;
     }
 }
-

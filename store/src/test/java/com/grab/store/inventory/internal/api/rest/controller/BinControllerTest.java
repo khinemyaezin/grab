@@ -71,7 +71,7 @@ class BinControllerTest {
         when(binCommandService.createBin(any(CreateBinRequest.class), eq("actor-1")))
                 .thenReturn(sampleBinResponse);
 
-        mockMvc.perform(post("/api/v1/bins")
+        mockMvc.perform(post("/api/v1/inventory/bins")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
@@ -86,7 +86,7 @@ class BinControllerTest {
         when(binCommandService.createBin(any(CreateBinRequest.class), eq(null)))
                 .thenReturn(sampleBinResponse);
 
-        mockMvc.perform(post("/api/v1/bins")
+        mockMvc.perform(post("/api/v1/inventory/bins")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleCreateRequest)))
                 .andExpect(status().isCreated())
@@ -99,7 +99,7 @@ class BinControllerTest {
                 null, "", null, null
         );
 
-        mockMvc.perform(post("/api/v1/bins")
+        mockMvc.perform(post("/api/v1/inventory/bins")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalid)))
                 .andExpect(status().isBadRequest());
@@ -114,7 +114,7 @@ class BinControllerTest {
         when(binCommandService.updateBin(eq("bin-1"), any(UpdateBinRequest.class), eq("actor-1")))
                 .thenReturn(updated);
 
-        mockMvc.perform(patch("/api/v1/bins/bin-1")
+        mockMvc.perform(patch("/api/v1/inventory/bins/bin-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(sampleUpdateRequest)))
@@ -129,7 +129,7 @@ class BinControllerTest {
         when(binCommandService.activateBin("bin-1", "actor-1"))
                 .thenReturn(sampleBinResponse);
 
-        mockMvc.perform(put("/api/v1/bins/bin-1/activate")
+        mockMvc.perform(patch("/api/v1/inventory/bins/bin-1/activate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("bin-1"))
@@ -145,7 +145,7 @@ class BinControllerTest {
         when(binCommandService.deactivateBin("bin-1", "actor-1"))
                 .thenReturn(deactivated);
 
-        mockMvc.perform(put("/api/v1/bins/bin-1/deactivate")
+        mockMvc.perform(patch("/api/v1/inventory/bins/bin-1/deactivate")
                         .header("X-Actor-Id", "actor-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("bin-1"))
@@ -158,7 +158,7 @@ class BinControllerTest {
         when(binQueryService.listBins(eq("zone-1"), eq(true), any()))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/bins/zones/zone-1")
+        mockMvc.perform(get("/api/v1/inventory/bins/zones/zone-1")
                         .param("active", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.binResponseList").isArray())
@@ -172,7 +172,7 @@ class BinControllerTest {
         when(binQueryService.listBins(eq("zone-1"), eq(null), any()))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/bins/zones/zone-1"))
+        mockMvc.perform(get("/api/v1/inventory/bins/zones/zone-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.binResponseList[0].id").value("bin-1"));
     }

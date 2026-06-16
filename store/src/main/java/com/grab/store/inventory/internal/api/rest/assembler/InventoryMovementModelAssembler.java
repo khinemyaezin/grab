@@ -16,6 +16,8 @@ public class InventoryMovementModelAssembler
     public EntityModel<StockMovementResponse> toModel(StockMovementResponse movement) {
         return EntityModel.of(movement,
                 linkTo(methodOn(InventoryController.class)
+                        .getMovements(movement.inventoryItemId(), null, null)).withSelfRel(),
+                linkTo(methodOn(InventoryController.class)
                         .getMovements(movement.inventoryItemId(), null, null)).withRel("movements")
         );
     }

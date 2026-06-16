@@ -23,7 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/inventories")
+@RequestMapping("/api/v1/inventory/items")
 @RequiredArgsConstructor
 public class InventoryController {
 

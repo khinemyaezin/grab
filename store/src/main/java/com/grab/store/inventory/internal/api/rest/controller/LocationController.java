@@ -19,8 +19,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController
-@RequestMapping("/api/v1/locations")
+@RequestMapping("/api/v1/inventory/locations")
 @RequiredArgsConstructor
 public class LocationController {
 
@@ -48,7 +51,7 @@ public class LocationController {
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
-    @PostMapping("/{locationId}/activate")
+    @PatchMapping("/{locationId}/activate")
     public ResponseEntity<EntityModel<LocationResponse>> activateLocation(
             @PathVariable String locationId,
             @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
@@ -57,7 +60,7 @@ public class LocationController {
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
-    @PostMapping("/{locationId}/deactivate")
+    @PatchMapping("/{locationId}/deactivate")
     public ResponseEntity<EntityModel<LocationResponse>> deactivateLocation(
             @PathVariable String locationId,
             @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
@@ -89,6 +92,10 @@ public class LocationController {
     ) {
         Page<LocationResponse> response = locationQueryService.listLocations(sellerId, active, type, pageable);
         PagedModel<EntityModel<LocationResponse>> pageModel = pagedResourcesAssembler.toModel(response, locationModelAssembler);
+        pageModel.add(linkTo(methodOn(LocationController.class)
+                .createLocation(null, null))
+                .withRel("create-location"));
+
         return ResponseEntity.ok(pageModel);
     }
 }

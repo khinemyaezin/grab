@@ -16,6 +16,8 @@ public class BinModelAssembler implements RepresentationModelAssembler<BinRespon
     public EntityModel<BinResponse> toModel(BinResponse bin) {
         return EntityModel.of(bin,
                 linkTo(methodOn(BinController.class)
+                        .updateBin(bin.id(), null, null)).withSelfRel(),
+                linkTo(methodOn(BinController.class)
                         .listBins(bin.zoneId(), null, null, null)).withRel("bins")
         );
     }

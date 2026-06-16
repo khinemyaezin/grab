@@ -19,24 +19,35 @@ public class LocationModelAssembler
         EntityModel<LocationResponse> entity = EntityModel.of(response);
 
         entity.add(linkTo(methodOn(LocationController.class)
-                .getLocation(response.id())).withSelfRel());
+                .getLocation(response.id()))
+                .withSelfRel());
 
         entity.add(linkTo(methodOn(LocationController.class)
-                .createLocation(null, null)).withRel("create"));
-
-        entity.add(linkTo(methodOn(LocationController.class)
-                .updateLocation(response.id(), null, null)).withRel("update"));
-
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .listZones(response.id(), null, null)).withRel("zones"));
+                .updateLocation(response.id(), null, null))
+                .withRel("edit-location"));
 
         if (response.active()) {
             entity.add(linkTo(methodOn(LocationController.class)
-                    .deactivateLocation(response.id(), null)).withRel("deactivate"));
+                    .deactivateLocation(response.id(), null))
+                    .withRel("deactivate-location"));
         } else {
             entity.add(linkTo(methodOn(LocationController.class)
-                    .activateLocation(response.id(), null)).withRel("activate"));
+                    .activateLocation(response.id(), null))
+                    .withRel("activate-location"));
         }
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .listZones(response.id(), null, null))
+                .withRel("paged-zone"));
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .getZoneById(null))
+                .withRel("zone"));
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .createZone(response.id(), null, null))
+                .withRel("create-zone"));
+
 
         return entity;
     }

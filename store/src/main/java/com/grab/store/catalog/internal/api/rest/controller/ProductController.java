@@ -14,7 +14,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/v1/products")
+@RequestMapping("/api/v1/catalog/products")
 @RequiredArgsConstructor
 public class ProductController {
 

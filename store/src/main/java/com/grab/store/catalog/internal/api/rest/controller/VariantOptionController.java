@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/variant-options")
+@RequestMapping("/api/v1/catalog/variant-options")
 @RequiredArgsConstructor
 public class VariantOptionController {
 

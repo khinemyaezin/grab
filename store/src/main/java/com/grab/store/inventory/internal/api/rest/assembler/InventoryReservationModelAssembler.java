@@ -16,7 +16,10 @@ public class InventoryReservationModelAssembler
     @Override
     public EntityModel<InventoryReservationResponse> toModel(InventoryReservationResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(InventoryController.class).getReservations(response.inventoryItemId(),null, null)).withRel("reservations")
+                linkTo(methodOn(InventoryController.class)
+                        .getReservations(response.inventoryItemId(), null, null)).withSelfRel(),
+                linkTo(methodOn(InventoryController.class)
+                        .getReservations(response.inventoryItemId(), null, null)).withRel("reservations")
         );
     }
 }
