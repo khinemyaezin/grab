@@ -176,4 +176,19 @@ class BinControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._embedded.binResponseList[0].id").value("bin-1"));
     }
+
+    @Test
+    void getBinById_shouldReturn200() throws Exception {
+        when(binQueryService.getBin("bin-1"))
+                .thenReturn(sampleBinResponse);
+
+        mockMvc.perform(get("/api/v1/inventory/bins/bin-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("bin-1"))
+                .andExpect(jsonPath("$.zoneId").value("zone-1"))
+                .andExpect(jsonPath("$.code").value("B-A1"))
+                .andExpect(jsonPath("$.name").value("Bin A1"))
+                .andExpect(jsonPath("$.maxCapacity").value(100))
+                .andExpect(jsonPath("$.active").value(true));
+    }
 }

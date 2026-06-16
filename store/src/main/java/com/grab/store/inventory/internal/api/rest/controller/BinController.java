@@ -65,6 +65,14 @@ public class BinController {
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
+    @GetMapping("/{binId}")
+    public ResponseEntity<EntityModel<BinResponse>> getBinById(
+            @PathVariable String binId
+    ) {
+        BinResponse response = binQueryService.getBin(binId);
+        return ResponseEntity.ok(binModelAssembler.toModel(response));
+    }
+
     @GetMapping("/zones/{zoneId}")
     public ResponseEntity<PagedModel<EntityModel<BinResponse>>> listBins(
             @PathVariable String zoneId,
