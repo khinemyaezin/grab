@@ -19,6 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController
 @RequestMapping("/api/v1/inventory/zones")
 @RequiredArgsConstructor
@@ -74,6 +77,10 @@ public class ZoneController {
     ) {
         Page<ZoneResponse> response = zoneQueryService.listZones(locationId, pageable);
         PagedModel<EntityModel<ZoneResponse>> pageModel = pagedResourcesAssembler.toModel(response, zoneModelAssembler);
+
+        pageModel.add(linkTo(methodOn(ZoneController.class)
+                .createZone(locationId, null, null))
+                .withRel("create-zone"));
 
         return ResponseEntity.ok(pageModel);
     }

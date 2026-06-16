@@ -3,7 +3,6 @@ package com.grab.store.inventory.internal.api.rest.assembler;
 import com.grab.store.inventory.internal.api.rest.controller.LocationController;
 import com.grab.store.inventory.internal.api.rest.controller.ZoneController;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
-import com.grab.store.shared.LinkRelations;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
@@ -20,24 +19,35 @@ public class LocationModelAssembler
         EntityModel<LocationResponse> entity = EntityModel.of(response);
 
         entity.add(linkTo(methodOn(LocationController.class)
-                .getLocation(response.id())).withSelfRel());
+                .getLocation(response.id()))
+                .withSelfRel());
 
         entity.add(linkTo(methodOn(LocationController.class)
-                .createLocation(null, null)).withRel(LinkRelations.CREATE));
-
-        entity.add(linkTo(methodOn(LocationController.class)
-                .updateLocation(response.id(), null, null)).withRel(LinkRelations.UPDATE));
-
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .listZones(response.id(), null, null)).withRel(LinkRelations.ZONES));
+                .updateLocation(response.id(), null, null))
+                .withRel("edit-location"));
 
         if (response.active()) {
             entity.add(linkTo(methodOn(LocationController.class)
-                    .deactivateLocation(response.id(), null)).withRel(LinkRelations.DEACTIVATE));
+                    .deactivateLocation(response.id(), null))
+                    .withRel("deactivate-location"));
         } else {
             entity.add(linkTo(methodOn(LocationController.class)
-                    .activateLocation(response.id(), null)).withRel(LinkRelations.ACTIVATE));
+                    .activateLocation(response.id(), null))
+                    .withRel("activate-location"));
         }
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .listZones(response.id(), null, null))
+                .withRel("paged-zone"));
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .getZoneById(null))
+                .withRel("zone"));
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .createZone(response.id(), null, null))
+                .withRel("create-zone"));
+
 
         return entity;
     }
