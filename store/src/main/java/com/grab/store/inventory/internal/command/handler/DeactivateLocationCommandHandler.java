@@ -11,8 +11,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DeactivateLocationCommandHandler implements CommandHandler<DeactivateLocationCommand, LocationResult> {
@@ -23,18 +25,26 @@ public class DeactivateLocationCommandHandler implements CommandHandler<Deactiva
     @Override
     @InventoryTransactional
     public LocationResult handle(DeactivateLocationCommand command) {
+        log.info("Deactivating location with id={}", command.locationId().getValue());
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+                .orElseThrow(() -> {
+                    log.warn("Location not found: locationId={}", command.locationId().getValue());
+                    return new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
+                });
 
         boolean hasInventory = inventoryRepository.findByLocation(command.locationId()).stream()
                 .anyMatch(this::hasRemainingStockOrReservations);
 
         if (hasInventory) {
+            log.warn("Cannot deactivate location with dependent inventory: locationId={}", command.locationId().getValue());
             throw new InventoryServiceException(new InventoryServiceError.LocationHasDependentInventory(command.locationId().getValue()));
         }
 
         location.deactivate();
         Location saved = locationRepository.save(location);
+
+        log.info("Deactivated location with id={}, code={}", saved.getId().getValue(), saved.getCode());
 
         return new LocationResult(
                 saved.getId().getValue(),

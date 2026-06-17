@@ -9,8 +9,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ActivateZoneCommandHandler implements CommandHandler<ActivateZoneCommand, ZoneResult> {
@@ -20,12 +22,19 @@ public class ActivateZoneCommandHandler implements CommandHandler<ActivateZoneCo
     @Override
     @InventoryTransactional
     public ZoneResult handle(ActivateZoneCommand command) {
+        log.info("Activating zone with id={}", command.zoneId().getValue());
+        
         Zone zone = zoneRepository.findById(command.zoneId())
-                .orElseThrow(() -> new InventoryServiceException(
-                        new InventoryServiceError.ZoneNotFound(command.zoneId().getValue())));
+                .orElseThrow(() -> {
+                    log.warn("Zone not found: zoneId={}", command.zoneId().getValue());
+                    return new InventoryServiceException(
+                            new InventoryServiceError.ZoneNotFound(command.zoneId().getValue()));
+                });
 
         zone.activate();
         Zone saved = zoneRepository.save(zone);
+
+        log.info("Activated zone with id={}, code={}", saved.getId().getValue(), saved.getCode());
 
         return new ZoneResult(
                 saved.getId().getValue(),

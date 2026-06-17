@@ -6,6 +6,7 @@ import com.inventory.domain.enums.ZoneType;
 import com.inventory.domain.event.ZoneActivatedEvent;
 import com.inventory.domain.event.ZoneCreatedEvent;
 import com.inventory.domain.event.ZoneDeactivatedEvent;
+import com.inventory.domain.event.ZoneDeletedEvent;
 import com.inventory.domain.event.ZoneUpdatedEvent;
 import lombok.Getter;
 
@@ -58,6 +59,10 @@ public class Zone extends AggregateRoot<Id> {
     public void deactivate() {
         this.active = false;
         addEvent(new ZoneDeactivatedEvent(getId(), locationId, LocalDateTime.now()));
+    }
+
+    public void delete() {
+        addEvent(new ZoneDeletedEvent(getId(), locationId, LocalDateTime.now()));
     }
 
     @Override

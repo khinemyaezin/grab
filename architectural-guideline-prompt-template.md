@@ -446,53 +446,6 @@ public class XxxPagedModelProcessor
 
 > **Note:** The `create` link will only appear when the page has content (non-empty). For empty pages, the link is omitted because the parent context (e.g., `parentId`) cannot be derived from the content.
 
-### 9.10 `LinkRelations` Constants Class
-
-All link relation names MUST be defined as constants in a shared `LinkRelations` class and referenced from there — **never use inline string literals** for rel names.
-
-#### Location & Structure
-- Located at: `store/.../shared/LinkRelations.java`
-- `public final class` with a private constructor to prevent instantiation.
-- Constants are `public static final String`, grouped by category.
-
-```java
-package com.grab.store.shared;
-
-public final class LinkRelations {
-    // Root navigation
-    public static final String SELF = "self";
-    public static final String {CONTEXT_A} = "{context-a}";
-    public static final String {CONTEXT_B} = "{context-b}";
-
-    // Module A resources
-    public static final String {RESOURCES_A} = "{resources-a}";
-    public static final String {RESOURCE_A} = "{resource-a}";
-
-    // Module B resources
-    public static final String {RESOURCES_B} = "{resources-b}";
-    public static final String {RESOURCE_B} = "{resource-b}";
-
-    // Actions
-    public static final String CREATE = "create";
-    public static final String UPDATE = "update";
-    public static final String ACTIVATE = "activate";
-    public static final String DEACTIVATE = "deactivate";
-
-    // Navigation / structural
-    public static final String PARENT = "parent";
-    public static final String CHILDREN = "children";
-    // ... add as needed
-
-    private LinkRelations() {}
-}
-```
-
-#### Rules
-1. **All new rel names MUST be added to `LinkRelations`** before use in any assembler or processor.
-2. **All assemblers and processors MUST reference `LinkRelations.XXX`** — never use raw string literals like `.withRel("items")`.
-3. Constants are grouped by domain (root, per-module resources, actions, navigation) with a private constructor to prevent instantiation.
-4. When adding a new bounded context, add a new section for its resource rels.
-
 ### 9.11 API Root & Discovery Endpoints (3-Tier Hierarchy)
 
 The API implements a **3-tier hypermedia discovery hierarchy** that allows clients to navigate the entire API from a single entry point. All root endpoints produce `application/hal+json`.

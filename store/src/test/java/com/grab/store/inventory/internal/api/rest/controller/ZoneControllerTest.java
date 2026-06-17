@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -176,5 +177,14 @@ class ZoneControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("zone-1"))
                 .andExpect(jsonPath("$.code").value("Z-A1"));
+    }
+
+    @Test
+    void deleteZone_shouldReturn204() throws Exception {
+        doNothing().when(zoneCommandService).deleteZone("zone-1", "actor-1");
+
+        mockMvc.perform(delete("/api/v1/inventory/zones/zone-1")
+                        .header("X-Actor-Id", "actor-1"))
+                .andExpect(status().isNoContent());
     }
 }

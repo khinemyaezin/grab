@@ -14,11 +14,32 @@ public class BinModelAssembler implements RepresentationModelAssembler<BinRespon
 
     @Override
     public EntityModel<BinResponse> toModel(BinResponse bin) {
-        return EntityModel.of(bin,
+        EntityModel<BinResponse> entityModel = EntityModel.of(bin,
                 linkTo(methodOn(BinController.class)
-                        .updateBin(bin.id(), null, null)).withSelfRel(),
+                        .getBinById(bin.id())).withSelfRel(),
+
                 linkTo(methodOn(BinController.class)
-                        .listBins(bin.zoneId(), null, null, null)).withRel("bins")
+                        .listBins(bin.zoneId(), null, null, null))
+                        .withRel("paged-bins")
         );
+        entityModel.add(linkTo(methodOn(BinController.class)
+                .updateBin(bin.id(), null, null))
+                .withRel("edit-bin"));
+
+        entityModel.add(linkTo(methodOn(BinController.class)
+                .deleteBin(bin.id(), null))
+                .withRel("delete-bin"));
+
+        if (bin.active()) {
+            entityModel.add(linkTo(methodOn(BinController.class)
+                    .deactivateBin(bin.id(), null))
+                    .withRel("deactivate-bin"));
+        } else {
+            entityModel.add(linkTo(methodOn(BinController.class)
+                    .activateBin(bin.id(), null))
+                    .withRel("activate-bin"));
+        }
+
+        return entityModel;
     }
 }

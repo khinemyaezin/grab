@@ -45,6 +45,15 @@ public class DefaultBinRepository implements BinRepository, BinQueryRepository {
     }
 
     @Override
+    public List<Bin> findAllActiveByZoneId(Id zoneId) {
+        log.debug("Loading active bins by zoneId={}", zoneId.getValue());
+        return executor.query("Bin", () -> jpaRepository.findAllByZoneIdAndActive(zoneId.getValue(), true)
+                .stream()
+                .map(mapper::toDomain)
+                .toList());
+    }
+
+    @Override
     public Page<BinView> queryByZoneId(String zoneId, Pageable pageable) {
         log.debug("Loading bins by zoneId={}", zoneId);
         return executor.query("Bin", () -> jpaRepository.findAllByZoneId(zoneId, pageable));
@@ -86,5 +95,11 @@ public class DefaultBinRepository implements BinRepository, BinQueryRepository {
     public boolean existsByCodeAndZoneId(String code, Id zoneId) {
         log.debug("Checking bin existence by code={} and zoneId={}", code, zoneId.getValue());
         return executor.query("Bin", () -> jpaRepository.existsByCodeAndZoneId(code, zoneId.getValue()));
+    }
+
+    @Override
+    public boolean existsByZoneId(Id zoneId) {
+        log.debug("Checking bin existence by zoneId={}", zoneId.getValue());
+        return executor.query("Bin", () -> jpaRepository.existsByZoneId(zoneId.getValue()));
     }
 }

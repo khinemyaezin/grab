@@ -19,6 +19,8 @@ public sealed interface InventoryServiceError extends MessageSource permits
         InventoryServiceError.LocationInactive,
         InventoryServiceError.ReservationInventoryMismatch,
         InventoryServiceError.LocationHasDependentInventory,
+        InventoryServiceError.LocationHasDependentZones,
+        InventoryServiceError.ZoneHasDependentBins,
         InventoryServiceError.AddressCountryRequired,
         InventoryServiceError.UnableToAddZone,
         InventoryServiceError.UnableToAddBin {
@@ -247,6 +249,40 @@ public sealed interface InventoryServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("locationId", locationId);
+        }
+    }
+
+    record LocationHasDependentZones(String locationId) implements InventoryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.CONFLICT;
+        }
+
+        @Override
+        public String code() {
+            return "inv.service.location.has_dependent_zones";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("locationId", locationId);
+        }
+    }
+
+    record ZoneHasDependentBins(String zoneId) implements InventoryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.CONFLICT;
+        }
+
+        @Override
+        public String code() {
+            return "inv.service.zone.has_dependent_bins";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("zoneId", zoneId);
         }
     }
 

@@ -8,7 +8,7 @@ import com.grab.store.inventory.internal.command.DeactivateZoneCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.context.event.EventListener;
 
 import java.util.List;
 
@@ -20,11 +20,11 @@ public class LocationDeactivationEventListener {
     private final ZoneRepository zoneRepository;
     private final CommandBus commandBus;
 
-    @TransactionalEventListener
+    @EventListener
     public void handleLocationDeactivated(LocationDeactivatedEvent event) {
         log.info("Handling LocationDeactivatedEvent for locationId={}", event.locationId().getValue());
 
-        List<Zone> activeZones = List.of();//zoneRepository.findByLocationIdAndActive(event.locationId(), true);
+        List<Zone> activeZones = zoneRepository.findAllActiveByLocationId(event.locationId());
 
         if (activeZones.isEmpty()) {
             log.info("No active zones found for locationId={}", event.locationId().getValue());

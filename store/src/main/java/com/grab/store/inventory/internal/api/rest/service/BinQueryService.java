@@ -4,6 +4,8 @@ import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
 import com.grab.store.inventory.internal.api.rest.mapper.GetBinRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.ListBinsRequestMapper;
+import com.grab.store.inventory.internal.query.GetBinQuery;
+import com.grab.store.inventory.internal.query.GetBinResult;
 import com.grab.store.inventory.internal.query.ListBinsResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +19,12 @@ public class BinQueryService {
     private final QueryBus queryBus;
     private final GetBinRequestMapper getBinRequestMapper;
     private final ListBinsRequestMapper listBinsRequestMapper;
+
+    public BinResponse getBin(String binId) {
+        GetBinQuery query = getBinRequestMapper.toQuery(binId);
+        GetBinResult result = queryBus.dispatch(query);
+        return getBinRequestMapper.toResponse(result);
+    }
 
     public Page<BinResponse> listBins(String zoneId, Boolean active, Pageable pageable) {
         var query = listBinsRequestMapper.toQuery(zoneId, active, pageable);

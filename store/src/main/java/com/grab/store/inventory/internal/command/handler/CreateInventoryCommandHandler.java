@@ -16,8 +16,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateInventoryCommandHandler implements CommandHandler<CreateInventoryCommand, InventoryItemResult> {
@@ -30,13 +32,20 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     @Override
     @InventoryTransactional
     public InventoryItemResult handle(CreateInventoryCommand command) {
+        log.info("Creating inventory for sku={} at locationId={}", command.sku(), command.locationId().getValue());
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+                .orElseThrow(() -> {
+                    log.warn("Location not found: locationId={}", command.locationId().getValue());
+                    return new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
+                });
         if (!location.isActive()) {
+            log.warn("Location is inactive: locationId={}", command.locationId().getValue());
             throw new InventoryServiceException(new InventoryServiceError.LocationInactive(command.locationId().getValue()));
         }
 
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
+            log.warn("Inventory already exists for sku={} at locationId={}", command.sku(), command.locationId().getValue());
             throw new InventoryServiceException(new InventoryServiceError.InventoryAlreadyExistsForSkuLocation(command.sku(), command.locationId().getValue()));
         }
 
@@ -57,6 +66,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         inventoryRepository.save(item);
 
         if (command.initialQuantity() > 0) {
+            log.info("Creating initial stock movement for inventoryItemId={}, quantity={}", item.getId().getValue(), command.initialQuantity());
             StockMovement movement = StockMovement.create(
                     idGenerator.generateId(),
                     item.getId(),
@@ -70,6 +80,8 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
             );
             stockMovementRepository.save(movement);
         }
+
+        log.info("Created inventory with id={}, sku={}, locationId={}", item.getId().getValue(), item.getSku(), item.getLocationId().getValue());
 
         return mapToInventoryItemResult(item);
     }

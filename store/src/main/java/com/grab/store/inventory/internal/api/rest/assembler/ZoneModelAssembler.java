@@ -25,6 +25,10 @@ public class ZoneModelAssembler implements RepresentationModelAssembler<ZoneResp
                 .updateZone(response.id(), null, null))
                 .withRel("edit-zone"));
 
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .deleteZone(response.id(), null))
+                .withRel("delete-zone"));
+
         if (response.active()) {
             entity.add(linkTo(methodOn(ZoneController.class)
                     .deactivateZone(response.id(), null))
@@ -38,6 +42,14 @@ public class ZoneModelAssembler implements RepresentationModelAssembler<ZoneResp
         entity.add(linkTo(methodOn(BinController.class)
                 .listBins(response.id(), null, null, null))
                 .withRel("paged-bin"));
+
+        entity.add(linkTo(methodOn(BinController.class)
+                .createBin(null, null))
+                .withRel("create-bin"));
+
+        entity.add(linkTo(methodOn(BinController.class)
+                .getBinById(null))
+                .withRel("bin"));
 
         return entity;
     }

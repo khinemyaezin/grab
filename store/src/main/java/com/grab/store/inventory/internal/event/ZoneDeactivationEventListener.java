@@ -8,7 +8,7 @@ import com.grab.store.inventory.internal.command.DeactivateBinCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.context.event.EventListener;
 
 import java.util.List;
 
@@ -20,11 +20,11 @@ public class ZoneDeactivationEventListener {
     private final BinRepository binRepository;
     private final CommandBus commandBus;
 
-    @TransactionalEventListener
+    @EventListener
     public void handleZoneDeactivated(ZoneDeactivatedEvent event) {
         log.info("Handling ZoneDeactivatedEvent for zoneId={}", event.zoneId().getValue());
 
-        List<Bin> activeBins = List.of();//binRepository.findByZoneIdAndActive(event.zoneId(), true);
+        List<Bin> activeBins = binRepository.findAllActiveByZoneId(event.zoneId());
 
         if (activeBins.isEmpty()) {
             log.info("No active bins found for zoneId={}", event.zoneId().getValue());

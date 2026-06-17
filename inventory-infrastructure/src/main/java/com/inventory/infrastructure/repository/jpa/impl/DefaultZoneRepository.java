@@ -38,6 +38,15 @@ public class DefaultZoneRepository implements ZoneRepository, ZoneQueryRepositor
     }
 
     @Override
+    public List<Zone> findAllActiveByLocationId(Id locationId) {
+        log.debug("Loading active zones by locationId={}", locationId.getValue());
+        return executor.query("Zone", () -> jpaRepository.findAllByLocationIdAndActive(locationId.getValue(), true)
+                .stream()
+                .map(mapper::toFullDomainGraph)
+                .toList());
+    }
+
+    @Override
     public Page<ZoneView> queryByLocationId(String locationId, Pageable pageable) {
         log.debug("Loading zones by locationId={}", locationId);
         return executor.query("Zone", () -> jpaRepository.findAllByLocationId(locationId, pageable));
@@ -80,5 +89,11 @@ public class DefaultZoneRepository implements ZoneRepository, ZoneQueryRepositor
     public boolean existsByCodeAndLocationId(String code, Id locationId) {
         log.debug("Checking zone existence by code={} and locationId={}", code, locationId.getValue());
         return executor.query("Zone", () -> jpaRepository.existsByCodeAndLocationId(code, locationId.getValue()));
+    }
+
+    @Override
+    public boolean existsByLocationId(Id locationId) {
+        log.debug("Checking zone existence by locationId={}", locationId.getValue());
+        return executor.query("Zone", () -> jpaRepository.existsByLocationId(locationId.getValue()));
     }
 }

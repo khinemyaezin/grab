@@ -65,6 +65,23 @@ class DefaultZoneRepositoryTest {
 
         assertTrue(result.isPresent());
         assertSame(zone, result.get());
+        assertTrue(zone.getEvents().isEmpty());
+        verify(jpaRepository).findByUuid("zone-1");
+        verify(mapper).toFullDomainGraph(entity);
+        verify(executor).query(eq(ZONE_RESOURCE), any(Supplier.class));
+    }
+
+    @Test
+    void findById_existingIdAndActive_shouldNotAddEvents() {
+        ZoneEntity entity = createEntity("zone-1", "ZONE-P1", "loc-1", ZoneType.PICKING, true);
+        Zone zone = createDomain("zone-1", "ZONE-P1", "loc-1", ZoneType.PICKING, true);
+        when(jpaRepository.findByUuid("zone-1")).thenReturn(Optional.of(entity));
+        when(mapper.toFullDomainGraph(entity)).thenReturn(zone);
+
+        Optional<Zone> result = repository.findById(id("zone-1"));
+
+        assertTrue(result.isPresent());
+        assertSame(zone, result.get());
         verify(jpaRepository).findByUuid("zone-1");
         verify(mapper).toFullDomainGraph(entity);
         verify(executor).query(eq(ZONE_RESOURCE), any(Supplier.class));

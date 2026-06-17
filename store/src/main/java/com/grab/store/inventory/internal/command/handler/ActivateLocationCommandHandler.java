@@ -10,8 +10,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ActivateLocationCommandHandler implements CommandHandler<ActivateLocationCommand, LocationResult> {
@@ -21,11 +23,18 @@ public class ActivateLocationCommandHandler implements CommandHandler<ActivateLo
     @Override
     @InventoryTransactional
     public LocationResult handle(ActivateLocationCommand command) {
+        log.info("Activating location with id={}", command.locationId().getValue());
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+                .orElseThrow(() -> {
+                    log.warn("Location not found: locationId={}", command.locationId().getValue());
+                    return new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
+                });
 
         location.activate();
         Location saved = locationRepository.save(location);
+
+        log.info("Activated location with id={}, code={}", saved.getId().getValue(), saved.getCode());
 
         return new LocationResult(
                 saved.getId().getValue(),

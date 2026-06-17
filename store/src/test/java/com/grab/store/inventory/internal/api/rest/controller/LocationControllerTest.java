@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -223,5 +224,14 @@ class LocationControllerTest {
     void listLocations_withoutSellerId_shouldReturn400() throws Exception {
         mockMvc.perform(get("/api/v1/inventory/locations"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteLocation_shouldReturn204() throws Exception {
+        doNothing().when(locationCommandService).deleteLocation("loc-1", "actor-1");
+
+        mockMvc.perform(delete("/api/v1/inventory/locations/loc-1")
+                        .header("X-Actor-Id", "actor-1"))
+                .andExpect(status().isNoContent());
     }
 }

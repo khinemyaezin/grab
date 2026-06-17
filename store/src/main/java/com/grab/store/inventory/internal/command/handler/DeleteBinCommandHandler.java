@@ -3,8 +3,7 @@ package com.grab.store.inventory.internal.command.handler;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.inventory.domain.aggregate.Bin;
 import com.inventory.domain.repository.BinRepository;
-import com.grab.store.inventory.internal.command.ActivateBinCommand;
-import com.grab.store.inventory.internal.command.BinResult;
+import com.grab.store.inventory.internal.command.DeleteBinCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
@@ -15,14 +14,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ActivateBinCommandHandler implements CommandHandler<ActivateBinCommand, BinResult> {
+public class DeleteBinCommandHandler implements CommandHandler<DeleteBinCommand, Void> {
 
     private final BinRepository binRepository;
 
     @Override
     @InventoryTransactional
-    public BinResult handle(ActivateBinCommand command) {
-        log.info("Activating bin with id={}", command.binId().getValue());
+    public Void handle(DeleteBinCommand command) {
+        log.info("Deleting bin with id={}", command.binId().getValue());
         
         Bin bin = binRepository.findById(command.binId())
                 .orElseThrow(() -> {
@@ -31,23 +30,16 @@ public class ActivateBinCommandHandler implements CommandHandler<ActivateBinComm
                             new InventoryServiceError.BinNotFound(command.binId().getValue()));
                 });
 
-        bin.activate();
-        Bin saved = binRepository.save(bin);
+        bin.delete();
+        binRepository.delete(command.binId());
 
-        log.info("Activated bin with id={}, code={}", saved.getId().getValue(), saved.getCode());
+        log.info("Deleted bin with id={}, code={}", command.binId().getValue(), bin.getCode());
 
-        return new BinResult(
-                saved.getId().getValue(),
-                saved.getZoneId().getValue(),
-                saved.getCode(),
-                saved.getName(),
-                saved.getMaxCapacity(),
-                saved.isActive()
-        );
+        return null;
     }
 
     @Override
-    public Class<ActivateBinCommand> getCommandType() {
-        return ActivateBinCommand.class;
+    public Class<DeleteBinCommand> getCommandType() {
+        return DeleteBinCommand.class;
     }
 }

@@ -69,6 +69,15 @@ public class ZoneController {
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
 
+    @DeleteMapping("/{zoneId}")
+    public ResponseEntity<Void> deleteZone(
+            @PathVariable String zoneId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+    ) {
+        zoneCommandService.deleteZone(zoneId, actorId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/locations/{locationId}")
     public ResponseEntity<PagedModel<EntityModel<ZoneResponse>>> listZones(
             @PathVariable String locationId,
