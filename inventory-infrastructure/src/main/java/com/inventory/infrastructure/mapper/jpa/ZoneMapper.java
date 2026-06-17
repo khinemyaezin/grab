@@ -18,15 +18,6 @@ public abstract class ZoneMapper {
     @Mapping(source = "entity." + ZoneEntity_.CODE, target = "code")
     @Mapping(source = "entity." + ZoneEntity_.NAME, target = "name")
     @Mapping(source = "entity." + ZoneEntity_.TYPE, target = "type")
-    @Mapping(target = "active", ignore = true)
+    @Mapping(source = "entity."+ ZoneEntity_.ACTIVE, target = "active")
     public abstract Zone toDomain(ZoneEntity entity);
-
-    @AfterMapping
-    protected void setActive(ZoneEntity entity, @MappingTarget Zone zone) {
-        if (entity.isActive()) {
-            zone.activate();
-        } else {
-            zone.deactivate();
-        }
-    }
 }

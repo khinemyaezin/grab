@@ -11,8 +11,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateLocationCommandHandler implements CommandHandler<CreateLocationCommand, LocationResult> {
@@ -23,7 +25,10 @@ public class CreateLocationCommandHandler implements CommandHandler<CreateLocati
     @Override
     @InventoryTransactional
     public LocationResult handle(CreateLocationCommand command) {
+        log.info("Creating location with code={}", command.code());
+        
         if (locationRepository.existsByCode(command.code())) {
+            log.warn("Location already exists with code={}", command.code());
             throw new InventoryServiceException(new InventoryServiceError.LocationAlreadyExists(command.code()));
         }
 
@@ -44,6 +49,8 @@ public class CreateLocationCommandHandler implements CommandHandler<CreateLocati
         );
 
         Location saved = locationRepository.save(location);
+
+        log.info("Created location with id={}, code={}", saved.getId().getValue(), saved.getCode());
 
         return new LocationResult(
                 saved.getId().getValue(),

@@ -19,7 +19,11 @@ public interface BinJpaRepository extends JpaRepository<BinEntity, Long> {
 
     Optional<BinEntity> findByCodeAndZoneId(String code, String zoneId);
 
+    List<BinEntity> findAllByZoneIdAndActive(String zoneId, boolean active);
+
     boolean existsByCodeAndZoneId(String code, String zoneId);
+
+    boolean existsByZoneId(String zoneId);
 
     Page<BinView> findAllByZoneId(String zoneId, Pageable pageable);
 

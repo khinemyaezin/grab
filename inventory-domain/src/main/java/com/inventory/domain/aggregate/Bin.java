@@ -5,6 +5,7 @@ import com.grab.framework.id.Id;
 import com.inventory.domain.event.BinActivatedEvent;
 import com.inventory.domain.event.BinCreatedEvent;
 import com.inventory.domain.event.BinDeactivatedEvent;
+import com.inventory.domain.event.BinDeletedEvent;
 import com.inventory.domain.event.BinUpdatedEvent;
 import lombok.Getter;
 
@@ -60,6 +61,10 @@ public class Bin extends AggregateRoot<Id> {
     public void deactivate() {
         this.active = false;
         addEvent(new BinDeactivatedEvent(getId(), zoneId, LocalDateTime.now()));
+    }
+
+    public void delete() {
+        addEvent(new BinDeletedEvent(getId(), zoneId, LocalDateTime.now()));
     }
 
     @Override

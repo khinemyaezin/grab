@@ -12,8 +12,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateZoneCommandHandler implements CommandHandler<CreateZoneCommand, ZoneResult> {
@@ -25,11 +27,17 @@ public class CreateZoneCommandHandler implements CommandHandler<CreateZoneComman
     @Override
     @InventoryTransactional
     public ZoneResult handle(CreateZoneCommand command) {
+        log.info("Creating zone with code={} for locationId={}", command.code(), command.locationId().getValue());
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new InventoryServiceException(
-                        new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+                .orElseThrow(() -> {
+                    log.warn("Location not found: locationId={}", command.locationId().getValue());
+                    return new InventoryServiceException(
+                            new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
+                });
 
         if (zoneRepository.existsByCodeAndLocationId(command.code(), command.locationId())) {
+            log.warn("Zone already exists with code={} in locationId={}", command.code(), command.locationId().getValue());
             throw new InventoryServiceException(
                     new InventoryServiceError.ZoneAlreadyExists(command.code()));
         }
@@ -43,6 +51,8 @@ public class CreateZoneCommandHandler implements CommandHandler<CreateZoneComman
         );
 
         Zone saved = zoneRepository.save(zone);
+
+        log.info("Created zone with id={}, code={}, locationId={}", saved.getId().getValue(), saved.getCode(), saved.getLocationId().getValue());
 
         return new ZoneResult(
                 saved.getId().getValue(),

@@ -35,13 +35,4 @@ public abstract class LocationMapper {
                 entity.getCountry()
         );
     }
-
-    @AfterMapping
-    protected void setActive(LocationEntity entity, @MappingTarget Location location) {
-        if (entity.isActive()) {
-            location.activate();
-        } else {
-            location.deactivate();
-        }
-    }
 }

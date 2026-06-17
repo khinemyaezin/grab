@@ -26,6 +26,10 @@ public class LocationModelAssembler
                 .updateLocation(response.id(), null, null))
                 .withRel("edit-location"));
 
+        entity.add(linkTo(methodOn(LocationController.class)
+                .deleteLocation(response.id(), null))
+                .withRel("delete-location"));
+
         if (response.active()) {
             entity.add(linkTo(methodOn(LocationController.class)
                     .deactivateLocation(response.id(), null))

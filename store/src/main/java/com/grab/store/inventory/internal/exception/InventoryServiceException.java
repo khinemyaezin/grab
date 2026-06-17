@@ -40,6 +40,10 @@ public class InventoryServiceException extends DomainException {
                     "Reservation does not belong to inventory item: " + e.inventoryItemId();
             case InventoryServiceError.LocationHasDependentInventory e ->
                     "Cannot deactivate location with dependent inventory: " + e.locationId();
+            case InventoryServiceError.LocationHasDependentZones e ->
+                    "Cannot delete location with dependent zones: " + e.locationId();
+            case InventoryServiceError.ZoneHasDependentBins e ->
+                    "Cannot delete zone with dependent bins: " + e.zoneId();
             case InventoryServiceError.AddressCountryRequired ignored ->
                     "Address country is required";
             case InventoryServiceError.UnableToAddZone e ->

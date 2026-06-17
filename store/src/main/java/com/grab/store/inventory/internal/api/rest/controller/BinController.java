@@ -65,6 +65,15 @@ public class BinController {
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
+    @DeleteMapping("/{binId}")
+    public ResponseEntity<Void> deleteBin(
+            @PathVariable String binId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+    ) {
+        binCommandService.deleteBin(binId, actorId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{binId}")
     public ResponseEntity<EntityModel<BinResponse>> getBinById(
             @PathVariable String binId

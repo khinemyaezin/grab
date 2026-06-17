@@ -6,6 +6,7 @@ import com.inventory.domain.enums.LocationType;
 import com.inventory.domain.event.LocationActivatedEvent;
 import com.inventory.domain.event.LocationCreatedEvent;
 import com.inventory.domain.event.LocationDeactivatedEvent;
+import com.inventory.domain.event.LocationDeletedEvent;
 import com.inventory.domain.event.LocationUpdatedEvent;
 import com.inventory.domain.valueobject.Address;
 import lombok.Getter;
@@ -70,6 +71,10 @@ public class Location extends AggregateRoot<Id> {
     public void activate() {
         this.active = true;
         addEvent(new LocationActivatedEvent(getId(), code, LocalDateTime.now()));
+    }
+
+    public void delete() {
+        addEvent(new LocationDeletedEvent(getId(), code, LocalDateTime.now()));
     }
 
     public boolean isWarehouse() {

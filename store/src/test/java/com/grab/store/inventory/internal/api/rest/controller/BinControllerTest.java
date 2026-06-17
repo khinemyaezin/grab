@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -190,5 +191,14 @@ class BinControllerTest {
                 .andExpect(jsonPath("$.name").value("Bin A1"))
                 .andExpect(jsonPath("$.maxCapacity").value(100))
                 .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void deleteBin_shouldReturn204() throws Exception {
+        doNothing().when(binCommandService).deleteBin("bin-1", "actor-1");
+
+        mockMvc.perform(delete("/api/v1/inventory/bins/bin-1")
+                        .header("X-Actor-Id", "actor-1"))
+                .andExpect(status().isNoContent());
     }
 }

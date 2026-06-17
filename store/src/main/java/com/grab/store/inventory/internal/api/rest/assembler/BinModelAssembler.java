@@ -26,6 +26,10 @@ public class BinModelAssembler implements RepresentationModelAssembler<BinRespon
                 .updateBin(bin.id(), null, null))
                 .withRel("edit-bin"));
 
+        entityModel.add(linkTo(methodOn(BinController.class)
+                .deleteBin(bin.id(), null))
+                .withRel("delete-bin"));
+
         if (bin.active()) {
             entityModel.add(linkTo(methodOn(BinController.class)
                     .deactivateBin(bin.id(), null))

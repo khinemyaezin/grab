@@ -22,6 +22,8 @@ public interface ZoneJpaRepository extends JpaRepository<ZoneEntity, Long> {
 
     boolean existsByCodeAndLocationId(String code, String locationId);
 
+    boolean existsByLocationId(String locationId);
+
     Page<ZoneView> findAllByLocationId(@Param("locationId") String locationId, Pageable pageable);
 
     Page<ZoneView> findAllByLocationIdAndActive(@Param("locationId") String locationId, @Param("active") boolean active, Pageable pageable);

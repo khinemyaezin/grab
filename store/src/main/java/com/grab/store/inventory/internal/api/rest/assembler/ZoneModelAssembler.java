@@ -25,6 +25,10 @@ public class ZoneModelAssembler implements RepresentationModelAssembler<ZoneResp
                 .updateZone(response.id(), null, null))
                 .withRel("edit-zone"));
 
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .deleteZone(response.id(), null))
+                .withRel("delete-zone"));
+
         if (response.active()) {
             entity.add(linkTo(methodOn(ZoneController.class)
                     .deactivateZone(response.id(), null))

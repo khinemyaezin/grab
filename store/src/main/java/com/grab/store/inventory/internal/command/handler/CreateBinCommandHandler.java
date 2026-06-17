@@ -12,8 +12,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateBinCommandHandler implements CommandHandler<CreateBinCommand, BinResult> {
@@ -25,11 +27,17 @@ public class CreateBinCommandHandler implements CommandHandler<CreateBinCommand,
     @Override
     @InventoryTransactional
     public BinResult handle(CreateBinCommand command) {
+        log.info("Creating bin with code={} for zoneId={}", command.code(), command.zoneId().getValue());
+        
         Zone zone = zoneRepository.findById(command.zoneId())
-                .orElseThrow(() -> new InventoryServiceException(
-                        new InventoryServiceError.ZoneNotFound(command.zoneId().getValue())));
+                .orElseThrow(() -> {
+                    log.warn("Zone not found: zoneId={}", command.zoneId().getValue());
+                    return new InventoryServiceException(
+                            new InventoryServiceError.ZoneNotFound(command.zoneId().getValue()));
+                });
 
         if (binRepository.existsByCodeAndZoneId(command.code(), command.zoneId())) {
+            log.warn("Bin already exists with code={} in zoneId={}", command.code(), command.zoneId().getValue());
             throw new InventoryServiceException(
                     new InventoryServiceError.BinAlreadyExists(command.code()));
         }
@@ -43,6 +51,8 @@ public class CreateBinCommandHandler implements CommandHandler<CreateBinCommand,
         );
 
         Bin saved = binRepository.save(bin);
+
+        log.info("Created bin with id={}, code={}, zoneId={}", saved.getId().getValue(), saved.getCode(), saved.getZoneId().getValue());
 
         return new BinResult(
                 saved.getId().getValue(),

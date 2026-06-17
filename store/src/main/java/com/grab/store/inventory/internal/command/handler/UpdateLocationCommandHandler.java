@@ -10,8 +10,10 @@ import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class UpdateLocationCommandHandler implements CommandHandler<UpdateLocationCommand, LocationResult> {
@@ -21,11 +23,17 @@ public class UpdateLocationCommandHandler implements CommandHandler<UpdateLocati
     @Override
     @InventoryTransactional
     public LocationResult handle(UpdateLocationCommand command) {
+        log.info("Updating location with id={}", command.locationId().getValue());
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+                .orElseThrow(() -> {
+                    log.warn("Location not found: locationId={}", command.locationId().getValue());
+                    return new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
+                });
 
         if (command.code() != null && !command.code().isBlank() && !command.code().equals(location.getCode())) {
             if (locationRepository.existsByCode(command.code())) {
+                log.warn("Location code already exists: code={}", command.code());
                 throw new InventoryServiceException(new InventoryServiceError.LocationAlreadyExists(command.code()));
             }
         }
@@ -38,6 +46,8 @@ public class UpdateLocationCommandHandler implements CommandHandler<UpdateLocati
         location.update(command.code(), command.name(), command.type(), mergedAddress);
 
         Location saved = locationRepository.save(location);
+
+        log.info("Updated location with id={}, code={}", saved.getId().getValue(), saved.getCode());
 
         return new LocationResult(
                 saved.getId().getValue(),

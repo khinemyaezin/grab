@@ -69,6 +69,15 @@ public class LocationController {
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
+    @DeleteMapping("/{locationId}")
+    public ResponseEntity<Void> deleteLocation(
+            @PathVariable String locationId,
+            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
+    ) {
+        locationCommandService.deleteLocation(locationId, sellerId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{locationId}")
     public ResponseEntity<EntityModel<LocationResponse>> getLocation(
             @PathVariable String locationId) {
