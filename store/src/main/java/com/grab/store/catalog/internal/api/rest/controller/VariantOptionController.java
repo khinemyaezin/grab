@@ -1,7 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
+import com.grab.store.catalog.internal.api.rest.assembler.VariantOptionModelAssembler;
 import com.grab.store.catalog.internal.api.rest.dto.response.VariantOptionResponse;
-import com.grab.store.catalog.internal.api.rest.service.VariantOptionFacadeService;
+import com.grab.store.catalog.internal.api.rest.service.VariantOptionQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.MediaType;
@@ -16,13 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class VariantOptionController {
 
-    private final VariantOptionFacadeService variantOptionFacadeService;
+    private final VariantOptionQueryService variantOptionQueryService;
+    private final VariantOptionModelAssembler variantOptionModelAssembler;
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping()
     public ResponseEntity<EntityModel<VariantOptionResponse>> getVariantOptionsByName(
             @RequestParam("name") String name,
-            @RequestParam("type") String typeId) {
-        EntityModel<VariantOptionResponse> response = variantOptionFacadeService.getVariantOptionsByName(name, typeId);
-        return ResponseEntity.ok(response);
+            @RequestParam("typeId") String typeId) {
+        VariantOptionResponse response = variantOptionQueryService.getVariantOptionsByName(name, typeId);
+        return ResponseEntity.ok(variantOptionModelAssembler.toModel(response, name, typeId));
     }
 }

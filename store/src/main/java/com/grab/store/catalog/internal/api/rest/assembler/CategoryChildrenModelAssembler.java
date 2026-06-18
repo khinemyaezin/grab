@@ -17,8 +17,8 @@ public class CategoryChildrenModelAssembler implements RepresentationModelAssemb
         String id = response.parentId();
         return EntityModel.of(response,
                 linkTo(methodOn(CategoryController.class).getCategoryChildren(id)).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).getCategory(id)).withRel("category"),
-                linkTo(methodOn(CategoryController.class).getCategoryTree(id)).withRel("tree")
+                linkTo(methodOn(CategoryController.class).getCategory(id)).withRel("get-category"),
+                linkTo(methodOn(CategoryController.class).getCategoryTree(id)).withRel("get-category-tree")
         );
     }
 }

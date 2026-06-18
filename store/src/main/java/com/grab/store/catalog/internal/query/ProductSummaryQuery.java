@@ -1,8 +1,9 @@
 package com.grab.store.catalog.internal.query;
 
 import com.grab.framework.cqrs.query.Query;
-
-import java.util.List;
+import com.grab.store.shared.PageableQueryRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public record ProductSummaryQuery(
         String productName,
@@ -10,7 +11,6 @@ public record ProductSummaryQuery(
         String variantStatus,
         String categoryId,
         String productStatus,
-        int page,
-        int size
-) implements Query<ProductSummaryResult> {
+        Pageable pageable
+) implements Query<Page<ProductSummaryResult>>, PageableQueryRequest {
 }

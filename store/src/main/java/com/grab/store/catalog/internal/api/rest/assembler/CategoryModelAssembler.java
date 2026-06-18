@@ -15,11 +15,15 @@ public class CategoryModelAssembler implements RepresentationModelAssembler<Cate
     @Override
     public EntityModel<CategoryResponse> toModel(CategoryResponse response) {
         String id = response.id();
-        return EntityModel.of(response,
-                linkTo(methodOn(CategoryController.class).getCategory(id)).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).getCategoryParent(id)).withRel("parent"),
-                linkTo(methodOn(CategoryController.class).getCategoryChildren(id)).withRel("children"),
-                linkTo(methodOn(CategoryController.class).getCategoryTree(id)).withRel("tree")
-        );
+        EntityModel<CategoryResponse> entity = EntityModel.of(response);
+
+        entity.add(linkTo(methodOn(CategoryController.class).getCategory(id)).withSelfRel());
+        entity.add(linkTo(methodOn(CategoryController.class).getCategoryParent(id)).withRel("get-category-parent"));
+        entity.add(linkTo(methodOn(CategoryController.class).getCategoryChildren(id)).withRel("list-category-children"));
+        entity.add(linkTo(methodOn(CategoryController.class).getCategoryTree(id)).withRel("get-category-tree"));
+
+        entity.add(linkTo(methodOn(CategoryController.class).deleteCategory(id)).withRel("delete-category"));
+
+        return entity;
     }
 }

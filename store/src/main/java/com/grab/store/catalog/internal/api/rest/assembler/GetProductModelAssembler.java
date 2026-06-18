@@ -1,6 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.assembler;
 
+import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.store.catalog.internal.api.rest.controller.ProductController;
+import com.grab.store.catalog.internal.api.rest.controller.CategoryController;
 import com.grab.store.catalog.internal.api.rest.dto.response.GetProductResponse;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -15,9 +17,33 @@ public class GetProductModelAssembler
 
     @Override
     public EntityModel<GetProductResponse> toModel(GetProductResponse response) {
-        return EntityModel.of(response,
-                linkTo(methodOn(ProductController.class).getProduct(response.id())).withSelfRel(),
-                linkTo(methodOn(ProductController.class).getProducts(null)).withRel("products")
-        );
+        EntityModel<GetProductResponse> entity = EntityModel.of(response);
+
+        entity.add(linkTo(methodOn(ProductController.class).getProduct(response.id())).withSelfRel());
+        entity.add(linkTo(methodOn(ProductController.class).getProductBySlug(response.slug())).withRel("get-product-by-slug"));
+        entity.add(linkTo(methodOn(ProductController.class).getProducts(null, null, null)).withRel("search-products"));
+        entity.add(linkTo(methodOn(CategoryController.class).getCategory(response.category().id())).withRel("get-category"));
+        entity.add(linkTo(methodOn(ProductController.class).updateProduct(response.id(), null)).withRel("update-product"));
+        entity.add(linkTo(methodOn(ProductController.class).updateProductStatus(response.id(), null)).withRel("update-product-status"));
+        entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
+
+        try {
+            ProductStatus currentStatus = ProductStatus.valueOf(response.status().toUpperCase());
+
+            if (currentStatus == ProductStatus.DRAFT) {
+                entity.add(linkTo(methodOn(ProductController.class).submitForReview(response.id(), null)).withRel("submit-product-for-review"));
+            } else if (currentStatus == ProductStatus.IN_REVIEW) {
+                entity.add(linkTo(methodOn(ProductController.class).approve(response.id(), null)).withRel("approve-product"));
+                entity.add(linkTo(methodOn(ProductController.class).reject(response.id(), null)).withRel("reject-product"));
+            } else if (currentStatus == ProductStatus.ACTIVE) {
+                entity.add(linkTo(methodOn(ProductController.class).suspend(response.id(), null)).withRel("suspend-product"));
+            } else if (currentStatus == ProductStatus.SUSPENDED) {
+                entity.add(linkTo(methodOn(ProductController.class).restore(response.id(), null)).withRel("restore-product"));
+            }
+        } catch (IllegalArgumentException | NullPointerException e) {
+            // Invalid or missing status, safely ignore adding conditional links
+        }
+
+        return entity;
     }
 }

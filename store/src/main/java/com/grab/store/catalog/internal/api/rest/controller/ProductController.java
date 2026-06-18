@@ -1,11 +1,21 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
+import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.dto.request.*;
 import com.grab.store.catalog.internal.api.rest.dto.response.*;
-import com.grab.store.catalog.internal.api.rest.service.ProductFacadeService;
+import com.grab.store.catalog.internal.api.rest.service.ProductCommandService;
+import com.grab.store.catalog.internal.api.rest.service.ProductQueryService;
+import com.grab.store.catalog.internal.api.rest.service.VariantCommandService;
+import com.grab.store.inventory.internal.api.rest.controller.LocationController;
+import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,98 +23,104 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController
 @RequestMapping("/api/v1/catalog/products")
 @RequiredArgsConstructor
 public class ProductController {
 
-    private final ProductFacadeService productFacadeService;
+    private final ProductCommandService productCommandService;
+    private final ProductQueryService productQueryService;
+    private final VariantCommandService variantCommandService;
 
-    @GetMapping(value = "/{productId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<GetProductResponse>> getProduct(@PathVariable("productId") String productId) {
-        EntityModel<GetProductResponse> response = productFacadeService.getProduct(productId);
-        return ResponseEntity.ok(response);
+    private final GetProductModelAssembler getProductModelAssembler;
+    private final GetProductBySlugModelAssembler getProductBySlugModelAssembler;
+    private final ProductCombinationModelAssembler productCombinationModelAssembler;
+    private final ProductSummaryModelAssembler productSummaryModelAssembler;
+    private final UpdateProductModelAssembler updateProductModelAssembler;
+    private final DeleteProductModelAssembler deleteProductModelAssembler;
+    private final UpdateProductStatusModelAssembler updateProductStatusModelAssembler;
+    private final UpdateVariantModelAssembler updateVariantModelAssembler;
+    private final DeleteVariantModelAssembler deleteVariantModelAssembler;
+    private final RestoreVariantModelAssembler restoreVariantModelAssembler;
+    private final SyncVariantsModelAssembler syncVariantsModelAssembler;
+
+    @GetMapping(value = "/{productId}")
+    public ResponseEntity<EntityModel<GetProductResponse>> getProduct(@PathVariable String productId) {
+        GetProductResponse response = productQueryService.getProduct(productId);
+        return ResponseEntity.ok(getProductModelAssembler.toModel(response));
     }
 
-    @GetMapping(value = "/{productId}/full", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<GetProductResponse>> getProductFull(@PathVariable("productId") String productId) {
-        EntityModel<GetProductResponse> response = productFacadeService.getStorefrontProduct(productId);
-        return ResponseEntity.ok(response);
+    @PutMapping(value = "/{productId}")
+    public ResponseEntity<EntityModel<UpdateProductResponse>> updateProduct(@PathVariable String productId,
+                                                                            @Valid @RequestBody UpdateProductRequest request) {
+        UpdateProductResponse response = productCommandService.updateProduct(productId, request);
+        return ResponseEntity.ok(updateProductModelAssembler.toModel(response));
     }
 
-    @PutMapping(
-            value = "/{productId}",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<EntityModel<UpdateProductResponse>> updateProduct(@PathVariable("productId") String productId,
-                                                                             @Valid @RequestBody UpdateProductRequest request) {
-        EntityModel<UpdateProductResponse> response = productFacadeService.updateProduct(productId, request);
-        return ResponseEntity.ok(response);
-    }
-
-    @PutMapping(value = "/{productId}/descriptions", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/{productId}/descriptions")
     public ResponseEntity<EntityModel<ProductDescriptionsResponse>> replaceProductDescriptions(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @Valid @RequestBody ReplaceProductDescriptionsRequest request) {
-        return ResponseEntity.ok(productFacadeService.replaceProductDescriptions(productId, request));
+        ProductDescriptionsResponse response = productCommandService.replaceProductDescriptions(productId, request);
+        return ResponseEntity.ok(EntityModel.of(response,
+                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product")));
     }
 
-    @PutMapping(value = "/{productId}/media", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/{productId}/media")
     public ResponseEntity<EntityModel<ProductMediaResponse>> replaceProductMedia(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @Valid @RequestBody ReplaceProductMediaRequest request) {
-        return ResponseEntity.ok(productFacadeService.replaceProductMedia(productId, request));
+        ProductMediaResponse response = productCommandService.replaceProductMedia(productId, request);
+        return ResponseEntity.ok(EntityModel.of(response,
+                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product")));
     }
 
-    @PutMapping(value = "/{productId}/variants/{sku}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<UpdateVariantResponse>> updateVariant(@PathVariable("productId") String productId,
-                                                                             @PathVariable("sku") String variantId,
-                                                                             @Valid @RequestBody UpdateVariantRequest request) {
-        EntityModel<UpdateVariantResponse> response = productFacadeService.updateVariant(productId, variantId, request);
-        return ResponseEntity.ok(response);
+    @PutMapping(value = "/{productId}/variants/{sku}")
+    public ResponseEntity<EntityModel<UpdateVariantResponse>> updateVariant(@PathVariable String productId,
+                                                                            @PathVariable("sku") String variantId,
+                                                                            @Valid @RequestBody UpdateVariantRequest request) {
+        UpdateVariantResponse response = variantCommandService.updateVariant(productId, variantId, request);
+        return ResponseEntity.ok(updateVariantModelAssembler.toModel(response));
     }
 
-    @PutMapping(value = "/{productId}/variants", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<SyncVariantsResponse>> syncVariants(@PathVariable("productId") String productId,
+    @PutMapping(value = "/{productId}/variants")
+    public ResponseEntity<EntityModel<SyncVariantsResponse>> syncVariants(@PathVariable String productId,
                                                                           @Valid @RequestBody SyncVariantsRequest request) {
-        EntityModel<SyncVariantsResponse> response = productFacadeService.syncVariants(productId, request);
-        return ResponseEntity.ok(response);
+        SyncVariantsResponse response = variantCommandService.syncVariants(productId, request);
+        return ResponseEntity.ok(syncVariantsModelAssembler.toModel(response));
     }
 
-    @PostMapping(
-            value = "/search",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<EntityModel<ProductSummaryResponse>> getProducts(@Valid @RequestBody ProductSummaryRequest request) {
-        EntityModel<ProductSummaryResponse> response = productFacadeService.getProductSummary(request);
+    @PostMapping(value = "/search")
+    public ResponseEntity<PagedModel<EntityModel<ProductSummaryResponse>>> getProducts(
+            @Valid @RequestBody ProductSummaryRequest request,
+            @PageableDefault(size = 20) Pageable pageable,
+            PagedResourcesAssembler<ProductSummaryResponse> pagedResourcesAssembler) {
 
-        return ResponseEntity.ok(response);
+        Page<ProductSummaryResponse> response = productQueryService.getProductSummary(request, pageable);
+        PagedModel<EntityModel<ProductSummaryResponse>> pageModel = pagedResourcesAssembler.toModel(response, productSummaryModelAssembler);
+        pageModel.add(linkTo(methodOn(ProductController.class)
+                .getProducts(null, null, null))
+                .withRel("search-products"));
+        pageModel.add(linkTo(methodOn(ProductController.class)
+                .saveProduct(null))
+                .withRel("create-product"));
+
+        return ResponseEntity.ok(pageModel);
     }
 
-    @PostMapping(
-            value = "/variation-matrix",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
+    @PostMapping(value = "/variation-matrix")
     public ResponseEntity<EntityModel<VariationMatrixResponse>> getVariationMatrix(
             @Valid @RequestBody VariationMatrixRequest request) {
-
-        EntityModel<VariationMatrixResponse> response =
-                productFacadeService.getMatrixCombination(request);
-
-        return ResponseEntity.ok(response);
+        VariationMatrixResponse response = productQueryService.getMatrixCombination(request);
+        return ResponseEntity.ok(productCombinationModelAssembler.toModel(response));
     }
 
-    @PostMapping(
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<Void> saveProduct(
-            @Valid @RequestBody SaveProductRequest request) {
-
-        String productId = productFacadeService.saveProduct(request);
+    @PostMapping()
+    public ResponseEntity<Void> saveProduct( @Valid @RequestBody SaveProductRequest request) {
+        String productId = productCommandService.saveProduct(request);
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
@@ -115,98 +131,103 @@ public class ProductController {
         return ResponseEntity.created(location).build();
     }
 
-    @DeleteMapping(value = "/{productId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<DeleteProductResponse>> deleteProduct(@PathVariable("productId") String productId) {
-        EntityModel<DeleteProductResponse> response = productFacadeService.deleteProduct(productId);
+    @DeleteMapping(value = "/{productId}")
+    public ResponseEntity<EntityModel<DeleteProductResponse>> deleteProduct(@PathVariable String productId) {
+        DeleteProductResponse response = productCommandService.deleteProduct(productId);
 
-        if (response.getContent() != null && response.getContent().deleted()) {
-            return ResponseEntity.ok(response);
+        if (response.deleted()) {
+            return ResponseEntity.ok(deleteProductModelAssembler.toModel(response));
         }
         return ResponseEntity.notFound().build();
     }
 
-    @PatchMapping(value = "/{productId}/status", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{productId}/status")
     public ResponseEntity<EntityModel<UpdateProductStatusResponse>> updateProductStatus(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @Valid @RequestBody UpdateProductStatusRequest request) {
-        EntityModel<UpdateProductStatusResponse> response = productFacadeService.updateProductStatus(productId, request);
-        return ResponseEntity.ok(response);
+        UpdateProductStatusResponse response = productCommandService.updateProductStatus(productId, request);
+        return ResponseEntity.ok(updateProductStatusModelAssembler.toModel(response));
     }
 
-    @DeleteMapping(value = "/{productId}/variants/{sku}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/{productId}/variants/{sku}")
     public ResponseEntity<EntityModel<DeleteVariantResponse>> deleteVariant(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @PathVariable("sku") String variantId) {
-        EntityModel<DeleteVariantResponse> response = productFacadeService.deleteVariant(productId, variantId);
-        return ResponseEntity.ok(response);
+        DeleteVariantResponse response = variantCommandService.deleteVariant(productId, variantId);
+        return ResponseEntity.ok(deleteVariantModelAssembler.toModel(response));
     }
 
-    @GetMapping(value = "/category/{categoryId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<ProductSummaryResponse>> getProductsByCategory(
-            @PathVariable("categoryId") String categoryId,
-            @RequestParam(value = "page", defaultValue = "0") Integer page,
-            @RequestParam(value = "size", defaultValue = "20") Integer size) {
-        EntityModel<ProductSummaryResponse> response = productFacadeService.getProductsByCategory(categoryId, page, size);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping(value = "/{productId}/variants/{sku}/restore", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{productId}/variants/{sku}/restore")
     public ResponseEntity<EntityModel<RestoreVariantResponse>> restoreVariant(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @PathVariable("sku") String variantId) {
-        EntityModel<RestoreVariantResponse> response = productFacadeService.restoreVariant(productId, variantId);
-        return ResponseEntity.ok(response);
+        RestoreVariantResponse response = variantCommandService.restoreVariant(productId, variantId);
+        return ResponseEntity.ok(restoreVariantModelAssembler.toModel(response));
     }
 
-    @GetMapping(value = "/slug/{slug}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<GetProductBySlugResponse>> getProductBySlug(@PathVariable("slug") String slug) {
-        EntityModel<GetProductBySlugResponse> response = productFacadeService.getProductBySlug(slug);
-        return ResponseEntity.ok(response);
+    @GetMapping(value = "/slug/{slug}")
+    public ResponseEntity<EntityModel<GetProductBySlugResponse>> getProductBySlug(@PathVariable String slug) {
+        GetProductBySlugResponse response = productQueryService.getProductBySlug(slug);
+        return ResponseEntity.ok(getProductBySlugModelAssembler.toModel(response));
     }
 
-    @PostMapping(value = "/{productId}/submit-review", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{productId}/submit-review")
     public ResponseEntity<EntityModel<ProductModerationResponse>> submitForReview(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @RequestBody(required = false) ProductModerationRequest request) {
-        return ResponseEntity.ok(productFacadeService.moderateProduct(productId, "SUBMIT_REVIEW", request));
+        ProductModerationResponse response = productCommandService.moderateProduct(productId, "SUBMIT_REVIEW", request);
+        return ResponseEntity.ok(toProductCommandModel(response));
     }
 
-    @PostMapping(value = "/{productId}/approve", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{productId}/approve")
     public ResponseEntity<EntityModel<ProductModerationResponse>> approve(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @RequestBody(required = false) ProductModerationRequest request) {
-        return ResponseEntity.ok(productFacadeService.moderateProduct(productId, "APPROVE", request));
+        ProductModerationResponse response = productCommandService.moderateProduct(productId, "APPROVE", request);
+        return ResponseEntity.ok(toProductCommandModel(response));
     }
 
-    @PostMapping(value = "/{productId}/reject", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{productId}/reject")
     public ResponseEntity<EntityModel<ProductModerationResponse>> reject(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @RequestBody(required = false) ProductModerationRequest request) {
-        return ResponseEntity.ok(productFacadeService.moderateProduct(productId, "REJECT", request));
+        ProductModerationResponse response = productCommandService.moderateProduct(productId, "REJECT", request);
+        return ResponseEntity.ok(toProductCommandModel(response));
     }
 
-    @PostMapping(value = "/{productId}/suspend", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{productId}/suspend")
     public ResponseEntity<EntityModel<ProductModerationResponse>> suspend(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @RequestBody(required = false) ProductModerationRequest request) {
-        return ResponseEntity.ok(productFacadeService.moderateProduct(productId, "SUSPEND", request));
+        ProductModerationResponse response = productCommandService.moderateProduct(productId, "SUSPEND", request);
+        return ResponseEntity.ok(toProductCommandModel(response));
     }
 
-    @PostMapping(value = "/{productId}/restore", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{productId}/restore")
     public ResponseEntity<EntityModel<ProductModerationResponse>> restore(
-            @PathVariable("productId") String productId,
+            @PathVariable String productId,
             @RequestBody(required = false) ProductModerationRequest request) {
-        return ResponseEntity.ok(productFacadeService.moderateProduct(productId, "RESTORE", request));
+        ProductModerationResponse response = productCommandService.moderateProduct(productId, "RESTORE", request);
+        return ResponseEntity.ok(toProductCommandModel(response));
     }
 
-    @PostMapping(value = "/bulk/upsert", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/bulk/upsert")
     public ResponseEntity<EntityModel<BulkUpsertProductsResponse>> bulkUpsert(
             @Valid @RequestBody BulkUpsertProductsRequest request) {
-        return ResponseEntity.ok(productFacadeService.bulkUpsertProducts(request));
+        BulkUpsertProductsResponse response = productCommandService.bulkUpsertProducts(request);
+        return ResponseEntity.ok(EntityModel.of(response));
     }
 
-    @GetMapping(value = "/{productId}/audit", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<ProductAuditResponse>> getAudit(@PathVariable("productId") String productId) {
-        return ResponseEntity.ok(productFacadeService.getProductAudit(productId));
+    @GetMapping(value = "/{productId}/audit")
+    public ResponseEntity<EntityModel<ProductAuditResponse>> getAudit(@PathVariable String productId) {
+        ProductAuditResponse response = productQueryService.getProductAudit(productId);
+        return ResponseEntity.ok(EntityModel.of(response,
+                linkTo(methodOn(ProductController.class).getAudit(response.productId())).withSelfRel(),
+                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product")));
+    }
+
+    private EntityModel<ProductModerationResponse> toProductCommandModel(ProductModerationResponse response) {
+        return EntityModel.of(response,
+                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product"));
     }
 }

@@ -1,21 +1,15 @@
 package com.grab.store.catalog.internal.api.rest.dto.response;
 
-import com.grab.framework.cqrs.PageInfo;
-
 import java.util.List;
 
 public record ProductSummaryResponse(
-        List<Product> products,
-        PageInfo pageInfo
+        String id,
+        String name,
+        String status,
+        String slug,
+        String categoryName,
+        VariantSummary variant
 ) {
-    public record Product(
-            String id,
-            String name,
-            String status,
-            String slug,
-            String categoryName,
-            VariantSummary variant
-    ) {}
 
     public record VariantSummary(
             boolean available,

@@ -15,8 +15,7 @@ public class SyncVariantsModelAssembler implements RepresentationModelAssembler<
     @Override
     public EntityModel<SyncVariantsResponse> toModel(SyncVariantsResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(ProductController.class).syncVariants(response.productId(), null)).withSelfRel(),
-                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("product")
+                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product")
         );
     }
 }

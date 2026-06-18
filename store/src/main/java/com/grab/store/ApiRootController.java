@@ -1,6 +1,6 @@
 package com.grab.store;
 
-import com.grab.store.catalog.CatalogRootApi;
+import com.grab.store.catalog.CatalogRootController;
 import com.grab.store.inventory.InventoryRootController;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
@@ -20,8 +20,8 @@ public class ApiRootController {
     public ResponseEntity<RepresentationModel<?>> root() {
         RepresentationModel<?> model = new RepresentationModel<>();
         model.add(linkTo(methodOn(ApiRootController.class).root()).withSelfRel());
-        model.add(linkTo(methodOn(CatalogRootApi.class).root()).withRel("catalog"));
-        model.add(linkTo(methodOn(InventoryRootController.class).root()).withRel("inventory"));
+        model.add(linkTo(methodOn(CatalogRootController.class).root()).withRel("get-catalog-root"));
+        model.add(linkTo(methodOn(InventoryRootController.class).root()).withRel("get-inventory-root"));
         return ResponseEntity.ok(model);
     }
 }
