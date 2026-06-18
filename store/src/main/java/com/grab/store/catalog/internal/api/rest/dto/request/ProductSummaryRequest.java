@@ -5,8 +5,6 @@ public record ProductSummaryRequest(
         String sku,
         String variantStatus,
         String categoryId,
-        String productStatus,
-        int page,
-        int size
+        String productStatus
 ) {
 }

@@ -174,11 +174,6 @@ public class XxxController {
 - Injects: `QueryBus` and one `XxxRequestMapper` per query operation.
 - **Single entity**: `mapper.toQuery(id) → queryBus.dispatch(query) → mapper.toResponse(result)` → returns `XxxResponse`.
 - **Paginated list**: `mapper.toQuery(filters, pageable) → queryBus.dispatch(query)` → returns `Page<XxxResult>`, then `resultPage.map(mapper::toResponse)` → returns `Page<XxxResponse>`.
-
-### 5.3 FacadeService (Catalog variant)
-- The Catalog module uses a `FacadeService` pattern (e.g., `ProductFacadeService`) that combines both command and query service orchestration with model assembler wrapping, returning `EntityModel<T>` directly.
-- For new Inventory-style modules, prefer the separated `CommandService` / `QueryService` pattern.
-
 ---
 
 ## 6. Mapper Layer Rules
@@ -284,16 +279,21 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 ### 9.2 Link Types
 
-Every model assembler MUST add appropriate links following these conventions:
+This project uses a **hybrid HATEOAS model**: links are rendered in HAL, but HTTP method affordances are not included. Therefore, every non-`self` rel MUST state the client action explicitly.
 
-| Link Type | Rel Pattern | When to Add |
-|---|---|---|
-| **Self link** | `self` | Always — points to the GET endpoint for this specific resource. Use `.withSelfRel()`. |
-| **CRUD action links** | `edit-{entity}`, `delete-{entity}` | When the resource supports update/delete. Pass `null` for request body / header params in `methodOn(...)`. |
-| **Conditional state links** | `activate-{entity}`, `deactivate-{entity}` | When an action is available only in a specific entity state (e.g., `active` vs `inactive`). Use `if/else` on response fields. |
-| **Related entity (get-by-id)** | `{entity}` (singular noun) | When this resource has a navigable related entity. Links to the related entity's GET-by-ID endpoint via cross-controller link. |
-| **Related entity (paginated collection)** | `paged-{entity}` | When this resource has a navigable related collection. Links to the related entity's paginated list endpoint via cross-controller link. |
-| **Related entity (create)** | `create-{entity}` | When a new related entity can be created under this resource. Links to the related entity's create endpoint via cross-controller link. |
+| Link Type | Rel Pattern |
+|---|---|
+| **Self link** | `self` |
+| **Retrieve one** | `get-{entity}` |
+| **List collection** | `list-{entities}` |
+| **Search/filter collection** | `search-{entities}` |
+| **Create** | `create-{entity}` |
+| **Update** | `update-{entity}` |
+| **Delete** | `delete-{entity}` |
+| **State transition** | `{action}-{entity}` |
+| **Qualified action** | `{action}-{entity}-{qualifier}` |
+| **Subresource read** | `get-{entity}-{subresource}` |
+| **Subresource collection** | `list-{entity}-{subresources}` |
 
 ### 9.3 Rel Naming Convention
 
@@ -301,27 +301,47 @@ The `withRel("...")` name is the **API contract** for link discovery. Rel names 
 
 | Rule | Convention |
 |---|---|
-| **Self link** | Always `self` via `.withSelfRel()` |
-| **Edit (update)** | `edit-{entity}` |
-| **Delete** | `delete-{entity}` |
-| **Activate / Deactivate** | `activate-{entity}`, `deactivate-{entity}` |
-| **Related single resource** | Singular noun — the related entity type (e.g., `{entity}`) |
-| **Related paginated collection** | `paged-{entity}` |
-| **Create (own collection-level)** | `create-{entity}` — added on the `PagedModel` in the controller |
-| **Create (cross-controller)** | `create-{entity}` — added on the parent entity's assembler |
+| **Grammar** | `{action}-{resource}[-{qualifier}]` |
+| **Self link** | `self` via `.withSelfRel()`; only for the canonical current representation |
+| **Action first** | Start with the client intent: `get`, `list`, `search`, `create`, `update`, `delete`, or a domain action |
+| **Single resource** | Use a singular resource noun: `get-{entity}`, `update-{entity}` |
+| **Collection** | Use a plural resource noun: `list-{entities}`, `search-{entities}` |
+| **Pagination** | Never encode pagination in the rel; use `list-{entities}`, not `paged-{entity}` |
+| **Filtering** | Use `search-{entities}` for a distinct search operation; use `list-{entities}` when filters are optional on the canonical collection |
+| **Subresource** | Put the parent resource before the subresource: `get-{entity}-{subresource}`, `list-{entity}-{subresources}` |
+| **Qualified action** | Put the qualifier last: `{action}-{entity}-{qualifier}` |
 | **Multi-word rels** | Lowercase with hyphens (kebab-case) |
 | **Never empty** | Every link MUST have a meaningful rel |
 
-> **Tip:** The rel name always includes the entity name it operates on, making it self-describing and unambiguous even across cross-controller links.
+Rel names describe API intent, not Java method names or raw HTTP verbs. A method that searches by name therefore uses `search-{entities}`, not a rel copied from the method name.
+
+#### Standard Action Vocabulary
+
+| Client intent | Action |
+|---|---|
+| Retrieve a single representation | `get` |
+| Browse a canonical collection | `list` |
+| Find/filter through a distinct search operation | `search` |
+| Create a resource | `create` |
+| Replace or modify a resource | `update` |
+| Remove a resource | `delete` |
+| Domain transition | Domain verb such as `approve`, `reject`, `suspend`, `restore`, `activate`, `deactivate`, or `sync` |
+| Calculation or generation | Domain verb such as `generate` or `calculate` |
+
+Do not use synonyms for the same intent. In particular, use `update`, not `edit`; `list`, not `paged`; and `get`, not `view` or `fetch`.
+
+If listing and searching share one endpoint with optional filters, advertise only `list-{entities}`. If search is a distinct operation or endpoint, advertise both `list-{entities}` and `search-{entities}`.
 
 ### 9.4 Link Building Rules
 
 1. **Use `methodOn(...)` for type-safe links** — always reference the controller method directly; never build URLs manually.
 2. **Pass `null` for parameters you don't have** — request bodies (`@RequestBody`), headers (`@RequestHeader`), `Pageable`, and `PagedResourcesAssembler` should be passed as `null` in `methodOn(...)` calls.
-3. **Cross-controller links for related entities** — when the current entity is related to another entity, the assembler MUST add links to the related entity's controller for: (a) **get-by-id** (`withRel("{entity}")`), (b) **paginated collection** (`withRel("paged-{entity}")`), and (c) **create** (`withRel("create-{entity}")`). This ensures the related entity can be discovered and crawled from any entry point in the HATEOAS graph.
+3. **Cross-controller links for related entities** — use the same action-explicit grammar: `get-{entity}`, `list-{entities}`, and `create-{entity}`.
 4. **Conditional links based on entity state** — use `if/else` on response DTO fields to add state-dependent action links.
-5. **Always include a `self` link** — every `toModel()` must add `.withSelfRel()` pointing to the GET endpoint for the resource.
+5. **Use `self` only for the current representation** — it MUST point to the canonical GET endpoint that returns the represented resource. A command-result DTO, deleted resource, or mutation endpoint MUST NOT be labeled `self`; link to the affected resource with `get-{entity}` instead.
 6. **Use inline string literals for rel names** — do NOT create a shared `LinkRelations` constants class. Rel names are written directly as string literals in `withRel("...")` calls.
+7. **Do not encode transport details** — pagination, HTTP methods, controller names, and Java method names do not belong in rel names.
+8. **Avoid unavailable actions** — only include command links the client is currently allowed to follow.
 
 ### 9.5 Per-Item Assembler Example (CRUD + Conditional + Cross-Controller)
 ```java
@@ -337,9 +357,9 @@ public class XxxModelAssembler
         entity.add(linkTo(methodOn(XxxController.class)
                 .getXxx(response.id())).withSelfRel());
 
-        // CRUD action links
+        // CRUD action links: the rel states the client action
         entity.add(linkTo(methodOn(XxxController.class)
-                .updateXxx(response.id(), null, null)).withRel("edit-xxx"));
+                .updateXxx(response.id(), null, null)).withRel("update-xxx"));
 
         entity.add(linkTo(methodOn(XxxController.class)
                 .deleteXxx(response.id(), null)).withRel("delete-xxx"));
@@ -355,10 +375,10 @@ public class XxxModelAssembler
 
         // Cross-controller links: related entity "Yyy"
         entity.add(linkTo(methodOn(YyyController.class)
-                .listYyy(response.id(), null, null)).withRel("paged-yyy"));
+                .listYyy(response.id(), null, null)).withRel("list-yyys"));
 
         entity.add(linkTo(methodOn(YyyController.class)
-                .getYyyById(null)).withRel("yyy"));
+                .getYyyById(null)).withRel("get-yyy"));
 
         entity.add(linkTo(methodOn(YyyController.class)
                 .createYyy(response.id(), null, null)).withRel("create-yyy"));
@@ -368,9 +388,9 @@ public class XxxModelAssembler
 }
 ```
 
-### 9.6 Minimal Assembler Example (Self-Link Only)
+### 9.6 Minimal Canonical-Resource Assembler
 
-When an entity has no CRUD actions, no state transitions, and no related entities, the assembler adds only a `self` link:
+When an entity has a canonical GET endpoint but no available actions or related resources, the assembler adds only `self`:
 
 ```java
 @Component
@@ -385,15 +405,16 @@ public class XxxModelAssembler
 }
 ```
 
-### 9.7 Collection-Level `create-{entity}` Link on `PagedModel`
+### 9.7 Collection Links on `PagedModel`
 
-Every paginated list endpoint that returns a `PagedModel` MUST add a `create-{entity}` link directly on the `PagedModel` in the controller. This gives clients a discoverable entry point for creating a new resource within the collection.
+Every paginated endpoint that returns a `PagedModel` MUST expose the canonical collection action as `list-{entities}`. When creation is available, it MUST also add `create-{entity}` directly on the `PagedModel`.
 
 #### Rules
-1. After calling `pagedAssembler.toModel(page, xxxModelAssembler)`, add the `create-{entity}` link to the resulting `PagedModel` before returning.
-2. Use `linkTo(methodOn(...))` pointing to the create endpoint of the **same controller** (for own-entity collections) or a **related controller** (for sub-resource collections).
-3. Pass `null` for `@RequestBody` and `@RequestHeader` parameters in `methodOn(...)`.
-4. This is a **mandatory rule** — every `PagedModel` response MUST include a `create-{entity}` link.
+1. After calling `pagedAssembler.toModel(page, xxxModelAssembler)`, ensure the result has a `list-{entities}` link that represents the collection request.
+2. Add `create-{entity}` only when the caller is allowed to create a resource in that collection.
+3. Use `linkTo(methodOn(...))` pointing to the endpoint of the **same controller** or a **related controller** for subresource collections.
+4. Pass `null` for `@RequestBody` and `@RequestHeader` parameters in `methodOn(...)`.
+5. Never use `paged-{entity}`; pagination is represented by the URI parameters and `PagedModel` metadata.
 
 #### Example
 ```java
@@ -406,6 +427,10 @@ public ResponseEntity<PagedModel<EntityModel<XxxResponse>>> listXxx(
 ) {
     Page<XxxResponse> response = xxxQueryService.listXxx(actorId, active, pageable);
     PagedModel<EntityModel<XxxResponse>> pageModel = pagedResourcesAssembler.toModel(response, xxxModelAssembler);
+
+    pageModel.add(linkTo(methodOn(XxxController.class)
+            .listXxx(null, null, null, null))
+            .withRel("list-xxxs"));
 
     pageModel.add(linkTo(methodOn(XxxController.class)
             .createXxx(null, null))
@@ -429,6 +454,10 @@ public ResponseEntity<PagedModel<EntityModel<YyyResponse>>> listYyy(
     PagedModel<EntityModel<YyyResponse>> pageModel = pagedResourcesAssembler.toModel(response, yyyModelAssembler);
 
     pageModel.add(linkTo(methodOn(YyyController.class)
+            .listYyy(parentId, null, null))
+            .withRel("list-parent-yyys"));
+
+    pageModel.add(linkTo(methodOn(YyyController.class)
             .createYyy(parentId, null, null))
             .withRel("create-yyy"));
 
@@ -436,21 +465,23 @@ public ResponseEntity<PagedModel<EntityModel<YyyResponse>>> listYyy(
 }
 ```
 
-### 9.8 Cross-Controller Link Strategy
+### 9.8 Cross-Controller and Related-Resource Strategy
 
-When an entity has relationships with other entities, the assembler MUST include cross-controller links so that HATEOAS clients can **discover and crawl** related entities from any entry point. For each related entity, add **three links**:
+When an entity has relationships with other entities, the assembler MUST include the applicable cross-controller entry points so that HATEOAS clients can **discover and crawl** related entities.
 
 | Link | Rel Pattern | Purpose |
 |---|---|---|
-| **Get by ID** | `{entity}` (singular noun) | Discover a specific related entity |
-| **Paginated collection** | `paged-{entity}` | Browse all related entities under the current resource |
+| **Get by ID** | `get-{entity}` | Discover a specific related entity |
+| **Collection** | `list-{entities}` or `list-{parent}-{entities}` | Browse related entities |
+| **Search** | `search-{entities}` | Use a distinct filtered/search operation |
 | **Create** | `create-{entity}` | Create a new related entity under the current resource |
 
 #### Rules
-1. These three links are placed on the **parent entity's assembler** so the related entity is discoverable from the parent resource.
-2. The `{entity}` (get-by-id) link passes `null` for the ID parameter in `methodOn(...)`, since the client will substitute the actual ID at runtime.
-3. The `paged-{entity}` link passes the current resource's ID as the parent ID, along with `null` for pageable parameters.
+1. Applicable related-resource links are placed on the **parent entity's assembler** so the related entity is discoverable from the parent resource.
+2. The `get-{entity}` link passes the known related ID. Do not advertise a non-templated link with a `null` path variable.
+3. The `list-{entities}` link passes the current resource's ID as the parent ID, along with `null` for pageable parameters.
 4. The `create-{entity}` link passes the current resource's ID as the parent ID, along with `null` for request body / header parameters.
+5. If get-by-ID is not possible because no related ID is known, expose the collection/search link instead of constructing an incomplete link.
 
 ### 9.9 API Root & Discovery Endpoints (3-Tier Hierarchy)
 
@@ -471,8 +502,8 @@ public class ApiRootController {
     public ResponseEntity<RepresentationModel<?>> root() {
         RepresentationModel<?> model = new RepresentationModel<>();
         model.add(linkTo(methodOn(ApiRootController.class).root()).withSelfRel());
-        model.add(linkTo(methodOn(ModuleARootApi.class).root()).withRel("module-a"));
-        model.add(linkTo(methodOn(ModuleBRootController.class).root()).withRel("module-b"));
+        model.add(linkTo(methodOn(ModuleARootApi.class).root()).withRel("get-module-a-root"));
+        model.add(linkTo(methodOn(ModuleBRootController.class).root()).withRel("get-module-b-root"));
         return ResponseEntity.ok(model);
     }
 }
@@ -490,8 +521,8 @@ public class ModuleRootController {
     public ResponseEntity<RepresentationModel<?>> root() {
         RepresentationModel<?> model = new RepresentationModel<>();
         model.add(Link.of("/api/v1/{context}").withSelfRel());
-        model.add(Link.of("/api/v1/{context}/{resources-a}").withRel("resources-a"));
-        model.add(Link.of("/api/v1/{context}/{resources-b}").withRel("resources-b"));
+        model.add(Link.of("/api/v1/{context}/{resources-a}").withRel("list-resources-a"));
+        model.add(Link.of("/api/v1/{context}/{resources-b}").withRel("list-resources-b"));
         return ResponseEntity.ok(model);
     }
 }
@@ -504,12 +535,13 @@ public class ModuleRootController {
 4. Root endpoints return `ResponseEntity<RepresentationModel<?>>` (not `EntityModel`).
 5. Use `Link.of(path)` for simple static paths in Tier 2 roots; use `WebMvcLinkBuilder` in Tier 1 root for type-safe cross-controller linking.
 6. Rel names are **inline string literals** — no `LinkRelations` constants class.
+7. Root discovery links also use generalized action-explicit patterns: `get-{context}-root`, `list-{entities}`, `search-{entities}`, and `create-{entity}`.
 
 #### Discovery Flow
 ```text
-GET /api/v1                       → { self, module-a, module-b }
-  GET /api/v1/module-a            → { self, resources-a, resources-b, ... }
-  GET /api/v1/module-b            → { self, resources-c, resources-d, ... }
+GET /api/v1                       → { self, get-module-a-root, get-module-b-root }
+  GET /api/v1/module-a            → { self, list-resources-a, list-resources-b, ... }
+  GET /api/v1/module-b            → { self, list-resources-c, list-resources-d, ... }
 ```
 
 ### 9.10 Controller Integration Pattern
@@ -540,6 +572,10 @@ public class XxxController {
         PagedModel<EntityModel<XxxResponse>> pageModel = pagedAssembler.toModel(page, xxxModelAssembler);
 
         pageModel.add(linkTo(methodOn(XxxController.class)
+                .listXxx(null, null, null))
+                .withRel("list-xxxs"));
+
+        pageModel.add(linkTo(methodOn(XxxController.class)
                 .createXxx(null, null))
                 .withRel("create-xxx"));
 
@@ -556,7 +592,17 @@ Some endpoints (typically write-only or utility endpoints) may return `EntityMod
 - Utility responses with no meaningful navigable context
 - Audit/log responses
 
-> **Guideline:** Prefer adding at least a `self` link. Use bare `EntityModel.of()` only when the response has no meaningful navigable context.
+> **Guideline:** Prefer adding a meaningful navigation link. Add `self` only when a canonical GET endpoint returns that exact representation; otherwise use an action-explicit rel such as `get-{entity}`.
+
+For a command-result DTO, prefer a link back to the affected canonical resource instead of a misleading `self` link:
+
+```java
+return EntityModel.of(response,
+        linkTo(methodOn(XxxController.class)
+                .getXxx(response.xxxId()))
+                .withRel("get-xxx")
+);
+```
 
 ### 9.12 Creation Endpoints — `ResponseEntity<Void>` with `Location` Header
 
@@ -596,16 +642,17 @@ The only relevant server setting is `server.forward-headers-strategy: framework`
 
 Before generating any assembler, controller, or root endpoint, verify:
 
-1. ✅ Rel names use the `action-entity` kebab-case pattern — inline string literals, no `LinkRelations` constants class.
-2. ✅ Every `toModel()` includes a `self` link via `.withSelfRel()`.
+1. ✅ Non-`self` rel names use `{action}-{resource}[-{qualifier}]` in kebab-case — inline string literals, no `LinkRelations` constants class.
+2. ✅ `self` is used only for the canonical GET representation; command results link back with `get-{entity}`.
 3. ✅ Links are built using `linkTo(methodOn(...))` — never manual URL strings (except in Tier 2 root endpoints).
 4. ✅ `null` is passed for `@RequestBody`, `@RequestHeader`, `Pageable`, and `PagedResourcesAssembler` params in `methodOn(...)`.
-5. ✅ Conditional links use `if/else` on response DTO fields with rel names like `activate-{entity}` / `deactivate-{entity}`.
-6. ✅ Cross-controller links expose **three entry points** per related entity: get-by-id (`"{entity}"`), paginated collection (`"paged-{entity}"`), and create (`"create-{entity}"`).
-7. ✅ Every `PagedModel` response includes a `create-{entity}` link added directly in the controller.
+5. ✅ Conditional links expose only currently available actions, with rels such as `activate-{entity}` and `deactivate-{entity}`.
+6. ✅ Cross-controller links use `get-{entity}`, `list-{entities}`, `search-{entities}`, and `create-{entity}` as applicable.
+7. ✅ Every `PagedModel` exposes `list-{entities}`; `create-{entity}` is added only when creation is available.
 8. ✅ New bounded contexts have a Tier 2 root endpoint and are linked from `ApiRootController`.
 9. ✅ Root endpoints produce `MediaTypes.HAL_JSON_VALUE` and return `RepresentationModel<?>`.
 10. ✅ Controllers inject assemblers directly and call `.toModel()` inline.
+11. ✅ Rel names never use `paged-*`, `edit-*`, bare entity nouns, Java method names, or HTTP method names.
 
 ---
 
@@ -756,7 +803,7 @@ Examples:
 | Model Assembler | `{Entity}ModelAssembler` | `InventoryModelAssembler` |
 | API Root Controller | `ApiRootController` | `ApiRootController` |
 | Bounded Context Root | `{Context}RootController` | `OrderRootController` |
-| Link Rel Names | Inline string literals in `withRel("...")` | `"edit-location"`, `"paged-zone"` |
+| Link Rel Names | Action-explicit inline strings using `{action}-{resource}[-{qualifier}]` | `"update-{entity}"`, `"list-{entities}"` |
 | Service Error | `{Module}ServiceError` (sealed interface) | `InventoryServiceError` |
 | Service Exception | `{Module}ServiceException` | `InventoryServiceException` |
 
@@ -787,10 +834,10 @@ Before generating or outputting any code, verify:
 7. ✅ No business logic leaks into the controller, service, or mapper layers.
 8. ✅ Controller returns `ResponseEntity<EntityModel<T>>` (single) or `ResponseEntity<PagedModel<EntityModel<T>>>` (paginated).
 9. ✅ Model assemblers implement `RepresentationModelAssembler` and add HATEOAS links with proper rel naming (§9.3).
-10. ✅ Every `PagedModel` response includes a `create-{entity}` link added directly in the controller (§9.7).
+10. ✅ Every `PagedModel` exposes `list-{entities}` and adds `create-{entity}` when creation is available (§9.7).
 11. ✅ DTOs are Java records in the appropriate `dto/request/` or `dto/response/` package.
 12. ✅ Errors follow the sealed interface pattern with `ErrorCategory` and i18n error codes.
 13. ✅ All files are placed in the correct package according to the module structure.
-14. ✅ All link rel names use the `action-entity` kebab-case pattern as inline string literals (§9.3) — no `LinkRelations` constants class.
+14. ✅ All non-`self` link rel names use `{action}-{resource}[-{qualifier}]` as inline string literals (§9.3) — no `LinkRelations` constants class.
 15. ✅ New bounded contexts include a Tier 2 root endpoint and are linked from `ApiRootController` (§9.9).
 16. ✅ Controllers inject assemblers directly and call `.toModel()` inline (§9.10).

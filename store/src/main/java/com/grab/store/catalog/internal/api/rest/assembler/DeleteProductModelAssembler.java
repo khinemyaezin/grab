@@ -16,9 +16,9 @@ public class DeleteProductModelAssembler
     @Override
     public EntityModel<DeleteProductResponse> toModel(DeleteProductResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(ProductController.class).getProducts(null)).withRel("products"),
-                linkTo(methodOn(ProductController.class).saveProduct(null)).withRel("build"),
-                linkTo(methodOn(ProductController.class).getVariationMatrix(null)).withRel("combinations")
+                linkTo(methodOn(ProductController.class).getProducts(null, null, null)).withRel("search-products"),
+                linkTo(methodOn(ProductController.class).saveProduct(null)).withRel("create-product"),
+                linkTo(methodOn(ProductController.class).getVariationMatrix(null)).withRel("generate-variation-matrix")
         );
     }
 }

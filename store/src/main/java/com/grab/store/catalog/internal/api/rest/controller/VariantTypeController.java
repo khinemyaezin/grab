@@ -1,7 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
+import com.grab.store.catalog.internal.api.rest.assembler.VariantTypeModelAssembler;
 import com.grab.store.catalog.internal.api.rest.dto.response.VariantTypeResponse;
-import com.grab.store.catalog.internal.api.rest.service.VariantTypeFacadeService;
+import com.grab.store.catalog.internal.api.rest.service.VariantTypeQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.MediaType;
@@ -16,12 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class VariantTypeController {
 
-    private final VariantTypeFacadeService variantTypeFacadeService;
+    private final VariantTypeQueryService variantTypeQueryService;
+    private final VariantTypeModelAssembler variantTypeModelAssembler;
 
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping()
     public ResponseEntity<EntityModel<VariantTypeResponse>> getVariantTypesByName(
             @RequestParam("name") String name) {
-        EntityModel<VariantTypeResponse> response = variantTypeFacadeService.getVariantTypesByName(name);
-        return ResponseEntity.ok(response);
+        VariantTypeResponse response = variantTypeQueryService.getVariantTypesByName(name);
+        return ResponseEntity.ok(variantTypeModelAssembler.toModel(response, name));
     }
 }

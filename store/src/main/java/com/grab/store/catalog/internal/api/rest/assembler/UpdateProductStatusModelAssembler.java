@@ -15,8 +15,8 @@ public class UpdateProductStatusModelAssembler implements RepresentationModelAss
     @Override
     public EntityModel<UpdateProductStatusResponse> toModel(UpdateProductStatusResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withSelfRel(),
-                linkTo(methodOn(ProductController.class).getProducts(null)).withRel("products")
+                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product"),
+                linkTo(methodOn(ProductController.class).getProducts(null, null, null)).withRel("search-products")
         );
     }
 }

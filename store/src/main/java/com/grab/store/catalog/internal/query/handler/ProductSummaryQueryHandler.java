@@ -1,7 +1,5 @@
 package com.grab.store.catalog.internal.query.handler;
 
-import com.catalog.domain.repository.CategoryRepository;
-import com.catalog.infrastructure.repository.jpa.CategoryJpaRepo;
 import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
@@ -15,11 +13,9 @@ import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.ProductSummaryQuery;
 import com.grab.store.catalog.internal.query.ProductSummaryResult;
-import com.grab.store.catalog.internal.query.SpringPageInfoFactory;
 import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -28,7 +24,7 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQuery, ProductSummaryResult> {
+public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQuery, Page<ProductSummaryResult>> {
 
     private static final Logger log = Loggers.getLogger(ProductSummaryQueryHandler.class);
 
@@ -38,7 +34,7 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
 
     @Override
     @CatalogReadTransactional
-    public ProductSummaryResult handle(ProductSummaryQuery query) {
+    public Page<ProductSummaryResult> handle(ProductSummaryQuery query) {
         log.debug("Handling ProductSummaryQuery");
 
         ProductSearchCriteria criteria = ProductSearchCriteria.builder()
@@ -48,12 +44,12 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
                 .categoryId(query.categoryId())
                 .build();
 
-        Page<ProductSummary> page = productQueryRepository.search(criteria, PageRequest.of(query.page(), query.size()));
-        List<ProductSummaryResult.Product> products = mapToResultProducts(page.getContent());
+        Page<ProductSummary> page = productQueryRepository.search(criteria, query.pageable());
 
-        return new ProductSummaryResult(
-                products,
-                SpringPageInfoFactory.toPageInfo(page));
+        Map<String, VariantOptionView> variationMapByOptionId = getVariantOptionViewMap(page.getContent());
+        Map<String, String> categoryViewMap = getCategoryViewMap(page.getContent());
+
+        return page.map(p-> mapToResultProduct(p, categoryViewMap, variationMapByOptionId));
     }
 
     @Override
@@ -61,40 +57,42 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
         return ProductSummaryQuery.class;
     }
 
-    private List<ProductSummaryResult.Product> mapToResultProducts(List<ProductSummary> summaries) {
+    private Map<String, VariantOptionView> getVariantOptionViewMap(List<ProductSummary> summaries){
         List<String> optionIds = summaries.stream()
                 .flatMap(v -> v.variantSummary().types().stream())
                 .flatMap(type -> type.options().stream())
                 .map(ProductSummary.VariantOption::optionId)
                 .toList();
-
         List<VariantOptionView> optionViews = fetchVariantOptions(optionIds);
-
-        Map<String, VariantOptionView> variationMapByOptionId = Optional.ofNullable(optionViews)
+        return Optional.ofNullable(optionViews)
                 .orElseGet(Collections::emptyList)
                 .stream()
-                .collect(Collectors.toMap(VariantOptionView::optionId, Function.identity(), (a, b) -> a));
+                .collect(Collectors.toMap(VariantOptionView::optionId, Function.identity(),
+                        (a, b) -> a));
+    }
 
+    private Map<String, String> getCategoryViewMap(List<ProductSummary> summaries){
         List<String> categoryIds = summaries.stream().map(ProductSummary::categoryId).toList();
         List<CategoryView> categoryViews = fetchCategories(categoryIds);
-        Map<String, String> categoryViewMap = categoryViews.stream().collect(Collectors.toMap(
+       return categoryViews.stream().collect(Collectors.toMap(
                 CategoryView::id,
                 CategoryView::name
         ));
+    }
 
-        return summaries.stream()
-                .map(summary -> new ProductSummaryResult.Product(
-                        summary.id(),
-                        summary.name(),
-                        summary.status(),
-                        summary.slug(),
-                        resolveCategoryName(categoryViewMap, summary.categoryId()),
-                        new ProductSummaryResult.VariantSummary(
-                                summary.variantSummary().available(),
-                                extractVariantTypes(summary.variantSummary(), variationMapByOptionId)
-                        )
-                ))
-                .toList();
+    private ProductSummaryResult mapToResultProduct(ProductSummary summary, Map<String, String> categoryViewMap, Map<String, VariantOptionView> variationMapByOptionId) {
+        return new ProductSummaryResult(
+                summary.id(),
+                summary.name(),
+                summary.status(),
+                summary.slug(),
+                resolveCategoryName(categoryViewMap, summary.categoryId()),
+                new ProductSummaryResult.VariantSummary(
+                        summary.variantSummary().available(),
+                        extractVariantTypes(summary.variantSummary(), variationMapByOptionId)
+                )
+        );
+
     }
 
     private List<ProductSummaryResult.VariantType> extractVariantTypes(ProductSummary.VariantSummary variantSummary, Map<String, VariantOptionView> variationMapByOptionId) {

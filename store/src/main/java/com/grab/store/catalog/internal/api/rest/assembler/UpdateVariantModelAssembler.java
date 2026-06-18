@@ -15,8 +15,7 @@ public class UpdateVariantModelAssembler implements RepresentationModelAssembler
     @Override
     public EntityModel<UpdateVariantResponse> toModel(UpdateVariantResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(ProductController.class).updateVariant(response.productId(), response.variantId(), null)).withSelfRel(),
-                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("product")
+                linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product")
         );
     }
 }

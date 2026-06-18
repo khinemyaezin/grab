@@ -1,12 +1,10 @@
 package com.grab.store.catalog.internal.api.rest.controller;
 
+import com.grab.store.catalog.internal.api.rest.assembler.*;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveCategoryRequest;
-import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.CategoryLeavesResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.CategoryNodeResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.CategoryResponse;
-import com.grab.store.catalog.internal.api.rest.dto.response.DeleteCategoryResponse;
-import com.grab.store.catalog.internal.api.rest.service.CategoryFacadeService;
+import com.grab.store.catalog.internal.api.rest.dto.response.*;
+import com.grab.store.catalog.internal.api.rest.service.CategoryCommandService;
+import com.grab.store.catalog.internal.api.rest.service.CategoryQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
@@ -22,11 +20,17 @@ import java.net.URI;
 @RequiredArgsConstructor
 public class CategoryController {
 
-    private final CategoryFacadeService categoryFacadeService;
+    private final CategoryCommandService categoryCommandService;
+    private final CategoryQueryService categoryQueryService;
+    private final CategoryModelAssembler categoryModelAssembler;
+    private final CategoryNodeModelAssembler categoryNodeModelAssembler;
+    private final CategoryChildrenModelAssembler categoryChildrenModelAssembler;
+    private final CategoryLeavesModelAssembler categoryLeavesModelAssembler;
+    private final DeleteCategoryModelAssembler deleteCategoryModelAssembler;
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping()
     public ResponseEntity<Void> saveCategory(@Valid @RequestBody SaveCategoryRequest request) {
-        String categoryId = categoryFacadeService.saveCategory(request);
+        String categoryId = categoryCommandService.saveCategory(request);
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
@@ -37,42 +41,42 @@ public class CategoryController {
         return ResponseEntity.created(location).build();
     }
 
-    @GetMapping(value = "/{categoryId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<CategoryResponse>> getCategory(@PathVariable("categoryId") String categoryId) {
-        EntityModel<CategoryResponse> response = categoryFacadeService.getCategory(categoryId);
-        return ResponseEntity.ok(response);
+    @GetMapping(value = "/{categoryId}")
+    public ResponseEntity<EntityModel<CategoryResponse>> getCategory(@PathVariable String categoryId) {
+        CategoryResponse response = categoryQueryService.getCategory(categoryId);
+        return ResponseEntity.ok(categoryModelAssembler.toModel(response));
     }
 
-    @GetMapping(value = "/{categoryId}/tree", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<CategoryNodeResponse>> getCategoryTree(@PathVariable("categoryId") String categoryId) {
-        EntityModel<CategoryNodeResponse> response = categoryFacadeService.getCategoryTree(categoryId);
-        return ResponseEntity.ok(response);
+    @GetMapping(value = "/{categoryId}/tree")
+    public ResponseEntity<EntityModel<CategoryNodeResponse>> getCategoryTree(@PathVariable String categoryId) {
+        CategoryNodeResponse response = categoryQueryService.getCategoryTree(categoryId);
+        return ResponseEntity.ok(categoryNodeModelAssembler.toModel(response));
     }
 
-    @GetMapping(value = "/{categoryId}/parent", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<CategoryResponse>> getCategoryParent(@PathVariable("categoryId") String categoryId) {
-        EntityModel<CategoryResponse> response = categoryFacadeService.getCategoryParent(categoryId);
-        return ResponseEntity.ok(response);
+    @GetMapping(value = "/{categoryId}/parent")
+    public ResponseEntity<EntityModel<CategoryResponse>> getCategoryParent(@PathVariable String categoryId) {
+        CategoryResponse response = categoryQueryService.getCategoryParent(categoryId);
+        return ResponseEntity.ok(categoryModelAssembler.toModel(response));
     }
 
-    @GetMapping(value = "/{categoryId}/children", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<CategoryChildrenResponse>> getCategoryChildren(@PathVariable("categoryId") String categoryId) {
-        EntityModel<CategoryChildrenResponse> response = categoryFacadeService.getCategoryChildren(categoryId);
-        return ResponseEntity.ok(response);
+    @GetMapping(value = "/{categoryId}/children")
+    public ResponseEntity<EntityModel<CategoryChildrenResponse>> getCategoryChildren(@PathVariable String categoryId) {
+        CategoryChildrenResponse response = categoryQueryService.getCategoryChildren(categoryId);
+        return ResponseEntity.ok(categoryChildrenModelAssembler.toModel(response));
     }
 
-    @GetMapping(value = "/leaves", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/leaves")
     public ResponseEntity<EntityModel<CategoryLeavesResponse>> getLeafNodesByName(@RequestParam("name") String name) {
-        EntityModel<CategoryLeavesResponse> response = categoryFacadeService.getLeafNodesByName(name);
-        return ResponseEntity.ok(response);
+        CategoryLeavesResponse response = categoryQueryService.getLeafNodesByName(name);
+        return ResponseEntity.ok(categoryLeavesModelAssembler.toModel(response, name));
     }
 
-    @DeleteMapping(value = "/{categoryId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<EntityModel<DeleteCategoryResponse>> deleteCategory(@PathVariable("categoryId") String categoryId) {
-        EntityModel<DeleteCategoryResponse> response = categoryFacadeService.deleteCategory(categoryId);
+    @DeleteMapping(value = "/{categoryId}")
+    public ResponseEntity<EntityModel<DeleteCategoryResponse>> deleteCategory(@PathVariable String categoryId) {
+        DeleteCategoryResponse response = categoryCommandService.deleteCategory(categoryId);
 
-        if (response.getContent() != null && response.getContent().deleted()) {
-            return ResponseEntity.ok(response);
+        if (response.deleted()) {
+            return ResponseEntity.ok(deleteCategoryModelAssembler.toModel(response));
         }
         return ResponseEntity.notFound().build();
     }

@@ -12,10 +12,16 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 @Component
 public class VariantTypeModelAssembler implements RepresentationModelAssembler<VariantTypeResponse, EntityModel<VariantTypeResponse>> {
 
+    public EntityModel<VariantTypeResponse> toModel(VariantTypeResponse response, String name) {
+        return EntityModel.of(response,
+                linkTo(methodOn(VariantTypeController.class).getVariantTypesByName(name)).withSelfRel()
+        );
+    }
+
     @Override
     public EntityModel<VariantTypeResponse> toModel(VariantTypeResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(VariantTypeController.class).getVariantTypesByName(null)).withSelfRel()
+                linkTo(methodOn(VariantTypeController.class).getVariantTypesByName(null)).withRel("search-variant-types")
         );
     }
 }

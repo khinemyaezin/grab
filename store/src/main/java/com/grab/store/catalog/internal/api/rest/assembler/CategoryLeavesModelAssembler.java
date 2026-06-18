@@ -21,7 +21,7 @@ public class CategoryLeavesModelAssembler implements RepresentationModelAssemble
     @Override
     public EntityModel<CategoryLeavesResponse> toModel(CategoryLeavesResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(CategoryController.class).getLeafNodesByName(null)).withSelfRel()
+                linkTo(methodOn(CategoryController.class).getLeafNodesByName(null)).withRel("search-category-leaves")
         );
     }
 }

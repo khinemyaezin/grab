@@ -15,8 +15,7 @@ public class DeleteCategoryModelAssembler implements RepresentationModelAssemble
     @Override
     public EntityModel<DeleteCategoryResponse> toModel(DeleteCategoryResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(CategoryController.class).getCategory(response.id())).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).saveCategory(null)).withRel("categories")
+                linkTo(methodOn(CategoryController.class).saveCategory(null)).withRel("create-category")
         );
     }
 }

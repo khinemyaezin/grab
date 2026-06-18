@@ -1,6 +1,7 @@
 package com.grab.store.catalog.internal.api.rest.dto.response;
 
 import java.io.Serializable;
+import java.util.List;
 
 public record UpdateProductResponse(
         String productId,
@@ -13,8 +14,8 @@ public record UpdateProductResponse(
         String status,
         String slug,
         boolean featured,
-        java.util.List<GetProductResponse.Description> descriptions,
-        java.util.List<GetProductResponse.Media> medias,
+        List<GetProductResponse.Description> descriptions,
+        List<GetProductResponse.Media> medias,
         String moderationNote
 ) implements Serializable {
 }

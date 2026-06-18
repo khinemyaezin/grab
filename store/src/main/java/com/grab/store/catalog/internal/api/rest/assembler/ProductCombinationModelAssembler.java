@@ -16,8 +16,7 @@ public class ProductCombinationModelAssembler
     @Override
     public EntityModel<VariationMatrixResponse> toModel(VariationMatrixResponse response) {
         return EntityModel.of(response,
-                linkTo(methodOn(ProductController.class).getVariationMatrix(null)).withSelfRel(),
-                linkTo(methodOn(ProductController.class).getProducts(null)).withRel("products")
+                linkTo(methodOn(ProductController.class).getVariationMatrix(null)).withRel("generate-variation-matrix")
         );
     }
 }

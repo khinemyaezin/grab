@@ -17,7 +17,7 @@ public class CategoryNodeModelAssembler implements RepresentationModelAssembler<
         String id = response.id();
         return EntityModel.of(response,
                 linkTo(methodOn(CategoryController.class).getCategoryTree(id)).withSelfRel(),
-                linkTo(methodOn(CategoryController.class).getCategory(id)).withRel("category")
+                linkTo(methodOn(CategoryController.class).getCategory(id)).withRel("get-category")
         );
     }
 }
