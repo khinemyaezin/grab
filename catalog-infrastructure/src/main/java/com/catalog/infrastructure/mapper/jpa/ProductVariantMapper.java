@@ -19,6 +19,4 @@ public abstract class ProductVariantMapper {
     @Mapping(source = "variations" , target="variations")
     @Mapping(source = "entity.status" , target="status")
     public abstract ProductVariant toDomain(ProductVariantEntity entity, List<ProductVariation> variations) ;
-
-    protected abstract ProductVariantStatus toProductVariantStatus(String status) ;
 }

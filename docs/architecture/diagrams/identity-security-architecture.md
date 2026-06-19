@@ -10,24 +10,43 @@ token infrastructure changes from self-hosted JWT to an external provider.
 flowchart TB
     Client["Client (Browser / Mobile / API)"]
 
-    subgraph security["Security Layer (Spring Security)"]
-        Filter["Spring Bearer Token Filter"]
-        Config["SecurityFilterChain"]
+    subgraph security["Security Layer (store module)"]
+        Filter["ProviderBearerAuthenticationFilter\n(OncePerRequestFilter)"]
+        Config["SecurityFilterChain\n(SecurityConfig)"]
         EntryPoint["ProblemDetailAuthEntryPoint (401)"]
         Denied["ProblemDetailAccessDeniedHandler (403)"]
+        Principal["SecurityPrincipal\n(UserDetails wrapper)"]
+        AuthErrors["IdentityAuthenticationException\n+ IdentitySecurityError (sealed)"]
     end
 
-    subgraph contract["Framework Contract"]
-        AuthPort["AccessTokenAuthenticator"]
-        External["ExternalPrincipal"]
-        Resolver["PlatformIdentityResolver"]
-        AuthUser["AuthenticatedActor (platformUserId, issuer, subject, roles, authorities)"]
+    subgraph contract["Framework Contract (framework module)"]
+        AuthPort["AccessTokenAuthenticator\nauthenticate(bearerToken) → ExternalPrincipal"]
+        External["ExternalPrincipal\n(issuer, subject, email?, entitlements)"]
+        ResolverPort["PlatformIdentityResolver\nresolve(ExternalPrincipal) → AuthenticatedActor"]
+        AuthUser["AuthenticatedActor\n(platformUserId, issuer, subject, email, roles, authorities)"]
     end
 
-    subgraph adapter_now["Current Provider: Self-Hosted JWT"]
-        TokenIssuer["Local TokenIssuer / JJWT"]
-        LocalAuth["LocalJwtAccessTokenAuthenticator"]
-        LocalKeys["Local issuer and public keys"]
+    subgraph adapter_now["Current Provider: Self-Hosted JWT (store module)"]
+        LocalAuth["LocalJwtAccessTokenAuthenticator\n(JJWT parser)"]
+        KeyConfig["JwtKeyConfiguration\n(RSA 2048 KeyPair)"]
+        Props["LocalJwtProperties\n(issuer, audience, TTLs)"]
+    end
+
+    subgraph token_infra["Token Issuance (store module)"]
+        TokenIssuer["LocalTokenIssuer\n(implements TokenIssuer)"]
+        RefreshSessions["RefreshSessionEntity\n(family rotation, SHA-256 hashing)"]
+    end
+
+    subgraph resolver_infra["Identity Resolution (store module)"]
+        ResolverAdapter["IdentityResolverAdapter\n(implements PlatformIdentityResolver)"]
+    end
+
+    subgraph identity["Platform Identity (identity-infrastructure)"]
+        UserTable["UserEntity\n(uuid, email, status, roles)"]
+        ExternalId["ExternalIdentityEntity\n(issuer, subject → user)"]
+        EntitlementMap["ExternalEntitlementMappingEntity\n(issuer, entitlement → role)"]
+        Roles["RoleEntity\n(code, active, authorities)"]
+        Authorities["AuthorityEntity\n(code, active)"]
     end
 
     subgraph adapter_future["Future OAuth2 / OIDC Provider"]
@@ -38,44 +57,59 @@ flowchart TB
         IdPServer["Keycloak / Auth0 / Cognito"]
     end
 
-    subgraph identity["Platform Identity"]
-        IdentityLink["Resolve (issuer, subject)"]
-        UserDB["Users, roles, authorities, mappings"]
-    end
-
     subgraph application["Application Layer"]
-        Controllers["Controllers"]
+        Controllers["Controllers\n(@AuthenticationPrincipal SecurityPrincipal)"]
         Services["Command / Query Services"]
         Handlers["CQRS Handlers"]
     end
 
-    Client --> Filter
-    Filter --> AuthPort
+    Client -- "Authorization: Bearer token" --> Filter
+
+    Filter -- "authenticate(token)" --> AuthPort
     AuthPort --> LocalAuth
     AuthPort -.-> JwtAuth
     AuthPort -.-> OpaqueAuth
-    LocalAuth --> LocalKeys
+    LocalAuth -- "verify signature,\nissuer, audience, typ" --> KeyConfig
+    LocalAuth --> Props
     JwtAuth -.-> JWKS
     OpaqueAuth -.-> Introspection
     JWKS -.-> IdPServer
     Introspection -.-> IdPServer
-    TokenIssuer --> LocalKeys
-    LocalAuth --> External
+
+    LocalAuth -- "returns" --> External
     JwtAuth -.-> External
     OpaqueAuth -.-> External
-    External --> Resolver
-    Resolver --> IdentityLink
-    IdentityLink --> UserDB
-    Resolver --> AuthUser
-    AuthUser --> Filter
+
+    Filter -- "resolve(externalPrincipal)" --> ResolverPort
+    ResolverPort --> ResolverAdapter
+
+    ResolverAdapter -- "local issuer:\nfindByUuid(subject)" --> UserTable
+    ResolverAdapter -- "external issuer:\nfindByIssuerAndSubject" --> ExternalId
+    ExternalId --> UserTable
+    ResolverAdapter -- "merge entitlements\nfindByIssuerAndEntitlementIn" --> EntitlementMap
+    EntitlementMap --> Roles
+    UserTable --> Roles
+    Roles --> Authorities
+
+    ResolverAdapter -- "returns" --> AuthUser
+    AuthUser --> Principal
+    Principal -- "UsernamePasswordAuthenticationToken\n.authenticated(principal, authorities)" --> Filter
+
+    Filter -- "error" --> AuthErrors
+    AuthErrors --> EntryPoint
 
     Filter --> Config
     Config --> EntryPoint
     Config --> Denied
 
-    Filter -- "sets SecurityContext\nwith AuthenticatedActor" --> Controllers
+    Filter -- "sets SecurityContext\nwith SecurityPrincipal" --> Controllers
     Controllers --> Services
     Services --> Handlers
+
+    TokenIssuer -- "issue / refresh / revoke" --> RefreshSessions
+    TokenIssuer --> KeyConfig
+    TokenIssuer --> Props
+    TokenIssuer --> ResolverPort
 
     style adapter_future stroke-dasharray: 5 5
     style JwtAuth stroke-dasharray: 5 5
