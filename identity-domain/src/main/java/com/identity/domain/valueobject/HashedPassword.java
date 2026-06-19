@@ -1,11 +1,15 @@
 package com.identity.domain.valueobject;
 
-import java.util.Objects;
+import com.identity.domain.exception.IdentityDomainError;
+import com.identity.domain.exception.IdentityDomainValidationException;
 
 public record HashedPassword(String hash) {
     public HashedPassword {
-        if (Objects.requireNonNull(hash, "password hash is required").isBlank()) {
-            throw new IllegalArgumentException("password hash is required");
+        if (hash == null || hash.isBlank()) {
+            throw new IdentityDomainValidationException(
+                    new IdentityDomainError.InvalidPasswordHash(),
+                    "Password hash is required"
+            );
         }
     }
 }

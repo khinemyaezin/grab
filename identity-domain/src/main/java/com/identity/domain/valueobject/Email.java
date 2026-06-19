@@ -1,16 +1,22 @@
 package com.identity.domain.valueobject;
 
+import com.identity.domain.exception.IdentityDomainError;
+import com.identity.domain.exception.IdentityDomainValidationException;
+
 import java.util.Locale;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 public record Email(String value) {
     private static final Pattern FORMAT = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     public Email {
-        value = Objects.requireNonNull(value, "email is required").trim().toLowerCase(Locale.ROOT);
-        if (!FORMAT.matcher(value).matches()) {
-            throw new IllegalArgumentException("invalid email format");
+        String suppliedValue = value;
+        if (value == null || !FORMAT.matcher(value.trim()).matches()) {
+            throw new IdentityDomainValidationException(
+                    new IdentityDomainError.InvalidEmail(String.valueOf(suppliedValue)),
+                    "A valid email address is required"
+            );
         }
+        value = value.trim().toLowerCase(Locale.ROOT);
     }
 }

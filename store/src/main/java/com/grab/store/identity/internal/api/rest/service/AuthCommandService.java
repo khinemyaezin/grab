@@ -11,24 +11,25 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AuthCommandService {
-    private final CommandBus bus;
+    private final CommandBus commandBus;
     private final RegisterUserRequestMapper registerMapper;
     private final LoginRequestMapper loginMapper;
     private final RefreshTokenRequestMapper refreshMapper;
+    private final LogoutRequestMapper logoutMapper;
 
-    public AuthResponse register(RegisterRequest r) {
-        return registerMapper.toResponse(bus.dispatch(registerMapper.toCommand(r)));
+    public AuthResponse register(RegisterUserRequest r) {
+        return registerMapper.toResponse(commandBus.dispatch(registerMapper.toCommand(r)));
     }
 
     public AuthResponse login(LoginRequest r) {
-        return loginMapper.toResponse(bus.dispatch(loginMapper.toCommand(r)));
+        return loginMapper.toResponse(commandBus.dispatch(loginMapper.toCommand(r)));
     }
 
     public AuthResponse refresh(RefreshTokenRequest r) {
-        return refreshMapper.toResponse(bus.dispatch(refreshMapper.toCommand(r)));
+        return refreshMapper.toResponse(commandBus.dispatch(refreshMapper.toCommand(r)));
     }
 
-    public void logout(RefreshTokenRequest r) {
-        bus.dispatch(new LogoutCommand(r.refreshToken()));
+    public void logout(LogoutRequest r) {
+        commandBus.dispatch(logoutMapper.toCommand(r));
     }
 }

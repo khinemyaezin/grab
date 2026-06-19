@@ -6,38 +6,60 @@ import com.grab.store.identity.internal.command.RoleResult;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
-import com.identity.infrastructure.entity.AuthorityEntity;
-import com.identity.infrastructure.entity.RoleEntity;
-import com.identity.infrastructure.repository.jpa.AuthorityJpaRepository;
-import com.identity.infrastructure.repository.jpa.RoleJpaRepository;
+import com.identity.domain.aggregate.Role;
+import com.identity.domain.repository.AuthorityRepository;
+import com.identity.domain.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.stream.Collectors;
+import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
 public class ManageAuthorityCommandHandler implements CommandHandler<ManageAuthorityCommand, RoleResult> {
-    private final RoleJpaRepository roles;
-    private final AuthorityJpaRepository authorities;
+
+    private final RoleRepository roleRepository;
+    private final AuthorityRepository authorityRepository;
 
     @Override
     @IdentityTransactional
     public RoleResult handle(ManageAuthorityCommand command) {
-        RoleEntity r = roles.findByCode(command.roleCode())
-                .orElseThrow(() -> new IdentityServiceException(new IdentityServiceError.RoleNotFound(command.roleCode()), "Role not found"));
-        AuthorityEntity a = authorities.findByCode(command.authorityCode())
-                .orElseThrow(() -> new IdentityServiceException(new IdentityServiceError.RoleNotFound(command.authorityCode()), "Authority not found"));
-        
-        if (command.assign()) r.getAuthorities().add(a);
-        else r.getAuthorities().remove(a);
-        
-        r = roles.save(r);
-        return new RoleResult(r.getCode(), r.getName(), r.getDescription(), r.isActive(), r.getAuthorities().stream().map(AuthorityEntity::getCode).collect(Collectors.toSet()));
+        String roleCode = command.roleCode().trim().toUpperCase(Locale.ROOT);
+        String authorityCode = command.authorityCode().trim().toUpperCase(Locale.ROOT);
+
+        Role role = roleRepository.findByCode(roleCode)
+                .orElseThrow(() -> new IdentityServiceException(
+                        new IdentityServiceError.RoleNotFound(roleCode),
+                        "Role not found"
+                ));
+        if (!authorityRepository.existsByCode(authorityCode)) {
+            throw new IdentityServiceException(
+                    new IdentityServiceError.AuthorityNotFound(authorityCode),
+                    "Authority not found"
+            );
+        }
+
+        if (command.assign()) {
+            role.assignAuthority(authorityCode);
+        } else {
+            role.revokeAuthority(authorityCode);
+        }
+
+        return toResult(roleRepository.save(role));
     }
 
     @Override
     public Class<ManageAuthorityCommand> getCommandType() {
         return ManageAuthorityCommand.class;
+    }
+
+    private RoleResult toResult(Role role) {
+        return new RoleResult(
+                role.getCode(),
+                role.getName(),
+                role.getDescription(),
+                role.isActive(),
+                role.getAuthorityCodes()
+        );
     }
 }

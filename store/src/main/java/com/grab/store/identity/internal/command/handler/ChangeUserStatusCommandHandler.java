@@ -6,37 +6,61 @@ import com.grab.store.identity.internal.command.UserProfileResult;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
+import com.identity.domain.aggregate.User;
 import com.identity.domain.enums.UserStatus;
-import com.identity.infrastructure.entity.RoleEntity;
-import com.identity.infrastructure.entity.UserEntity;
-import com.identity.infrastructure.repository.jpa.RefreshSessionJpaRepository;
-import com.identity.infrastructure.repository.jpa.UserJpaRepository;
+import com.identity.domain.repository.UserRepository;
+import com.identity.domain.service.RefreshSessionRevoker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class ChangeUserStatusCommandHandler implements CommandHandler<ChangeUserStatusCommand, UserProfileResult> {
-    private final UserJpaRepository users;
-    private final RefreshSessionJpaRepository sessions;
+
+    private final UserRepository userRepository;
+    private final RefreshSessionRevoker refreshSessionRevoker;
 
     @Override
     @IdentityTransactional
     public UserProfileResult handle(ChangeUserStatusCommand command) {
-        UserEntity u = users.findByUuid(command.userId())
-                .orElseThrow(() -> new IdentityServiceException(new IdentityServiceError.UserNotFound(command.userId()), "User not found"));
-        u.setStatus(command.status());
+        User user = userRepository.findById(command.userId())
+                .orElseThrow(() -> new IdentityServiceException(
+                        new IdentityServiceError.UserNotFound(command.userId().getValue()),
+                        "User not found"
+                ));
+
         if (command.status() == UserStatus.SUSPENDED) {
-            sessions.findByUser_Uuid(command.userId()).forEach(s -> s.setRevokedAt(java.time.Instant.now()));
+            user.suspend();
+            refreshSessionRevoker.revokeAll(user.getId());
+        } else if (command.status() == UserStatus.ACTIVE && user.getStatus() == UserStatus.PENDING_APPROVAL) {
+            user.activate();
+        } else if (command.status() == UserStatus.ACTIVE && user.getStatus() == UserStatus.SUSPENDED) {
+            user.reactivate();
+        } else {
+            throw new IdentityServiceException(
+                    new IdentityServiceError.InvalidStatusTransition(
+                            user.getStatus().name(),
+                            command.status().name()
+                    ),
+                    "Invalid user status transition"
+            );
         }
-        u = users.save(u);
-        return new UserProfileResult(u.getUuid(), u.getEmail(), u.getRoles().stream().map(RoleEntity::getCode).collect(Collectors.toSet()), u.getStatus().name(), u.getCreatedAt());
+
+        return toResult(userRepository.save(user));
     }
 
     @Override
     public Class<ChangeUserStatusCommand> getCommandType() {
         return ChangeUserStatusCommand.class;
+    }
+
+    private UserProfileResult toResult(User user) {
+        return new UserProfileResult(
+                user.getId().getValue(),
+                user.getEmail().value(),
+                user.getRoleCodes(),
+                user.getStatus().name(),
+                user.getCreatedAt().toString()
+        );
     }
 }

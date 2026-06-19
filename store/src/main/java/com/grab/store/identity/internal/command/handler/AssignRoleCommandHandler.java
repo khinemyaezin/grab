@@ -6,38 +6,60 @@ import com.grab.store.identity.internal.command.UserProfileResult;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
-import com.identity.infrastructure.entity.RoleEntity;
-import com.identity.infrastructure.entity.UserEntity;
-import com.identity.infrastructure.repository.jpa.RoleJpaRepository;
-import com.identity.infrastructure.repository.jpa.UserJpaRepository;
+import com.identity.domain.aggregate.Role;
+import com.identity.domain.aggregate.User;
+import com.identity.domain.repository.RoleRepository;
+import com.identity.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.stream.Collectors;
+import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
 public class AssignRoleCommandHandler implements CommandHandler<AssignRoleCommand, UserProfileResult> {
-    private final UserJpaRepository users;
-    private final RoleJpaRepository roles;
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
     @Override
     @IdentityTransactional
     public UserProfileResult handle(AssignRoleCommand command) {
-        UserEntity u = users.findByUuid(command.userId())
-                .orElseThrow(() -> new IdentityServiceException(new IdentityServiceError.UserNotFound(command.userId()), "User not found"));
-        RoleEntity r = roles.findByCode(command.roleCode())
-                .orElseThrow(() -> new IdentityServiceException(new IdentityServiceError.RoleNotFound(command.roleCode()), "Role not found"));
-        
-        if (command.assign()) u.getRoles().add(r);
-        else u.getRoles().remove(r);
-        
-        u = users.save(u);
-        return new UserProfileResult(u.getUuid(), u.getEmail(), u.getRoles().stream().map(RoleEntity::getCode).collect(Collectors.toSet()), u.getStatus().name(), u.getCreatedAt());
+        User user = userRepository.findById(command.userId())
+                .orElseThrow(() -> new IdentityServiceException(
+                        new IdentityServiceError.UserNotFound(command.userId().getValue()),
+                        "User not found"
+                ));
+
+        String roleCode = command.roleCode().trim().toUpperCase(Locale.ROOT);
+        Role role = roleRepository.findByCode(roleCode)
+                .filter(Role::isActive)
+                .orElseThrow(() -> new IdentityServiceException(
+                        new IdentityServiceError.RoleNotFound(roleCode),
+                        "Active role not found"
+                ));
+
+        if (command.assign()) {
+            user.assignRole(role.getCode());
+        } else {
+            user.revokeRole(role.getCode());
+        }
+
+        return toResult(userRepository.save(user));
     }
 
     @Override
     public Class<AssignRoleCommand> getCommandType() {
         return AssignRoleCommand.class;
+    }
+
+    private UserProfileResult toResult(User user) {
+        return new UserProfileResult(
+                user.getId().getValue(),
+                user.getEmail().value(),
+                user.getRoleCodes(),
+                user.getStatus().name(),
+                user.getCreatedAt().toString()
+        );
     }
 }
