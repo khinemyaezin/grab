@@ -18,6 +18,8 @@
         <module>catalog-infrastructure</module>
         <module>inventory-domain</module>
         <module>inventory-infrastructure</module>
+        <module>identity-domain</module>
+        <module>identity-infrastructure</module>
         <module>store</module>
     </modules>
 
@@ -51,6 +53,7 @@
         <joda-money.version>2.0.0</joda-money.version>
         <mockito-core.version>5.4.0</mockito-core.version>
         <hibernate-validator.version>8.0.0.Final</hibernate-validator.version>
+        <jjwt.version>0.12.5</jjwt.version>
     </properties>
 
     <dependencyManagement>
@@ -115,6 +118,21 @@
                 <groupId>com.github.khinemyaezin.nested-set</groupId>
                 <artifactId>nested-set</artifactId>
                 <version>${khinemyaezin.nested-set.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

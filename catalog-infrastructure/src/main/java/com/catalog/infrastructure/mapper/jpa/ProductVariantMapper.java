@@ -2,7 +2,6 @@ package com.catalog.infrastructure.mapper.jpa;
 
 import com.grab.framework.id.IdGenerator;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.mapper.CentralMapperConfig;
@@ -19,6 +18,4 @@ public abstract class ProductVariantMapper {
     @Mapping(source = "variations" , target="variations")
     @Mapping(source = "entity.status" , target="status")
     public abstract ProductVariant toDomain(ProductVariantEntity entity, List<ProductVariation> variations) ;
-
-    protected abstract ProductVariantStatus toProductVariantStatus(String status) ;
 }

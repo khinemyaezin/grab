@@ -1,6 +1,9 @@
 package com.grab.store.catalog.internal.config;
 
 import jakarta.persistence.EntityManagerFactory;
+import org.flywaydb.core.Flyway;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -79,5 +82,15 @@ public class CatalogModuleDataSourceConfig {
         properties.put("hibernate.show_sql", environment.getProperty("catalog.jpa.hibernate.show_sql"));
         properties.put("hibernate.format_sql", environment.getProperty("catalog.jpa.hibernate.format_sql"));
         return properties;
+    }
+
+    @Bean(initMethod = "migrate")
+    @ConditionalOnProperty(prefix = "catalog.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public Flyway catalogFlyway(@Qualifier("catalogDataSource") DataSource dataSource, Environment env) {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration/catalog")
+                .baselineOnMigrate(true)
+                .load();
     }
 }

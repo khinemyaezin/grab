@@ -1,8 +1,10 @@
 package com.grab.store.shared.exception;
 
+import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -12,7 +14,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = ExceptionTestController.class)
-@Import({GlobalApiExceptionHandler.class, SpringMessageResolver.class})
+@AutoConfigureMockMvc(addFilters = false)
+@Import({GlobalApiExceptionHandler.class, SpringMessageResolver.class, WebMvcSecurityTestConfiguration.class})
 class GlobalApiExceptionHandlerIntegrationTest {
 
     @Autowired

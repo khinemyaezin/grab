@@ -6,7 +6,6 @@ import com.grab.framework.exception.MessageResolver;
 import com.grab.framework.exception.MessageSource;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.catalog.internal.command.handler.CreateProductSetCommandHandler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.MDC;
@@ -15,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.security.access.AccessDeniedException;
+import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -93,6 +94,21 @@ public class GlobalApiExceptionHandler {
         return handleDomainException(SharedErrors.internalUnexpected(), request);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException exception, HttpServletRequest request) {
+        log.error(exception.getMessage(), exception);
+        return toProblem(HttpStatus.FORBIDDEN, new MessageSource() {
+            public ErrorCategory kind() { return ErrorCategory.FORBIDDEN; }
+            public String code() { return "idt.service.auth.access_denied"; }
+            public Map<String, Object> args() { return Map.of(); }
+        }, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(IdentityAuthenticationException.class)
+    public ProblemDetail handleIdentityAuthentication(IdentityAuthenticationException exception, HttpServletRequest request) {
+        return toProblem(HttpStatus.UNAUTHORIZED, exception.getMessageSource(), exception.getMessage(), request);
+    }
+
     @ExceptionHandler({MissingServletRequestParameterException.class, MissingRequestHeaderException.class})
     public ProblemDetail handleDomainException(MissingServletRequestParameterException exception, HttpServletRequest request) {
         log.error(exception.getMessage(), exception);
@@ -142,6 +158,8 @@ public class GlobalApiExceptionHandler {
             case BUSINESS_RULE -> HttpStatus.UNPROCESSABLE_ENTITY;
             case BAD_REQUEST -> HttpStatus.BAD_REQUEST;
             case INTERNAL -> HttpStatus.INTERNAL_SERVER_ERROR;
+            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
+            case FORBIDDEN -> HttpStatus.FORBIDDEN;
         };
     }
 
@@ -181,6 +199,9 @@ public class GlobalApiExceptionHandler {
         }
         if (code.startsWith("cat.")) {
             return "catalog";
+        }
+        if (code.startsWith("idt.")) {
+            return "identity";
         }
         return "shared";
     }

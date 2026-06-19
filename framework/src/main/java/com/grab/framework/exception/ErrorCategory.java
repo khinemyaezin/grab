@@ -5,5 +5,7 @@ public enum ErrorCategory {
         BAD_REQUEST ,
         NOT_FOUND,
         CONFLICT,
-        INTERNAL
+        INTERNAL,
+        UNAUTHORIZED,
+        FORBIDDEN
 }
