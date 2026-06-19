@@ -2,7 +2,6 @@ package com.catalog.infrastructure.mapper.jpa;
 
 import com.grab.framework.id.IdGenerator;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.mapper.CentralMapperConfig;

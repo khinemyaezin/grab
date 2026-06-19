@@ -1,0 +1,31 @@
+package com.grab.store.shared.security;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grab.framework.security.AccessTokenAuthenticator;
+import com.grab.framework.security.PlatformIdentityResolver;
+import com.grab.store.shared.security.expection.ProblemDetailAuthEntryPoint;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+
+@TestConfiguration(proxyBeanMethods = false)
+public class WebMvcSecurityTestConfiguration {
+
+    @Bean
+    AccessTokenAuthenticator accessTokenAuthenticator() {
+        return token -> {
+            throw new UnsupportedOperationException("Authentication is disabled in controller tests");
+        };
+    }
+
+    @Bean
+    PlatformIdentityResolver platformIdentityResolver() {
+        return principal -> {
+            throw new UnsupportedOperationException("Authentication is disabled in controller tests");
+        };
+    }
+
+    @Bean
+    ProblemDetailAuthEntryPoint problemDetailAuthEntryPoint(ObjectMapper objectMapper) {
+        return new ProblemDetailAuthEntryPoint(objectMapper);
+    }
+}
