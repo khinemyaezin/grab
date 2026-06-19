@@ -1,4 +1,4 @@
-package com.grab.store.identity.internal.config;
+package com.grab.store.inventory.internal.config;
 
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import org.springframework.http.HttpMethod;
@@ -7,16 +7,11 @@ import org.springframework.security.config.annotation.web.configurers.AuthorizeH
 import org.springframework.stereotype.Component;
 
 @Component
-public class IdentitySecurityConfigurer implements ModuleSecurityConfigurer {
+public class InventorySecurityConfigurer implements ModuleSecurityConfigurer {
     @Override
     public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
         auth.requestMatchers(HttpMethod.GET,
-                        "/api/v1/identity")
-                .permitAll();
-        auth.requestMatchers(HttpMethod.POST,
-                        "/api/v1/identity/auth/register",
-                        "/api/v1/identity/auth/login",
-                        "/api/v1/identity/auth/refresh")
+                        "/api/v1/inventory")
                 .permitAll();
     }
 }
