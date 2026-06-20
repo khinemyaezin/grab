@@ -15,7 +15,6 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +37,6 @@ public class UserAdminController {
     private final UserMutationModelAssembler userMutationModelAssembler;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('USER_READ')")
     public ResponseEntity<PagedModel<EntityModel<UserProfileResponse>>> listUsers(
             @PageableDefault(size = 20) Pageable pageable,
             PagedResourcesAssembler<UserProfileResponse> pagedAssembler
@@ -55,31 +53,26 @@ public class UserAdminController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('USER_READ')")
     public ResponseEntity<EntityModel<UserProfileResponse>> getUser(@PathVariable String id) {
         return ResponseEntity.ok(userProfileModelAssembler.toModel(queryService.getUser(id)));
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAuthority('USER_APPROVE')")
     public ResponseEntity<EntityModel<UserMutationResponse>> approveUser(@PathVariable String id) {
         return mutationResponse(commandService.changeStatus(id, UserStatus.ACTIVE));
     }
 
     @PostMapping("/{id}/suspend")
-    @PreAuthorize("hasAuthority('USER_SUSPEND')")
     public ResponseEntity<EntityModel<UserMutationResponse>> suspendUser(@PathVariable String id) {
         return mutationResponse(commandService.changeStatus(id, UserStatus.SUSPENDED));
     }
 
     @PostMapping("/{id}/reactivate")
-    @PreAuthorize("hasAuthority('USER_SUSPEND')")
     public ResponseEntity<EntityModel<UserMutationResponse>> reactivateUser(@PathVariable String id) {
         return mutationResponse(commandService.changeStatus(id, UserStatus.ACTIVE));
     }
 
     @PutMapping("/{id}/roles/{code}")
-    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<EntityModel<UserMutationResponse>> assignRole(
             @PathVariable String id,
             @PathVariable String code
@@ -88,7 +81,6 @@ public class UserAdminController {
     }
 
     @DeleteMapping("/{id}/roles/{code}")
-    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<EntityModel<UserMutationResponse>> revokeRole(
             @PathVariable String id,
             @PathVariable String code

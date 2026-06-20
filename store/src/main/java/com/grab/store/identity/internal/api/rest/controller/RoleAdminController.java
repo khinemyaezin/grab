@@ -15,7 +15,6 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +37,6 @@ public class RoleAdminController {
     private final RoleModelAssembler roleModelAssembler;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<PagedModel<EntityModel<RoleResponse>>> listRoles(
             @PageableDefault(size = 20) Pageable pageable,
             PagedResourcesAssembler<RoleResponse> pagedAssembler
@@ -55,7 +53,6 @@ public class RoleAdminController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<EntityModel<RoleResponse>> createRole(
             @Valid @RequestBody CreateRoleRequest request
     ) {
@@ -64,7 +61,6 @@ public class RoleAdminController {
     }
 
     @PutMapping("/{role}/authorities/{authority}")
-    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<EntityModel<RoleResponse>> grantAuthority(
             @PathVariable String role,
             @PathVariable String authority
@@ -75,7 +71,6 @@ public class RoleAdminController {
     }
 
     @DeleteMapping("/{role}/authorities/{authority}")
-    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<EntityModel<RoleResponse>> revokeAuthority(
             @PathVariable String role,
             @PathVariable String authority
