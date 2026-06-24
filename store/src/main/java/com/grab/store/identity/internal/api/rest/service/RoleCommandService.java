@@ -5,6 +5,9 @@ import com.grab.store.identity.internal.api.rest.dto.request.CreateRoleRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.RoleResponse;
 import com.grab.store.identity.internal.api.rest.mapper.CreateRoleRequestMapper;
 import com.grab.store.identity.internal.api.rest.mapper.ManageAuthorityRequestMapper;
+import com.grab.store.identity.internal.command.CreateRoleCommand;
+import com.grab.store.identity.internal.command.ManageAuthorityCommand;
+import com.grab.store.identity.internal.command.RoleResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,12 +20,14 @@ public class RoleCommandService {
     private final ManageAuthorityRequestMapper manageAuthorityMapper;
 
     public RoleResponse createRole(CreateRoleRequest request) {
-        return createRoleMapper.toResponse(commandBus.dispatch(createRoleMapper.toCommand(request)));
+        CreateRoleCommand command = createRoleMapper.toCommand(request);
+        RoleResult result = commandBus.dispatch(command);
+        return createRoleMapper.toResponse(result);
     }
 
     public RoleResponse manageAuthority(String roleCode, String authorityCode, boolean assign) {
-        return manageAuthorityMapper.toResponse(commandBus.dispatch(
-                manageAuthorityMapper.toCommand(roleCode, authorityCode, assign)
-        ));
+        ManageAuthorityCommand command = manageAuthorityMapper.toCommand(roleCode, authorityCode, assign);
+        RoleResult result = commandBus.dispatch(command);
+        return manageAuthorityMapper.toResponse(result);
     }
 }

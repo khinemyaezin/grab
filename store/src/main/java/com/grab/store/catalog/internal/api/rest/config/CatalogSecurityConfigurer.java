@@ -1,4 +1,4 @@
-package com.grab.store.catalog.internal.config;
+package com.grab.store.catalog.internal.api.rest.config;
 
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import org.springframework.http.HttpMethod;

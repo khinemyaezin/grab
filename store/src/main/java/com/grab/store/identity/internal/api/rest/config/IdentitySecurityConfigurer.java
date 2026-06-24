@@ -1,4 +1,4 @@
-package com.grab.store.identity.internal.config;
+package com.grab.store.identity.internal.api.rest.config;
 
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import org.springframework.http.HttpMethod;
@@ -18,5 +18,13 @@ public class IdentitySecurityConfigurer implements ModuleSecurityConfigurer {
                         "/api/v1/identity/auth/login",
                         "/api/v1/identity/auth/refresh")
                 .permitAll();
+
+        auth.requestMatchers("/api/v1/identity/profile/**").authenticated();
+        auth.requestMatchers("/api/v1/identity/admin/roles/**").hasAuthority("ROLE_MANAGE");
+        auth.requestMatchers(HttpMethod.GET, "/api/v1/identity/admin/users/**").hasAuthority("USER_READ");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/approve").hasAuthority("USER_APPROVE");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/suspend").hasAuthority("USER_SUSPEND");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/reactivate").hasAuthority("USER_SUSPEND");
+        auth.requestMatchers("/api/v1/identity/admin/users/*/roles/**").hasAuthority("ROLE_MANAGE");
     }
 }

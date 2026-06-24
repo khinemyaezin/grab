@@ -69,11 +69,18 @@ identity:
         auto: ${IDENTITY_JPA_DDL_AUTO:update}
 
 security:
+  enabled: ${API_SECURITY:true}
   local-jwt:
     issuer: ${JWT_ISSUER:https://identity.local.grab}
     audience: ${JWT_AUDIENCE:grab-commerce-api}
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
     refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P7D}
+  api:
+    cookie:
+      secure: ${SECURITY_API_COOKIE_SECURE:false}
+      same-site: ${SECURITY_API_COOKIE_SAME_SITE:Lax}
+      refresh-token-max-age-days: ${SECURITY_API_COOKIE_REFRESH_TOKEN_MAX_AGE_DAYS:7}
+      refresh-token-path: ${SECURITY_API_COOKIE_REFRESH_TOKEN_PATH:/api/v1/identity/auth/refresh}
 
 logger:
   backend: ${LOGGER_BACKEND:slf4j}

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import com.identity.infrastructure.view.RoleView;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RoleJpaRepositoryTest extends RepositoryTestConfig {
@@ -133,5 +134,35 @@ public class RoleJpaRepositoryTest extends RepositoryTestConfig {
         assertThat(result).hasSize(3);
         assertThat(result).extracting(RoleEntity::getCode)
                 .containsExactlyInAnyOrder("ADMIN", "USER", "VIEWER");
+    }
+
+    @Test
+    void findTop5ByNameStartingWithIgnoreCase_returnsMatchingRoles() {
+        List<RoleView> result = roleJpaRepository.findTop5ByNameStartingWithIgnoreCase("admin");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getName()).isEqualTo("Administrator");
+        assertThat(result.getFirst().getCode()).isEqualTo("ADMIN");
+        assertThat(result.getFirst().getId()).isNotNull();
+    }
+
+    @Test
+    void findTop5ByNameStartingWithIgnoreCase_returnsEmpty_whenNoMatch() {
+        List<RoleView> result = roleJpaRepository.findTop5ByNameStartingWithIgnoreCase("xyz");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void findTop5ByNameStartingWithIgnoreCase_matchesMultiple() {
+        List<RoleView> result = roleJpaRepository.findTop5ByNameStartingWithIgnoreCase("v");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getName()).isEqualTo("Viewer");
+        
+        List<RoleView> result2 = roleJpaRepository.findTop5ByNameStartingWithIgnoreCase("s");
+
+        assertThat(result2).hasSize(1);
+        assertThat(result2.getFirst().getName()).isEqualTo("Standard User");
     }
 }

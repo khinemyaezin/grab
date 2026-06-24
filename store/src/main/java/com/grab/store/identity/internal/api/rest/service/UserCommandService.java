@@ -1,9 +1,12 @@
 package com.grab.store.identity.internal.api.rest.service;
 
 import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.store.identity.internal.api.rest.dto.response.UserMutationResponse;
+import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
 import com.grab.store.identity.internal.api.rest.mapper.AssignRoleRequestMapper;
 import com.grab.store.identity.internal.api.rest.mapper.ChangeUserStatusRequestMapper;
+import com.grab.store.identity.internal.command.AssignRoleCommand;
+import com.grab.store.identity.internal.command.ChangeUserStatusCommand;
+import com.grab.store.identity.internal.command.UserProfileResult;
 import com.identity.domain.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,11 +19,15 @@ public class UserCommandService {
     private final ChangeUserStatusRequestMapper changeStatusMapper;
     private final AssignRoleRequestMapper assignRoleMapper;
 
-    public UserMutationResponse changeStatus(String id, UserStatus status) {
-        return changeStatusMapper.toResponse(commandBus.dispatch(changeStatusMapper.toCommand(id, status)));
+    public UserProfileResponse changeStatus(String id, UserStatus status) {
+        ChangeUserStatusCommand command = changeStatusMapper.toCommand(id, status);
+        UserProfileResult result = commandBus.dispatch(command);
+        return changeStatusMapper.toResponse(result);
     }
 
-    public UserMutationResponse assignRole(String id, String code, boolean assign) {
-        return assignRoleMapper.toResponse(commandBus.dispatch(assignRoleMapper.toCommand(id, code, assign)));
+    public UserProfileResponse assignRole(String id, String code, boolean assign) {
+        AssignRoleCommand command = assignRoleMapper.toCommand(id, code, assign);
+        UserProfileResult result = commandBus.dispatch(command);
+        return assignRoleMapper.toResponse(result);
     }
 }

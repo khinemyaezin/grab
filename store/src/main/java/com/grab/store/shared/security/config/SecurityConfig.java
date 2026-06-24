@@ -3,10 +3,12 @@ package com.grab.store.shared.security.config;
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import jakarta.servlet.Filter;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.*;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.*;
@@ -31,6 +33,13 @@ public class SecurityConfig {
         this.deniedHandler = deniedHandler;
     }
 
+
+    @Bean
+    @ConditionalOnProperty(prefix = "security", name = "enabled", havingValue = "false")
+    public WebSecurityCustomizer securityDisabledCustomizer() {
+        return (web) -> web.ignoring().anyRequest();
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -40,12 +49,12 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(deniedHandler))
                 .authorizeHttpRequests(auth -> {
                     moduleConfigurers.forEach(configurer -> configurer.configure(auth));
-                    
+
                     auth.requestMatchers(HttpMethod.GET,
                             "/swagger-ui/**",
                             "/swagger-ui.html",
                             "/v3/api-docs/**").permitAll();
-                    
+
                     auth.anyRequest().authenticated();
                 })
                 .addFilterBefore(bearerFilter, UsernamePasswordAuthenticationFilter.class)

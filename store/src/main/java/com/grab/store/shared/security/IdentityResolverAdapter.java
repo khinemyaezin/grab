@@ -33,12 +33,26 @@ public class IdentityResolverAdapter implements PlatformIdentityResolver {
         if (user.getStatus() != com.identity.domain.enums.UserStatus.ACTIVE) {
             throw new IdentityAuthenticationException(new IdentitySecurityError.AccountNotActive(), "Account is not active");
         }
+
         Set<RoleEntity> effectiveRoles = new LinkedHashSet<>(user.getRoles());
         if (!principal.entitlements().isEmpty()) {
-            entitlementMappings.findByIssuerAndEntitlementIn(principal.issuer(), principal.entitlements()).stream().map(ExternalEntitlementMappingEntity::getRole).forEach(effectiveRoles::add);
+            entitlementMappings.findByIssuerAndEntitlementIn(principal.issuer(), principal.entitlements())
+                    .stream()
+                    .map(ExternalEntitlementMappingEntity::getRole)
+                    .forEach(effectiveRoles::add);
         }
-        Set<String> roleCodes = effectiveRoles.stream().filter(RoleEntity::isActive).map(RoleEntity::getCode).collect(Collectors.toUnmodifiableSet());
-        Set<String> authorities = effectiveRoles.stream().filter(RoleEntity::isActive).flatMap(r -> r.getAuthorities().stream()).filter(AuthorityEntity::isActive).map(AuthorityEntity::getCode).collect(Collectors.toUnmodifiableSet());
+        Set<String> roleCodes = effectiveRoles.stream()
+                .filter(RoleEntity::isActive)
+                .map(RoleEntity::getCode)
+                .collect(Collectors.toUnmodifiableSet());
+
+        Set<String> authorities = effectiveRoles.stream()
+                .filter(RoleEntity::isActive)
+                .flatMap(r -> r.getAuthorities().stream())
+                .filter(AuthorityEntity::isActive)
+                .map(AuthorityEntity::getCode)
+                .collect(Collectors.toUnmodifiableSet());
+
         return new AuthenticatedActor(user.getUuid(), principal.issuer(), principal.subject(), user.getEmail(), roleCodes, authorities);
     }
 

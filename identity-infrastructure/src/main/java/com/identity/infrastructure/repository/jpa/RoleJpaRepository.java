@@ -1,6 +1,7 @@
 package com.identity.infrastructure.repository.jpa;
 
 import com.identity.infrastructure.entity.RoleEntity;
+import com.identity.infrastructure.view.RoleView;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -10,4 +11,6 @@ import java.util.Optional;
 public interface RoleJpaRepository extends JpaRepository<RoleEntity, Long> {
     Optional<RoleEntity> findByCode(String code);
     List<RoleEntity> findByCodeIn(Collection<String> codes);
+    List<RoleView> findTop5ByNameStartingWithIgnoreCase(String name);
+
 }

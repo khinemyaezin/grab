@@ -21,23 +21,38 @@ public class UserProfileModelAssembler
         entity.add(linkTo(methodOn(UserAdminController.class)
                 .getUser(response.id()))
                 .withSelfRel());
+
         entity.add(linkTo(methodOn(RoleAdminController.class)
                 .listRoles(null, null))
                 .withRel("list-roles"));
+
+        entity.add(linkTo(methodOn(RoleAdminController.class)
+                .suggestRoles(null))
+                .withRel("suggest-roles"));
 
         if (UserStatus.ACTIVE.name().equals(response.status())) {
             entity.add(linkTo(methodOn(UserAdminController.class)
                     .suspendUser(response.id()))
                     .withRel("suspend-user"));
+
         } else if (UserStatus.PENDING_APPROVAL.name().equals(response.status())) {
             entity.add(linkTo(methodOn(UserAdminController.class)
                     .approveUser(response.id()))
                     .withRel("approve-user"));
+
         } else if (UserStatus.SUSPENDED.name().equals(response.status())) {
             entity.add(linkTo(methodOn(UserAdminController.class)
                     .reactivateUser(response.id()))
                     .withRel("reactivate-user"));
         }
+
+        entity.add(linkTo(methodOn(UserAdminController.class)
+                .revokeRole(response.id(), null))
+                .withRel("revoke-role"));
+
+        entity.add(linkTo(methodOn(UserAdminController.class)
+                .assignRole(response.id(), null))
+                .withRel("assign-role"));
         return entity;
     }
 }

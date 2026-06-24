@@ -14,7 +14,7 @@ INSERT INTO roles (uuid, code, name, description, active)
 VALUES
     ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'CUSTOMER', 'CUSTOMER', 'Customer role', true),
     ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380b02', 'SELLER', 'SELLER', 'Seller role', true),
-    ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380b03', 'ADMIN', 'ADMIN', 'Admin role', true)
+    ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380b04', 'SUPER_ADMIN', 'SUPER_ADMIN', 'Super admin role that bypasses everything', true)
 ON CONFLICT (code) DO NOTHING;
 
 -- Insert Role Authorities mappings
@@ -23,8 +23,9 @@ SELECT r.id, a.id FROM roles r, authorities a
 WHERE r.code = 'SELLER' AND a.code IN ('PRODUCT_WRITE_OWN', 'INVENTORY_MANAGE_OWN')
 ON CONFLICT DO NOTHING;
 
--- ADMIN gets SELLER_APPROVE, USER_READ, USER_SUSPEND, ROLE_MANAGE
+
+-- SUPER_ADMIN gets ALL authorities
 INSERT INTO role_authorities (role_id, authority_id)
 SELECT r.id, a.id FROM roles r, authorities a
-WHERE r.code = 'ADMIN' AND a.code IN ('USER_APPROVE', 'USER_READ', 'USER_SUSPEND', 'ROLE_MANAGE')
+WHERE r.code = 'SUPER_ADMIN'
 ON CONFLICT DO NOTHING;

@@ -10,7 +10,7 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(config = CentralMapperConfig.class, uses = {IdMapper.class})
 public abstract class UserEntityMapper {
-
+    @Mapping(ignore = true, target = "id")
     @Mapping(source = "id", target = "uuid")
     @Mapping(source = "email.value", target = "email")
     @Mapping(target = "passwordHash", expression = "java(source.getPasswordHash().map(com.identity.domain.valueobject.HashedPassword::hash).orElse(null))")
