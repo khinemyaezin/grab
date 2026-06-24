@@ -104,7 +104,7 @@ public class IdentityInfraConfig {
     }
 
     @Bean
-    public RoleRepository roleRepository(
+    public DefaultRoleRepository roleRepository(
             RoleJpaRepository jpaRepository,
             RoleJpaAssembler mapper,
             @Qualifier("identityDomainEventProducer") DomainEventProducer domainEventProducer,

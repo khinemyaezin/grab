@@ -5,6 +5,9 @@ import com.grab.store.shared.PageableQueryRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public record ListRolesQuery(Pageable pageable)
+public record ListRolesQuery(
+        String name,
+        Pageable pageable
+)
         implements Query<Page<ListRolesResult>>, PageableQueryRequest {
 }

@@ -31,6 +31,10 @@ public class IdentityRootController {
                 .listUsers(null, null))
                 .withRel("list-users"));
 
+        model.add(linkTo(methodOn(UserAdminController.class)
+                .getUser(null))
+                .withRel("get-user"));
+
         model.add(linkTo(methodOn(RoleAdminController.class).
                 listRoles(null, null))
                 .withRel("list-roles"));

@@ -10,6 +10,8 @@ import com.identity.domain.repository.RoleRepository;
 import com.identity.infrastructure.entity.RoleEntity;
 import com.identity.infrastructure.mapper.jpa.RoleJpaAssembler;
 import com.identity.infrastructure.repository.jpa.RoleJpaRepository;
+import com.identity.infrastructure.repository.jpa.RoleQueryRepository;
+import com.identity.infrastructure.view.RoleView;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -18,7 +20,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-public class DefaultRoleRepository implements RoleRepository {
+public class DefaultRoleRepository implements RoleRepository, RoleQueryRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultRoleRepository.class);
 
@@ -55,6 +57,14 @@ public class DefaultRoleRepository implements RoleRepository {
             log.info("Persisted role id={}, code={}, publishedEvents={}", role.getId().getValue(), role.getCode(), events.size());
 
             return mapper.toFullDomainGraph(saved);
+        });
+    }
+
+    @Override
+    public List<RoleView> queryByName(String name) {
+        return executor.query("Role",() -> {
+            log.info("Querying role by name={}", name);
+            return jpaRepository.findTop5ByNameStartingWithIgnoreCase(name);
         });
     }
 }

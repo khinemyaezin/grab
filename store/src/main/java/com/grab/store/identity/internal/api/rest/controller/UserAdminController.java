@@ -1,8 +1,6 @@
 package com.grab.store.identity.internal.api.rest.controller;
 
-import com.grab.store.identity.internal.api.rest.assembler.UserMutationModelAssembler;
 import com.grab.store.identity.internal.api.rest.assembler.UserProfileModelAssembler;
-import com.grab.store.identity.internal.api.rest.dto.response.UserMutationResponse;
 import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
 import com.grab.store.identity.internal.api.rest.service.UserCommandService;
 import com.grab.store.identity.internal.api.rest.service.UserQueryService;
@@ -34,7 +32,6 @@ public class UserAdminController {
     private final UserCommandService commandService;
     private final UserQueryService queryService;
     private final UserProfileModelAssembler userProfileModelAssembler;
-    private final UserMutationModelAssembler userMutationModelAssembler;
 
     @GetMapping
     public ResponseEntity<PagedModel<EntityModel<UserProfileResponse>>> listUsers(
@@ -54,41 +51,43 @@ public class UserAdminController {
 
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<UserProfileResponse>> getUser(@PathVariable String id) {
-        return ResponseEntity.ok(userProfileModelAssembler.toModel(queryService.getUser(id)));
+        UserProfileResponse response = queryService.getUser(id);
+        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
     }
 
     @PostMapping("/{id}/approve")
-    public ResponseEntity<EntityModel<UserMutationResponse>> approveUser(@PathVariable String id) {
-        return mutationResponse(commandService.changeStatus(id, UserStatus.ACTIVE));
+    public ResponseEntity<EntityModel<UserProfileResponse>> approveUser(@PathVariable String id) {
+        UserProfileResponse response = commandService.changeStatus(id, UserStatus.ACTIVE);
+        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
     }
 
     @PostMapping("/{id}/suspend")
-    public ResponseEntity<EntityModel<UserMutationResponse>> suspendUser(@PathVariable String id) {
-        return mutationResponse(commandService.changeStatus(id, UserStatus.SUSPENDED));
+    public ResponseEntity<EntityModel<UserProfileResponse>> suspendUser(@PathVariable String id) {
+        UserProfileResponse response = commandService.changeStatus(id, UserStatus.SUSPENDED);
+        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
     }
 
     @PostMapping("/{id}/reactivate")
-    public ResponseEntity<EntityModel<UserMutationResponse>> reactivateUser(@PathVariable String id) {
-        return mutationResponse(commandService.changeStatus(id, UserStatus.ACTIVE));
+    public ResponseEntity<EntityModel<UserProfileResponse>> reactivateUser(@PathVariable String id) {
+        UserProfileResponse response = commandService.changeStatus(id, UserStatus.ACTIVE);
+        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
     }
 
     @PutMapping("/{id}/roles/{code}")
-    public ResponseEntity<EntityModel<UserMutationResponse>> assignRole(
+    public ResponseEntity<EntityModel<UserProfileResponse>> assignRole(
             @PathVariable String id,
             @PathVariable String code
     ) {
-        return mutationResponse(commandService.assignRole(id, code, true));
+        UserProfileResponse response = commandService.assignRole(id, code, true);
+        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
     }
 
     @DeleteMapping("/{id}/roles/{code}")
-    public ResponseEntity<EntityModel<UserMutationResponse>> revokeRole(
+    public ResponseEntity<EntityModel<UserProfileResponse>> revokeRole(
             @PathVariable String id,
             @PathVariable String code
     ) {
-        return mutationResponse(commandService.assignRole(id, code, false));
-    }
-
-    private ResponseEntity<EntityModel<UserMutationResponse>> mutationResponse(UserMutationResponse response) {
-        return ResponseEntity.ok(userMutationModelAssembler.toModel(response));
+        UserProfileResponse response = commandService.assignRole(id, code, false);
+        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
     }
 }
