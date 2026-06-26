@@ -76,6 +76,7 @@ security:
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
     refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P7D}
   api:
+    cores: ${SECURITY_API_CORES:* }
     cookie:
       secure: ${SECURITY_API_COOKIE_SECURE:false}
       same-site: ${SECURITY_API_COOKIE_SAME_SITE:Lax}

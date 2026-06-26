@@ -1,11 +1,12 @@
 package com.grab.store.shared.security;
 
+import com.grab.framework.id.Id;
 import com.grab.framework.security.*;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
+import com.identity.domain.repository.RefreshSessionStore;
 import com.identity.domain.service.*;
-import com.identity.infrastructure.entity.*;
-import com.identity.infrastructure.repository.jpa.*;
+import com.identity.domain.valueobject.RefreshSessionDetails;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,8 +22,7 @@ import java.util.*;
 public class LocalTokenIssuer implements TokenIssuer {
     private final PrivateKey localJwtPrivateKey;
     private final LocalJwtProperties properties;
-    private final RefreshSessionJpaRepository sessions;
-    private final UserJpaRepository users;
+    private final RefreshSessionStore sessions;
     private final PlatformIdentityResolver identityResolver;
     private final SecureRandom random = new SecureRandom();
 
@@ -35,53 +35,56 @@ public class LocalTokenIssuer implements TokenIssuer {
     private TokenPair issue(AuthenticatedActor actor, String family) {
         Instant now = Instant.now();
         Instant expiry = now.plus(properties.accessTokenTtl());
-        String access = Jwts.builder().header().keyId("local-current").type("at+jwt").and()
-                .issuer(properties.issuer()).subject(actor.platformUserId()).audience().add(properties.audience()).and()
-                .issuedAt(Date.from(now)).expiration(Date.from(expiry)).id(UUID.randomUUID().toString())
-                .claim("email", actor.email()).claim("roles", actor.roles()).signWith(localJwtPrivateKey, Jwts.SIG.RS256).compact();
+        String access = Jwts.builder()
+                .header()
+                .keyId("local-current")
+                .type("at+jwt")
+                .and()
+                .issuer(properties.issuer())
+                .subject(actor.platformUserId())
+                .audience()
+                .add(properties.audience())
+                .and()
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiry))
+                .id(UUID.randomUUID().toString())
+                .claim("email", actor.email())
+                .claim("roles", actor.roles())
+                .signWith(localJwtPrivateKey, Jwts.SIG.RS256)
+                .compact();
         String refresh = randomToken();
-        RefreshSessionEntity session = new RefreshSessionEntity();
-        session.setUser(users.findByUuid(actor.platformUserId()).orElseThrow());
-        session.setTokenHash(hash(refresh));
-        session.setTokenFamilyId(family);
-        session.setCreatedAt(now);
-        session.setExpiresAt(now.plus(properties.refreshTokenTtl()));
-        sessions.save(session);
+        sessions.saveNewSession(actor.platformUserId(), hash(refresh), family, now.plus(properties.refreshTokenTtl()));
         return new TokenPair(access, refresh, properties.accessTokenTtl().toMillis());
     }
 
     @Override
-    @Transactional(transactionManager = "identityTransactionManager")
     public TokenPair refresh(String refreshToken) {
-        RefreshSessionEntity old = sessions.findByTokenHash(hash(refreshToken)).orElseThrow(() -> invalidRefresh());
+        RefreshSessionDetails old = sessions.findByTokenHash(hash(refreshToken))
+                .orElseThrow(this::invalidRefresh);
         Instant now = Instant.now();
-        if (old.getRevokedAt() != null) {
-            var family = sessions.findByTokenFamilyId(old.getTokenFamilyId());
-            family.forEach(member -> {
-                if (member.getRevokedAt() == null) member.setRevokedAt(now);
-            });
-            sessions.saveAll(family);
+        if (old.revokedAt() != null) {
+            sessions.revokeFamily(old.tokenFamilyId());
             throw invalidRefresh();
         }
-        if (old.getExpiresAt().isBefore(now)) throw invalidRefresh();
-        ExternalPrincipal principal = new ExternalPrincipal(properties.issuer(), old.getUser().getUuid(), Optional.of(old.getUser().getEmail()), Set.of());
+        if (old.expiresAt().isBefore(now))
+            throw invalidRefresh();
+
+        ExternalPrincipal principal = new ExternalPrincipal(properties.issuer(), old.userId(), Optional.ofNullable(old.userEmail()), Set.of());
         AuthenticatedActor actor = identityResolver.resolve(principal);
-        TokenPair replacement = issue(actor, old.getTokenFamilyId());
-        RefreshSessionEntity replacementRow = sessions.findByTokenHash(hash(replacement.refreshToken())).orElseThrow();
-        old.setRevokedAt(now);
-        old.setLastUsedAt(now);
-        old.setReplacedById(replacementRow.getId());
-        sessions.save(old);
+        TokenPair replacement = issue(actor, old.tokenFamilyId());
+        sessions.replaceSession(hash(refreshToken), hash(replacement.refreshToken()), now);
+
         return replacement;
     }
 
     @Override
-    @Transactional(transactionManager = "identityTransactionManager")
     public void revoke(String refreshToken) {
-        sessions.findByTokenHash(hash(refreshToken)).ifPresent(s -> {
-            if (s.getRevokedAt() == null) s.setRevokedAt(Instant.now());
-            sessions.save(s);
-        });
+        sessions.revokeSession(hash(refreshToken));
+    }
+
+    @Override
+    public void revokeAll(Id userId) {
+        sessions.revokeAll(userId.getValue());
     }
 
     private String randomToken() {
@@ -92,7 +95,9 @@ public class LocalTokenIssuer implements TokenIssuer {
 
     private String hash(String token) {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8)));
+            return HexFormat.of()
+                    .formatHex(MessageDigest.getInstance("SHA-256")
+                            .digest(token.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
