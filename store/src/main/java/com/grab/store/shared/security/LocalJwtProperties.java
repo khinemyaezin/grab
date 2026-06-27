@@ -5,7 +5,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.time.Duration;
 
 @ConfigurationProperties("security.local-jwt")
-public record LocalJwtProperties(String issuer, String audience, Duration accessTokenTtl, Duration refreshTokenTtl) {
+public record LocalJwtProperties(
+        String issuer,
+        String audience,
+        Duration accessTokenTtl,
+        Duration refreshTokenTtl
+) {
     public LocalJwtProperties {
         if (issuer == null || issuer.isBlank())
             throw new IllegalArgumentException("JWT issuer is required");

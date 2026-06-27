@@ -13,7 +13,7 @@ import com.grab.store.shared.security.expection.IdentitySecurityError;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.service.PasswordHasher;
-import com.identity.domain.service.TokenIssuer;
+import com.identity.domain.service.TokenLifeCycle;
 import com.identity.domain.service.TokenPair;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
 
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
-    private final TokenIssuer tokenIssuer;
+    private final TokenLifeCycle tokenLifeCycle;
     private final PlatformIdentityResolver identityResolver;
     private final LocalJwtProperties jwtProperties;
 
@@ -48,7 +48,7 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
                 Optional.of(user.getEmail().value()),
                 user.getRoleCodes()
         ));
-        TokenPair tokenPair = tokenIssuer.issue(actor);
+        TokenPair tokenPair = tokenLifeCycle.issue(actor);
         return new AuthResult(
                 tokenPair.accessToken(),
                 tokenPair.refreshToken(),

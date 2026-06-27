@@ -23,17 +23,31 @@ public class ProviderBearerAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+        String token = null;
         String header = request.getHeader("Authorization");
-        if (header == null) {
+        
+        if (header != null) {
+            if (!header.startsWith("Bearer ") || header.length() <= 7) {
+                entryPoint.commence(request, response, new IdentityAuthenticationException(new IdentitySecurityError.MalformedToken(), "Malformed Bearer token"));
+                return;
+            }
+            token = header.substring(7);
+        } else if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (token == null) {
             chain.doFilter(request, response);
             return;
         }
-        if (!header.startsWith("Bearer ") || header.length() <= 7) {
-            entryPoint.commence(request, response, new IdentityAuthenticationException(new IdentitySecurityError.MalformedToken(), "Malformed Bearer token"));
-            return;
-        }
+
         try {
-            ExternalPrincipal external = authenticator.authenticate(header.substring(7));
+            ExternalPrincipal external = authenticator.authenticate(token);
             AuthenticatedActor actor = resolver.resolve(external);
             SecurityPrincipal principal = new SecurityPrincipal(actor);
             var authentication = UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities());

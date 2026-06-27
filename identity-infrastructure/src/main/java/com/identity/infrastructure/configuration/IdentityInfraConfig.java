@@ -7,10 +7,10 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
-import com.identity.domain.repository.RoleRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.repository.AuthorityRepository;
-import com.identity.domain.service.RefreshSessionRevoker;
+import com.identity.domain.repository.SessionStore;
+import com.identity.infrastructure.repository.adapter.JpaSessionStoreAdapter;
 import com.identity.infrastructure.mapper.jpa.RoleJpaAssembler;
 import com.identity.infrastructure.mapper.jpa.UserJpaAssembler;
 import com.identity.infrastructure.outbox.IdentityOutboxEvent;
@@ -24,7 +24,6 @@ import com.identity.infrastructure.repository.jpa.impl.DefaultAuthorityRepositor
 import com.identity.infrastructure.repository.jpa.impl.DefaultRoleRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultUserRepository;
 import com.identity.infrastructure.repository.jpa.impl.IdentityPersistenceExecutor;
-import com.identity.infrastructure.security.JpaRefreshSessionRevoker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -118,7 +117,7 @@ public class IdentityInfraConfig {
     }
 
     @Bean
-    public RefreshSessionRevoker refreshSessionRevoker(RefreshSessionJpaRepository jpaRepository) {
-        return new JpaRefreshSessionRevoker(jpaRepository);
+    public SessionStore refreshSessionStore(RefreshSessionJpaRepository sessionRepository, UserJpaRepository userRepository) {
+        return new JpaSessionStoreAdapter(sessionRepository, userRepository);
     }
 }

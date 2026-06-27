@@ -45,6 +45,10 @@ public class IdentityRootController {
                 .withRel("login"));
 
         model.add(linkTo(methodOn(AuthController.class)
+                .logout(null,null))
+                .withRel("logout"));
+
+        model.add(linkTo(methodOn(AuthController.class)
                 .register(null))
                 .withRel("register"));
 

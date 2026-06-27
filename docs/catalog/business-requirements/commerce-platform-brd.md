@@ -223,7 +223,7 @@ Requirements:
 - Support catalog moderation and approval where required
 - Support category-based listing rules and prohibited products
 
-Check the [Catalog Module PRD](../PRD/catalog-module-prd.md) for catalog requirements.
+Check the [Catalog Module PRD](../product-requirements/catalog-module-prd.md) for catalog requirements.
 
 ### 11.3 Inventory and Availability
 

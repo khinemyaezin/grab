@@ -90,8 +90,8 @@ It must:
 - validate email format and uniqueness
 - hash the password using BCrypt before storage
 - create the user with the appropriate initial status:
-  - customer accounts are created as ACTIVE
-  - seller accounts are created as PENDING_APPROVAL
+    - customer accounts are created as ACTIVE
+    - seller accounts are created as PENDING_APPROVAL
 - return a JWT token pair (access + refresh) for customer registrations
 - return a confirmation without a usable token for seller registrations
   pending approval

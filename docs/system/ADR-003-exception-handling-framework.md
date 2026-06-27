@@ -15,10 +15,10 @@ Error handling across modules needs a consistent, low-coupling shape that:
 
 The shared framework already provides core contracts:
 
-- [`DomainException`](../../../framework/src/main/java/com/grab/framework/exception/DomainException.java)
-- [`MessageSource`](../../../framework/src/main/java/com/grab/framework/exception/MessageSource.java)
-- [`ErrorCategory`](../../../framework/src/main/java/com/grab/framework/exception/ErrorCategory.java)
-- [`MessageResolver`](../../../framework/src/main/java/com/grab/framework/exception/MessageResolver.java)
+- [`DomainException`](../../framework/src/main/java/com/grab/framework/exception/DomainException.java)
+- [`MessageSource`](../../framework/src/main/java/com/grab/framework/exception/MessageSource.java)
+- [`ErrorCategory`](../../framework/src/main/java/com/grab/framework/exception/ErrorCategory.java)
+- [`MessageResolver`](../../framework/src/main/java/com/grab/framework/exception/MessageResolver.java)
 
 ## Decision
 
