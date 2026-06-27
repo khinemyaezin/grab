@@ -4,7 +4,7 @@
 
 This document defines the business requirements for authentication and
 authorization on the commerce platform. It supplements the
-[Commerce Platform BRD](commerce-platform-brd.md), which identifies identity
+[Commerce Platform BRD](../../catalog/business-requirements/commerce-platform-brd.md), which identifies identity
 verification and user role management as platform dependencies.
 
 The platform must verify the identity of every user performing a
@@ -292,6 +292,6 @@ server; it does not become an OAuth2 authorization server or OIDC provider.
 
 ## 13. Related Documents
 
-- [Commerce Platform BRD](commerce-platform-brd.md)
+- [Commerce Platform BRD](../../catalog/business-requirements/commerce-platform-brd.md)
 - `docs/PRD/identity-module-prd.md`
 - `docs/architecture/decisions/ADR-012-authentication-authorization.md`

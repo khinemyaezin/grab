@@ -66,7 +66,7 @@ separate module-owned tables. Preferred layout:
 - otherwise separate table names such as `{module-schemas-name}_outbox_event`.
 
 See the design diagram in
-[module-scoped-outbox.md](../diagrams/module-scoped-outbox.md).
+[module-scoped-outbox.md](module-scoped-outbox.md).
 
 ---
 

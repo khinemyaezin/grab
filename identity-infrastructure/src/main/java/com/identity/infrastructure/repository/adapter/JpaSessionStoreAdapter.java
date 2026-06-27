@@ -1,7 +1,7 @@
 package com.identity.infrastructure.repository.adapter;
 
-import com.identity.domain.valueobject.RefreshSessionDetails;
-import com.identity.domain.repository.RefreshSessionStore;
+import com.identity.domain.valueobject.SessionDetails;
+import com.identity.domain.repository.SessionStore;
 import com.identity.infrastructure.entity.RefreshSessionEntity;
 import com.identity.infrastructure.entity.UserEntity;
 import com.identity.infrastructure.repository.jpa.RefreshSessionJpaRepository;
@@ -12,7 +12,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class JpaRefreshSessionStoreAdapter implements RefreshSessionStore {
+public class JpaSessionStoreAdapter implements SessionStore {
 
     private final RefreshSessionJpaRepository sessionRepository;
     private final UserJpaRepository userRepository;
@@ -30,9 +30,9 @@ public class JpaRefreshSessionStoreAdapter implements RefreshSessionStore {
     }
 
     @Override
-    public Optional<RefreshSessionDetails> findByTokenHash(String tokenHash) {
+    public Optional<SessionDetails> findByTokenHash(String tokenHash) {
         return sessionRepository.findByTokenHash(tokenHash).map(entity -> 
-            new RefreshSessionDetails(
+            new SessionDetails(
                 entity.getUser().getUuid(),
                 entity.getUser().getEmail(),
                 entity.getTokenFamilyId(),

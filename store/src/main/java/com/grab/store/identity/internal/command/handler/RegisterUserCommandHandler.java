@@ -16,7 +16,7 @@ import com.identity.domain.aggregate.User;
 import com.identity.domain.repository.RoleRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.service.PasswordHasher;
-import com.identity.domain.service.TokenIssuer;
+import com.identity.domain.service.TokenLifeCycle;
 import com.identity.domain.service.TokenPair;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class RegisterUserCommandHandler implements CommandHandler<RegisterUserCo
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordHasher passwordHasher;
-    private final TokenIssuer tokenIssuer;
+    private final TokenLifeCycle tokenLifeCycle;
     private final PlatformIdentityResolver identityResolver;
     private final LocalJwtProperties jwtProperties;
     private final IdGenerator idGenerator;
@@ -85,7 +85,7 @@ public class RegisterUserCommandHandler implements CommandHandler<RegisterUserCo
                 Optional.of(email.value()),
                 saved.getRoleCodes()
         ));
-        TokenPair tokenPair = tokenIssuer.issue(actor);
+        TokenPair tokenPair = tokenLifeCycle.issue(actor);
         return new AuthResult(
                 tokenPair.accessToken(),
                 tokenPair.refreshToken(),

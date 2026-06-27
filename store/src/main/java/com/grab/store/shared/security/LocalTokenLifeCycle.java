@@ -4,9 +4,9 @@ import com.grab.framework.id.Id;
 import com.grab.framework.security.*;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
-import com.identity.domain.repository.RefreshSessionStore;
+import com.identity.domain.repository.SessionStore;
 import com.identity.domain.service.*;
-import com.identity.domain.valueobject.RefreshSessionDetails;
+import com.identity.domain.valueobject.SessionDetails;
 import io.jsonwebtoken.Jwts;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,10 +19,10 @@ import java.util.*;
 
 @Component
 @RequiredArgsConstructor
-public class LocalTokenIssuer implements TokenIssuer {
+public class LocalTokenLifeCycle implements TokenLifeCycle {
     private final PrivateKey localJwtPrivateKey;
     private final LocalJwtProperties properties;
-    private final RefreshSessionStore sessions;
+    private final SessionStore sessions;
     private final PlatformIdentityResolver identityResolver;
     private final SecureRandom random = new SecureRandom();
 
@@ -59,7 +59,7 @@ public class LocalTokenIssuer implements TokenIssuer {
 
     @Override
     public TokenPair refresh(String refreshToken) {
-        RefreshSessionDetails old = sessions.findByTokenHash(hash(refreshToken))
+        SessionDetails old = sessions.findByTokenHash(hash(refreshToken))
                 .orElseThrow(this::invalidRefresh);
         Instant now = Instant.now();
         if (old.revokedAt() != null) {

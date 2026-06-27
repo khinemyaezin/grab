@@ -9,7 +9,7 @@ import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.enums.UserStatus;
 import com.identity.domain.repository.UserRepository;
-import com.identity.domain.service.TokenIssuer;
+import com.identity.domain.service.TokenLifeCycle;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class ChangeUserStatusCommandHandler implements CommandHandler<ChangeUserStatusCommand, UserProfileResult> {
 
     private final UserRepository userRepository;
-    private final TokenIssuer tokenIssuer;
+    private final TokenLifeCycle tokenLifeCycle;
 
     @Override
     @IdentityTransactional
@@ -31,7 +31,7 @@ public class ChangeUserStatusCommandHandler implements CommandHandler<ChangeUser
 
         if (command.status() == UserStatus.SUSPENDED) {
             user.suspend();
-            tokenIssuer.revokeAll(user.getId());
+            tokenLifeCycle.revokeAll(user.getId());
         } else if (command.status() == UserStatus.ACTIVE && user.getStatus() == UserStatus.PENDING_APPROVAL) {
             user.activate();
         } else if (command.status() == UserStatus.ACTIVE && user.getStatus() == UserStatus.SUSPENDED) {

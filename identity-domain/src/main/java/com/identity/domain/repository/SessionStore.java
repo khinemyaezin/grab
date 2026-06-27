@@ -1,14 +1,14 @@
 package com.identity.domain.repository;
 
-import com.identity.domain.valueobject.RefreshSessionDetails;
+import com.identity.domain.valueobject.SessionDetails;
 
 import java.time.Instant;
 import java.util.Optional;
 
-public interface RefreshSessionStore {
+public interface SessionStore {
     void saveNewSession(String userId, String tokenHash, String tokenFamilyId, Instant expiresAt);
     
-    Optional<RefreshSessionDetails> findByTokenHash(String tokenHash);
+    Optional<SessionDetails> findByTokenHash(String tokenHash);
     
     void revokeFamily(String tokenFamilyId);
     

@@ -7,9 +7,9 @@ import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
-import com.identity.domain.repository.RefreshSessionStore;
+import com.identity.domain.repository.SessionStore;
 import com.identity.domain.service.TokenPair;
-import com.identity.domain.valueobject.RefreshSessionDetails;
+import com.identity.domain.valueobject.SessionDetails;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,16 +33,16 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class LocalTokenIssuerTest {
+class LocalTokenLifeCycleTest {
 
     @Mock
-    private RefreshSessionStore sessions;
+    private SessionStore sessions;
     @Mock
     private PlatformIdentityResolver identityResolver;
 
     private KeyPair keyPair;
     private LocalJwtProperties properties;
-    private LocalTokenIssuer tokenIssuer;
+    private LocalTokenLifeCycle tokenIssuer;
 
     @BeforeEach
     void setUp() throws NoSuchAlgorithmException {
@@ -51,7 +51,7 @@ class LocalTokenIssuerTest {
         keyPair = kpg.generateKeyPair();
 
         properties = new LocalJwtProperties("test-issuer", "test-audience", Duration.ofMinutes(15), Duration.ofDays(7));
-        tokenIssuer = new LocalTokenIssuer(keyPair.getPrivate(), properties, sessions, identityResolver);
+        tokenIssuer = new LocalTokenLifeCycle(keyPair.getPrivate(), properties, sessions, identityResolver);
     }
 
     @Test
@@ -78,7 +78,7 @@ class LocalTokenIssuerTest {
     void refresh_withReusedToken_shouldRevokeTokenFamily() {
         String tokenFamily = UUID.randomUUID().toString();
 
-        RefreshSessionDetails oldSession = new RefreshSessionDetails(
+        SessionDetails oldSession = new SessionDetails(
                 "userId1", "test@example.com", tokenFamily, Instant.now().plusSeconds(3600), Instant.now().minusSeconds(10));
         when(sessions.findByTokenHash(anyString())).thenReturn(Optional.of(oldSession));
 
@@ -90,7 +90,7 @@ class LocalTokenIssuerTest {
 
     @Test
     void refresh_withExpiredToken_shouldFail() {
-        RefreshSessionDetails oldSession = new RefreshSessionDetails(
+        SessionDetails oldSession = new SessionDetails(
                 "userId1", "test@example.com", "tokenFamily", Instant.now().minusSeconds(10), null);
 
         when(sessions.findByTokenHash(anyString())).thenReturn(Optional.of(oldSession));
@@ -103,7 +103,7 @@ class LocalTokenIssuerTest {
     void refresh_withValidToken_shouldReturnNewTokenPair() {
         String tokenFamily = UUID.randomUUID().toString();
         
-        RefreshSessionDetails oldSession = new RefreshSessionDetails(
+        SessionDetails oldSession = new SessionDetails(
                 "userId1", "test@example.com", tokenFamily, Instant.now().plus(Duration.ofDays(1)), null);
 
         when(sessions.findByTokenHash(anyString())).thenReturn(Optional.of(oldSession));

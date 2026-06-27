@@ -7,116 +7,55 @@ token infrastructure changes from self-hosted JWT to an external provider.
 ## Overview: Provider-Neutral Authentication Architecture
 
 ```mermaid
-flowchart TB
-    Client["Client (Browser / Mobile / API)"]
+flowchart TD
+    Client["Client (Mobile / Web)"]
 
-    subgraph security["Security Layer (store module)"]
-        Filter["ProviderBearerAuthenticationFilter\n(OncePerRequestFilter)"]
-        Config["SecurityFilterChain\n(SecurityConfig)"]
-        EntryPoint["ProblemDetailAuthEntryPoint (401)"]
-        Denied["ProblemDetailAccessDeniedHandler (403)"]
-        Principal["SecurityPrincipal\n(UserDetails wrapper)"]
-        AuthErrors["IdentityAuthenticationException\n+ IdentitySecurityError (sealed)"]
+    %% --- Key Components ---
+    subgraph FilterLayer["Security Filter Chain"]
+        AuthFilter["Authentication Filter\n(Intercepts Request)"]
     end
 
-    subgraph contract["Framework Contract (framework module)"]
-        AuthPort["AccessTokenAuthenticator\nauthenticate(bearerToken) → ExternalPrincipal"]
-        External["ExternalPrincipal\n(issuer, subject, email?, entitlements)"]
-        ResolverPort["PlatformIdentityResolver\nresolve(ExternalPrincipal) → AuthenticatedActor"]
-        AuthUser["AuthenticatedActor\n(platformUserId, issuer, subject, email, roles, authorities)"]
+    subgraph AuthLayer["Authentication & Identity"]
+        JwtAuth["JWT Authenticator\n(Verifies Signature)"]
+        IdentityResolver["Identity Resolver\n(Builds User Principal)"]
+        TokenIssuer["Token Issuer\n(Handles Login / Refresh)"]
     end
 
-    subgraph adapter_now["Current Provider: Self-Hosted JWT (store module)"]
-        LocalAuth["LocalJwtAccessTokenAuthenticator\n(JJWT parser)"]
-        KeyConfig["JwtKeyConfiguration\n(RSA 2048 KeyPair)"]
-        Props["LocalJwtProperties\n(issuer, audience, TTLs)"]
+    subgraph DataLayer["Infrastructure & Persistence"]
+        KeyConfig["RSA Key Pair\n(Signing / Verification)"]
+        UserDB[(Users, Roles & Authorities)]
+        SessionDB[(Refresh Sessions)]
     end
 
-    subgraph token_infra["Token Issuance (store module)"]
-        TokenIssuer["LocalTokenIssuer\n(implements TokenIssuer)"]
-        RefreshSessions["RefreshSessionEntity\n(family rotation, SHA-256 hashing)"]
+    subgraph AppLayer["Application"]
+        Controllers["Secured Controllers & Services"]
     end
 
-    subgraph resolver_infra["Identity Resolution (store module)"]
-        ResolverAdapter["IdentityResolverAdapter\n(implements PlatformIdentityResolver)"]
-    end
+    %% --- Token Issuance Flow ---
+    TokenIssuer -- "Signs JWT" --> KeyConfig
+    TokenIssuer -- "Manages Family Rotation" --> SessionDB
 
-    subgraph identity["Platform Identity (identity-infrastructure)"]
-        UserTable["UserEntity\n(uuid, email, status, roles)"]
-        ExternalId["ExternalIdentityEntity\n(issuer, subject → user)"]
-        EntitlementMap["ExternalEntitlementMappingEntity\n(issuer, entitlement → role)"]
-        Roles["RoleEntity\n(code, active, authorities)"]
-        Authorities["AuthorityEntity\n(code, active)"]
-    end
+    %% --- API Request Flow ---
+    Client -- "1. Request + Bearer Token" --> AuthFilter
+    
+    AuthFilter -- "2. Validate Token" --> JwtAuth
+    JwtAuth -. "Read Public Key" .-> KeyConfig
+    JwtAuth -- "3. Valid Token Subject" --> IdentityResolver
+    
+    IdentityResolver -. "Fetch User & Entitlements" .-> UserDB
+    IdentityResolver -- "4. Return Authenticated Actor" --> AuthFilter
+    
+    AuthFilter -- "5. Forward Request" --> Controllers
+    
+    %% Styling for clarity
+    classDef filter fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef auth fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef db fill:#bfb,stroke:#333,stroke-width:2px;
+    
+    class AuthFilter filter;
+    class JwtAuth,IdentityResolver,TokenIssuer auth;
+    class UserDB,SessionDB,KeyConfig db;
 
-    subgraph adapter_future["Future OAuth2 / OIDC Provider"]
-        JwtAuth["OidcJwtAccessTokenAuthenticator"]
-        OpaqueAuth["OpaqueTokenAccessTokenAuthenticator"]
-        JWKS["Issuer metadata / JWKS"]
-        Introspection["Token introspection endpoint"]
-        IdPServer["Keycloak / Auth0 / Cognito"]
-    end
-
-    subgraph application["Application Layer"]
-        Controllers["Controllers\n(@AuthenticationPrincipal SecurityPrincipal)"]
-        Services["Command / Query Services"]
-        Handlers["CQRS Handlers"]
-    end
-
-    Client -- "Authorization: Bearer token" --> Filter
-
-    Filter -- "authenticate(token)" --> AuthPort
-    AuthPort --> LocalAuth
-    AuthPort -.-> JwtAuth
-    AuthPort -.-> OpaqueAuth
-    LocalAuth -- "verify signature,\nissuer, audience, typ" --> KeyConfig
-    LocalAuth --> Props
-    JwtAuth -.-> JWKS
-    OpaqueAuth -.-> Introspection
-    JWKS -.-> IdPServer
-    Introspection -.-> IdPServer
-
-    LocalAuth -- "returns" --> External
-    JwtAuth -.-> External
-    OpaqueAuth -.-> External
-
-    Filter -- "resolve(externalPrincipal)" --> ResolverPort
-    ResolverPort --> ResolverAdapter
-
-    ResolverAdapter -- "local issuer:\nfindByUuid(subject)" --> UserTable
-    ResolverAdapter -- "external issuer:\nfindByIssuerAndSubject" --> ExternalId
-    ExternalId --> UserTable
-    ResolverAdapter -- "merge entitlements\nfindByIssuerAndEntitlementIn" --> EntitlementMap
-    EntitlementMap --> Roles
-    UserTable --> Roles
-    Roles --> Authorities
-
-    ResolverAdapter -- "returns" --> AuthUser
-    AuthUser --> Principal
-    Principal -- "UsernamePasswordAuthenticationToken\n.authenticated(principal, authorities)" --> Filter
-
-    Filter -- "error" --> AuthErrors
-    AuthErrors --> EntryPoint
-
-    Filter --> Config
-    Config --> EntryPoint
-    Config --> Denied
-
-    Filter -- "sets SecurityContext\nwith SecurityPrincipal" --> Controllers
-    Controllers --> Services
-    Services --> Handlers
-
-    TokenIssuer -- "issue / refresh / revoke" --> RefreshSessions
-    TokenIssuer --> KeyConfig
-    TokenIssuer --> Props
-    TokenIssuer --> ResolverPort
-
-    style adapter_future stroke-dasharray: 5 5
-    style JwtAuth stroke-dasharray: 5 5
-    style OpaqueAuth stroke-dasharray: 5 5
-    style JWKS stroke-dasharray: 5 5
-    style Introspection stroke-dasharray: 5 5
-    style IdPServer stroke-dasharray: 5 5
 ```
 
 ## Authentication Flow

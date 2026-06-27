@@ -7,11 +7,10 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
-import com.identity.domain.repository.RoleRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.repository.AuthorityRepository;
-import com.identity.domain.repository.RefreshSessionStore;
-import com.identity.infrastructure.repository.adapter.JpaRefreshSessionStoreAdapter;
+import com.identity.domain.repository.SessionStore;
+import com.identity.infrastructure.repository.adapter.JpaSessionStoreAdapter;
 import com.identity.infrastructure.mapper.jpa.RoleJpaAssembler;
 import com.identity.infrastructure.mapper.jpa.UserJpaAssembler;
 import com.identity.infrastructure.outbox.IdentityOutboxEvent;
@@ -118,7 +117,7 @@ public class IdentityInfraConfig {
     }
 
     @Bean
-    public RefreshSessionStore refreshSessionStore(RefreshSessionJpaRepository sessionRepository, UserJpaRepository userRepository) {
-        return new JpaRefreshSessionStoreAdapter(sessionRepository, userRepository);
+    public SessionStore refreshSessionStore(RefreshSessionJpaRepository sessionRepository, UserJpaRepository userRepository) {
+        return new JpaSessionStoreAdapter(sessionRepository, userRepository);
     }
 }
