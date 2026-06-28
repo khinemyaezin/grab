@@ -1,7 +1,7 @@
-# Platform-Scoped Identity Access for Merchant Resources
+# Platform-Scoped and Extensible Identity Access
 
 **Status:** Accepted  
-**Date:** 2026-06-27
+**Date:** 2026-06-28
 
 ---
 
@@ -35,8 +35,6 @@ business objects in a separate Merchant bounded context.
 - **Shared Platforms:** Introduced `CUSTOMER_APP`, `SELLER_PORTAL`, and `ADMIN_CONSOLE`.
 - **Platform Roles:** Created `PlatformRole` to restrict which roles apply to which platform.
 - **Scoped Assignments:** Replaced global `UserRole` with `AccessAssignment` (User + Platform Role + Resource Scope).
-- **Extensible Scope Keys:** Resource scopes use validated namespaced keys rather than an Identity-owned business enum.
-- **Explicit Delegation Rules:** Role delegation is denied by default and allowed only by persisted role relationships.
 - **Context-Bound Tokens:** Access and refresh tokens are tied strictly to a single platform and active context.
 - **Scoped Invitations:** Allow staff access without creating redundant merchant or storefront accounts.
 - **Event-Driven Lifecycles:** Merchant lifecycle changes are coordinated via integration events, not shared transactions.
@@ -67,11 +65,15 @@ classDiagram
   class AUTHORITY
   class ACCESS_INVITATION
   class REFRESH_SESSION
+  class SCOPE_KEY
+  class ROLE_DELEGATION_RULE
   class MERCHANT_ACCOUNT
 
   USER "1" --> "*" ACCESS_ASSIGNMENT : receives
   PLATFORM "1" --> "*" PLATFORM_ROLE : supports
   ROLE "1" --> "*" PLATFORM_ROLE : maps
+  ROLE "1" --> "*" ROLE_DELEGATION_RULE : delegates_from
+  ROLE "1" --> "*" ROLE_DELEGATION_RULE : delegates_to
   ROLE "*" --> "*" AUTHORITY : grants
   PLATFORM_ROLE "1" --> "*" ACCESS_ASSIGNMENT : assigned
   USER "1" --> "*" ACCESS_INVITATION : accepts
@@ -82,6 +84,7 @@ classDiagram
   style PLATFORM fill:#2B4F35,stroke:#4caf50,stroke-width:2px
   style PLATFORM_ROLE fill:#2B4F35,stroke:#4caf50,stroke-width:2px
   style ACCESS_INVITATION fill:#2B4F35,stroke:#4caf50,stroke-width:2px
+  style ROLE_DELEGATION_RULE fill:#2B4F35,stroke:#4caf50,stroke-width:2px
 ```
 
 ### Identity Context-Bound Authentication Flow
@@ -157,6 +160,8 @@ sequenceDiagram
 - **Merchant Integration:** Build outbox-backed event consumers to sync Merchant and Identity modules.
 - **Seed Data:** Add roles and authorities tailored to merchants and onboarding.
 - **Authorization Helpers:** Build scope-specific verification utilities for resource-ownership checks.
+- **Delegation Policy:** Add `RoleDelegationPolicy`, its rule-based
+  implementation, and repository port/adapter.
 
 **Changes to existing systems:**
 - **Database Schema:** Replace `user_roles` with `access_assignments`. Add tables for platforms and invitations, and extend `refresh_sessions` with context fields.
@@ -165,6 +170,11 @@ sequenceDiagram
 - **Seller Lifecycle:** Move seller approval out of `User.status` and into the Merchant module and scoped assignments. Migrate old `SELLER` roles to the new model.
 - **API Contracts:** APIs must read actor/seller identifiers strictly from the `SecurityPrincipal`, ignoring them in request headers or bodies.
 - **External Identity Mappings:** Ensure provider entitlements map to explicit platforms and scopes without trusting raw token claims for merchant IDs.
+- **Scope Contracts:** Use `scopeKey` in API and result fields, `scope_key` in
+  JWT claims, and `scope_key` in Identity persistence columns.
+- **Delegation Persistence:** Add `role_delegation_rules`, seed the current
+  explicit relationships, and require configuration for every new delegable
+  role.
 
 
 **Team impact:**
@@ -182,31 +192,32 @@ sequenceDiagram
 
 ---
 
-## 6. Migration Plan
+## 6. Implementation Plan
 
-- **Phase 1 — Additive foundation:** Create platform, platform-role,
+- **Phase 1 — Platform access foundation:** Create platform, platform-role,
   assignment, invitation, and session-context columns. Seed platform-role and
   authority mappings. Add context to the actor model while retaining legacy
   role reads behind a compatibility path.
-- **Phase 2 — Merchant onboarding:** Introduce the Merchant module events,
+- **Phase 2 — Extensible scopes and delegation:** Introduce namespaced scope keys
+  for generic access scope validation and seed persisted delegation rules.
+- **Phase 3 — Merchant onboarding:** Introduce the Merchant module events,
   applicant/owner grant transitions, scoped invitations, context selection,
   and context-bound token/session issuance. Stop accepting seller as a public
   registration role.
-- **Phase 3 — Authorization migration:** Backfill customer and admin global
-  assignments, then backfill merchant assignments after MerchantAccount IDs
-  exist. Switch identity resolution to scoped assignments and remove trusted
-  use of caller-provided actor/seller IDs.
-- **Phase 4 — Cleanup:** Remove the legacy `SELLER` role and `user_roles` table
-  after reconciliation confirms every required assignment exists. Remove the
-  compatibility resolver and obsolete request fields.
+- **Phase 4 — Authorization migration and cleanup:** Backfill customer and admin
+  global assignments, then backfill merchant assignments after MerchantAccount
+  IDs exist. Switch identity resolution to scoped assignments and remove
+  trusted use of caller-provided actor/seller IDs. Remove the legacy `SELLER`
+  role, `user_roles` table, compatibility resolver, and obsolete request fields
+  only after reconciliation succeeds.
 
 **Rollback strategy:**  
-Keep `user_roles` and its resolver path during the additive and backfill phases.
-Scoped assignments are introduced behind a configuration switch, and migration
-jobs are idempotent. If scoped resolution fails before cleanup, disable it and
-return to legacy role reads while retaining the new tables for diagnosis. Do
-not drop legacy data or request compatibility until assignment counts, access
-decisions, refresh behavior, and cross-merchant denial tests pass in production.
+Keep `user_roles` and its resolver path during the platform-assignment backfill.
+If scoped resolution fails before cleanup, disable it and return to legacy role
+reads while retaining the new tables for diagnosis. Reverting the scope-key
+contract requires a compensating migration and client reauthentication. Preserve the
+delegation table for diagnosis because it is additive and does not alter role
+or assignment identity.
 
 ---
 
@@ -214,8 +225,6 @@ decisions, refresh behavior, and cross-merchant denial tests pass in production.
 
 - [ADR-001: Authentication and Authorization](ADR-001_authentication-authorization.md)
 - [ADR-002: Frontend Communication and Authentication](ADR-002_authentication-cookie-session.md)
-- [ADR-004: Extensible Access Scopes and Role Delegation](ADR-004_extensible-access-scopes-and-role-delegation.md)
 - [Identity Domain Aggregate Diagram](DRG-001_identity-domain-aggregates.md)
 - [Identity Security Architecture Diagram](DRG-002_identity-architecture.md)
 - [System Architecture as a Modulith](../../system/ADR-001-system-architecture.md)
-- [ADR Writing Guideline](../../SKILLS.md)
