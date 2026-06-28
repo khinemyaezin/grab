@@ -9,13 +9,21 @@ COPY .mvn .mvn
 COPY mvnw .
 
 COPY framework/pom.xml framework/
+
 COPY outbox-infrastructure/pom.xml outbox-infrastructure/
+
 COPY catalog-domain/pom.xml catalog-domain/
 COPY catalog-infrastructure/pom.xml catalog-infrastructure/
+
 COPY inventory-domain/pom.xml inventory-domain/
 COPY inventory-infrastructure/pom.xml inventory-infrastructure/
+
 COPY identity-domain/pom.xml identity-domain/
 COPY identity-infrastructure/pom.xml identity-infrastructure/
+
+COPY merchant-domain/pom.xml merchant-domain/
+COPY merchant-infrastructure/pom.xml merchant-infrastructure/
+
 COPY logger-slf4j/pom.xml logger-slf4j/
 COPY store/pom.xml store/
 
@@ -24,12 +32,19 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 COPY framework/src framework/src
 COPY outbox-infrastructure/src outbox-infrastructure/src
+
 COPY catalog-domain/src catalog-domain/src
 COPY catalog-infrastructure/src catalog-infrastructure/src
+
 COPY inventory-domain/src inventory-domain/src
 COPY inventory-infrastructure/src inventory-infrastructure/src
+
 COPY identity-domain/src identity-domain/src
 COPY identity-infrastructure/src identity-infrastructure/src
+
+COPY merchant-domain/src merchant-domain/src
+COPY merchant-infrastructure/src merchant-infrastructure/src
+
 COPY logger-slf4j/src logger-slf4j/src
 COPY store/src store/src
 

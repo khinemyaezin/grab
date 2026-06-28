@@ -20,6 +20,8 @@
         <module>inventory-infrastructure</module>
         <module>identity-domain</module>
         <module>identity-infrastructure</module>
+        <module>merchant-domain</module>
+        <module>merchant-infrastructure</module>
         <module>store</module>
     </modules>
 

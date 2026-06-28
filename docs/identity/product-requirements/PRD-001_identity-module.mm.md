@@ -315,6 +315,6 @@
 ## ၁၂။ ဆက်စပ်စာတမ်းတွေ
 
 - [အွန်လိုင်းဈေးရောင်းဈေးဝယ်စနစ်ဆိုင်ရာ လုပ်ငန်းလိုအပ်ချက်စာတမ်း](../../catalog/business-requirements/commerce-platform-brd.md)
-- [အသုံးပြုသူစိစစ်ခြင်းနှင့် လုပ်ပိုင်ခွင့်ဆိုင်ရာ ဆုံးဖြတ်ချက်](../architecture/ADR-001_authentication-authorization.md)
-- [အသုံးပြုသူစိစစ်ရေး ကဏ္ဍ တည်ဆောက်ပုံ](../architecture/DRG-002_identity-architecture.md)
-- [အသုံးပြုသူစိစစ်ရေး domain ပုံစံ](../architecture/DRG-001_identity-domain-aggregates.md)
+- [အသုံးပြုသူစိစစ်ခြင်းနှင့် လုပ်ပိုင်ခွင့်ဆိုင်ရာ ဆုံးဖြတ်ချက်](../architecture/ADR_001-Identity-module-architecture.md)
+- [အသုံးပြုသူစိစစ်ရေး ကဏ္ဍ တည်ဆောက်ပုံ](../architecture/DGR_002-Identity_module_architecture.md)
+- [အသုံးပြုသူစိစစ်ရေး domain ပုံစံ](../architecture/DGR_001-Identity_bounded_context_architecture.md)

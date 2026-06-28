@@ -378,7 +378,7 @@ sequenceDiagram
 
 - [Identity Module PRD](../product-requirements/PRD_identity-module.mm.md)
 - [Identity Authentication BRD](../business-requirements/BRD_identity-authentication.en.md)
-- [Identity Architecture Diagram](DRG-002_identity-architecture.md)
-- [Identity Domain Aggregate](DRG-001_identity-domain-aggregates.md)
+- [Identity Architecture Diagram](DGR_002-Identity_module_architecture.md)
+- [Identity Domain Aggregate](DGR_001-Identity_bounded_context_architecture.md)
 - [System Architecture as a Modulith](../../system/ADR-001-system-architecture.md)
 - [Exception Handling Framework](../../system/ADR-003-exception-handling-framework.md)

@@ -170,5 +170,5 @@ The module is successful when:
 ## 12. Related Documents
 
 - [Business Requirements: Platform-Scoped Identity](../business-requirements/BRD-002_platform-scopes.en.md)
-- [ADR-003: Platform-Scoped Identity Access](../architecture/ADR-003_platform-scopes.md)
-- [Platform-Scope Domain Aggregates](../architecture/DRG-003_platform-scopes-domain-aggregates.md)
+- [ADR-003: Platform-Scoped Identity Access](../architecture/ADR_003-Platform_scopes_architecture.md)
+- [Platform-Scope Domain Aggregates](../architecture/DGR_003-Platform_scopes_bounded_context_architecture.md)

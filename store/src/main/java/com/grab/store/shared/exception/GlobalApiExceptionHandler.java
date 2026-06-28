@@ -203,6 +203,9 @@ public class GlobalApiExceptionHandler {
         if (code.startsWith("idt.")) {
             return "identity";
         }
+        if (code.startsWith("mer.")) {
+            return "merchant";
+        }
         return "shared";
     }
 

@@ -847,3 +847,12 @@ Before generating or outputting any code, verify:
 14. ✅ All non-`self` link rel names use `{action}-{resource}[-{qualifier}]` as inline string literals (§9.3) — no `LinkRelations` constants class.
 15. ✅ New bounded contexts include a Tier 2 root endpoint and are linked from `ApiRootController` (§9.9).
 16. ✅ Controllers inject assemblers directly and call `.toModel()` inline (§9.10).
+17. ✅ Nested function invocations are avoided; intermediate variables are extracted for readability.
+
+---
+
+## 19. Coding Style
+
+### 19.1 Function Invocations
+- **Extract intermediate variables**: Do not use nested function invocations (e.g., `doSomething(doA(doB()))`). Instead, extract the intermediate results into variables with descriptive names to improve readability and debuggability.
+

@@ -99,4 +99,4 @@ Retain tokens in the JSON response payload alongside the new cookies during Phas
 
 ## 7. Related Documents
 
-- [ADR-001_authentication-authorization](ADR-001_authentication-authorization.md)
+- [ADR-001_authentication-authorization](ADR_001-Identity-module-architecture.md)
