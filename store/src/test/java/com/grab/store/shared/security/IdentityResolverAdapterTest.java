@@ -1,10 +1,14 @@
 package com.grab.store.shared.security;
 
 import com.grab.framework.security.AuthenticatedActor;
+import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.ExternalPrincipal;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
 import com.identity.domain.enums.UserStatus;
+import com.identity.domain.enums.AccessAssignmentStatus;
+import com.identity.domain.enums.AccessScopeType;
+import com.identity.infrastructure.entity.AccessAssignmentEntity;
 import com.identity.infrastructure.entity.AuthorityEntity;
 import com.identity.infrastructure.entity.ExternalEntitlementMappingEntity;
 import com.identity.infrastructure.entity.ExternalIdentityEntity;
@@ -12,6 +16,7 @@ import com.identity.infrastructure.entity.RoleEntity;
 import com.identity.infrastructure.entity.UserEntity;
 import com.identity.infrastructure.repository.jpa.ExternalEntitlementMappingJpaRepository;
 import com.identity.infrastructure.repository.jpa.ExternalIdentityJpaRepository;
+import com.identity.infrastructure.repository.jpa.AccessAssignmentJpaRepository;
 import com.identity.infrastructure.repository.jpa.UserJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -37,6 +43,8 @@ class IdentityResolverAdapterTest {
     private ExternalIdentityJpaRepository externalIdentities;
     @Mock
     private ExternalEntitlementMappingJpaRepository entitlementMappings;
+    @Mock
+    private AccessAssignmentJpaRepository accessAssignments;
     @Mock
     private LocalJwtProperties properties;
 
@@ -71,6 +79,7 @@ class IdentityResolverAdapterTest {
         userEntity.setRoles(Set.of(role));
 
         when(users.findByUuid(userId)).thenReturn(Optional.of(userEntity));
+        when(accessAssignments.existsByUser_Uuid(userId)).thenReturn(false);
 
         AuthenticatedActor actor = resolver.resolve(principal);
 
@@ -127,6 +136,7 @@ class IdentityResolverAdapterTest {
         externalIdentity.setUser(userEntity);
 
         when(externalIdentities.findByIssuerAndSubject(externalIssuer, externalSubject)).thenReturn(Optional.of(externalIdentity));
+        when(accessAssignments.existsByUser_Uuid(userEntity.getUuid())).thenReturn(false);
 
         RoleEntity role = new RoleEntity();
         role.setCode("SELLER");
@@ -142,5 +152,127 @@ class IdentityResolverAdapterTest {
         assertEquals(externalIssuer, actor.issuer());
         assertEquals(externalSubject, actor.subject());
         assertEquals(Set.of("SELLER"), actor.roles());
+    }
+
+    @Test
+    void resolve_withoutContextAndWithScopedAssignments_shouldReturnSelectionOnlyActor() {
+        when(properties.issuer()).thenReturn("test-issuer");
+        String userId = UUID.randomUUID().toString();
+        ExternalPrincipal principal = new ExternalPrincipal(
+                "test-issuer", userId, Optional.of("owner@example.com"), Set.of("legacy-seller")
+        );
+        UserEntity user = new UserEntity();
+        user.setUuid(userId);
+        user.setEmail("owner@example.com");
+        user.setStatus(UserStatus.ACTIVE);
+        RoleEntity legacyRole = new RoleEntity();
+        legacyRole.setCode("SELLER");
+        legacyRole.setActive(true);
+        user.setRoles(Set.of(legacyRole));
+
+        when(users.findByUuid(userId)).thenReturn(Optional.of(user));
+        when(accessAssignments.existsByUser_Uuid(userId)).thenReturn(true);
+
+        AuthenticatedActor actor = resolver.resolve(principal);
+
+        assertTrue(actor.roles().isEmpty());
+        assertTrue(actor.authorities().isEmpty());
+        assertTrue(actor.accessContext().isEmpty());
+    }
+
+    @Test
+    void resolve_withActiveScopedAssignment_shouldReturnOnlyScopedRole() {
+        when(properties.issuer()).thenReturn("test-issuer");
+        String userId = UUID.randomUUID().toString();
+        AccessContext context = new AccessContext(
+                "SELLER_PORTAL", "assignment-1", "MERCHANT_ACCOUNT", "merchant-1"
+        );
+        ExternalPrincipal principal = new ExternalPrincipal(
+                "test-issuer", userId, Optional.of("owner@example.com"), Set.of(), Optional.of(context)
+        );
+        UserEntity user = new UserEntity();
+        user.setUuid(userId);
+        user.setEmail("owner@example.com");
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRoles(Set.of());
+
+        AuthorityEntity authority = new AuthorityEntity();
+        authority.setCode("MERCHANT_WRITE_OWN");
+        authority.setActive(true);
+        RoleEntity role = new RoleEntity();
+        role.setCode("MERCHANT_OWNER");
+        role.setActive(true);
+        role.setAuthorities(Set.of(authority));
+        var platform = new com.identity.infrastructure.entity.PlatformEntity();
+        platform.setCode("SELLER_PORTAL");
+        platform.setActive(true);
+        var platformRole = new com.identity.infrastructure.entity.PlatformRoleEntity();
+        platformRole.setPlatform(platform);
+        platformRole.setRole(role);
+        platformRole.setActive(true);
+        AccessAssignmentEntity assignment = new AccessAssignmentEntity();
+        assignment.setUuid("assignment-1");
+        assignment.setUser(user);
+        assignment.setPlatformRole(platformRole);
+        assignment.setScopeType(AccessScopeType.MERCHANT_ACCOUNT);
+        assignment.setScopeId("merchant-1");
+        assignment.setStatus(AccessAssignmentStatus.ACTIVE);
+        assignment.setExpiresAt(Instant.now().plusSeconds(60));
+
+        when(users.findByUuid(userId)).thenReturn(Optional.of(user));
+        when(accessAssignments.findForContext("assignment-1", userId, "SELLER_PORTAL"))
+                .thenReturn(Optional.of(assignment));
+
+        AuthenticatedActor actor = resolver.resolve(principal);
+
+        assertEquals(Set.of("MERCHANT_OWNER"), actor.roles());
+        assertEquals(Set.of("MERCHANT_WRITE_OWN"), actor.authorities());
+        assertEquals(context, actor.accessContext().orElseThrow());
+    }
+
+    @Test
+    void resolve_withMismatchedScopedAssignment_shouldRejectAuthentication() {
+        when(properties.issuer()).thenReturn("test-issuer");
+        String userId = UUID.randomUUID().toString();
+        AccessContext context = new AccessContext(
+                "SELLER_PORTAL", "assignment-1", "MERCHANT_ACCOUNT", "merchant-other"
+        );
+        ExternalPrincipal principal = new ExternalPrincipal(
+                "test-issuer", userId, Optional.empty(), Set.of(), Optional.of(context)
+        );
+        UserEntity user = new UserEntity();
+        user.setUuid(userId);
+        user.setEmail("owner@example.com");
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRoles(Set.of());
+
+        RoleEntity role = new RoleEntity();
+        role.setCode("MERCHANT_OWNER");
+        role.setActive(true);
+        var platform = new com.identity.infrastructure.entity.PlatformEntity();
+        platform.setCode("SELLER_PORTAL");
+        platform.setActive(true);
+        var platformRole = new com.identity.infrastructure.entity.PlatformRoleEntity();
+        platformRole.setPlatform(platform);
+        platformRole.setRole(role);
+        platformRole.setActive(true);
+        AccessAssignmentEntity assignment = new AccessAssignmentEntity();
+        assignment.setUuid("assignment-1");
+        assignment.setUser(user);
+        assignment.setPlatformRole(platformRole);
+        assignment.setScopeType(AccessScopeType.MERCHANT_ACCOUNT);
+        assignment.setScopeId("merchant-1");
+        assignment.setStatus(AccessAssignmentStatus.ACTIVE);
+
+        when(users.findByUuid(userId)).thenReturn(Optional.of(user));
+        when(accessAssignments.findForContext("assignment-1", userId, "SELLER_PORTAL"))
+                .thenReturn(Optional.of(assignment));
+
+        IdentityAuthenticationException exception = assertThrows(
+                IdentityAuthenticationException.class,
+                () -> resolver.resolve(principal)
+        );
+
+        assertInstanceOf(IdentitySecurityError.InvalidAccessContext.class, exception.getMessageSource());
     }
 }

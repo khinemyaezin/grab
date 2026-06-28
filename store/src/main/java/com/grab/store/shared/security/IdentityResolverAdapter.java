@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.time.Instant;
 import java.util.stream.Collectors;
 
 @Component
@@ -18,6 +19,7 @@ public class IdentityResolverAdapter implements PlatformIdentityResolver {
     private final UserJpaRepository users;
     private final ExternalIdentityJpaRepository externalIdentities;
     private final ExternalEntitlementMappingJpaRepository entitlementMappings;
+    private final AccessAssignmentJpaRepository accessAssignments;
     private final LocalJwtProperties properties;
 
     @Override
@@ -34,8 +36,14 @@ public class IdentityResolverAdapter implements PlatformIdentityResolver {
             throw new IdentityAuthenticationException(new IdentitySecurityError.AccountNotActive(), "Account is not active");
         }
 
-        Set<RoleEntity> effectiveRoles = new LinkedHashSet<>(user.getRoles());
-        if (!principal.entitlements().isEmpty()) {
+        boolean selectionOnly = principal.accessContext().isEmpty()
+                && accessAssignments.existsByUser_Uuid(user.getUuid());
+        Set<RoleEntity> effectiveRoles = principal.accessContext()
+                .map(context -> scopedRoles(user, context))
+                .orElseGet(() -> selectionOnly
+                        ? new LinkedHashSet<>()
+                        : new LinkedHashSet<>(user.getRoles()));
+        if (!selectionOnly && principal.accessContext().isEmpty() && !principal.entitlements().isEmpty()) {
             entitlementMappings.findByIssuerAndEntitlementIn(principal.issuer(), principal.entitlements())
                     .stream()
                     .map(ExternalEntitlementMappingEntity::getRole)
@@ -53,10 +61,42 @@ public class IdentityResolverAdapter implements PlatformIdentityResolver {
                 .map(AuthorityEntity::getCode)
                 .collect(Collectors.toUnmodifiableSet());
 
-        return new AuthenticatedActor(user.getUuid(), principal.issuer(), principal.subject(), user.getEmail(), roleCodes, authorities);
+        return new AuthenticatedActor(
+                user.getUuid(),
+                principal.issuer(),
+                principal.subject(),
+                user.getEmail(),
+                roleCodes,
+                authorities,
+                principal.accessContext()
+        );
+    }
+
+    private Set<RoleEntity> scopedRoles(UserEntity user, AccessContext context) {
+        AccessAssignmentEntity assignment = accessAssignments
+                .findForContext(context.assignmentId(), user.getUuid(), context.platformCode())
+                .orElseThrow(this::invalidAccessContext);
+        boolean matchesScope = assignment.getScopeType().name().equals(context.scopeType())
+                && assignment.getScopeId().equals(context.scopeId());
+        boolean effective = assignment.getStatus() == com.identity.domain.enums.AccessAssignmentStatus.ACTIVE
+                && (assignment.getExpiresAt() == null || assignment.getExpiresAt().isAfter(Instant.now()))
+                && assignment.getPlatformRole().isActive()
+                && assignment.getPlatformRole().getPlatform().isActive()
+                && assignment.getPlatformRole().getRole().isActive();
+        if (!matchesScope || !effective) {
+            throw invalidAccessContext();
+        }
+        return new LinkedHashSet<>(Set.of(assignment.getPlatformRole().getRole()));
     }
 
     private IdentityAuthenticationException notLinked() {
         return new IdentityAuthenticationException(new IdentitySecurityError.IdentityNotLinked(), "Identity is not linked");
+    }
+
+    private IdentityAuthenticationException invalidAccessContext() {
+        return new IdentityAuthenticationException(
+                new IdentitySecurityError.InvalidAccessContext(),
+                "Access context is not active"
+        );
     }
 }

@@ -15,7 +15,8 @@ public sealed interface IdentitySecurityError extends MessageSource permits
         IdentitySecurityError.TokenExpired,
         IdentitySecurityError.InvalidToken,
         IdentitySecurityError.MalformedToken,
-        IdentitySecurityError.MissingToken {
+        IdentitySecurityError.MissingToken,
+        IdentitySecurityError.InvalidAccessContext {
 
     record AccountNotActive() implements IdentitySecurityError {
         @Override
@@ -179,6 +180,23 @@ public sealed interface IdentitySecurityError extends MessageSource permits
         @Override
         public String code() {
             return "idt.service.auth.missing_token";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
+        }
+    }
+
+    record InvalidAccessContext() implements IdentitySecurityError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.auth.access_context_invalid";
         }
 
         @Override

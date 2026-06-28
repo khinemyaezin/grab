@@ -1,6 +1,7 @@
 package com.identity.infrastructure.configuration;
 
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
@@ -8,19 +9,33 @@ import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.identity.domain.repository.UserRepository;
+import com.identity.domain.repository.AccessAssignmentRepository;
+import com.identity.domain.repository.AccessInvitationRepository;
 import com.identity.domain.repository.AuthorityRepository;
+import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.SessionStore;
 import com.identity.infrastructure.repository.adapter.JpaSessionStoreAdapter;
 import com.identity.infrastructure.mapper.jpa.RoleJpaAssembler;
 import com.identity.infrastructure.mapper.jpa.UserJpaAssembler;
+import com.identity.infrastructure.mapper.jpa.AccessAssignmentJpaAssembler;
+import com.identity.infrastructure.mapper.jpa.AccessInvitationJpaAssembler;
+import com.identity.infrastructure.mapper.jpa.impl.AccessAssignmentJpaAssemblerImpl;
+import com.identity.infrastructure.mapper.jpa.impl.AccessInvitationJpaAssemblerImpl;
 import com.identity.infrastructure.outbox.IdentityOutboxEvent;
 import com.identity.infrastructure.outbox.IdentityOutboxEventProcessor;
 import com.identity.infrastructure.outbox.IdentityOutboxEventProducer;
 import com.identity.infrastructure.repository.jpa.RoleJpaRepository;
+import com.identity.infrastructure.repository.jpa.AccessAssignmentJpaRepository;
+import com.identity.infrastructure.repository.jpa.AccessInvitationJpaRepository;
 import com.identity.infrastructure.repository.jpa.AuthorityJpaRepository;
+import com.identity.infrastructure.repository.jpa.PlatformJpaRepository;
+import com.identity.infrastructure.repository.jpa.PlatformRoleJpaRepository;
 import com.identity.infrastructure.repository.jpa.RefreshSessionJpaRepository;
 import com.identity.infrastructure.repository.jpa.UserJpaRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAuthorityRepository;
+import com.identity.infrastructure.repository.jpa.impl.DefaultAccessAssignmentRepository;
+import com.identity.infrastructure.repository.jpa.impl.DefaultAccessInvitationRepository;
+import com.identity.infrastructure.repository.jpa.impl.DefaultPlatformRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultRoleRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultUserRepository;
 import com.identity.infrastructure.repository.jpa.impl.IdentityPersistenceExecutor;
@@ -114,6 +129,52 @@ public class IdentityInfraConfig {
     @Bean
     public AuthorityRepository authorityRepository(AuthorityJpaRepository jpaRepository) {
         return new DefaultAuthorityRepository(jpaRepository);
+    }
+
+    @Bean
+    public AccessAssignmentJpaAssembler accessAssignmentJpaAssembler(
+            UserJpaRepository users,
+            PlatformRoleJpaRepository platformRoles,
+            IdMapper ids
+    ) {
+        return new AccessAssignmentJpaAssemblerImpl(users, platformRoles, ids);
+    }
+
+    @Bean
+    public AccessInvitationJpaAssembler accessInvitationJpaAssembler(
+            PlatformRoleJpaRepository platformRoles,
+            IdMapper ids
+    ) {
+        return new AccessInvitationJpaAssemblerImpl(platformRoles, ids);
+    }
+
+    @Bean
+    public PlatformRepository platformRepository(
+            PlatformJpaRepository platforms,
+            IdMapper ids,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultPlatformRepository(platforms, ids, executor);
+    }
+
+    @Bean
+    public AccessAssignmentRepository accessAssignmentRepository(
+            AccessAssignmentJpaRepository assignments,
+            AccessAssignmentJpaAssembler assembler,
+            @Qualifier("identityDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultAccessAssignmentRepository(assignments, assembler, domainEventProducer, executor);
+    }
+
+    @Bean
+    public AccessInvitationRepository accessInvitationRepository(
+            AccessInvitationJpaRepository invitations,
+            AccessInvitationJpaAssembler assembler,
+            @Qualifier("identityDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultAccessInvitationRepository(invitations, assembler, domainEventProducer, executor);
     }
 
     @Bean

@@ -12,7 +12,15 @@ public sealed interface IdentityServiceError extends MessageSource permits
         IdentityServiceError.InvalidStatusTransition,
         IdentityServiceError.RoleExists,
         IdentityServiceError.RoleNotFound,
-        IdentityServiceError.UserNotFound {
+        IdentityServiceError.UserNotFound,
+        IdentityServiceError.PlatformNotFound,
+        IdentityServiceError.PlatformAccessUnavailable,
+        IdentityServiceError.AccessAssignmentNotFound,
+        IdentityServiceError.AccessAssignmentExists,
+        IdentityServiceError.AccessScopeForbidden,
+        IdentityServiceError.AccessContextSelectionRequired,
+        IdentityServiceError.AccessContextSelectionInvalid,
+        IdentityServiceError.AccessInvitationNotFound {
 
     record EmailExists(String email) implements IdentityServiceError {
         @Override
@@ -133,4 +141,151 @@ public sealed interface IdentityServiceError extends MessageSource permits
             return Map.of("currentStatus", currentStatus, "requestedStatus", requestedStatus);
         }
     }
+
+    record PlatformNotFound(String platformCode) implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.platform.not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("platformCode", platformCode);
+        }
+    }
+
+    record PlatformAccessUnavailable(String platformCode) implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.platform.access_unavailable";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("platformCode", platformCode);
+        }
+    }
+
+    record AccessAssignmentNotFound(String assignmentId) implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access_assignment.not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("assignmentId", assignmentId);
+        }
+    }
+
+    record AccessAssignmentExists(String userId, String platformCode, String roleCode, String scopeId)
+            implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.CONFLICT;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access_assignment.already_exists";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "userId", userId,
+                    "platformCode", platformCode,
+                    "roleCode", roleCode,
+                    "scopeId", scopeId
+            );
+        }
+    }
+
+    record AccessScopeForbidden(String scopeType, String scopeId) implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access.scope_forbidden";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("scopeType", scopeType, "scopeId", scopeId);
+        }
+    }
+
+    record AccessContextSelectionRequired(String platformCode, int availableContexts)
+            implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.CONFLICT;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access.context_selection_required";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "platformCode", platformCode,
+                    "availableContexts", availableContexts
+            );
+        }
+    }
+
+    record AccessContextSelectionInvalid() implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access.context_selection_invalid";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
+        }
+    }
+
+    record AccessInvitationNotFound() implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access_invitation.not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
+        }
+    }
+
 }

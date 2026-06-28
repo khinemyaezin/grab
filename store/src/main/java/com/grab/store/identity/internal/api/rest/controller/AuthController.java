@@ -4,7 +4,6 @@ import com.grab.store.identity.internal.api.rest.assembler.AuthModelAssembler;
 import com.grab.store.identity.internal.api.rest.dto.request.LoginRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.LogoutRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.RefreshTokenRequest;
-import com.grab.store.identity.internal.api.rest.dto.request.RegisterUserRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.service.AuthCommandService;
 import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
@@ -27,14 +26,6 @@ public class AuthController {
     private final AuthCommandService commandService;
     private final AuthModelAssembler authModelAssembler;
     private final AuthCookieHelper authCookieHelper;
-
-    @PostMapping("/register")
-    public ResponseEntity<EntityModel<AuthResponse>> register(@Valid @RequestBody RegisterUserRequest request) {
-        AuthResponse response = commandService.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .headers(authCookieHelper.createTokenCookies(response))
-                .body(authModelAssembler.toModel(response));
-    }
 
     @PostMapping("/login")
     public ResponseEntity<EntityModel<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {

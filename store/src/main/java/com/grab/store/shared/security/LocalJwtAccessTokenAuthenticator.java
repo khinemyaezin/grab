@@ -1,6 +1,7 @@
 package com.grab.store.shared.security;
 
 import com.grab.framework.security.AccessTokenAuthenticator;
+import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.ExternalPrincipal;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
@@ -42,11 +43,29 @@ public class LocalJwtAccessTokenAuthenticator implements AccessTokenAuthenticato
             return new ExternalPrincipal(claims.getIssuer(),
                     claims.getSubject(),
                     Optional.ofNullable(claims.get("email", String.class)),
-                    roles);
+                    roles,
+                    accessContext(claims));
         } catch (ExpiredJwtException ex) {
             throw new IdentityAuthenticationException(new IdentitySecurityError.TokenExpired(), "Token has expired", ex);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new IdentityAuthenticationException(new IdentitySecurityError.InvalidToken(), "Invalid access token", ex);
         }
+    }
+
+    private Optional<AccessContext> accessContext(Claims claims) {
+        String platform = claims.get("platform", String.class);
+        String assignmentId = claims.get("assignment_id", String.class);
+        String scopeType = claims.get("scope_type", String.class);
+        String scopeId = claims.get("scope_id", String.class);
+        if (platform == null && assignmentId == null && scopeType == null && scopeId == null) {
+            return Optional.empty();
+        }
+        if (platform == null || assignmentId == null || scopeType == null || scopeId == null) {
+            throw new IdentityAuthenticationException(
+                    new IdentitySecurityError.InvalidToken(),
+                    "Access context claims are incomplete"
+            );
+        }
+        return Optional.of(new AccessContext(platform, assignmentId, scopeType, scopeId));
     }
 }
