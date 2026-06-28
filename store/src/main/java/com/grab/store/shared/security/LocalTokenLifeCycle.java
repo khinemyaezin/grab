@@ -35,7 +35,7 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
     private TokenPair issue(AuthenticatedActor actor, String family) {
         Instant now = Instant.now();
         Instant expiry = now.plus(properties.accessTokenTtl());
-        String access = Jwts.builder()
+        var builder = Jwts.builder()
                 .header()
                 .keyId("local-current")
                 .type("at+jwt")
@@ -49,11 +49,23 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
                 .expiration(Date.from(expiry))
                 .id(UUID.randomUUID().toString())
                 .claim("email", actor.email())
-                .claim("roles", actor.roles())
+                .claim("roles", actor.roles());
+        actor.accessContext().ifPresent(context -> builder
+                .claim("platform", context.platformCode())
+                .claim("assignment_id", context.assignmentId())
+                .claim("scope_type", context.scopeType())
+                .claim("scope_id", context.scopeId()));
+        String access = builder
                 .signWith(localJwtPrivateKey, Jwts.SIG.RS256)
                 .compact();
         String refresh = randomToken();
-        sessions.saveNewSession(actor.platformUserId(), hash(refresh), family, now.plus(properties.refreshTokenTtl()));
+        sessions.saveNewSession(
+                actor.platformUserId(),
+                hash(refresh),
+                family,
+                now.plus(properties.refreshTokenTtl()),
+                actor.accessContext()
+        );
         return new TokenPair(access, refresh, properties.accessTokenTtl().toMillis());
     }
 
@@ -69,7 +81,13 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
         if (old.expiresAt().isBefore(now))
             throw invalidRefresh();
 
-        ExternalPrincipal principal = new ExternalPrincipal(properties.issuer(), old.userId(), Optional.ofNullable(old.userEmail()), Set.of());
+        ExternalPrincipal principal = new ExternalPrincipal(
+                properties.issuer(),
+                old.userId(),
+                Optional.ofNullable(old.userEmail()),
+                Set.of(),
+                old.accessContext()
+        );
         AuthenticatedActor actor = identityResolver.resolve(principal);
         TokenPair replacement = issue(actor, old.tokenFamilyId());
         sessions.replaceSession(hash(refreshToken), hash(replacement.refreshToken()), now);

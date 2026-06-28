@@ -16,4 +16,6 @@ public interface RefreshSessionJpaRepository extends JpaRepository<RefreshSessio
     List<RefreshSessionEntity> findByTokenFamilyId(String tokenFamilyId);
 
     List<RefreshSessionEntity> findByUser_Uuid(String uuid);
+
+    List<RefreshSessionEntity> findByAssignmentUuid(String assignmentUuid);
 }

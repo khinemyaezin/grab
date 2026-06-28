@@ -70,12 +70,9 @@ You are a senior software architect. I need to write an Architectural Decision R
 **Changes to existing systems:**
 - [List updates, deprecations, or migrations required for current systems.]
 
-**Team impact:**
-- [How does this affect the developers, workflows, or API consumers?]
-
 ---
 
-## 6. Migration Plan
+## 6. Implementation Plan
 
 - **Phase 1:** [Immediate first steps]
 - **Phase 2:** [Next steps]

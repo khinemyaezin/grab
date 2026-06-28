@@ -3,6 +3,7 @@ package com.grab.store.shared.security;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.framework.security.AuthenticatedActor;
+import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
@@ -71,7 +72,38 @@ class LocalTokenLifeCycleTest {
         assertEquals(userId, parsed.getPayload().getSubject());
         assertEquals("test@example.com", parsed.getPayload().get("email"));
 
-        verify(sessions).saveNewSession(eq(userId), anyString(), anyString(), any(Instant.class));
+        verify(sessions).saveNewSession(
+                eq(userId), anyString(), anyString(), any(Instant.class), eq(Optional.empty())
+        );
+    }
+
+    @Test
+    void issue_withAccessContext_shouldPersistAndEncodeContext() {
+        String userId = UUID.randomUUID().toString();
+        AccessContext context = new AccessContext(
+                "SELLER_PORTAL", "assignment-1", "MERCHANT_ACCOUNT", "merchant-1"
+        );
+        AuthenticatedActor actor = new AuthenticatedActor(
+                userId,
+                properties.issuer(),
+                userId,
+                "owner@example.com",
+                Set.of("MERCHANT_OWNER"),
+                Set.of("MERCHANT_WRITE_OWN"),
+                Optional.of(context)
+        );
+
+        TokenPair tokenPair = tokenIssuer.issue(actor);
+
+        var parsed = Jwts.parser().verifyWith(keyPair.getPublic()).build()
+                .parseSignedClaims(tokenPair.accessToken());
+        assertEquals("SELLER_PORTAL", parsed.getPayload().get("platform"));
+        assertEquals("assignment-1", parsed.getPayload().get("assignment_id"));
+        assertEquals("MERCHANT_ACCOUNT", parsed.getPayload().get("scope_type"));
+        assertEquals("merchant-1", parsed.getPayload().get("scope_id"));
+        verify(sessions).saveNewSession(
+                eq(userId), anyString(), anyString(), any(Instant.class), eq(Optional.of(context))
+        );
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.identity.infrastructure.repository.adapter;
 
+import com.grab.framework.security.AccessContext;
 import com.identity.domain.valueobject.SessionDetails;
 import com.identity.domain.repository.SessionStore;
 import com.identity.infrastructure.entity.RefreshSessionEntity;
@@ -18,7 +19,13 @@ public class JpaSessionStoreAdapter implements SessionStore {
     private final UserJpaRepository userRepository;
 
     @Override
-    public void saveNewSession(String userId, String tokenHash, String tokenFamilyId, Instant expiresAt) {
+    public void saveNewSession(
+            String userId,
+            String tokenHash,
+            String tokenFamilyId,
+            Instant expiresAt,
+            Optional<AccessContext> accessContext
+    ) {
         UserEntity user = userRepository.findByUuid(userId).orElseThrow();
         RefreshSessionEntity session = new RefreshSessionEntity();
         session.setUser(user);
@@ -26,6 +33,12 @@ public class JpaSessionStoreAdapter implements SessionStore {
         session.setTokenFamilyId(tokenFamilyId);
         session.setCreatedAt(Instant.now());
         session.setExpiresAt(expiresAt);
+        accessContext.ifPresent(context -> {
+            session.setPlatformCode(context.platformCode());
+            session.setAssignmentUuid(context.assignmentId());
+            session.setScopeType(context.scopeType());
+            session.setScopeId(context.scopeId());
+        });
         sessionRepository.save(session);
     }
 
@@ -37,7 +50,8 @@ public class JpaSessionStoreAdapter implements SessionStore {
                 entity.getUser().getEmail(),
                 entity.getTokenFamilyId(),
                 entity.getExpiresAt(),
-                entity.getRevokedAt()
+                entity.getRevokedAt(),
+                contextOf(entity)
             )
         );
     }
@@ -85,5 +99,32 @@ public class JpaSessionStoreAdapter implements SessionStore {
             }
         });
         sessionRepository.saveAll(userSessions);
+    }
+
+    @Override
+    public void revokeByAssignment(String assignmentId) {
+        Instant now = Instant.now();
+        var assignmentSessions = sessionRepository.findByAssignmentUuid(assignmentId);
+        assignmentSessions.forEach(session -> {
+            if (session.getRevokedAt() == null) {
+                session.setRevokedAt(now);
+            }
+        });
+        sessionRepository.saveAll(assignmentSessions);
+    }
+
+    private Optional<AccessContext> contextOf(RefreshSessionEntity session) {
+        if (session.getPlatformCode() == null
+                || session.getAssignmentUuid() == null
+                || session.getScopeType() == null
+                || session.getScopeId() == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new AccessContext(
+                session.getPlatformCode(),
+                session.getAssignmentUuid(),
+                session.getScopeType(),
+                session.getScopeId()
+        ));
     }
 }

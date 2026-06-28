@@ -5,7 +5,6 @@ import com.grab.store.identity.internal.api.rest.assembler.AuthModelAssembler;
 import com.grab.store.identity.internal.api.rest.dto.request.LoginRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.LogoutRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.RefreshTokenRequest;
-import com.grab.store.identity.internal.api.rest.dto.request.RegisterUserRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.service.AuthCommandService;
 import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
@@ -77,28 +76,6 @@ class AuthControllerTest {
         clearHeaders.add(HttpHeaders.SET_COOKIE, "accessToken=; Path=/; Secure; HttpOnly; Max-Age=0; SameSite=Strict");
         clearHeaders.add(HttpHeaders.SET_COOKIE, "refreshToken=; Path=/api/v1/identity/auth/refresh; Secure; HttpOnly; Max-Age=0; SameSite=Strict");
         when(authCookieHelper.clearTokenCookies()).thenReturn(clearHeaders);
-    }
-
-    @Test
-    void register_shouldReturn201WithCookies() throws Exception {
-        RegisterUserRequest request = new RegisterUserRequest("test@example.com", "Password123!", "CUSTOMER");
-        when(authCommandService.register(any(RegisterUserRequest.class))).thenReturn(authResponse);
-
-        mockMvc.perform(post("/api/v1/identity/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(cookie().value("accessToken", "access-token-123"))
-                .andExpect(cookie().path("accessToken", "/"))
-                .andExpect(cookie().secure("accessToken", true))
-                .andExpect(cookie().httpOnly("accessToken", true))
-                .andExpect(cookie().maxAge("accessToken", 3600))
-                .andExpect(cookie().value("refreshToken", "refresh-token-456"))
-                .andExpect(cookie().path("refreshToken", "/api/v1/identity/auth/refresh"))
-                .andExpect(cookie().secure("refreshToken", true))
-                .andExpect(cookie().httpOnly("refreshToken", true))
-                .andExpect(cookie().maxAge("refreshToken", 604800))
-                .andExpect(jsonPath("$.accessToken").value("access-token-123"));
     }
 
     @Test

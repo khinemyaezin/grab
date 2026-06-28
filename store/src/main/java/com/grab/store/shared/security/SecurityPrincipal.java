@@ -6,6 +6,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.Optional;
+import com.grab.framework.security.AccessContext;
 
 public record SecurityPrincipal(
         AuthenticatedActor actor
@@ -28,5 +30,21 @@ public record SecurityPrincipal(
 
     public String getPlatformUserId() {
         return actor.platformUserId();
+    }
+
+    public Optional<AccessContext> getAccessContext() {
+        return actor.accessContext();
+    }
+
+    public Optional<String> getPlatformCode() {
+        return actor.accessContext().map(AccessContext::platformCode);
+    }
+
+    public Optional<String> getScopeType() {
+        return actor.accessContext().map(AccessContext::scopeType);
+    }
+
+    public Optional<String> getScopeId() {
+        return actor.accessContext().map(AccessContext::scopeId);
     }
 }

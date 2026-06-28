@@ -27,6 +27,14 @@ public class IdentityRootController {
                 .profile(null))
                 .withRel("get-profile"));
 
+        model.add(linkTo(methodOn(AccessContextController.class)
+                .listContexts(null, null))
+                .withRel("list-access-contexts"));
+
+        model.add(linkTo(methodOn(AccessInvitationController.class)
+                .create(null, null))
+                .withRel("create-access-invitation"));
+
         model.add(linkTo(methodOn(UserAdminController.class)
                 .listUsers(null, null))
                 .withRel("list-users"));
@@ -47,10 +55,6 @@ public class IdentityRootController {
         model.add(linkTo(methodOn(AuthController.class)
                 .logout(null,null))
                 .withRel("logout"));
-
-        model.add(linkTo(methodOn(AuthController.class)
-                .register(null))
-                .withRel("register"));
 
         return ResponseEntity.ok(model);
     }
