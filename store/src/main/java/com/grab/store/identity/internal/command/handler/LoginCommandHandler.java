@@ -124,7 +124,7 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
         return new AccessContext(
                 assignment.getPlatformCode(),
                 assignment.getId().getValue(),
-                assignment.getScope().type().name(),
+                assignment.getScope().key().value(),
                 assignment.getScope().scopeId()
         );
     }

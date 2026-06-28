@@ -53,7 +53,7 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
         actor.accessContext().ifPresent(context -> builder
                 .claim("platform", context.platformCode())
                 .claim("assignment_id", context.assignmentId())
-                .claim("scope_type", context.scopeType())
+                .claim("scope_key", context.scopeKey())
                 .claim("scope_id", context.scopeId()));
         String access = builder
                 .signWith(localJwtPrivateKey, Jwts.SIG.RS256)

@@ -21,7 +21,7 @@ public class ListAccessAssignmentsQueryHandler
     @Override
     @IdentityReadTransactional
     public List<AccessAssignmentResult> handle(ListAccessAssignmentsQuery query) {
-        AccessScope actorScope = AccessScope.from(query.actorScopeType(), query.actorScopeId());
+        AccessScope actorScope = AccessScope.from(query.actorScopeKey(), query.actorScopeId());
         Instant now = Instant.now();
         return assignments.findByUser(query.userId()).stream()
                 .filter(assignment -> actorScope.encompasses(assignment.getScope()))

@@ -25,7 +25,7 @@ public class AccessInvitationJpaAssemblerImpl implements AccessInvitationJpaAsse
         entity.setPlatformRole(platformRoles
                 .findByPlatform_CodeAndRole_CodeAndActiveTrue(source.getPlatformCode(), source.getRoleCode())
                 .orElseThrow());
-        entity.setScopeType(source.getScope().type());
+        entity.setScopeKey(source.getScope().key().value());
         entity.setScopeId(source.getScope().scopeId());
         entity.setTokenHash(source.getTokenHash());
         entity.setInvitedBy(source.getInvitedBy().getValue());
@@ -44,7 +44,7 @@ public class AccessInvitationJpaAssemblerImpl implements AccessInvitationJpaAsse
                 new Email(source.getInviteeEmail()),
                 source.getPlatformRole().getPlatform().getCode(),
                 source.getPlatformRole().getRole().getCode(),
-                new AccessScope(source.getScopeType(), source.getScopeId()),
+                AccessScope.from(source.getScopeKey(), source.getScopeId()),
                 source.getTokenHash(),
                 ids.map(source.getInvitedBy()),
                 source.getStatus(),

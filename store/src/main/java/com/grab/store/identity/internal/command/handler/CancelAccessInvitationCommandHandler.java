@@ -8,7 +8,7 @@ import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessInvitation;
 import com.identity.domain.repository.AccessInvitationRepository;
-import com.identity.domain.service.AccessRoleDelegationPolicy;
+import com.identity.domain.service.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class CancelAccessInvitationCommandHandler
         implements CommandHandler<CancelAccessInvitationCommand, AccessInvitationResult> {
     private final AccessInvitationRepository invitations;
-    private final AccessRoleDelegationPolicy delegationPolicy;
+    private final RoleDelegationPolicy delegationPolicy;
 
     @Override
     @IdentityTransactional
@@ -29,7 +29,7 @@ public class CancelAccessInvitationCommandHandler
                         "Access invitation not found"
                 )
         );
-        AccessScope.from(command.actorScopeType(), command.actorScopeId())
+        AccessScope.from(command.actorScopeKey(), command.actorScopeId())
                 .requireEncompasses(invitation.getScope());
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), invitation.getRoleCode());
         invitation.cancel();
@@ -39,7 +39,7 @@ public class CancelAccessInvitationCommandHandler
                 saved.getInviteeEmail().value(),
                 saved.getPlatformCode(),
                 saved.getRoleCode(),
-                saved.getScope().type().name(),
+                saved.getScope().key().value(),
                 saved.getScope().scopeId(),
                 saved.getStatus().name(),
                 saved.getExpiresAt().toString(),

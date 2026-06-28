@@ -50,7 +50,7 @@ public class SwitchAccessContextCommandHandler implements CommandHandler<SwitchA
                 || !assignment.isEffectiveAt(Instant.now())) {
             throw new IdentityServiceException(
                     new IdentityServiceError.AccessScopeForbidden(
-                            assignment.getScope().type().name(), assignment.getScope().scopeId()
+                            assignment.getScope().key().value(), assignment.getScope().scopeId()
                     ),
                     "Access context is not available to the user"
             );
@@ -58,7 +58,7 @@ public class SwitchAccessContextCommandHandler implements CommandHandler<SwitchA
         AccessContext context = new AccessContext(
                 assignment.getPlatformCode(),
                 assignment.getId().getValue(),
-                assignment.getScope().type().name(),
+                assignment.getScope().key().value(),
                 assignment.getScope().scopeId()
         );
         AuthenticatedActor actor = identityResolver.resolve(new ExternalPrincipal(

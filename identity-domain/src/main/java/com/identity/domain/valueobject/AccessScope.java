@@ -1,46 +1,37 @@
 package com.identity.domain.valueobject;
 
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
 
-import java.util.Locale;
 import java.util.Objects;
 
-public record AccessScope(AccessScopeType type, String scopeId) {
+public record AccessScope(ScopeKey key, String scopeId) {
     public static final String GLOBAL_SCOPE_ID = "*";
 
     public AccessScope {
-        Objects.requireNonNull(type, "scope type is required");
+        Objects.requireNonNull(key, "scope key is required");
         if (scopeId == null || scopeId.isBlank()) {
-            throw invalidScope(type, scopeId);
+            throw invalidScope(key, scopeId);
         }
         scopeId = scopeId.trim();
-        if (type == AccessScopeType.GLOBAL && !GLOBAL_SCOPE_ID.equals(scopeId)) {
-            throw invalidScope(type, scopeId);
+        if (key.isGlobal() && !GLOBAL_SCOPE_ID.equals(scopeId)) {
+            throw invalidScope(key, scopeId);
         }
-        if (type != AccessScopeType.GLOBAL && GLOBAL_SCOPE_ID.equals(scopeId)) {
-            throw invalidScope(type, scopeId);
+        if (!key.isGlobal() && GLOBAL_SCOPE_ID.equals(scopeId)) {
+            throw invalidScope(key, scopeId);
         }
     }
 
     public static AccessScope global() {
-        return new AccessScope(AccessScopeType.GLOBAL, GLOBAL_SCOPE_ID);
+        return new AccessScope(ScopeKey.global(), GLOBAL_SCOPE_ID);
     }
 
-    public static AccessScope from(String scopeType, String scopeId) {
-        try {
-            return new AccessScope(
-                    AccessScopeType.valueOf(scopeType.trim().toUpperCase(Locale.ROOT)),
-                    scopeId
-            );
-        } catch (IllegalArgumentException | NullPointerException exception) {
-            throw invalidScope(null, scopeId);
-        }
+    public static AccessScope from(String scopeKey, String scopeId) {
+        return new AccessScope(new ScopeKey(scopeKey), scopeId);
     }
 
     public boolean isGlobal() {
-        return type == AccessScopeType.GLOBAL;
+        return key.isGlobal();
     }
 
     public boolean encompasses(AccessScope target) {
@@ -52,16 +43,18 @@ public record AccessScope(AccessScopeType type, String scopeId) {
         if (!encompasses(target)) {
             throw new IdentityDomainValidationException(
                     new IdentityDomainError.AccessScopeNotEncompassed(
-                            type.name(), scopeId, target.type().name(), target.scopeId()
+                            key.value(), scopeId, target.key().value(), target.scopeId()
                     ),
                     "Access cannot be managed outside the actor scope"
             );
         }
     }
 
-    private static IdentityDomainValidationException invalidScope(AccessScopeType type, String scopeId) {
+    private static IdentityDomainValidationException invalidScope(ScopeKey key, String scopeId) {
         return new IdentityDomainValidationException(
-                new IdentityDomainError.InvalidAccessScope(String.valueOf(type), String.valueOf(scopeId)),
+                new IdentityDomainError.InvalidAccessScope(
+                        key == null ? "null" : key.value(), String.valueOf(scopeId)
+                ),
                 "Invalid access scope"
         );
     }

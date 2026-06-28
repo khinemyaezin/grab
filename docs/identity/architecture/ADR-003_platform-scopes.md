@@ -35,6 +35,8 @@ business objects in a separate Merchant bounded context.
 - **Shared Platforms:** Introduced `CUSTOMER_APP`, `SELLER_PORTAL`, and `ADMIN_CONSOLE`.
 - **Platform Roles:** Created `PlatformRole` to restrict which roles apply to which platform.
 - **Scoped Assignments:** Replaced global `UserRole` with `AccessAssignment` (User + Platform Role + Resource Scope).
+- **Extensible Scope Keys:** Resource scopes use validated namespaced keys rather than an Identity-owned business enum.
+- **Explicit Delegation Rules:** Role delegation is denied by default and allowed only by persisted role relationships.
 - **Context-Bound Tokens:** Access and refresh tokens are tied strictly to a single platform and active context.
 - **Scoped Invitations:** Allow staff access without creating redundant merchant or storefront accounts.
 - **Event-Driven Lifecycles:** Merchant lifecycle changes are coordinated via integration events, not shared transactions.
@@ -212,6 +214,7 @@ decisions, refresh behavior, and cross-merchant denial tests pass in production.
 
 - [ADR-001: Authentication and Authorization](ADR-001_authentication-authorization.md)
 - [ADR-002: Frontend Communication and Authentication](ADR-002_authentication-cookie-session.md)
+- [ADR-004: Extensible Access Scopes and Role Delegation](ADR-004_extensible-access-scopes-and-role-delegation.md)
 - [Identity Domain Aggregate Diagram](DRG-001_identity-domain-aggregates.md)
 - [Identity Security Architecture Diagram](DRG-002_identity-architecture.md)
 - [System Architecture as a Modulith](../../system/ADR-001-system-architecture.md)

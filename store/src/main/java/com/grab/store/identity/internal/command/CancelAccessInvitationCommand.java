@@ -7,7 +7,7 @@ import java.util.Set;
 
 public record CancelAccessInvitationCommand(
         Id invitationId,
-        String actorScopeType,
+        String actorScopeKey,
         String actorScopeId,
         Set<String> actorRoleCodes
 ) implements Command<AccessInvitationResult> {

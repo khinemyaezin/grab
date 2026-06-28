@@ -30,7 +30,7 @@ public class AccessInvitationCommandService {
         CreateAccessInvitationCommand command = createMapper.toCommand(
                 request,
                 principal.getPlatformUserId(),
-                actorScope.type(),
+                actorScope.key(),
                 actorScope.id(),
                 principal.actor().roles()
         );
@@ -55,7 +55,7 @@ public class AccessInvitationCommandService {
         AuthenticatedAccessScopeResolver.ActorScope actorScope = actorScopes.resolve(principal);
         CancelAccessInvitationCommand command = cancelMapper.toCommand(
                 invitationId,
-                actorScope.type(),
+                actorScope.key(),
                 actorScope.id(),
                 principal.actor().roles()
         );

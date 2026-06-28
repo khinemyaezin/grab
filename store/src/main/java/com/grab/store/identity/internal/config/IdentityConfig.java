@@ -1,7 +1,9 @@
 package com.grab.store.identity.internal.config;
 
 import com.identity.infrastructure.configuration.IdentityInfraConfig;
-import com.identity.domain.service.AccessRoleDelegationPolicy;
+import com.identity.domain.repository.RoleDelegationRuleRepository;
+import com.identity.domain.service.RoleDelegationPolicy;
+import com.identity.domain.service.RuleBasedRoleDelegationPolicy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -10,7 +12,7 @@ import org.springframework.context.annotation.Import;
 @Import(IdentityInfraConfig.class)
 public class IdentityConfig {
     @Bean
-    AccessRoleDelegationPolicy accessRoleDelegationPolicy() {
-        return new AccessRoleDelegationPolicy();
+    RoleDelegationPolicy roleDelegationPolicy(RoleDelegationRuleRepository rules) {
+        return new RuleBasedRoleDelegationPolicy(rules);
     }
 }

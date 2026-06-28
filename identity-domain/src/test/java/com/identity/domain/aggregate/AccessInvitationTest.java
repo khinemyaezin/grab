@@ -1,13 +1,13 @@
 package com.identity.domain.aggregate;
 
 import com.grab.framework.id.impl.CommonId;
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.enums.InvitationStatus;
 import com.identity.domain.event.AccessInvitationChangedEvent;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
+import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -26,7 +26,7 @@ class AccessInvitationTest {
                 new Email("STAFF@example.com"),
                 sellerPlatform(),
                 "STOREFRONT_MANAGER",
-                new AccessScope(AccessScopeType.STOREFRONT, "storefront-1"),
+                new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                 TOKEN_HASH,
                 new CommonId("owner-1"),
                 new Email("owner@example.com"),
@@ -71,7 +71,7 @@ class AccessInvitationTest {
                         new Email("owner@example.com"),
                         sellerPlatform(),
                         "STOREFRONT_MANAGER",
-                        new AccessScope(AccessScopeType.STOREFRONT, "storefront-1"),
+                        new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                         TOKEN_HASH,
                         new CommonId("owner-1"),
                         new Email("owner@example.com"),
@@ -108,7 +108,7 @@ class AccessInvitationTest {
                         new Email("staff@example.com"),
                         sellerPlatform(),
                         "SUPER_ADMIN",
-                        new AccessScope(AccessScopeType.STOREFRONT, "storefront-1"),
+                        new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                         TOKEN_HASH,
                         new CommonId("owner-1"),
                         new Email("owner@example.com"),
@@ -127,7 +127,7 @@ class AccessInvitationTest {
                 new Email("staff@example.com"),
                 "SELLER_PORTAL",
                 "STOREFRONT_MANAGER",
-                new AccessScope(AccessScopeType.STOREFRONT, "storefront-1"),
+                new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                 TOKEN_HASH,
                 new CommonId("owner-1"),
                 InvitationStatus.PENDING,

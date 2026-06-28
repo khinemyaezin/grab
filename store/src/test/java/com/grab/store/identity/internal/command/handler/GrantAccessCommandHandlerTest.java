@@ -6,12 +6,11 @@ import com.grab.store.identity.internal.command.GrantAccessCommand;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.service.AccessRoleDelegationPolicy;
+import com.identity.domain.service.RuleBasedRoleDelegationPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +47,10 @@ class GrantAccessCommandHandlerTest {
                 users,
                 platforms,
                 assignments,
-                new AccessRoleDelegationPolicy(),
+                new RuleBasedRoleDelegationPolicy(
+                        (delegators, delegated) -> delegators.contains("MERCHANT_OWNER")
+                                && delegated.equals("MERCHANT_ADMIN")
+                ),
                 ids
         );
     }
@@ -112,11 +114,11 @@ class GrantAccessCommandHandlerTest {
                 new CommonId(userId),
                 "SELLER_PORTAL",
                 roleCode,
-                AccessScopeType.MERCHANT_ACCOUNT,
+                "merchant.account",
                 scopeId,
                 null,
                 new CommonId(assignedBy),
-                "MERCHANT_ACCOUNT",
+                "merchant.account",
                 "merchant-1",
                 actorRoles
         );

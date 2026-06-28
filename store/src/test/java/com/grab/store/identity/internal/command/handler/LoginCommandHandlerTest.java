@@ -10,7 +10,6 @@ import com.grab.store.shared.security.LocalJwtProperties;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.service.PasswordHasher;
@@ -19,6 +18,7 @@ import com.identity.domain.service.TokenPair;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.HashedPassword;
+import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -134,7 +134,7 @@ class LoginCommandHandlerTest {
                         Set.of("MERCHANT_OWNER")
                 ),
                 "MERCHANT_OWNER",
-                new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, merchantId),
+                new AccessScope(new ScopeKey("merchant.account"), merchantId),
                 new CommonId("admin-1"),
                 null
         );

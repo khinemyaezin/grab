@@ -26,7 +26,7 @@ public class AccessAssignmentJpaAssemblerImpl implements AccessAssignmentJpaAsse
         entity.setPlatformRole(platformRoles
                 .findByPlatform_CodeAndRole_CodeAndActiveTrue(source.getPlatformCode(), source.getRoleCode())
                 .orElseThrow());
-        entity.setScopeType(source.getScope().type());
+        entity.setScopeKey(source.getScope().key().value());
         entity.setScopeId(source.getScope().scopeId());
         entity.setStatus(source.getStatus());
         entity.setAssignedBy(source.getAssignedBy() == null ? null : source.getAssignedBy().getValue());
@@ -43,7 +43,7 @@ public class AccessAssignmentJpaAssemblerImpl implements AccessAssignmentJpaAsse
                 ids.map(source.getUser().getUuid()),
                 source.getPlatformRole().getPlatform().getCode(),
                 source.getPlatformRole().getRole().getCode(),
-                new AccessScope(source.getScopeType(), source.getScopeId()),
+                AccessScope.from(source.getScopeKey(), source.getScopeId()),
                 source.getStatus(),
                 ids.map(source.getAssignedBy()),
                 source.getCreatedAt(),

@@ -8,7 +8,7 @@ import java.util.List;
 
 public record ListAccessAssignmentsQuery(
         Id userId,
-        String actorScopeType,
+        String actorScopeKey,
         String actorScopeId
 ) implements Query<List<AccessAssignmentResult>> {
 }

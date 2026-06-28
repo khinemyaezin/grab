@@ -9,7 +9,7 @@ import java.util.Set;
 public record ChangeAccessStatusCommand(
         Id assignmentId,
         AccessAssignmentStatus requestedStatus,
-        String actorScopeType,
+        String actorScopeKey,
         String actorScopeId,
         Id actorId,
         Set<String> actorRoleCodes

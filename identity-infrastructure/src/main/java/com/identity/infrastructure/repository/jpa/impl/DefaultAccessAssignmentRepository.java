@@ -37,7 +37,7 @@ public class DefaultAccessAssignmentRepository implements AccessAssignmentReposi
             AccessScope scope
     ) {
         return executor.query("AccessAssignment", () -> assignments.findCurrent(
-                userId.getValue(), platformCode, roleCode, scope.type(), scope.scopeId()
+                userId.getValue(), platformCode, roleCode, scope.key().value(), scope.scopeId()
         ).map(assembler::toDomain));
     }
 
@@ -69,14 +69,14 @@ public class DefaultAccessAssignmentRepository implements AccessAssignmentReposi
     ) {
         return executor.query("AccessAssignment", () -> assignments.existsEffective(
                 userId.getValue(), platformCode, roleCode,
-                scope.type(), scope.scopeId(), now
+                scope.key().value(), scope.scopeId(), now
         ));
     }
 
     @Override
     public boolean existsCurrent(Id userId, String platformCode, String roleCode, AccessScope scope) {
         return executor.query("AccessAssignment", () -> assignments.existsCurrent(
-                userId.getValue(), platformCode, roleCode, scope.type(), scope.scopeId()
+                userId.getValue(), platformCode, roleCode, scope.key().value(), scope.scopeId()
         ));
     }
 

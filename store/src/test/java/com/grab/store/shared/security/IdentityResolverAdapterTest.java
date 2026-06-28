@@ -7,7 +7,6 @@ import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
 import com.identity.domain.enums.UserStatus;
 import com.identity.domain.enums.AccessAssignmentStatus;
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.infrastructure.entity.AccessAssignmentEntity;
 import com.identity.infrastructure.entity.AuthorityEntity;
 import com.identity.infrastructure.entity.ExternalEntitlementMappingEntity;
@@ -185,7 +184,7 @@ class IdentityResolverAdapterTest {
         when(properties.issuer()).thenReturn("test-issuer");
         String userId = UUID.randomUUID().toString();
         AccessContext context = new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "MERCHANT_ACCOUNT", "merchant-1"
+                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"
         );
         ExternalPrincipal principal = new ExternalPrincipal(
                 "test-issuer", userId, Optional.of("owner@example.com"), Set.of(), Optional.of(context)
@@ -214,7 +213,7 @@ class IdentityResolverAdapterTest {
         assignment.setUuid("assignment-1");
         assignment.setUser(user);
         assignment.setPlatformRole(platformRole);
-        assignment.setScopeType(AccessScopeType.MERCHANT_ACCOUNT);
+        assignment.setScopeKey("merchant.account");
         assignment.setScopeId("merchant-1");
         assignment.setStatus(AccessAssignmentStatus.ACTIVE);
         assignment.setExpiresAt(Instant.now().plusSeconds(60));
@@ -235,7 +234,7 @@ class IdentityResolverAdapterTest {
         when(properties.issuer()).thenReturn("test-issuer");
         String userId = UUID.randomUUID().toString();
         AccessContext context = new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "MERCHANT_ACCOUNT", "merchant-other"
+                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-other"
         );
         ExternalPrincipal principal = new ExternalPrincipal(
                 "test-issuer", userId, Optional.empty(), Set.of(), Optional.of(context)
@@ -260,7 +259,7 @@ class IdentityResolverAdapterTest {
         assignment.setUuid("assignment-1");
         assignment.setUser(user);
         assignment.setPlatformRole(platformRole);
-        assignment.setScopeType(AccessScopeType.MERCHANT_ACCOUNT);
+        assignment.setScopeKey("merchant.account");
         assignment.setScopeId("merchant-1");
         assignment.setStatus(AccessAssignmentStatus.ACTIVE);
 

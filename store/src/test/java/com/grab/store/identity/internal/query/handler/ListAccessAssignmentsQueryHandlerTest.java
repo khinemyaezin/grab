@@ -4,9 +4,9 @@ import com.grab.framework.id.impl.CommonId;
 import com.grab.store.identity.internal.query.ListAccessAssignmentsQuery;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.enums.AccessAssignmentStatus;
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.valueobject.AccessScope;
+import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -29,7 +29,7 @@ class ListAccessAssignmentsQueryHandlerTest {
         ));
 
         var results = handler.handle(new ListAccessAssignmentsQuery(
-                userId, "MERCHANT_ACCOUNT", "merchant-1"
+                userId, "merchant.account", "merchant-1"
         ));
 
         assertThat(results).extracting(result -> result.scopeId())
@@ -44,7 +44,7 @@ class ListAccessAssignmentsQueryHandlerTest {
                 assignment("assignment-2", userId, "merchant-2")
         ));
 
-        var results = handler.handle(new ListAccessAssignmentsQuery(userId, "GLOBAL", "*"));
+        var results = handler.handle(new ListAccessAssignmentsQuery(userId, "global", "*"));
 
         assertThat(results).hasSize(2);
     }
@@ -56,7 +56,7 @@ class ListAccessAssignmentsQueryHandlerTest {
                 userId,
                 "SELLER_PORTAL",
                 "MERCHANT_ADMIN",
-                new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, merchantId),
+                new AccessScope(new ScopeKey("merchant.account"), merchantId),
                 AccessAssignmentStatus.ACTIVE,
                 new CommonId("owner-1"),
                 now,

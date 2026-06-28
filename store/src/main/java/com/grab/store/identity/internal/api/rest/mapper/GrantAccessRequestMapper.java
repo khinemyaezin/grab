@@ -14,7 +14,7 @@ public abstract class GrantAccessRequestMapper {
     public abstract GrantAccessCommand toCommand(
             GrantAccessRequest request,
             String assignedBy,
-            String actorScopeType,
+            String actorScopeKey,
             String actorScopeId,
             Set<String> actorRoleCodes
     );

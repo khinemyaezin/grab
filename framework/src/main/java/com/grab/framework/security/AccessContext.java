@@ -5,13 +5,13 @@ import java.util.Objects;
 public record AccessContext(
         String platformCode,
         String assignmentId,
-        String scopeType,
+        String scopeKey,
         String scopeId
 ) {
     public AccessContext {
         platformCode = requireText(platformCode, "platformCode");
         assignmentId = requireText(assignmentId, "assignmentId");
-        scopeType = requireText(scopeType, "scopeType");
+        scopeKey = requireText(scopeKey, "scopeKey");
         scopeId = requireText(scopeId, "scopeId");
     }
 

@@ -76,7 +76,7 @@ public class IdentityResolverAdapter implements PlatformIdentityResolver {
         AccessAssignmentEntity assignment = accessAssignments
                 .findForContext(context.assignmentId(), user.getUuid(), context.platformCode())
                 .orElseThrow(this::invalidAccessContext);
-        boolean matchesScope = assignment.getScopeType().name().equals(context.scopeType())
+        boolean matchesScope = assignment.getScopeKey().equals(context.scopeKey())
                 && assignment.getScopeId().equals(context.scopeId());
         boolean effective = assignment.getStatus() == com.identity.domain.enums.AccessAssignmentStatus.ACTIVE
                 && (assignment.getExpiresAt() == null || assignment.getExpiresAt().isAfter(Instant.now()))

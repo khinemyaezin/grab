@@ -29,7 +29,7 @@ public class AccessCommandService {
         AccessAssignmentResult result = commandBus.dispatch(grantMapper.toCommand(
                 request,
                 principal.getPlatformUserId(),
-                actorScope.type(),
+                actorScope.key(),
                 actorScope.id(),
                 principal.actor().roles()
         ));
@@ -45,7 +45,7 @@ public class AccessCommandService {
         AccessAssignmentResult result = commandBus.dispatch(statusMapper.toCommand(
                 assignmentId,
                 requestedStatus,
-                actorScope.type(),
+                actorScope.key(),
                 actorScope.id(),
                 principal.getPlatformUserId(),
                 principal.actor().roles()

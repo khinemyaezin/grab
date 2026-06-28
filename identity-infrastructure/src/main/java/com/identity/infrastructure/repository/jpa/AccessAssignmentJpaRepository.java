@@ -1,6 +1,5 @@
 package com.identity.infrastructure.repository.jpa;
 
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.infrastructure.entity.AccessAssignmentEntity;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -54,7 +53,7 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             where assignment.user.uuid = :userId
               and assignment.platformRole.platform.code = :platformCode
               and assignment.platformRole.role.code = :roleCode
-              and assignment.scopeType = :scopeType
+              and assignment.scopeKey = :scopeKey
               and assignment.scopeId = :scopeId
               and assignment.status in (
                   com.identity.domain.enums.AccessAssignmentStatus.ACTIVE,
@@ -65,7 +64,7 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             @Param("userId") String userId,
             @Param("platformCode") String platformCode,
             @Param("roleCode") String roleCode,
-            @Param("scopeType") AccessScopeType scopeType,
+            @Param("scopeKey") String scopeKey,
             @Param("scopeId") String scopeId
     );
 
@@ -74,7 +73,7 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             where assignment.user.uuid = :userId
               and assignment.platformRole.platform.code = :platformCode
               and assignment.platformRole.role.code = :roleCode
-              and assignment.scopeType = :scopeType
+              and assignment.scopeKey = :scopeKey
               and assignment.scopeId = :scopeId
               and assignment.status = com.identity.domain.enums.AccessAssignmentStatus.ACTIVE
               and assignment.platformRole.platform.active = true
@@ -86,7 +85,7 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             @Param("userId") String userId,
             @Param("platformCode") String platformCode,
             @Param("roleCode") String roleCode,
-            @Param("scopeType") AccessScopeType scopeType,
+            @Param("scopeKey") String scopeKey,
             @Param("scopeId") String scopeId,
             @Param("now") Instant now
     );
@@ -96,7 +95,7 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             where assignment.user.uuid = :userId
               and assignment.platformRole.platform.code = :platformCode
               and assignment.platformRole.role.code = :roleCode
-              and assignment.scopeType = :scopeType
+              and assignment.scopeKey = :scopeKey
               and assignment.scopeId = :scopeId
               and assignment.status in (
                   com.identity.domain.enums.AccessAssignmentStatus.ACTIVE,
@@ -107,7 +106,7 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             @Param("userId") String userId,
             @Param("platformCode") String platformCode,
             @Param("roleCode") String roleCode,
-            @Param("scopeType") AccessScopeType scopeType,
+            @Param("scopeKey") String scopeKey,
             @Param("scopeId") String scopeId
     );
 

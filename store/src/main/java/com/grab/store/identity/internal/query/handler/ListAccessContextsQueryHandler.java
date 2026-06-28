@@ -26,7 +26,7 @@ public class ListAccessContextsQueryHandler
                         assignment.getId().getValue(),
                         assignment.getPlatformCode(),
                         assignment.getRoleCode(),
-                        assignment.getScope().type().name(),
+                        assignment.getScope().key().value(),
                         assignment.getScope().scopeId(),
                         assignment.getExpiresAt() == null ? null : assignment.getExpiresAt().toString()
                 ))

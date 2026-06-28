@@ -2,10 +2,10 @@ package com.identity.domain.aggregate;
 
 import com.grab.framework.id.impl.CommonId;
 import com.identity.domain.enums.AccessAssignmentStatus;
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.event.AccessAssignmentChangedEvent;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.valueobject.AccessScope;
+import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -24,7 +24,7 @@ class AccessAssignmentTest {
                 new CommonId("user-1"),
                 sellerPlatform(),
                 " merchant_owner ",
-                new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, "merchant-1"),
+                new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 new CommonId("admin-1"),
                 Instant.now().plusSeconds(3600)
         );
@@ -65,7 +65,7 @@ class AccessAssignmentTest {
                         new CommonId("user-1"),
                         sellerPlatform(),
                         "MERCHANT_OWNER",
-                        new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, "merchant-1"),
+                        new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                         null,
                         Instant.now().minusSeconds(1)
                 )
@@ -76,7 +76,7 @@ class AccessAssignmentTest {
     void accessScope_withGlobalTypeAndResourceId_shouldRejectScope() {
         assertThrows(
                 IdentityDomainValidationException.class,
-                () -> new AccessScope(AccessScopeType.GLOBAL, "merchant-1")
+                () -> new AccessScope(ScopeKey.global(), "merchant-1")
         );
     }
 
@@ -88,7 +88,7 @@ class AccessAssignmentTest {
                 new CommonId("user-1"),
                 "SELLER_PORTAL",
                 "MERCHANT_OWNER",
-                new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, "merchant-1"),
+                new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 AccessAssignmentStatus.ACTIVE,
                 new CommonId("admin-1"),
                 now.minusSeconds(120),
@@ -110,7 +110,7 @@ class AccessAssignmentTest {
                 new CommonId("user-1"),
                 "SELLER_PORTAL",
                 "MERCHANT_OWNER",
-                new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, "merchant-1"),
+                new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 AccessAssignmentStatus.SUSPENDED,
                 new CommonId("admin-1"),
                 now.minusSeconds(120),
@@ -132,7 +132,7 @@ class AccessAssignmentTest {
                         new CommonId("user-1"),
                         sellerPlatform(),
                         "SUPER_ADMIN",
-                        new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, "merchant-1"),
+                        new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                         new CommonId("admin-1"),
                         null
                 )
@@ -148,7 +148,7 @@ class AccessAssignmentTest {
                         new CommonId("user-1"),
                         sellerPlatform(),
                         "MERCHANT_OWNER",
-                        new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, "merchant-1"),
+                        new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                         new CommonId("user-1"),
                         null
                 )
@@ -162,7 +162,7 @@ class AccessAssignmentTest {
                 new CommonId("user-1"),
                 "SELLER_PORTAL",
                 "MERCHANT_OWNER",
-                new AccessScope(AccessScopeType.MERCHANT_ACCOUNT, "merchant-1"),
+                new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 AccessAssignmentStatus.ACTIVE,
                 new CommonId("admin-1"),
                 now,
