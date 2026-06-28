@@ -46,12 +46,10 @@ public class IdentityOutboxEvent implements OutboxEntry<Long> {
     @Column(name = "event_version", nullable = false)
     private int eventVersion;
 
-    @Lob
-    @Column(name = "headers", nullable = false)
+    @Column(name = "headers", columnDefinition = "text", nullable = false)
     private String headers;
 
-    @Lob
-    @Column(name = "payload", nullable = false)
+    @Column(name = "payload", columnDefinition = "text", nullable = false)
     private String payload;
 
     @Enumerated(EnumType.STRING)
@@ -76,8 +74,7 @@ public class IdentityOutboxEvent implements OutboxEntry<Long> {
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
-    @Lob
-    @Column(name = "last_error")
+    @Column(name = "last_error", columnDefinition = "text")
     private String lastError;
 
     public static IdentityOutboxEvent pending(

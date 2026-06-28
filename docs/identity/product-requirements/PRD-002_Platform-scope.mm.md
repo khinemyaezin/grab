@@ -309,5 +309,5 @@ Merchant Owner သို့မဟုတ် လုပ်ပိုင်ခွင�
 
 ## ၁၂။ ဆက်စပ်စာတမ်းများ
 
-- [ADR-003: Platform အလိုက် Identity Access](../architecture/ADR-003_platform-scopes.md)
-- [Platform-Scope Domain Aggregate များ](../architecture/DRG-003_platform-scopes-domain-aggregates.md)
+- [ADR-003: Platform အလိုက် Identity Access](../architecture/ADR_003-Platform_scopes_architecture.md)
+- [Platform-Scope Domain Aggregate များ](../architecture/DGR_003-Platform_scopes_bounded_context_architecture.md)

@@ -66,7 +66,27 @@ identity:
     hibernate:
       dialect: ${IDENTITY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
-        auto: ${IDENTITY_JPA_DDL_AUTO:update}
+      auto: ${IDENTITY_JPA_DDL_AUTO:update}
+
+merchant:
+  enabled: ${MERCHANT_ENABLED:true}
+  datasource:
+    url: ${MERCHANT_DATASOURCE_URL:jdbc:postgresql://localhost:5432/merchant}
+    username: ${MERCHANT_DATASOURCE_USERNAME:admin}
+    password: ${MERCHANT_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${MERCHANT_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${MERCHANT_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${MERCHANT_JPA_DDL_AUTO:validate}
+  outbox:
+    fixed-delay-ms: ${MERCHANT_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${MERCHANT_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${MERCHANT_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${MERCHANT_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${MERCHANT_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${MERCHANT_OUTBOX_RETENTION_MS:604800000}
 
 security:
   enabled: ${API_SECURITY:true}

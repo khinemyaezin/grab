@@ -223,8 +223,8 @@ or assignment identity.
 
 ## 7. Related Documents
 
-- [ADR-001: Authentication and Authorization](ADR-001_authentication-authorization.md)
-- [ADR-002: Frontend Communication and Authentication](ADR-002_authentication-cookie-session.md)
-- [Identity Domain Aggregate Diagram](DRG-001_identity-domain-aggregates.md)
-- [Identity Security Architecture Diagram](DRG-002_identity-architecture.md)
+- [ADR-001: Authentication and Authorization](ADR_001-Identity-module-architecture.md)
+- [ADR-002: Frontend Communication and Authentication](ADR_002-API_security&cookie_architecture.md)
+- [Identity Domain Aggregate Diagram](DGR_001-Identity_bounded_context_architecture.md)
+- [Identity Security Architecture Diagram](DGR_002-Identity_module_architecture.md)
 - [System Architecture as a Modulith](../../system/ADR-001-system-architecture.md)

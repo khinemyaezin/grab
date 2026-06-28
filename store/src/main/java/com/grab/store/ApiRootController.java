@@ -3,6 +3,7 @@ package com.grab.store;
 import com.grab.store.catalog.CatalogRootController;
 import com.grab.store.inventory.InventoryRootController;
 import com.grab.store.identity.IdentityRootController;
+import com.grab.store.merchant.MerchantRootController;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ public class ApiRootController {
         model.add(linkTo(methodOn(CatalogRootController.class).root()).withRel("get-catalog-root"));
         model.add(linkTo(methodOn(InventoryRootController.class).root()).withRel("get-inventory-root"));
         model.add(linkTo(methodOn(IdentityRootController.class).root()).withRel("get-identity-root"));
+        model.add(linkTo(methodOn(MerchantRootController.class).root()).withRel("get-merchant-root"));
         return ResponseEntity.ok(model);
     }
 }

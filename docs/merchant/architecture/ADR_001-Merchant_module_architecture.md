@@ -242,8 +242,8 @@ pass in production.
 
 ## 7. Related Documents
 
-- [ADR-002: Merchant Domain Aggregate Design](ADR-002_Merchant-domain-aggregate.md)
-- [Identity ADR-003: Platform-Scoped Identity Access](../../identity/architecture/ADR-003_platform-scopes.md)
+- [ADR-002: Merchant Domain Aggregate Design](ADR_002-Merchant_bounded_context_architecture.md)
+- [Identity ADR-003: Platform-Scoped Identity Access](../../identity/architecture/ADR_003-Platform_scopes_architecture.md)
 - [Platform-Scoped Identity PRD](../../identity/product-requirements/PRD-002_Platform-scope.en.md)
 - [System ADR-001: Current System Architecture as a Modulith](../../system/ADR-001-system-architecture.md)
 - [System ADR-002: Module-Scoped Transactional Outbox](../../system/ADR-002-module-scoped-outbox.md)
