@@ -74,7 +74,7 @@ public class AccessAssignment extends AggregateRoot<Id> {
         );
         assignment.addEvent(new AccessAssignmentChangedEvent(
                 id, userId, assignment.platformCode, assignment.roleCode,
-                scope.type(), scope.scopeId(), null, AccessAssignmentStatus.ACTIVE, now
+                scope.key().value(), scope.scopeId(), null, AccessAssignmentStatus.ACTIVE, now
         ));
         return assignment;
     }
@@ -156,7 +156,7 @@ public class AccessAssignment extends AggregateRoot<Id> {
         updatedAt = Instant.now();
         addEvent(new AccessAssignmentChangedEvent(
                 getId(), userId, platformCode, roleCode,
-                scope.type(), scope.scopeId(), previous, requested, updatedAt
+                scope.key().value(), scope.scopeId(), previous, requested, updatedAt
         ));
     }
 

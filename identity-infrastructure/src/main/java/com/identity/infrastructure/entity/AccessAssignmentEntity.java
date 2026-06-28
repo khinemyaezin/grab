@@ -1,7 +1,6 @@
 package com.identity.infrastructure.entity;
 
 import com.identity.domain.enums.AccessAssignmentStatus;
-import com.identity.domain.enums.AccessScopeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,7 +25,7 @@ import java.time.Instant;
         name = "access_assignments",
         indexes = {
                 @Index(name = "idx_access_assignment_user_platform", columnList = "user_id, platform_role_id"),
-                @Index(name = "idx_access_assignment_scope", columnList = "scope_type, scope_id")
+                @Index(name = "idx_access_assignment_scope", columnList = "scope_key, scope_id")
         }
 )
 public class AccessAssignmentEntity {
@@ -45,9 +44,8 @@ public class AccessAssignmentEntity {
     @JoinColumn(name = "platform_role_id", nullable = false)
     private PlatformRoleEntity platformRole;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "scope_type", nullable = false)
-    private AccessScopeType scopeType;
+    @Column(name = "scope_key", nullable = false)
+    private String scopeKey;
 
     @Column(name = "scope_id", nullable = false)
     private String scopeId;

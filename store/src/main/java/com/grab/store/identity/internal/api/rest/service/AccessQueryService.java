@@ -33,7 +33,7 @@ public class AccessQueryService {
         var actorScope = actorScopes.resolve(principal);
         List<AccessAssignmentResult> results = queryBus.dispatch(assignmentMapper.toQuery(
                 userId,
-                actorScope.type(),
+                actorScope.key(),
                 actorScope.id()
         ));
         return results.stream().map(assignmentMapper::toResponse).toList();

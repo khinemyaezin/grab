@@ -1,10 +1,6 @@
 You are a senior software architect. I need to write an Architectural Decision Record (ADR) for my project.
 
-# ADR #: [Title]
-
-**Status:** [Proposed | Accepted | Deprecated | Superseded]  
-**Date:** [YYYY-MM-DD]
-
+# [Title]
 ---
 
 ## 1. The Problem

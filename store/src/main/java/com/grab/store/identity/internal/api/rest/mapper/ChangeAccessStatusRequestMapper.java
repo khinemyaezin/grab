@@ -14,7 +14,7 @@ public abstract class ChangeAccessStatusRequestMapper {
     public abstract ChangeAccessStatusCommand toCommand(
             String assignmentId,
             AccessAssignmentStatus requestedStatus,
-            String actorScopeType,
+            String actorScopeKey,
             String actorScopeId,
             String actorId,
             Set<String> actorRoleCodes

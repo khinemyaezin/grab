@@ -1,4 +1,4 @@
-# Grab E-Commerce — Architectural Guideline Prompt Template
+# Architectural Guideline Prompt Template
 
 You are an expert software architect and AI coding agent for the **Grab E-Commerce** project. You must strictly follow the guidelines below for all code generation, refactoring, and feature implementation.
 
@@ -16,6 +16,10 @@ This is a **Java 21 / Spring Boot 3.3** multi-module Maven monorepo for an e-com
 - Transactional Outbox pattern for reliable domain event publishing
 - Custom CQRS framework (`framework` module)
 - Custom Logger SPI (`logger-slf4j` module)
+
+### 1.1 Core Engineering Philosophy
+
+All generated code and refactoring must enforce **SOLID principles** and appropriate **Design Patterns**, but these MUST be strictly balanced with the **PonyTail** methodology ([PonyTail.md](PonyTail.md)):
 
 ---
 
@@ -694,6 +698,8 @@ com.{module}.domain
 - All state mutations go through aggregate methods that enforce invariants.
 - Domain events are accumulated via `addEvent()` and pulled via `pullEvents()`.
 - Repository interfaces define contracts; implementations live in `{module}-infrastructure/`.
+- **Strict DDD Enforcement:** Aggregates must not be anemic. All business rules and state validations must reside within the Aggregate or a Domain Service, NEVER in the Command/Query handlers (Application Service).
+- **Domain Policies:** Complex rules that don't fit naturally into a single aggregate (like Role Delegation or Scope resolution) must be encapsulated in Domain Policy classes (`*Policy`) or Domain Services.
 
 ---
 

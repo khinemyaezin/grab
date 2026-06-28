@@ -10,7 +10,7 @@ import org.mapstruct.Mapper;
 public abstract class ListAccessAssignmentsRequestMapper {
     public abstract ListAccessAssignmentsQuery toQuery(
             String userId,
-            String actorScopeType,
+            String actorScopeKey,
             String actorScopeId
     );
 

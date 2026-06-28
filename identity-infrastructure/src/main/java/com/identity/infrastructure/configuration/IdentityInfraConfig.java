@@ -13,6 +13,7 @@ import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.AccessInvitationRepository;
 import com.identity.domain.repository.AuthorityRepository;
 import com.identity.domain.repository.PlatformRepository;
+import com.identity.domain.repository.RoleDelegationRuleRepository;
 import com.identity.domain.repository.SessionStore;
 import com.identity.infrastructure.repository.adapter.JpaSessionStoreAdapter;
 import com.identity.infrastructure.mapper.jpa.RoleJpaAssembler;
@@ -31,12 +32,14 @@ import com.identity.infrastructure.repository.jpa.AuthorityJpaRepository;
 import com.identity.infrastructure.repository.jpa.PlatformJpaRepository;
 import com.identity.infrastructure.repository.jpa.PlatformRoleJpaRepository;
 import com.identity.infrastructure.repository.jpa.RefreshSessionJpaRepository;
+import com.identity.infrastructure.repository.jpa.RoleDelegationRuleJpaRepository;
 import com.identity.infrastructure.repository.jpa.UserJpaRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAuthorityRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAccessAssignmentRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAccessInvitationRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultPlatformRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultRoleRepository;
+import com.identity.infrastructure.repository.jpa.impl.DefaultRoleDelegationRuleRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultUserRepository;
 import com.identity.infrastructure.repository.jpa.impl.IdentityPersistenceExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -129,6 +132,14 @@ public class IdentityInfraConfig {
     @Bean
     public AuthorityRepository authorityRepository(AuthorityJpaRepository jpaRepository) {
         return new DefaultAuthorityRepository(jpaRepository);
+    }
+
+    @Bean
+    public RoleDelegationRuleRepository roleDelegationRuleRepository(
+            RoleDelegationRuleJpaRepository rules,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultRoleDelegationRuleRepository(rules, executor);
     }
 
     @Bean

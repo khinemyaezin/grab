@@ -4,7 +4,7 @@ public record AccessContextResponse(
         String assignmentId,
         String platformCode,
         String roleCode,
-        String scopeType,
+        String scopeKey,
         String scopeId,
         String expiresAt
 ) {

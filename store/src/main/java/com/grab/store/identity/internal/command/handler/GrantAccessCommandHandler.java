@@ -12,7 +12,7 @@ import com.identity.domain.aggregate.Platform;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.UserRepository;
-import com.identity.domain.service.AccessRoleDelegationPolicy;
+import com.identity.domain.service.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,7 +25,7 @@ public class GrantAccessCommandHandler implements CommandHandler<GrantAccessComm
     private final UserRepository users;
     private final PlatformRepository platforms;
     private final AccessAssignmentRepository assignments;
-    private final AccessRoleDelegationPolicy delegationPolicy;
+    private final RoleDelegationPolicy delegationPolicy;
     private final IdGenerator ids;
 
     @Override
@@ -41,8 +41,8 @@ public class GrantAccessCommandHandler implements CommandHandler<GrantAccessComm
                         "Platform not found"
                 )
         );
-        AccessScope scope = new AccessScope(command.scopeType(), command.scopeId());
-        AccessScope.from(command.actorScopeType(), command.actorScopeId()).requireEncompasses(scope);
+        AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
+        AccessScope.from(command.actorScopeKey(), command.actorScopeId()).requireEncompasses(scope);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());
         expirePreviousAssignmentIfDue(command, scope);
         if (assignments.existsCurrent(command.userId(), command.platformCode(), command.roleCode(), scope)) {

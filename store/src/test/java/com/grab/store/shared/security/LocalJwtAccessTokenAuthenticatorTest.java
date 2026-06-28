@@ -128,7 +128,7 @@ class LocalJwtAccessTokenAuthenticatorTest {
                 .subject("test-subject")
                 .claim("platform", "SELLER_PORTAL")
                 .claim("assignment_id", "assignment-1")
-                .claim("scope_type", "MERCHANT_ACCOUNT")
+                .claim("scope_key", "merchant.account")
                 .claim("scope_id", "merchant-1")
                 .expiration(Date.from(Instant.now().plus(Duration.ofMinutes(5))))
                 .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
@@ -137,9 +137,32 @@ class LocalJwtAccessTokenAuthenticatorTest {
         ExternalPrincipal principal = authenticator.authenticate(token);
 
         assertEquals(
-                new AccessContext("SELLER_PORTAL", "assignment-1", "MERCHANT_ACCOUNT", "merchant-1"),
+                new AccessContext("SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"),
                 principal.accessContext().orElseThrow()
         );
+    }
+
+    @Test
+    void authenticate_withLegacyScopeTypeClaim_shouldRejectToken() {
+        String token = Jwts.builder()
+                .header().type("at+jwt").and()
+                .issuer("test-issuer")
+                .audience().add("test-audience").and()
+                .subject("test-subject")
+                .claim("platform", "SELLER_PORTAL")
+                .claim("assignment_id", "assignment-1")
+                .claim("scope_type", "MERCHANT_ACCOUNT")
+                .claim("scope_id", "merchant-1")
+                .expiration(Date.from(Instant.now().plus(Duration.ofMinutes(5))))
+                .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
+                .compact();
+
+        IdentityAuthenticationException exception = assertThrows(
+                IdentityAuthenticationException.class,
+                () -> authenticator.authenticate(token)
+        );
+
+        assertInstanceOf(IdentitySecurityError.InvalidToken.class, exception.getMessageSource());
     }
 
     @Test

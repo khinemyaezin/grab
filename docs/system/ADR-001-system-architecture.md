@@ -224,7 +224,7 @@ This gives the system:
 ## Current Design Diagram
 
 See the standalone diagram in
-[current-system-architecture.md](current-system-architecture.md).
+[current-system-architecture.md](DGR-001_current-system-architecture.md).
 
 ---
 

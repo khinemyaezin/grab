@@ -5,7 +5,7 @@ public record AccessInvitationResult(
         String inviteeEmail,
         String platformCode,
         String roleCode,
-        String scopeType,
+        String scopeKey,
         String scopeId,
         String status,
         String expiresAt,

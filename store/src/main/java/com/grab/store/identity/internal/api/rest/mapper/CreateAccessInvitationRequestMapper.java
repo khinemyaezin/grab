@@ -14,7 +14,7 @@ public abstract class CreateAccessInvitationRequestMapper {
     public abstract CreateAccessInvitationCommand toCommand(
             CreateAccessInvitationRequest request,
             String invitedBy,
-            String actorScopeType,
+            String actorScopeKey,
             String actorScopeId,
             Set<String> actorRoleCodes
     );

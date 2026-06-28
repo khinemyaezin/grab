@@ -12,7 +12,7 @@ import java.util.Set;
 public abstract class CancelAccessInvitationRequestMapper {
     public abstract CancelAccessInvitationCommand toCommand(
             String invitationId,
-            String actorScopeType,
+            String actorScopeKey,
             String actorScopeId,
             Set<String> actorRoleCodes
     );

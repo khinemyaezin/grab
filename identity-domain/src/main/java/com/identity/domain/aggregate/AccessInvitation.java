@@ -86,7 +86,7 @@ public class AccessInvitation extends AggregateRoot<Id> {
         );
         invitation.addEvent(new AccessInvitationChangedEvent(
                 id, inviteeEmail.value(), invitation.platformCode, invitation.roleCode,
-                scope.type(), scope.scopeId(), null, InvitationStatus.PENDING, now
+                scope.key().value(), scope.scopeId(), null, InvitationStatus.PENDING, now
         ));
         return invitation;
     }
@@ -140,7 +140,7 @@ public class AccessInvitation extends AggregateRoot<Id> {
     private void addChangedEvent(InvitationStatus previous, Instant occurredAt) {
         addEvent(new AccessInvitationChangedEvent(
                 getId(), inviteeEmail.value(), platformCode, roleCode,
-                scope.type(), scope.scopeId(), previous, status, occurredAt
+                scope.key().value(), scope.scopeId(), previous, status, occurredAt
         ));
     }
 

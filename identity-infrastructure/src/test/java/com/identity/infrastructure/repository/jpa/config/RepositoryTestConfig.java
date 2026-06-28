@@ -72,6 +72,11 @@ public class RepositoryTestConfig extends PostgreSqlTestContainer {
         }
 
         @Bean
+        RoleDelegationRuleJpaRepository getRoleDelegationRuleJpaRepository(EntityManager entityManager) {
+            return new JpaRepositoryFactory(entityManager).getRepository(RoleDelegationRuleJpaRepository.class);
+        }
+
+        @Bean
         UserJpaRepository getUserJpaRepository(EntityManager entityManager) {
             return new JpaRepositoryFactory(entityManager).getRepository(UserJpaRepository.class);
         }

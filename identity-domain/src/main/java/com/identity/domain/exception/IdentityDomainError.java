@@ -17,6 +17,7 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.InvalidPlatformName,
         IdentityDomainError.PlatformRoleNotSupported,
         IdentityDomainError.InvalidAccessCode,
+        IdentityDomainError.InvalidScopeKey,
         IdentityDomainError.InvalidAccessScope,
         IdentityDomainError.AccessScopeNotEncompassed,
         IdentityDomainError.AccessRoleDelegationForbidden,
@@ -217,7 +218,24 @@ public sealed interface IdentityDomainError extends MessageSource permits
         }
     }
 
-    record InvalidAccessScope(String scopeType, String scopeId) implements IdentityDomainError {
+    record InvalidScopeKey(String scopeKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "idt.domain.access.scope_key_invalid";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("scopeKey", scopeKey);
+        }
+    }
+
+    record InvalidAccessScope(String scopeKey, String scopeId) implements IdentityDomainError {
         @Override
         public ErrorCategory kind() {
             return ErrorCategory.BAD_REQUEST;
@@ -230,12 +248,12 @@ public sealed interface IdentityDomainError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("scopeType", scopeType, "scopeId", scopeId);
+            return Map.of("scopeKey", scopeKey, "scopeId", scopeId);
         }
     }
 
-    record AccessScopeNotEncompassed(String actorScopeType, String actorScopeId,
-                                     String targetScopeType, String targetScopeId)
+    record AccessScopeNotEncompassed(String actorScopeKey, String actorScopeId,
+                                     String targetScopeKey, String targetScopeId)
             implements IdentityDomainError {
         @Override
         public ErrorCategory kind() {
@@ -250,9 +268,9 @@ public sealed interface IdentityDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of(
-                    "actorScopeType", actorScopeType,
+                    "actorScopeKey", actorScopeKey,
                     "actorScopeId", actorScopeId,
-                    "targetScopeType", targetScopeType,
+                    "targetScopeKey", targetScopeKey,
                     "targetScopeId", targetScopeId
             );
         }

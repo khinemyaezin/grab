@@ -40,8 +40,8 @@ public record SecurityPrincipal(
         return actor.accessContext().map(AccessContext::platformCode);
     }
 
-    public Optional<String> getScopeType() {
-        return actor.accessContext().map(AccessContext::scopeType);
+    public Optional<String> getScopeKey() {
+        return actor.accessContext().map(AccessContext::scopeKey);
     }
 
     public Optional<String> getScopeId() {

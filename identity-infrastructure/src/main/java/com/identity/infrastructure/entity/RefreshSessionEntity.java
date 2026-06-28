@@ -46,8 +46,8 @@ public class RefreshSessionEntity {
     @Column(name = "assignment_uuid")
     private String assignmentUuid;
 
-    @Column(name = "scope_type")
-    private String scopeType;
+    @Column(name = "scope_key")
+    private String scopeKey;
 
     @Column(name = "scope_id")
     private String scopeId;

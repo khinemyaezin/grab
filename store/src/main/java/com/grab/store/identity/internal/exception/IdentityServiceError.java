@@ -216,7 +216,7 @@ public sealed interface IdentityServiceError extends MessageSource permits
         }
     }
 
-    record AccessScopeForbidden(String scopeType, String scopeId) implements IdentityServiceError {
+    record AccessScopeForbidden(String scopeKey, String scopeId) implements IdentityServiceError {
         @Override
         public ErrorCategory kind() {
             return ErrorCategory.FORBIDDEN;
@@ -229,7 +229,7 @@ public sealed interface IdentityServiceError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("scopeType", scopeType, "scopeId", scopeId);
+            return Map.of("scopeKey", scopeKey, "scopeId", scopeId);
         }
     }
 

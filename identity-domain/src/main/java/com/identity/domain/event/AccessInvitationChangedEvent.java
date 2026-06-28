@@ -2,7 +2,6 @@ package com.identity.domain.event;
 
 import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.enums.InvitationStatus;
 
 import java.time.Instant;
@@ -12,7 +11,7 @@ public record AccessInvitationChangedEvent(
         String inviteeEmail,
         String platformCode,
         String roleCode,
-        AccessScopeType scopeType,
+        String scopeKey,
         String scopeId,
         InvitationStatus previousStatus,
         InvitationStatus currentStatus,

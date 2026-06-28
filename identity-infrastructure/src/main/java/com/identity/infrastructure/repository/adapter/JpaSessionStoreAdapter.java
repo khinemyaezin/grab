@@ -36,7 +36,7 @@ public class JpaSessionStoreAdapter implements SessionStore {
         accessContext.ifPresent(context -> {
             session.setPlatformCode(context.platformCode());
             session.setAssignmentUuid(context.assignmentId());
-            session.setScopeType(context.scopeType());
+            session.setScopeKey(context.scopeKey());
             session.setScopeId(context.scopeId());
         });
         sessionRepository.save(session);
@@ -116,14 +116,14 @@ public class JpaSessionStoreAdapter implements SessionStore {
     private Optional<AccessContext> contextOf(RefreshSessionEntity session) {
         if (session.getPlatformCode() == null
                 || session.getAssignmentUuid() == null
-                || session.getScopeType() == null
+                || session.getScopeKey() == null
                 || session.getScopeId() == null) {
             return Optional.empty();
         }
         return Optional.of(new AccessContext(
                 session.getPlatformCode(),
                 session.getAssignmentUuid(),
-                session.getScopeType(),
+                session.getScopeKey(),
                 session.getScopeId()
         ));
     }

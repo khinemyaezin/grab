@@ -1,6 +1,5 @@
 package com.identity.infrastructure.entity;
 
-import com.identity.domain.enums.AccessScopeType;
 import com.identity.domain.enums.InvitationStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,7 +25,7 @@ import java.time.Instant;
         name = "access_invitations",
         indexes = {
                 @Index(name = "idx_access_invitation_email", columnList = "invitee_email"),
-                @Index(name = "idx_access_invitation_scope", columnList = "scope_type, scope_id")
+                @Index(name = "idx_access_invitation_scope", columnList = "scope_key, scope_id")
         }
 )
 public class AccessInvitationEntity {
@@ -44,9 +43,8 @@ public class AccessInvitationEntity {
     @JoinColumn(name = "platform_role_id", nullable = false)
     private PlatformRoleEntity platformRole;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "scope_type", nullable = false)
-    private AccessScopeType scopeType;
+    @Column(name = "scope_key", nullable = false)
+    private String scopeKey;
 
     @Column(name = "scope_id", nullable = false)
     private String scopeId;

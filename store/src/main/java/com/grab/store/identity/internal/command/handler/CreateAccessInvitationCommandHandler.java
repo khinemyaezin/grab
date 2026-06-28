@@ -14,7 +14,7 @@ import com.identity.domain.aggregate.User;
 import com.identity.domain.repository.AccessInvitationRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.UserRepository;
-import com.identity.domain.service.AccessRoleDelegationPolicy;
+import com.identity.domain.service.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class CreateAccessInvitationCommandHandler
     private final PlatformRepository platforms;
     private final UserRepository users;
     private final AccessInvitationRepository invitations;
-    private final AccessRoleDelegationPolicy delegationPolicy;
+    private final RoleDelegationPolicy delegationPolicy;
     private final InvitationTokenService tokens;
     private final IdGenerator ids;
 
@@ -46,8 +46,8 @@ public class CreateAccessInvitationCommandHandler
                         "Inviting user not found"
                 )
         );
-        AccessScope scope = new AccessScope(command.scopeType(), command.scopeId());
-        AccessScope.from(command.actorScopeType(), command.actorScopeId()).requireEncompasses(scope);
+        AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
+        AccessScope.from(command.actorScopeKey(), command.actorScopeId()).requireEncompasses(scope);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());
         String acceptanceToken = tokens.generate();
         AccessInvitation saved = invitations.save(AccessInvitation.create(
@@ -66,7 +66,7 @@ public class CreateAccessInvitationCommandHandler
                 saved.getInviteeEmail().value(),
                 saved.getPlatformCode(),
                 saved.getRoleCode(),
-                saved.getScope().type().name(),
+                saved.getScope().key().value(),
                 saved.getScope().scopeId(),
                 saved.getStatus().name(),
                 saved.getExpiresAt().toString(),
