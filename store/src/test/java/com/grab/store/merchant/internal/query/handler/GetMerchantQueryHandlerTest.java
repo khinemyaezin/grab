@@ -18,7 +18,7 @@ class GetMerchantQueryHandlerTest {
         MerchantAccount merchant = MerchantAccount.startDraft(
                 merchantId,
                 new CommonId("applicant-1"),
-                MerchantType.RETAILER,
+                MerchantType.FIRST_PARTY_RETAILER,
                 "Acme Store",
                 Instant.parse("2026-06-28T00:00:00Z")
         );

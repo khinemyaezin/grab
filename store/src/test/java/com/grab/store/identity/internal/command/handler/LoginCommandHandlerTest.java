@@ -5,6 +5,7 @@ import com.grab.framework.security.AuthenticatedActor;
 import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.identity.internal.command.LoginCommand;
+import com.grab.store.identity.internal.config.IdentityRegistrationProperties;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
@@ -53,7 +54,14 @@ class LoginCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        handler = new LoginCommandHandler(users, assignments, passwords, tokens, identities);
+        handler = new LoginCommandHandler(
+                users,
+                assignments,
+                passwords,
+                tokens,
+                identities,
+                new IdentityRegistrationProperties(" customer_app ", " customer ")
+        );
         user = User.createLocal(
                 new CommonId("user-1"),
                 new Email("customer@example.com"),
@@ -138,6 +146,24 @@ class LoginCommandHandlerTest {
             assertThat(context.assignmentId()).isEqualTo("customer-assignment");
             assertThat(context.scopeKey()).isEqualTo("global");
         });
+    }
+
+    @Test
+    void handle_withAssignmentButNoPlatform_shouldRejectContextSelection() {
+        assertThatThrownBy(() -> handler.handle(new LoginCommand(
+                "customer@example.com",
+                "Password123!",
+                null,
+                new CommonId("assignment-1")
+        )))
+                .isInstanceOf(IdentityServiceException.class)
+                .satisfies(exception -> assertThat(
+                        ((IdentityServiceException) exception).getMessageSource().code()
+                ).isEqualTo("idt.service.access.context_selection_invalid"));
+
+        verify(assignments, never()).findById(org.mockito.ArgumentMatchers.any());
+        verify(identities, never()).resolve(org.mockito.ArgumentMatchers.any());
+        verify(tokens, never()).issue(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

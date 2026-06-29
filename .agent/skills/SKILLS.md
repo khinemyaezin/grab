@@ -19,7 +19,7 @@ This is a **Java 21 / Spring Boot 3.3** multi-module Maven monorepo for an e-com
 
 ### 1.1 Core Engineering Philosophy
 
-All generated code and refactoring must enforce **SOLID principles** and appropriate **Design Patterns**, but these MUST be strictly balanced with the **PonyTail** methodology ([PonyTail.md](PonyTail.md)):
+All generated code and refactoring must enforce **SOLID principles** and appropriate **Design Patterns**, but these MUST be strictly balanced with the **PonyTail** methodology ([PonyTail.md](../../PonyTail.md)):
 
 ---
 

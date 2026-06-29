@@ -15,6 +15,8 @@ import com.identity.domain.repository.AuthorityRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.RoleDelegationRuleRepository;
 import com.identity.domain.repository.SessionStore;
+import com.identity.domain.service.IdentityLookupPort;
+import com.identity.infrastructure.adapter.IdentityLookupAdapter;
 import com.identity.infrastructure.repository.adapter.JpaSessionStoreAdapter;
 import com.identity.infrastructure.mapper.jpa.RoleJpaAssembler;
 import com.identity.infrastructure.mapper.jpa.UserJpaAssembler;
@@ -28,21 +30,12 @@ import com.identity.infrastructure.mapper.jpa.RoleEntityMapper;
 import com.identity.infrastructure.mapper.jpa.RoleMapper;
 import com.identity.infrastructure.mapper.jpa.UserEntityMapper;
 import com.identity.infrastructure.mapper.jpa.UserMapper;
+import com.identity.infrastructure.repository.jpa.*;
 import com.identity.infrastructure.security.BcryptPasswordHasher;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.infrastructure.outbox.IdentityOutboxEvent;
 import com.identity.infrastructure.outbox.IdentityOutboxEventProcessor;
 import com.identity.infrastructure.outbox.IdentityOutboxEventProducer;
-import com.identity.infrastructure.repository.jpa.RoleJpaRepository;
-import com.identity.infrastructure.repository.jpa.AccessAssignmentJpaRepository;
-import com.identity.infrastructure.repository.jpa.AccessInvitationJpaRepository;
-import com.identity.infrastructure.repository.jpa.AuthorityJpaRepository;
-import com.identity.infrastructure.repository.jpa.PlatformJpaRepository;
-import com.identity.infrastructure.repository.jpa.PlatformRoleJpaRepository;
-import com.identity.infrastructure.repository.jpa.RefreshSessionJpaRepository;
-import com.identity.infrastructure.repository.jpa.RoleDelegationRuleJpaRepository;
-import com.identity.infrastructure.repository.jpa.UserJpaRepository;
-import com.identity.infrastructure.repository.jpa.ExternalIdentityJpaRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAuthorityRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAccessAssignmentRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAccessInvitationRepository;
@@ -221,12 +214,12 @@ public class IdentityInfraConfig {
     }
 
     @Bean
-    public com.identity.domain.service.IdentityLookupPort identityLookupPort(
+    public IdentityLookupPort identityLookupPort(
             UserJpaRepository users,
             ExternalIdentityJpaRepository externalIdentities,
-            com.identity.infrastructure.repository.jpa.ExternalEntitlementMappingJpaRepository entitlementMappings,
+            ExternalEntitlementMappingJpaRepository entitlementMappings,
             AccessAssignmentJpaRepository accessAssignments) {
-        return new com.identity.infrastructure.adapter.IdentityLookupAdapter(
+        return new IdentityLookupAdapter(
                 users, externalIdentities, entitlementMappings, accessAssignments
         );
     }

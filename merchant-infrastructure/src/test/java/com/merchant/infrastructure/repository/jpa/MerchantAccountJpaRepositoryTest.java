@@ -22,8 +22,8 @@ public class MerchantAccountJpaRepositoryTest extends RepositoryTestConfig {
     void setUp() {
         repository.deleteAll();
 
-        repository.save(createEntity("m1", "user1", MerchantType.RETAILER, MerchantStatus.ACTIVE, "US", "REG123"));
-        repository.save(createEntity("m2", "user1", MerchantType.RETAILER, MerchantStatus.DRAFT, "US", "REG124"));
+        repository.save(createEntity("m1", "user1", MerchantType.FIRST_PARTY_RETAILER, MerchantStatus.ACTIVE, "US", "REG123"));
+        repository.save(createEntity("m2", "user1", MerchantType.FIRST_PARTY_RETAILER, MerchantStatus.DRAFT, "US", "REG124"));
         repository.save(createEntity("m3", "user2", MerchantType.THIRD_PARTY, MerchantStatus.PENDING_REVIEW, "UK", "REG999"));
     }
 
@@ -64,10 +64,10 @@ public class MerchantAccountJpaRepositoryTest extends RepositoryTestConfig {
 
     @Test
     void existsOpenApplication_withOpenApplication_shouldReturnTrueAndFalseAppropriately() {
-        boolean exists = repository.existsOpenApplication("user1", MerchantType.RETAILER);
+        boolean exists = repository.existsOpenApplication("user1", MerchantType.FIRST_PARTY_RETAILER);
         Assertions.assertTrue(exists);
 
-        boolean exists2 = repository.existsOpenApplication("user3", MerchantType.RETAILER);
+        boolean exists2 = repository.existsOpenApplication("user3", MerchantType.FIRST_PARTY_RETAILER);
         Assertions.assertFalse(exists2);
     }
 

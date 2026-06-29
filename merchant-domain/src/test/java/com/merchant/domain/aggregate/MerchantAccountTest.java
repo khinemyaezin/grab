@@ -19,7 +19,7 @@ class MerchantAccountTest {
 
     @Test
     void startDraft_shouldCreateDraftWithoutCreatingOtherResources() {
-        MerchantAccount merchant = draft(MerchantType.RETAILER);
+        MerchantAccount merchant = draft(MerchantType.FIRST_PARTY_RETAILER);
 
         assertThat(merchant.getStatus()).isEqualTo(MerchantStatus.DRAFT);
         assertThat(merchant.getRegistration()).isNull();
@@ -28,7 +28,7 @@ class MerchantAccountTest {
 
     @Test
     void submit_professionalMerchantWithoutRegistration_shouldReject() {
-        MerchantAccount merchant = draft(MerchantType.RETAILER);
+        MerchantAccount merchant = draft(MerchantType.FIRST_PARTY_RETAILER);
         merchant.updateProfile(
                 new MerchantName("Legal Name", "Display Name"), null,
                 contact(), address(), now
@@ -36,19 +36,6 @@ class MerchantAccountTest {
 
         assertThatThrownBy(() -> merchant.submit(user("applicant-1"), now))
                 .isInstanceOf(MerchantDomainException.class);
-    }
-
-    @Test
-    void submit_consumerWithoutRegistration_shouldEnterReview() {
-        MerchantAccount merchant = draft(MerchantType.CONSUMER);
-        merchant.updateProfile(
-                new MerchantName("Consumer Legal Name", "Consumer Shop"), null,
-                contact(), address(), now
-        );
-
-        merchant.submit(user("applicant-1"), now);
-
-        assertThat(merchant.getStatus()).isEqualTo(MerchantStatus.PENDING_REVIEW);
     }
 
     @Test
@@ -63,7 +50,7 @@ class MerchantAccountTest {
 
     @Test
     void approve_draftMerchant_shouldRejectTransition() {
-        assertThatThrownBy(() -> draft(MerchantType.RETAILER).approve(user("reviewer-1"), now))
+        assertThatThrownBy(() -> draft(MerchantType.FIRST_PARTY_RETAILER).approve(user("reviewer-1"), now))
                 .isInstanceOf(MerchantDomainException.class);
     }
 
@@ -103,7 +90,7 @@ class MerchantAccountTest {
     }
 
     private MerchantAccount pendingMerchant() {
-        MerchantAccount merchant = draft(MerchantType.RETAILER);
+        MerchantAccount merchant = draft(MerchantType.FIRST_PARTY_RETAILER);
         merchant.updateProfile(
                 new MerchantName("Legal Name", "Display Name"), registration(), contact(), address(), now
         );

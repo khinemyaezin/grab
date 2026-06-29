@@ -60,7 +60,7 @@ public class AccessAssignment extends AggregateRoot<Id> {
     ) {
         Objects.requireNonNull(platform, "platform is required");
         Objects.requireNonNull(userId, "userId is required");
-        if (assignedBy != null && userId.equals(assignedBy)) {
+        if (Objects.equals(userId,assignedBy)) {
             throw selfAssignmentForbidden();
         }
         String supportedRoleCode = platform.requireSupportedRole(roleCode);

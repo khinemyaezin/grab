@@ -313,4 +313,4 @@ dependencies of this first Merchant release.
 - [Identity ADR-003: Platform-Scoped Identity Access](../../identity/architecture/ADR_003-Platform_scopes_architecture.md)
 - [System ADR-001: Current System Architecture](../../system/ADR_001-System_architecture.md)
 - [System ADR-002: Module-Scoped Transactional Outbox](../../system/ADR_002-Module_scoped_outbox_architecture.md)
-- [PRD Writing Guideline](../../PRD_SKILLS.md)
+- [PRD Writing Guideline](../../../.agent/skills/PRD_SKILLS.md)

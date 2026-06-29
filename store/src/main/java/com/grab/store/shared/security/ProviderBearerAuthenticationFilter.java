@@ -6,6 +6,7 @@ import com.grab.store.shared.security.expection.IdentitySecurityError;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -13,12 +14,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Objects;
 
-@Component("bearerAuthenticationFilter")
 @RequiredArgsConstructor
 public class ProviderBearerAuthenticationFilter extends OncePerRequestFilter {
     private final AccessTokenAuthenticator authenticator;
-    private final PlatformIdentityResolver resolver;
+    private final ObjectProvider<PlatformIdentityResolver> resolvers;
     private final AuthenticationEntryPoint entryPoint;
 
     @Override
@@ -48,7 +49,7 @@ public class ProviderBearerAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             ExternalPrincipal external = authenticator.authenticate(token);
-            AuthenticatedActor actor = resolver.resolve(external);
+            AuthenticatedActor actor = Objects.requireNonNull(resolvers.getIfAvailable()).resolve(external);
             SecurityPrincipal principal = new SecurityPrincipal(actor);
             var authentication = UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
