@@ -58,7 +58,6 @@ public class ChangeUserStatusCommandHandler implements CommandHandler<ChangeUser
         return new UserProfileResult(
                 user.getId().getValue(),
                 user.getEmail().value(),
-                user.getRoleCodes(),
                 user.getStatus().name(),
                 user.getCreatedAt().toString()
         );

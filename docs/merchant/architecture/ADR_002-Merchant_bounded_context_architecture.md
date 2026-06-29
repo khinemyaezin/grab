@@ -372,6 +372,6 @@ access assignments, and isolation tests reconcile.
 - [ADR-001: Merchant Bounded Context Architecture](ADR_001-Merchant_module_architecture.md)
 - [Identity ADR-003: Platform-Scoped Identity Access](../../identity/architecture/ADR_003-Platform_scopes_architecture.md)
 - [Platform-Scoped Identity Aggregate Diagram](../../identity/architecture/DGR_003-Platform_scopes_bounded_context_architecture.md)
-- [System ADR-001: Current System Architecture as a Modulith](../../system/ADR-001-system-architecture.md)
-- [System ADR-002: Module-Scoped Transactional Outbox](../../system/ADR-002-module-scoped-outbox.md)
+- [System ADR-001: Current System Architecture as a Modulith](../../system/ADR_001-System_architecture.md)
+- [System ADR-002: Module-Scoped Transactional Outbox](../../system/ADR_002-Module_scoped_outbox_architecture.md)
 - [ADR Writing Guideline](../../ADR_SKILLS.md)

@@ -73,7 +73,7 @@ class LocalTokenLifeCycleTest {
         assertEquals("test@example.com", parsed.getPayload().get("email"));
 
         verify(sessions).saveNewSession(
-                eq(userId), anyString(), anyString(), any(Instant.class), eq(Optional.empty())
+                eq(userId), anyString(), anyString(), any(Instant.class), eq(null)
         );
     }
 
@@ -90,7 +90,7 @@ class LocalTokenLifeCycleTest {
                 "owner@example.com",
                 Set.of("MERCHANT_OWNER"),
                 Set.of("MERCHANT_WRITE_OWN"),
-                Optional.of(context)
+                context
         );
 
         TokenPair tokenPair = tokenIssuer.issue(actor);
@@ -103,7 +103,7 @@ class LocalTokenLifeCycleTest {
         assertFalse(parsed.getPayload().containsKey("scope_type"));
         assertEquals("merchant-1", parsed.getPayload().get("scope_id"));
         verify(sessions).saveNewSession(
-                eq(userId), anyString(), anyString(), any(Instant.class), eq(Optional.of(context))
+                eq(userId), anyString(), anyString(), any(Instant.class), eq(context)
         );
     }
 

@@ -3,9 +3,6 @@ package com.identity.infrastructure.security;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.domain.valueobject.HashedPassword;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Component;
-
-@Component
 public class BcryptPasswordHasher implements PasswordHasher {
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 

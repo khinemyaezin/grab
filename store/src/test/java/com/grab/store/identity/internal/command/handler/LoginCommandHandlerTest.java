@@ -6,7 +6,6 @@ import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.identity.internal.command.LoginCommand;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
-import com.grab.store.shared.security.LocalJwtProperties;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
@@ -48,20 +47,17 @@ class LoginCommandHandlerTest {
     private TokenLifeCycle tokens;
     @Mock
     private PlatformIdentityResolver identities;
-    @Mock
-    private LocalJwtProperties jwtProperties;
 
     private LoginCommandHandler handler;
     private User user;
 
     @BeforeEach
     void setUp() {
-        handler = new LoginCommandHandler(users, assignments, passwords, tokens, identities, jwtProperties);
+        handler = new LoginCommandHandler(users, assignments, passwords, tokens, identities);
         user = User.createLocal(
                 new CommonId("user-1"),
                 new Email("customer@example.com"),
-                new HashedPassword("stored-hash"),
-                "CUSTOMER"
+                new HashedPassword("stored-hash")
         );
         when(users.findByEmail(new Email("customer@example.com"))).thenReturn(Optional.of(user));
         when(passwords.verify("Password123!", user.getPasswordHash().orElseThrow())).thenReturn(true);
@@ -75,7 +71,7 @@ class LoginCommandHandlerTest {
                 org.mockito.ArgumentMatchers.eq("SELLER_PORTAL"),
                 org.mockito.ArgumentMatchers.any()
         )).thenReturn(List.of(assignment));
-        when(jwtProperties.issuer()).thenReturn("local-issuer");
+        when(identities.localIssuer()).thenReturn("local-issuer");
         when(identities.resolve(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
             ExternalPrincipal principal = invocation.getArgument(0);
             return new AuthenticatedActor(
@@ -91,12 +87,57 @@ class LoginCommandHandlerTest {
 
         ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);
         verify(identities).resolve(principal.capture());
-        assertThat(principal.getValue().accessContext()).isPresent().hasValueSatisfying(context -> {
+        assertThat(principal.getValue().accessContext()).isNotNull().satisfies(context -> {
             assertThat(context.platformCode()).isEqualTo("SELLER_PORTAL");
             assertThat(context.assignmentId()).isEqualTo("assignment-1");
             assertThat(context.scopeId()).isEqualTo("merchant-1");
         });
         assertThat(result.accessToken()).isEqualTo("access");
+    }
+
+    @Test
+    void handle_withoutPlatformSelection_shouldUseCustomerAppAssignment() {
+        AccessAssignment assignment = AccessAssignment.create(
+                new CommonId("customer-assignment"),
+                user.getId(),
+                new Platform(
+                        new CommonId("customer-platform"),
+                        "CUSTOMER_APP",
+                        "Customer App",
+                        true,
+                        Set.of("CUSTOMER")
+                ),
+                "CUSTOMER",
+                AccessScope.global(),
+                new CommonId("system"),
+                null
+        );
+        when(assignments.findEffectiveByUserAndPlatform(
+                org.mockito.ArgumentMatchers.eq(user.getId()),
+                org.mockito.ArgumentMatchers.eq("CUSTOMER_APP"),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(List.of(assignment));
+        when(identities.localIssuer()).thenReturn("local-issuer");
+        when(identities.resolve(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
+            ExternalPrincipal principal = invocation.getArgument(0);
+            return new AuthenticatedActor(
+                    "user-1", "local-issuer", "user-1", "customer@example.com",
+                    Set.of("CUSTOMER"), Set.of("MERCHANT_APPLICATION_CREATE"), principal.accessContext()
+            );
+        });
+        when(tokens.issue(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new TokenPair("access", "refresh", 60000));
+
+        handler.handle(new LoginCommand("customer@example.com", "Password123!"));
+
+        ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);
+        verify(identities).resolve(principal.capture());
+        assertThat(principal.getValue().entitlements()).isEmpty();
+        assertThat(principal.getValue().accessContext()).isNotNull().satisfies(context -> {
+            assertThat(context.platformCode()).isEqualTo("CUSTOMER_APP");
+            assertThat(context.assignmentId()).isEqualTo("customer-assignment");
+            assertThat(context.scopeKey()).isEqualTo("global");
+        });
     }
 
     @Test

@@ -11,7 +11,7 @@ public record AuthenticatedActor(
         String email,
         Set<String> roles,
         Set<String> authorities,
-        Optional<AccessContext> accessContext
+        AccessContext accessContext
 ) {
     public AuthenticatedActor(
             String platformUserId,
@@ -21,7 +21,7 @@ public record AuthenticatedActor(
             Set<String> roles,
             Set<String> authorities
     ) {
-        this(platformUserId, issuer, subject, email, roles, authorities, Optional.empty());
+        this(platformUserId, issuer, subject, email, roles, authorities, null);
     }
 
     public AuthenticatedActor {
@@ -31,6 +31,5 @@ public record AuthenticatedActor(
         Objects.requireNonNull(email, "email is required");
         roles = Set.copyOf(Objects.requireNonNull(roles, "roles are required"));
         authorities = Set.copyOf(Objects.requireNonNull(authorities, "authorities are required"));
-        accessContext = Objects.requireNonNull(accessContext, "accessContext is required");
     }
 }

@@ -13,11 +13,9 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -73,21 +71,4 @@ public class UserAdminController {
         return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
     }
 
-    @PutMapping("/{id}/roles/{code}")
-    public ResponseEntity<EntityModel<UserProfileResponse>> assignRole(
-            @PathVariable String id,
-            @PathVariable String code
-    ) {
-        UserProfileResponse response = commandService.assignRole(id, code, true);
-        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
-    }
-
-    @DeleteMapping("/{id}/roles/{code}")
-    public ResponseEntity<EntityModel<UserProfileResponse>> revokeRole(
-            @PathVariable String id,
-            @PathVariable String code
-    ) {
-        UserProfileResponse response = commandService.assignRole(id, code, false);
-        return ResponseEntity.ok(userProfileModelAssembler.toModel(response));
-    }
 }

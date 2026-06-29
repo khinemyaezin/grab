@@ -11,7 +11,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.InvalidAuthorityCode,
         IdentityDomainError.InvalidRoleCode,
         IdentityDomainError.InvalidRoleName,
-        IdentityDomainError.InvalidSelfRegistrationRole,
         IdentityDomainError.InvalidUserStatusTransition,
         IdentityDomainError.InvalidPlatformCode,
         IdentityDomainError.InvalidPlatformName,
@@ -28,7 +27,25 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.InvalidInvitationTokenHash,
         IdentityDomainError.AccessInvitationExpired,
         IdentityDomainError.SelfAccessInvitationForbidden,
-        IdentityDomainError.AccessInvitationRecipientMismatch {
+        IdentityDomainError.AccessInvitationRecipientMismatch,
+        IdentityDomainError.AccountNotActive {
+
+    record AccountNotActive(String userId) implements IdentityDomainError {
+        @Override
+        public com.grab.framework.exception.ErrorCategory kind() {
+            return com.grab.framework.exception.ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "idt.domain.user.account_not_active";
+        }
+
+        @Override
+        public java.util.Map<String, Object> args() {
+            return java.util.Map.of("userId", userId);
+        }
+    }
 
     record InvalidEmail(String email) implements IdentityDomainError {
         @Override
@@ -112,23 +129,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of();
-        }
-    }
-
-    record InvalidSelfRegistrationRole(String roleCode) implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BUSINESS_RULE;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.user.self_registration_role_invalid";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("roleCode", roleCode);
         }
     }
 

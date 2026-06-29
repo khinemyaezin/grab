@@ -22,6 +22,14 @@ import com.identity.infrastructure.mapper.jpa.AccessAssignmentJpaAssembler;
 import com.identity.infrastructure.mapper.jpa.AccessInvitationJpaAssembler;
 import com.identity.infrastructure.mapper.jpa.impl.AccessAssignmentJpaAssemblerImpl;
 import com.identity.infrastructure.mapper.jpa.impl.AccessInvitationJpaAssemblerImpl;
+import com.identity.infrastructure.mapper.jpa.impl.RoleJpaAssemblerImpl;
+import com.identity.infrastructure.mapper.jpa.impl.UserJpaAssemblerImpl;
+import com.identity.infrastructure.mapper.jpa.RoleEntityMapper;
+import com.identity.infrastructure.mapper.jpa.RoleMapper;
+import com.identity.infrastructure.mapper.jpa.UserEntityMapper;
+import com.identity.infrastructure.mapper.jpa.UserMapper;
+import com.identity.infrastructure.security.BcryptPasswordHasher;
+import com.identity.domain.service.PasswordHasher;
 import com.identity.infrastructure.outbox.IdentityOutboxEvent;
 import com.identity.infrastructure.outbox.IdentityOutboxEventProcessor;
 import com.identity.infrastructure.outbox.IdentityOutboxEventProducer;
@@ -34,6 +42,7 @@ import com.identity.infrastructure.repository.jpa.PlatformRoleJpaRepository;
 import com.identity.infrastructure.repository.jpa.RefreshSessionJpaRepository;
 import com.identity.infrastructure.repository.jpa.RoleDelegationRuleJpaRepository;
 import com.identity.infrastructure.repository.jpa.UserJpaRepository;
+import com.identity.infrastructure.repository.jpa.ExternalIdentityJpaRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAuthorityRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAccessAssignmentRepository;
 import com.identity.infrastructure.repository.jpa.impl.DefaultAccessInvitationRepository;
@@ -191,5 +200,34 @@ public class IdentityInfraConfig {
     @Bean
     public SessionStore refreshSessionStore(RefreshSessionJpaRepository sessionRepository, UserJpaRepository userRepository) {
         return new JpaSessionStoreAdapter(sessionRepository, userRepository);
+    }
+
+    @Bean
+    public PasswordHasher passwordHasher() {
+        return new BcryptPasswordHasher();
+    }
+
+    @Bean
+    public UserJpaAssembler userJpaAssembler(UserEntityMapper entityMapper, UserMapper domainMapper) {
+        return new UserJpaAssemblerImpl(entityMapper, domainMapper);
+    }
+
+    @Bean
+    public RoleJpaAssembler roleJpaAssembler(
+            RoleEntityMapper entityMapper,
+            RoleMapper domainMapper,
+            AuthorityJpaRepository authorityRepository) {
+        return new RoleJpaAssemblerImpl(entityMapper, domainMapper, authorityRepository);
+    }
+
+    @Bean
+    public com.identity.domain.service.IdentityLookupPort identityLookupPort(
+            UserJpaRepository users,
+            ExternalIdentityJpaRepository externalIdentities,
+            com.identity.infrastructure.repository.jpa.ExternalEntitlementMappingJpaRepository entitlementMappings,
+            AccessAssignmentJpaRepository accessAssignments) {
+        return new com.identity.infrastructure.adapter.IdentityLookupAdapter(
+                users, externalIdentities, entitlementMappings, accessAssignments
+        );
     }
 }

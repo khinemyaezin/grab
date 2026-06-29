@@ -6,13 +6,10 @@ import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.grab.store.identity.internal.query.GetUserProfileQuery;
 import com.grab.store.identity.internal.query.GetUserProfileResult;
-import com.identity.infrastructure.entity.RoleEntity;
 import com.identity.infrastructure.entity.UserEntity;
 import com.identity.infrastructure.repository.jpa.UserJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -31,7 +28,6 @@ public class GetUserProfileQueryHandler implements QueryHandler<GetUserProfileQu
         return new GetUserProfileResult(
                 user.getUuid(),
                 user.getEmail(),
-                user.getRoles().stream().map(RoleEntity::getCode).collect(Collectors.toSet()),
                 user.getStatus().name(),
                 user.getCreatedAt().toString()
         );

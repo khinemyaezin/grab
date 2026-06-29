@@ -12,6 +12,5 @@ import org.mapstruct.MappingTarget;
 public abstract class RoleEntityMapper {
 
     @Mapping(source = "id", target = "uuid")
-    @Mapping(target = "authorities", ignore = true)
     public abstract void toEntity(Role source, @MappingTarget RoleEntity destination);
 }

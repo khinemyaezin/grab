@@ -3,8 +3,11 @@ package com.grab.store.identity.internal.api.rest.controller;
 import com.grab.store.identity.internal.api.rest.assembler.AuthModelAssembler;
 import com.grab.store.identity.internal.api.rest.dto.request.LoginRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.LogoutRequest;
+import com.grab.store.identity.internal.api.rest.dto.request.RegisterRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.RefreshTokenRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
+import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
+import com.grab.store.identity.internal.api.rest.assembler.UserProfileModelAssembler;
 import com.grab.store.identity.internal.api.rest.service.AuthCommandService;
 import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
 import jakarta.validation.Valid;
@@ -25,6 +28,7 @@ public class AuthController {
 
     private final AuthCommandService commandService;
     private final AuthModelAssembler authModelAssembler;
+    private final UserProfileModelAssembler userProfileModelAssembler;
     private final AuthCookieHelper authCookieHelper;
 
     @PostMapping("/login")
@@ -64,5 +68,12 @@ public class AuthController {
         return ResponseEntity.noContent()
                 .headers(authCookieHelper.clearTokenCookies())
                 .build();
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<EntityModel<UserProfileResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        UserProfileResponse response = commandService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userProfileModelAssembler.toModel(response));
     }
 }

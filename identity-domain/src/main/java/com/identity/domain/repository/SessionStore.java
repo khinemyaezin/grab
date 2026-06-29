@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface SessionStore {
     default void saveNewSession(String userId, String tokenHash, String tokenFamilyId, Instant expiresAt) {
-        saveNewSession(userId, tokenHash, tokenFamilyId, expiresAt, Optional.empty());
+        saveNewSession(userId, tokenHash, tokenFamilyId, expiresAt, null);
     }
 
     void saveNewSession(
@@ -16,7 +16,7 @@ public interface SessionStore {
             String tokenHash,
             String tokenFamilyId,
             Instant expiresAt,
-            Optional<AccessContext> accessContext
+            AccessContext accessContext
     );
     
     Optional<SessionDetails> findByTokenHash(String tokenHash);

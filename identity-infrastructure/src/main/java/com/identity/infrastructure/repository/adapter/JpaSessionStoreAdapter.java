@@ -10,6 +10,7 @@ import com.identity.infrastructure.repository.jpa.UserJpaRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class JpaSessionStoreAdapter implements SessionStore {
             String tokenHash,
             String tokenFamilyId,
             Instant expiresAt,
-            Optional<AccessContext> accessContext
+            AccessContext accessContext
     ) {
         UserEntity user = userRepository.findByUuid(userId).orElseThrow();
         RefreshSessionEntity session = new RefreshSessionEntity();
@@ -33,12 +34,12 @@ public class JpaSessionStoreAdapter implements SessionStore {
         session.setTokenFamilyId(tokenFamilyId);
         session.setCreatedAt(Instant.now());
         session.setExpiresAt(expiresAt);
-        accessContext.ifPresent(context -> {
-            session.setPlatformCode(context.platformCode());
-            session.setAssignmentUuid(context.assignmentId());
-            session.setScopeKey(context.scopeKey());
-            session.setScopeId(context.scopeId());
-        });
+        if(Objects.nonNull(accessContext)) {
+            session.setPlatformCode(accessContext.platformCode());
+            session.setAssignmentUuid(accessContext.assignmentId());
+            session.setScopeKey(accessContext.scopeKey());
+            session.setScopeId(accessContext.scopeId());
+        }
         sessionRepository.save(session);
     }
 
@@ -51,7 +52,7 @@ public class JpaSessionStoreAdapter implements SessionStore {
                 entity.getTokenFamilyId(),
                 entity.getExpiresAt(),
                 entity.getRevokedAt(),
-                contextOf(entity)
+                contextOf(entity).orElse(null)
             )
         );
     }
