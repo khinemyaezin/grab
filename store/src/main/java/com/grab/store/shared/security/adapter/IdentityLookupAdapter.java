@@ -40,14 +40,15 @@ public class IdentityLookupAdapter implements IdentityResolverClient {
 
     private RuntimeException translateException(IdentityDomainValidationException ex) {
         return switch (ex.getMessageSource().code()) {
-            case "idt.domain.user.account_not_active" ->
-                    new IdentityAuthenticationException(new IdentitySecurityError.AccountNotActive(), "Account is not active", ex);
-            case "idt.domain.access.code_invalid" ->
-                    new IdentityAuthenticationException(
-                            new IdentitySecurityError.InvalidAccessContext(),
-                            "Access context is not active",
-                            ex
-                    );
+            case "idt.domain.user.account_not_active" -> new IdentityAuthenticationException(
+                    new IdentitySecurityError.AccountNotActive(),
+                    "Account is not active",
+                    ex);
+            case "idt.domain.access.code_invalid" -> new IdentityAuthenticationException(
+                    new IdentitySecurityError.InvalidAccessContext(),
+                    "Access context is not active",
+                    ex
+            );
             default -> ex;
         };
     }

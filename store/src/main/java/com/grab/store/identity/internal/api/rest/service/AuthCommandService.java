@@ -3,6 +3,7 @@ package com.grab.store.identity.internal.api.rest.service;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.store.identity.internal.api.rest.dto.request.*;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
+import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
 import com.grab.store.identity.internal.api.rest.mapper.*;
 import com.grab.store.identity.internal.command.*;
 import lombok.RequiredArgsConstructor;
@@ -12,9 +13,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthCommandService {
     private final CommandBus commandBus;
+    private final RegisterRequestMapper registerMapper;
     private final LoginRequestMapper loginMapper;
     private final RefreshTokenRequestMapper refreshMapper;
     private final LogoutRequestMapper logoutMapper;
+
+    public UserProfileResponse register(RegisterRequest r) {
+        RegisterCommand command = registerMapper.toCommand(r);
+        UserProfileResult result = commandBus.dispatch(command);
+        return registerMapper.toResponse(result);
+    }
 
     public AuthResponse login(LoginRequest r) {
         LoginCommand command = loginMapper.toCommand(r);

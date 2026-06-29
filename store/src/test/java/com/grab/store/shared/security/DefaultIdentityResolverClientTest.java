@@ -7,7 +7,6 @@ import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.service.IdentityLookupPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +25,7 @@ import static org.mockito.Mockito.when;
 class DefaultIdentityResolverClientTest {
 
     @Mock
-    private IdentityLookupPort identityLookup;
+    private IdentityResolverClient identityLookup;
     @Mock
     private LocalJwtProperties properties;
 
@@ -45,7 +44,7 @@ class DefaultIdentityResolverClientTest {
         ExternalPrincipal principal = new ExternalPrincipal("test-issuer", userId, "test@example.com", Set.of());
 
         AuthenticatedActor mockActor = new AuthenticatedActor(userId, "test-issuer", userId, "test@example.com", Set.of(), Set.of());
-        when(identityLookup.resolveByPlatformUserId("test-issuer", userId, null)).thenReturn(Optional.of(mockActor));
+        when(identityLookup.resolveByPlatformUser("test-issuer", userId, null)).thenReturn(Optional.of(mockActor));
 
         AuthenticatedActor actor = resolver.resolve(principal);
 
@@ -63,8 +62,8 @@ class DefaultIdentityResolverClientTest {
         String userId = UUID.randomUUID().toString();
         ExternalPrincipal principal = new ExternalPrincipal("test-issuer", userId, "test@example.com", Set.of());
 
-        when(identityLookup.resolveByPlatformUserId("test-issuer", userId, null))
-                .thenThrow(new IdentityDomainValidationException(new IdentityDomainError.AccountNotActive(userId), "Account is not active"));
+        when(identityLookup.resolveByPlatformUser("test-issuer", userId, null))
+                .thenThrow(new IdentityAuthenticationException(new IdentitySecurityError.AccountNotActive(), "Account is not active"));
 
         IdentityAuthenticationException exception = assertThrows(IdentityAuthenticationException.class, () -> resolver.resolve(principal));
         assertInstanceOf(IdentitySecurityError.AccountNotActive.class, exception.getMessageSource());
@@ -77,7 +76,7 @@ class DefaultIdentityResolverClientTest {
         String userId = UUID.randomUUID().toString();
         ExternalPrincipal principal = new ExternalPrincipal("test-issuer", userId, "test@example.com", Set.of());
 
-        when(identityLookup.resolveByPlatformUserId("test-issuer", userId, null)).thenReturn(Optional.empty());
+        when(identityLookup.resolveByPlatformUser("test-issuer", userId, null)).thenReturn(Optional.empty());
 
         IdentityAuthenticationException exception = assertThrows(IdentityAuthenticationException.class, () -> resolver.resolve(principal));
         assertInstanceOf(IdentitySecurityError.IdentityNotLinked.class, exception.getMessageSource());
@@ -112,7 +111,7 @@ class DefaultIdentityResolverClientTest {
         );
         
         AuthenticatedActor mockActor = new AuthenticatedActor(userId, "test-issuer", userId, "owner@example.com", Set.of(), Set.of());
-        when(identityLookup.resolveByPlatformUserId("test-issuer", userId, null)).thenReturn(Optional.of(mockActor));
+        when(identityLookup.resolveByPlatformUser("test-issuer", userId, null)).thenReturn(Optional.of(mockActor));
 
         AuthenticatedActor actor = resolver.resolve(principal);
 
@@ -133,7 +132,7 @@ class DefaultIdentityResolverClientTest {
         );
         
         AuthenticatedActor mockActor = new AuthenticatedActor(userId, "test-issuer", userId, "owner@example.com", Set.of("MERCHANT_OWNER"), Set.of("MERCHANT_WRITE_OWN"), context);;
-        when(identityLookup.resolveByPlatformUserId("test-issuer", userId, context)).thenReturn(Optional.of(mockActor));
+        when(identityLookup.resolveByPlatformUser("test-issuer", userId, context)).thenReturn(Optional.of(mockActor));
 
         AuthenticatedActor actor = resolver.resolve(principal);
 
@@ -153,8 +152,8 @@ class DefaultIdentityResolverClientTest {
                 "test-issuer", userId, "", Set.of(), context
         );
         
-        when(identityLookup.resolveByPlatformUserId("test-issuer", userId, context))
-                .thenThrow(new IdentityDomainValidationException(new IdentityDomainError.InvalidAccessCode("accessContext", "invalid"), "Access context is not active"));
+        when(identityLookup.resolveByPlatformUser("test-issuer", userId, context))
+                .thenThrow(new IdentityAuthenticationException(new IdentitySecurityError.InvalidAccessContext(), "Access context is not active"));
 
         IdentityAuthenticationException exception = assertThrows(
                 IdentityAuthenticationException.class,

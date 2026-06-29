@@ -2,6 +2,7 @@ package com.grab.store.identity.internal.api.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.store.identity.internal.api.rest.assembler.AuthModelAssembler;
+import com.grab.store.identity.internal.api.rest.assembler.UserProfileModelAssembler;
 import com.grab.store.identity.internal.api.rest.dto.request.LoginRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.LogoutRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.RefreshTokenRequest;
@@ -45,6 +46,9 @@ class AuthControllerTest {
     private AuthModelAssembler authModelAssembler;
 
     @MockBean
+    private UserProfileModelAssembler userProfileModelAssembler;
+
+    @MockBean
     private AuthCookieHelper authCookieHelper;
 
     private ObjectMapper objectMapper;
@@ -80,7 +84,7 @@ class AuthControllerTest {
 
     @Test
     void login_shouldReturn200WithCookies() throws Exception {
-        LoginRequest request = new LoginRequest("test@example.com", "Password123!");
+        LoginRequest request = new LoginRequest("test@example.com", "Password123!", "ADMIN_CONSOLE", "123");
         when(authCommandService.login(any(LoginRequest.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/v1/identity/auth/login")
