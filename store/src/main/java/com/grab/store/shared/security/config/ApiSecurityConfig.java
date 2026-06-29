@@ -1,12 +1,10 @@
 package com.grab.store.shared.security.config;
 
-import com.grab.store.shared.security.LocalJwtProperties;
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import jakarta.servlet.Filter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.*;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -24,16 +22,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-import java.time.Duration;
-
 @Configuration
 @EnableMethodSecurity
-public class SecurityConfig {
+public class ApiSecurityConfig {
     private final Filter bearerFilter;
     private final AuthenticationEntryPoint entryPoint;
     private final AccessDeniedHandler deniedHandler;
 
-    public SecurityConfig(
+    public ApiSecurityConfig(
             @Qualifier("bearerAuthenticationFilter") Filter bearerFilter,
             AuthenticationEntryPoint entryPoint,
             AccessDeniedHandler deniedHandler) {

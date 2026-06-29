@@ -311,6 +311,6 @@ dependencies of this first Merchant release.
 - [ADR-002: Merchant Domain Aggregate Design](../architecture/ADR_002-Merchant_bounded_context_architecture.md)
 - [Identity PRD-002: Platform-Scoped Identity Access](../../identity/product-requirements/PRD-002_Platform-scope.en.md)
 - [Identity ADR-003: Platform-Scoped Identity Access](../../identity/architecture/ADR_003-Platform_scopes_architecture.md)
-- [System ADR-001: Current System Architecture](../../system/ADR-001-system-architecture.md)
-- [System ADR-002: Module-Scoped Transactional Outbox](../../system/ADR-002-module-scoped-outbox.md)
+- [System ADR-001: Current System Architecture](../../system/ADR_001-System_architecture.md)
+- [System ADR-002: Module-Scoped Transactional Outbox](../../system/ADR_002-Module_scoped_outbox_architecture.md)
 - [PRD Writing Guideline](../../PRD_SKILLS.md)

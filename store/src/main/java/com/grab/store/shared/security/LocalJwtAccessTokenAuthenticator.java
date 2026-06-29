@@ -42,7 +42,7 @@ public class LocalJwtAccessTokenAuthenticator implements AccessTokenAuthenticato
 
             return new ExternalPrincipal(claims.getIssuer(),
                     claims.getSubject(),
-                    Optional.ofNullable(claims.get("email", String.class)),
+                    claims.get("email", String.class),
                     roles,
                     accessContext(claims));
         } catch (ExpiredJwtException ex) {
@@ -52,13 +52,13 @@ public class LocalJwtAccessTokenAuthenticator implements AccessTokenAuthenticato
         }
     }
 
-    private Optional<AccessContext> accessContext(Claims claims) {
+    private AccessContext accessContext(Claims claims) {
         String platform = claims.get("platform", String.class);
         String assignmentId = claims.get("assignment_id", String.class);
         String scopeKey = claims.get("scope_key", String.class);
         String scopeId = claims.get("scope_id", String.class);
         if (platform == null && assignmentId == null && scopeKey == null && scopeId == null) {
-            return Optional.empty();
+            return null;
         }
         if (platform == null || assignmentId == null || scopeKey == null || scopeId == null) {
             throw new IdentityAuthenticationException(
@@ -66,6 +66,6 @@ public class LocalJwtAccessTokenAuthenticator implements AccessTokenAuthenticato
                     "Access context claims are incomplete"
             );
         }
-        return Optional.of(new AccessContext(platform, assignmentId, scopeKey, scopeId));
+        return new AccessContext(platform, assignmentId, scopeKey, scopeId);
     }
 }

@@ -22,25 +22,4 @@ CREATE TABLE identity_inbox_events (
 CREATE INDEX idx_identity_inbox_merchant_version
     ON identity_inbox_events(merchant_id, aggregate_version);
 
-INSERT INTO authorities (code, name, description, active)
-VALUES (
-    'MERCHANT_APPLICATION_CREATE',
-    'MERCHANT_APPLICATION_CREATE',
-    'Start a merchant application',
-    TRUE
-)
-ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO role_authorities (role_id, authority_id)
-SELECT role.id, authority.id
-FROM roles role
-JOIN authorities authority ON authority.code = 'MERCHANT_APPLICATION_CREATE'
-WHERE role.code = 'CUSTOMER'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_authorities (role_id, authority_id)
-SELECT role.id, authority.id
-FROM roles role
-JOIN authorities authority ON authority.code = 'MERCHANT_APPLICATION_CREATE'
-WHERE role.code = 'SUPER_ADMIN'
-ON CONFLICT DO NOTHING;

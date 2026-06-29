@@ -11,7 +11,7 @@ public record SessionDetails(
     String tokenFamilyId,
     Instant expiresAt,
     Instant revokedAt,
-    Optional<AccessContext> accessContext
+    AccessContext accessContext
 ) {
     public SessionDetails(
             String userId,
@@ -20,6 +20,6 @@ public record SessionDetails(
             Instant expiresAt,
             Instant revokedAt
     ) {
-        this(userId, userEmail, tokenFamilyId, expiresAt, revokedAt, Optional.empty());
+        this(userId, userEmail, tokenFamilyId, expiresAt, revokedAt, null);
     }
 }

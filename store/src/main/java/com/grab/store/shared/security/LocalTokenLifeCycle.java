@@ -50,11 +50,16 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
                 .id(UUID.randomUUID().toString())
                 .claim("email", actor.email())
                 .claim("roles", actor.roles());
-        actor.accessContext().ifPresent(context -> builder
-                .claim("platform", context.platformCode())
-                .claim("assignment_id", context.assignmentId())
-                .claim("scope_key", context.scopeKey())
-                .claim("scope_id", context.scopeId()));
+
+        AccessContext context = actor.accessContext();
+        if (Objects.nonNull(context)) {
+            builder
+                    .claim("platform", context.platformCode())
+                    .claim("assignment_id", context.assignmentId())
+                    .claim("scope_key", context.scopeKey())
+                    .claim("scope_id", context.scopeId());
+        }
+
         String access = builder
                 .signWith(localJwtPrivateKey, Jwts.SIG.RS256)
                 .compact();
@@ -84,7 +89,7 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
         ExternalPrincipal principal = new ExternalPrincipal(
                 properties.issuer(),
                 old.userId(),
-                Optional.ofNullable(old.userEmail()),
+                old.userEmail(),
                 Set.of(),
                 old.accessContext()
         );

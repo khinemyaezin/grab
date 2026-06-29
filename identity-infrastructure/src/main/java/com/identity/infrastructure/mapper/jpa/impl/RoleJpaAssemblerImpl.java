@@ -7,11 +7,9 @@ import com.identity.infrastructure.mapper.jpa.RoleJpaAssembler;
 import com.identity.infrastructure.mapper.jpa.RoleMapper;
 import com.identity.infrastructure.repository.jpa.AuthorityJpaRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
 
-@Component
 @RequiredArgsConstructor
 public class RoleJpaAssemblerImpl implements RoleJpaAssembler {
 

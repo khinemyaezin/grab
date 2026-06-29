@@ -15,14 +15,6 @@ CREATE TABLE IF NOT EXISTS roles (
     active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE IF NOT EXISTS role_authorities (
-    role_id BIGINT NOT NULL,
-    authority_id BIGINT NOT NULL,
-    PRIMARY KEY (role_id, authority_id),
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-    FOREIGN KEY (authority_id) REFERENCES authorities(id) ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS users (
     id BIGSERIAL PRIMARY KEY,
     uuid VARCHAR(255) NOT NULL UNIQUE,

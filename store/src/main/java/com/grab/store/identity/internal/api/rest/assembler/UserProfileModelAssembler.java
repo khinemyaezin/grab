@@ -46,13 +46,6 @@ public class UserProfileModelAssembler
                     .withRel("reactivate-user"));
         }
 
-        entity.add(linkTo(methodOn(UserAdminController.class)
-                .revokeRole(response.id(), null))
-                .withRel("revoke-role"));
-
-        entity.add(linkTo(methodOn(UserAdminController.class)
-                .assignRole(response.id(), null))
-                .withRel("assign-role"));
         return entity;
     }
 }

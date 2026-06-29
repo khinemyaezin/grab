@@ -1,7 +1,6 @@
 package com.identity.infrastructure.repository.jpa;
 
 import com.identity.domain.enums.UserStatus;
-import com.identity.infrastructure.entity.RoleEntity;
 import com.identity.infrastructure.entity.UserEntity;
 import com.identity.infrastructure.repository.jpa.config.RepositoryTestConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,30 +18,18 @@ public class UserJpaRepositoryTest extends RepositoryTestConfig {
     @Autowired
     private UserJpaRepository userJpaRepository;
 
-    @Autowired
-    private RoleJpaRepository roleJpaRepository;
-
     private UserEntity activeUser;
     private UserEntity suspendedUser;
 
     @BeforeEach
     void setUp() {
         userJpaRepository.deleteAll();
-        roleJpaRepository.deleteAll();
-
-        RoleEntity adminRole = new RoleEntity();
-        adminRole.setUuid("uuid-role-admin");
-        adminRole.setCode("ADMIN");
-        adminRole.setName("Administrator");
-        adminRole.setActive(true);
-        roleJpaRepository.save(adminRole);
 
         activeUser = new UserEntity();
         activeUser.setUuid("uuid-user-active");
         activeUser.setEmail("active@example.com");
         activeUser.setPasswordHash("hashed-pwd-1");
         activeUser.setStatus(UserStatus.ACTIVE);
-        activeUser.setRoles(Set.of(adminRole));
         activeUser.setCreatedAt(LocalDateTime.now());
         activeUser.setUpdatedAt(LocalDateTime.now());
 
@@ -101,15 +87,6 @@ public class UserJpaRepositoryTest extends RepositoryTestConfig {
         boolean result = userJpaRepository.existsByEmail("unknown@example.com");
 
         assertThat(result).isFalse();
-    }
-
-    @Test
-    void findByUuid_loadsRoles() {
-        Optional<UserEntity> result = userJpaRepository.findByUuid("uuid-user-active");
-
-        assertThat(result).isPresent();
-        assertThat(result.get().getRoles()).hasSize(1);
-        assertThat(result.get().getRoles().iterator().next().getCode()).isEqualTo("ADMIN");
     }
 
     @Test

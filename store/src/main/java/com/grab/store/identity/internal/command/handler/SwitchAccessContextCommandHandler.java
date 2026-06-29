@@ -10,7 +10,6 @@ import com.grab.store.identity.internal.command.SwitchAccessContextCommand;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
-import com.grab.store.shared.security.LocalJwtProperties;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.repository.AccessAssignmentRepository;
@@ -31,7 +30,6 @@ public class SwitchAccessContextCommandHandler implements CommandHandler<SwitchA
     private final AccessAssignmentRepository assignments;
     private final PlatformIdentityResolver identityResolver;
     private final TokenLifeCycle tokenLifeCycle;
-    private final LocalJwtProperties jwtProperties;
 
     @Override
     @IdentityTransactional
@@ -62,11 +60,11 @@ public class SwitchAccessContextCommandHandler implements CommandHandler<SwitchA
                 assignment.getScope().scopeId()
         );
         AuthenticatedActor actor = identityResolver.resolve(new ExternalPrincipal(
-                jwtProperties.issuer(),
+                identityResolver.localIssuer(),
                 user.getId().getValue(),
-                Optional.of(user.getEmail().value()),
+                user.getEmail().value(),
                 Set.of(),
-                Optional.of(context)
+                context
         ));
         TokenPair tokenPair = tokenLifeCycle.issue(actor);
         if (command.currentRefreshToken() != null && !command.currentRefreshToken().isBlank()) {

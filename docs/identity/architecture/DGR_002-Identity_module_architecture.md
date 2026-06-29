@@ -48,9 +48,8 @@ flowchart TD
     AuthFilter -- "5. Forward Request" --> Controllers
     
     %% Styling for clarity
-    classDef filter fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef auth fill:#bbf,stroke:#333,stroke-width:2px;
-    classDef db fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef auth fill:#003F54,stroke:#333,stroke-width:2px;
+    classDef db fill:#00470E,stroke:#333,stroke-width:2px;
     
     class AuthFilter filter;
     class JwtAuth,IdentityResolver,TokenIssuer auth;

@@ -51,7 +51,7 @@ class LocalJwtAccessTokenAuthenticatorTest {
 
         assertEquals("test-issuer", principal.issuer());
         assertEquals("test-subject", principal.subject());
-        assertEquals("test@example.com", principal.email().orElse(null));
+        assertEquals("test@example.com", principal.email());
         assertEquals(Set.of("CUSTOMER", "SELLER"), principal.entitlements());
     }
 
@@ -130,6 +130,7 @@ class LocalJwtAccessTokenAuthenticatorTest {
                 .claim("assignment_id", "assignment-1")
                 .claim("scope_key", "merchant.account")
                 .claim("scope_id", "merchant-1")
+                .claim("email", "admin@example.com")
                 .expiration(Date.from(Instant.now().plus(Duration.ofMinutes(5))))
                 .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
                 .compact();
@@ -138,7 +139,7 @@ class LocalJwtAccessTokenAuthenticatorTest {
 
         assertEquals(
                 new AccessContext("SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"),
-                principal.accessContext().orElseThrow()
+                principal.accessContext()
         );
     }
 

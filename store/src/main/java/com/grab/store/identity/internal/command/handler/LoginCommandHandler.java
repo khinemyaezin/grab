@@ -10,7 +10,6 @@ import com.grab.store.identity.internal.command.LoginCommand;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
-import com.grab.store.shared.security.LocalJwtProperties;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
 import com.identity.domain.aggregate.User;
@@ -25,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.Set;
 import java.time.Instant;
 import java.util.List;
 
@@ -37,7 +37,6 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
     private final PasswordHasher passwordHasher;
     private final TokenLifeCycle tokenLifeCycle;
     private final PlatformIdentityResolver identityResolver;
-    private final LocalJwtProperties jwtProperties;
 
     @Override
     @IdentityTransactional
@@ -52,11 +51,11 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
 
         Optional<AccessContext> accessContext = resolveRequestedContext(command, user);
         AuthenticatedActor actor = identityResolver.resolve(new ExternalPrincipal(
-                jwtProperties.issuer(),
+                identityResolver.localIssuer(),
                 user.getId().getValue(),
-                Optional.of(user.getEmail().value()),
-                user.getRoleCodes(),
-                accessContext
+                user.getEmail().value(),
+                Set.of(),
+                accessContext.orElse(null)
         ));
         TokenPair tokenPair = tokenLifeCycle.issue(actor);
         return new AuthResult(
@@ -90,29 +89,30 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
                         "Platform code is required when selecting an assignment"
                 );
             }
-            return Optional.empty();
         }
+
+        String platformCode = command.platformCode() == null ? "CUSTOMER_APP" : command.platformCode();
 
         if (command.assignmentId() != null) {
             AccessAssignment assignment = accessAssignments
                     .findById(command.assignmentId())
                     .filter(candidate -> candidate.getUserId().equals(user.getId()))
-                    .filter(candidate -> candidate.getPlatformCode().equals(command.platformCode()))
+                    .filter(candidate -> candidate.getPlatformCode().equals(platformCode))
                     .filter(candidate -> candidate.isEffectiveAt(Instant.now()))
-                    .orElseThrow(() -> platformAccessUnavailable(command.platformCode()));
+                    .orElseThrow(() -> platformAccessUnavailable(platformCode));
             return Optional.of(toContext(assignment));
         }
 
         List<AccessAssignment> available = accessAssignments.findEffectiveByUserAndPlatform(
-                user.getId(), command.platformCode(), Instant.now()
+                user.getId(), platformCode, Instant.now()
         );
         if (available.isEmpty()) {
-            throw platformAccessUnavailable(command.platformCode());
+            throw platformAccessUnavailable(platformCode);
         }
         if (available.size() > 1) {
             throw new IdentityServiceException(
                     new IdentityServiceError.AccessContextSelectionRequired(
-                            command.platformCode(), available.size()
+                            platformCode, available.size()
                     ),
                     "More than one access context is available; select an assignment"
             );

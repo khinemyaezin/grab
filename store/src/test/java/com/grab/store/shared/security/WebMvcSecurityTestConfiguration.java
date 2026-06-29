@@ -2,6 +2,7 @@ package com.grab.store.shared.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.framework.security.AccessTokenAuthenticator;
+import com.grab.framework.security.AuthenticatedActor;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.shared.security.expection.ProblemDetailAuthEntryPoint;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -19,8 +20,16 @@ public class WebMvcSecurityTestConfiguration {
 
     @Bean
     PlatformIdentityResolver platformIdentityResolver() {
-        return principal -> {
-            throw new UnsupportedOperationException("Authentication is disabled in controller tests");
+        return new PlatformIdentityResolver() {
+            @Override
+            public AuthenticatedActor resolve(com.grab.framework.security.ExternalPrincipal principal) {
+                throw new UnsupportedOperationException("Authentication is disabled in controller tests");
+            }
+
+            @Override
+            public String localIssuer() {
+                return "test-issuer";
+            }
         };
     }
 

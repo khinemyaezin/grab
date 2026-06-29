@@ -26,8 +26,6 @@ public class IdentitySecurityConfigurer implements ModuleSecurityConfigurer {
         auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/approve").hasAuthority("USER_APPROVE");
         auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/suspend").hasAuthority("USER_SUSPEND");
         auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/reactivate").hasAuthority("USER_SUSPEND");
-        auth.requestMatchers("/api/v1/identity/admin/users/*/roles/**").hasAuthority("ROLE_MANAGE");
-
         auth.requestMatchers("/api/v1/identity/access-contexts/**").authenticated();
         auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/access-invitations/accept").authenticated();
         auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/access-invitations").hasAuthority("ACCESS_INVITATION_MANAGE");

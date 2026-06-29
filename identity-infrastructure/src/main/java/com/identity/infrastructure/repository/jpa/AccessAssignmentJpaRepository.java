@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssignmentEntity, Long> {
-    boolean existsByUser_Uuid(String userId);
-
     @EntityGraph(attributePaths = {"user", "platformRole", "platformRole.platform", "platformRole.role", "platformRole.role.authorities"})
     Optional<AccessAssignmentEntity> findByUuid(String uuid);
 

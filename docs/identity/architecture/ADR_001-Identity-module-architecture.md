@@ -380,5 +380,5 @@ sequenceDiagram
 - [Identity Authentication BRD](../business-requirements/BRD_identity-authentication.en.md)
 - [Identity Architecture Diagram](DGR_002-Identity_module_architecture.md)
 - [Identity Domain Aggregate](DGR_001-Identity_bounded_context_architecture.md)
-- [System Architecture as a Modulith](../../system/ADR-001-system-architecture.md)
-- [Exception Handling Framework](../../system/ADR-003-exception-handling-framework.md)
+- [System Architecture as a Modulith](../../system/ADR_001-System_architecture.md)
+- [Exception Handling Framework](../../system/ADR_003-Exception_handling_framework_architecture.md)
