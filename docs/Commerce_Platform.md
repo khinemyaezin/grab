@@ -24,6 +24,79 @@ The platform business model includes charging platform fees on transactions,
 similar to major marketplaces such as Amazon. The platform may also support
 additional monetization later through value-added seller services.
 
+### Platform Overview Diagram
+
+```mermaid
+flowchart LR
+    %% ── Actors ──
+    subgraph Buyers
+        Cust([Customer])
+    end
+
+    subgraph Sellers
+        Retail([Retail Seller])
+        ThirdP([3P Seller])
+        C2CSeller([C2C Seller])
+    end
+
+    subgraph Ops
+        Admin([Platform Admin])
+    end
+
+    %% ── Platform Core ──
+    subgraph Platform["Commerce Platform"]
+        direction TB
+
+        subgraph Discovery
+            Storefront[Online Storefront]
+            Catalog[Catalog & Inventory]
+        end
+
+        subgraph Transaction
+            Checkout[Cart & COD Checkout]
+            OrderMgmt[Order Management]
+        end
+
+        subgraph Financial
+            FeeEngine[Fee & Settlement]
+        end
+
+        subgraph C2CFlow["C2C Negotiation"]
+            DealMgmt[Deal Management]
+        end
+
+        subgraph Admin Tools
+            AdminGov[Governance & Config]
+        end
+
+        %% Internal flow
+        Storefront --> Checkout
+        Catalog --> Storefront
+        Checkout --> OrderMgmt
+        OrderMgmt --> FeeEngine
+        DealMgmt -.->|Accepted deal| OrderMgmt
+    end
+
+    %% ── Customer edges ──
+    Cust -->|Browse & buy| Storefront
+    Cust -->|Place order| Checkout
+    Cust -.->|Make offer| DealMgmt
+
+    %% ── Seller edges ──
+    Retail --> Catalog
+    ThirdP --> Catalog
+    C2CSeller --> Catalog
+    C2CSeller -.->|Accept / reject| DealMgmt
+
+    Retail --> OrderMgmt
+    ThirdP --> OrderMgmt
+    C2CSeller --> OrderMgmt
+
+    %% ── Admin edges ──
+    Admin --> AdminGov
+    Admin --> FeeEngine
+```
+
 ---
 
 ## 2. Purpose
@@ -223,7 +296,7 @@ Requirements:
 - Support catalog moderation and approval where required
 - Support category-based listing rules and prohibited products
 
-Check the [Catalog Module PRD](../product-requirements/catalog-module-prd.md) for catalog requirements.
+Check the [Catalog Module PRD](catalog/product-requirements/catalog-module-prd.md) for catalog requirements.
 
 ### 11.3 Inventory and Availability
 
