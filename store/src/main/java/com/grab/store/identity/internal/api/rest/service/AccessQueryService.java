@@ -7,6 +7,7 @@ import com.grab.store.identity.internal.api.rest.dto.response.AccessAssignmentRe
 import com.grab.store.identity.internal.api.rest.mapper.ListAccessAssignmentsRequestMapper;
 import com.grab.store.identity.internal.command.AccessAssignmentResult;
 import com.grab.store.identity.internal.query.AccessContextResult;
+import com.grab.store.identity.internal.query.ListAccessContextsQuery;
 import com.grab.store.shared.security.SecurityPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,8 @@ public class AccessQueryService {
     private final AuthenticatedAccessScopeResolver actorScopes;
 
     public List<AccessContextResponse> listContexts(String userId, String platformCode) {
-        List<AccessContextResult> results = queryBus.dispatch(mapper.toQuery(userId, platformCode));
+        ListAccessContextsQuery query = mapper.toQuery(userId, platformCode);
+        List<AccessContextResult> results = queryBus.dispatch(query);
         return results.stream().map(mapper::toResponse).toList();
     }
 

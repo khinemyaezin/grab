@@ -113,13 +113,19 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
         if (available.isEmpty()) {
             throw platformAccessUnavailable(platformCode);
         }
-        if (available.size() > 1) {
-            throw new IdentityServiceException(
-                    new IdentityServiceError.AccessContextSelectionRequired(
-                            platformCode, available.size()
-                    ),
-                    "More than one access context is available; select an assignment"
-            );
+        long availableContexts = available.stream()
+                .map(assignment -> new ContextKey(
+                        assignment.getScope().key().value(),
+                        assignment.getScope().scopeId()
+                ))
+                .distinct()
+                .limit(2)
+                .count();
+        if (availableContexts > 1) {
+            // The user has proved their identity, but has not selected which access
+            // context to use yet. Issue a context-free session so they can call the
+            // authenticated access-context endpoints and complete the selection.
+            return Optional.empty();
         }
         return Optional.of(toContext(available.getFirst()));
     }
@@ -138,5 +144,8 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
                 new IdentityServiceError.PlatformAccessUnavailable(platformCode),
                 "No active access is available for the requested platform"
         );
+    }
+
+    private record ContextKey(String scopeKey, String scopeId) {
     }
 }

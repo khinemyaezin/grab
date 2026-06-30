@@ -1,9 +1,11 @@
 package com.grab.store.identity.internal.query;
 
+import java.util.Set;
+
 public record AccessContextResult(
         String assignmentId,
         String platformCode,
-        String roleCode,
+        Set<String> roleCodes,
         String scopeKey,
         String scopeId,
         String expiresAt

@@ -167,7 +167,7 @@ class LoginCommandHandlerTest {
     }
 
     @Test
-    void handle_withSeveralPlatformAssignments_shouldRequireExplicitSelection() {
+    void handle_withSeveralPlatformAssignments_shouldIssueContextFreeSessionForSelection() {
         when(assignments.findEffectiveByUserAndPlatform(
                 org.mockito.ArgumentMatchers.eq(user.getId()),
                 org.mockito.ArgumentMatchers.eq("SELLER_PORTAL"),
@@ -176,20 +176,67 @@ class LoginCommandHandlerTest {
                 assignment("assignment-1", "merchant-1"),
                 assignment("assignment-2", "merchant-2")
         ));
+        when(identities.localIssuer()).thenReturn("local-issuer");
+        when(identities.resolve(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
+            ExternalPrincipal principal = invocation.getArgument(0);
+            return new AuthenticatedActor(
+                    "user-1", "local-issuer", "user-1", "customer@example.com",
+                    Set.of(), Set.of(), principal.accessContext()
+            );
+        });
+        when(tokens.issue(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new TokenPair("selection-access", "selection-refresh", 60000));
 
-        assertThatThrownBy(() -> handler.handle(new LoginCommand(
+        var result = handler.handle(new LoginCommand(
                 "customer@example.com", "Password123!", "SELLER_PORTAL", null
-        )))
-                .isInstanceOf(IdentityServiceException.class)
-                .satisfies(exception -> assertThat(
-                        ((IdentityServiceException) exception).getMessageSource().code()
-                ).isEqualTo("idt.service.access.context_selection_required"));
+        ));
 
-        verify(identities, never()).resolve(org.mockito.ArgumentMatchers.any());
-        verify(tokens, never()).issue(org.mockito.ArgumentMatchers.any());
+        ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);
+        verify(identities).resolve(principal.capture());
+        assertThat(principal.getValue().accessContext()).isNull();
+        assertThat(result.accessToken()).isEqualTo("selection-access");
+        verify(tokens).issue(org.mockito.ArgumentMatchers.argThat(actor -> actor.accessContext() == null));
+    }
+
+    @Test
+    void handle_withSeveralRolesForSameScope_shouldCombineRolesWithoutSelection() {
+        when(assignments.findEffectiveByUserAndPlatform(
+                org.mockito.ArgumentMatchers.eq(user.getId()),
+                org.mockito.ArgumentMatchers.eq("SELLER_PORTAL"),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(List.of(
+                assignment("assignment-1", "merchant-1", "MERCHANT_OWNER"),
+                assignment("assignment-2", "merchant-1", "STORE_MANAGER")
+        ));
+        when(identities.localIssuer()).thenReturn("local-issuer");
+        when(identities.resolve(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
+            ExternalPrincipal principal = invocation.getArgument(0);
+            return new AuthenticatedActor(
+                    "user-1", "local-issuer", "user-1", "customer@example.com",
+                    Set.of("MERCHANT_OWNER", "STORE_MANAGER"), Set.of(), principal.accessContext()
+            );
+        });
+        when(tokens.issue(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new TokenPair("access", "refresh", 60000));
+
+        var result = handler.handle(new LoginCommand(
+                "customer@example.com", "Password123!", "SELLER_PORTAL", null
+        ));
+
+        ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);
+        verify(identities).resolve(principal.capture());
+        assertThat(principal.getValue().accessContext()).isNotNull().satisfies(context -> {
+            assertThat(context.assignmentId()).isEqualTo("assignment-1");
+            assertThat(context.scopeId()).isEqualTo("merchant-1");
+        });
+        assertThat(result.roles()).containsExactlyInAnyOrder("MERCHANT_OWNER", "STORE_MANAGER");
     }
 
     private AccessAssignment assignment(String id, String merchantId) {
+        return assignment(id, merchantId, "MERCHANT_OWNER");
+    }
+
+    private AccessAssignment assignment(String id, String merchantId, String roleCode) {
         return AccessAssignment.create(
                 new CommonId(id),
                 user.getId(),
@@ -198,9 +245,9 @@ class LoginCommandHandlerTest {
                         "SELLER_PORTAL",
                         "Seller Portal",
                         true,
-                        Set.of("MERCHANT_OWNER")
+                        Set.of(roleCode)
                 ),
-                "MERCHANT_OWNER",
+                roleCode,
                 new AccessScope(new ScopeKey("merchant.account"), merchantId),
                 new CommonId("admin-1"),
                 null
