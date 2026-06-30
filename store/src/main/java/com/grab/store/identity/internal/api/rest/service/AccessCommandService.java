@@ -25,7 +25,7 @@ public class AccessCommandService {
     private final AuthenticatedAccessScopeResolver actorScopes;
 
     public AccessAssignmentResponse grant(GrantAccessRequest request, SecurityPrincipal principal) {
-        var actorScope = actorScopes.resolve(principal);
+        AuthenticatedAccessScopeResolver.ActorScope actorScope = actorScopes.resolve(principal);
         AccessAssignmentResult result = commandBus.dispatch(grantMapper.toCommand(
                 request,
                 principal.getPlatformUserId(),
@@ -41,7 +41,7 @@ public class AccessCommandService {
             AccessAssignmentStatus requestedStatus,
             SecurityPrincipal principal
     ) {
-        var actorScope = actorScopes.resolve(principal);
+        AuthenticatedAccessScopeResolver.ActorScope actorScope = actorScopes.resolve(principal);
         AccessAssignmentResult result = commandBus.dispatch(statusMapper.toCommand(
                 assignmentId,
                 requestedStatus,

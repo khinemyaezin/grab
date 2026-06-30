@@ -158,7 +158,7 @@ public class MerchantAccount extends AggregateRoot<Id> {
         if (name.legalName() == null) throw incomplete("legalName");
         if (contact == null) throw incomplete("contact");
         if (registeredAddress == null) throw incomplete("registeredAddress");
-        if (type.requiresBusinessRegistration() && registration == null) {
+        if (registration == null) {
             throw incomplete("businessRegistration");
         }
     }

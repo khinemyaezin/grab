@@ -24,7 +24,7 @@ class StartMerchantApplicationCommandHandlerTest {
         StartMerchantApplicationCommandHandler handler = new StartMerchantApplicationCommandHandler(
                 merchants, new MerchantRegistrationPolicy(merchants), ids);
         StartMerchantApplicationCommand command = new StartMerchantApplicationCommand(
-                applicantId, MerchantType.RETAILER, "Acme Store");
+                applicantId, MerchantType.FIRST_PARTY_RETAILER, "Acme Store");
 
         var result = handler.handle(command);
 

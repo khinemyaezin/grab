@@ -21,7 +21,7 @@ class MerchantRegistrationPolicyTest {
         MerchantRegistrationPolicy policy = new MerchantRegistrationPolicy(repository(true, false));
 
         assertThatThrownBy(() -> policy.requireNoOpenApplication(
-                new CommonId("applicant-1"), MerchantType.RETAILER
+                new CommonId("applicant-1"), MerchantType.FIRST_PARTY_RETAILER
         )).isInstanceOf(MerchantDomainException.class);
     }
 

@@ -21,15 +21,20 @@ public class IdentitySecurityConfigurer implements ModuleSecurityConfigurer {
 
         auth.requestMatchers("/api/v1/identity/profile/**").authenticated();
 
-        auth.requestMatchers("/api/v1/identity/admin/roles/**").hasAuthority("ROLE_MANAGE");
+        auth.requestMatchers(HttpMethod.GET, "/api/v1/identity/admin/roles/**").hasAuthority("ROLE_READ");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/roles/**").hasAuthority("ROLE_WRITE");
+        auth.requestMatchers(HttpMethod.PUT, "/api/v1/identity/admin/roles/**").hasAuthority("ROLE_WRITE");
+        auth.requestMatchers(HttpMethod.DELETE, "/api/v1/identity/admin/roles/**").hasAuthority("ROLE_WRITE");
+
         auth.requestMatchers(HttpMethod.GET, "/api/v1/identity/admin/users/**").hasAuthority("USER_READ");
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/approve").hasAuthority("USER_APPROVE");
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/suspend").hasAuthority("USER_SUSPEND");
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/*/reactivate").hasAuthority("USER_SUSPEND");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/users/**").hasAuthority("USER_WRITE");
+
+        auth.requestMatchers(HttpMethod.GET, "/api/v1/identity/admin/access-assignments/**").hasAuthority("ACCESS_ASSIGNMENT_READ");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/admin/access-assignments/**").hasAuthority("ACCESS_ASSIGNMENT_WRITE");
+
         auth.requestMatchers("/api/v1/identity/access-contexts/**").authenticated();
         auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/access-invitations/accept").authenticated();
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/access-invitations").hasAuthority("ACCESS_INVITATION_MANAGE");
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/access-invitations/*/cancel").hasAuthority("ACCESS_INVITATION_MANAGE");
-        auth.requestMatchers("/api/v1/identity/admin/access-assignments/**").hasAuthority("ACCESS_ASSIGNMENT_MANAGE");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/access-invitations").hasAuthority("ACCESS_INVITATION_WRITE");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/identity/access-invitations/*/cancel").hasAuthority("ACCESS_INVITATION_WRITE");
     }
 }

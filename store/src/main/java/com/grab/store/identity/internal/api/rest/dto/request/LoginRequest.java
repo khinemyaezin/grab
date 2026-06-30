@@ -9,12 +9,11 @@ public record LoginRequest(
         @NotBlank
         String password,
 
-        @NotBlank
         @Pattern(regexp = "[A-Z][A-Z0-9_]*")
         String platformCode,
 
-        @NotBlank
-        @Size(min = 1, max = 255)
+        @Pattern(regexp = "(?s).*\\S.*")
+        @Size(max = 255)
         String assignmentId
 ) {
 }

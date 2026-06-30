@@ -1,11 +1,7 @@
 package com.merchant.domain.enums;
 
 public enum MerchantType {
-    RETAILER,
+    FIRST_PARTY_RETAILER,
     THIRD_PARTY,
-    CONSUMER;
-
-    public boolean requiresBusinessRegistration() {
-        return this != CONSUMER;
-    }
+    C2C_SELLER;
 }

@@ -7,6 +7,7 @@ import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.identity.internal.command.AuthResult;
 import com.grab.store.identity.internal.command.LoginCommand;
+import com.grab.store.identity.internal.config.IdentityRegistrationProperties;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
@@ -37,6 +38,7 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
     private final PasswordHasher passwordHasher;
     private final TokenLifeCycle tokenLifeCycle;
     private final PlatformIdentityResolver identityResolver;
+    private final IdentityRegistrationProperties registration;
 
     @Override
     @IdentityTransactional
@@ -91,7 +93,9 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
             }
         }
 
-        String platformCode = command.platformCode() == null ? "CUSTOMER_APP" : command.platformCode();
+        String platformCode = command.platformCode() == null
+                ? registration.platformCode()
+                : command.platformCode();
 
         if (command.assignmentId() != null) {
             AccessAssignment assignment = accessAssignments
