@@ -35,7 +35,8 @@ business objects in a separate Merchant bounded context.
 - **Shared Platforms:** Introduced `CUSTOMER_APP`, `SELLER_PORTAL`, and `ADMIN_CONSOLE`.
 - **Platform Roles:** Created `PlatformRole` to restrict which roles apply to which platform.
 - **Scoped Assignments:** Replaced global `UserRole` with `AccessAssignment` (User + Platform Role + Resource Scope).
-- **Context-Bound Tokens:** Access and refresh tokens are tied strictly to a single platform and active context.
+- **Scope-Based Contexts:** Contexts are distinct by platform and resource scope; all effective roles in the selected scope are combined automatically.
+- **Context-Aware Tokens:** Restricted context-free tokens support multi-scope selection; scoped access and refresh tokens are tied to one platform and active context.
 - **Scoped Invitations:** Allow staff access without creating redundant merchant or storefront accounts.
 - **Event-Driven Lifecycles:** Merchant lifecycle changes are coordinated via integration events, not shared transactions.
 - **Trust the Principal:** APIs derive context strictly from `SecurityPrincipal`, rejecting caller-provided identifiers.
@@ -102,14 +103,20 @@ sequenceDiagram
     Client->>IdentityAPI: POST /auth/login (Email, Password)
     IdentityAPI->>IdentityAPI: Verify Credentials
     IdentityAPI->>AssignmentRepo: Find Active Assignments for Platform (e.g. SELLER_PORTAL)
-    AssignmentRepo-->>IdentityAPI: List of valid contexts (e.g. Merchant A, Merchant B)
+    AssignmentRepo-->>IdentityAPI: Active role assignments
+    IdentityAPI->>IdentityAPI: Group by scope and combine roles per context
     
     alt Single Context Available
-        IdentityAPI->>IdentityAPI: Auto-select context
+        IdentityAPI->>IdentityAPI: Auto-select scope and resolve combined roles
     else Multiple Contexts Available
-        IdentityAPI-->>Client: Return Context Selection Required
-        Client->>IdentityAPI: POST /auth/context (Select Merchant A)
+        IdentityAPI->>SessionStore: Create Context-Free Selection Session
+        IdentityAPI->>TokenIssuer: Generate Context-Free Tokens
+        IdentityAPI-->>Client: Return Authenticated Selection Token Pair
+        Client->>IdentityAPI: GET /access-contexts?platformCode=SELLER_PORTAL
+        IdentityAPI-->>Client: One context per scope with combined roleCodes
+        Client->>IdentityAPI: POST /access-contexts/{assignmentId}/select
         IdentityAPI->>IdentityAPI: Verify selection against Active Assignments
+        IdentityAPI->>IdentityAPI: Resolve all effective roles in selected scope
     end
 
     IdentityAPI->>SessionStore: Create Context-Bound RefreshSession
@@ -144,7 +151,7 @@ sequenceDiagram
 | Pros | Cons |
 |------|------|
 | Roles no longer grant unintended cross-platform or cross-merchant access. | Access resolution and administration are more complex than a global `user_roles` join. |
-| One identity supports several customer, merchant, and admin personas. | Tokens and sessions must carry and preserve an explicit context. |
+| One identity supports several customer, merchant, and admin personas. | Scoped tokens and sessions preserve an explicit context; a restricted context-free session is also needed during multi-scope selection. |
 | Merchant and Identity remain independently modeled bounded contexts. | Integration events and idempotent consumers are required to synchronize grants. |
 | Scoped invitations support merchant staff without creating duplicate businesses. | Invitation expiry, acceptance, cancellation, and audit workflows must be implemented. |
 | Resource ownership is explicit and testable. | Owning modules must perform a second business-resource relationship check. |
@@ -165,7 +172,7 @@ sequenceDiagram
 
 **Changes to existing systems:**
 - **Database Schema:** Replace `user_roles` with `access_assignments`. Add tables for platforms and invitations, and extend `refresh_sessions` with context fields.
-- **Core Identity & Tokens:** Extend `AuthenticatedActor` and token lifecycle to require an explicit access context and validate platform audience.
+- **Core Identity & Tokens:** Extend `AuthenticatedActor` and token lifecycle to support a restricted context-free selection state, then preserve an explicit context for scoped access.
 - **Registration Flow:** Remove caller-selected roles in favor of explicit customer and merchant onboarding flows.
 - **Seller Lifecycle:** Move seller approval out of `User.status` and into the Merchant module and scoped assignments. Migrate old `SELLER` roles to the new model.
 - **API Contracts:** APIs must read actor/seller identifiers strictly from the `SecurityPrincipal`, ignoring them in request headers or bodies.
@@ -186,7 +193,8 @@ sequenceDiagram
 - Merchant and Inventory developers expose ownership checks without importing
   Identity persistence entities.
 - Frontend clients select a platform and, when necessary, an available merchant
-  or storefront context. They do not select roles.
+  or storefront context. They do not select roles; effective roles within the
+  selected scope are combined by Identity.
 - Tests cover cross-merchant denial, platform-role mismatch, revoked grants,
   context-preserving refresh, and event retry idempotency.
 

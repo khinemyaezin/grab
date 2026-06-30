@@ -33,18 +33,18 @@ public record SecurityPrincipal(
     }
 
     public Optional<AccessContext> getAccessContext() {
-        return Optional.of(actor.accessContext());
+        return Optional.ofNullable(actor.accessContext());
     }
 
     public Optional<String> getPlatformCode() {
-        return Optional.of(actor.accessContext()).map(AccessContext::platformCode);
+        return getAccessContext().map(AccessContext::platformCode);
     }
 
     public Optional<String> getScopeKey() {
-        return Optional.of(actor.accessContext()).map(AccessContext::scopeKey);
+        return getAccessContext().map(AccessContext::scopeKey);
     }
 
     public Optional<String> getScopeId() {
-        return Optional.of(actor.accessContext()).map(AccessContext::scopeId);
+        return getAccessContext().map(AccessContext::scopeId);
     }
 }

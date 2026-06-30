@@ -187,6 +187,11 @@ relationships.
 ### 4. `AccessAssignment`
 The core aggregate replacing the traditional global "User-to-Role" mapping. It explicitly binds a `User` to a `PlatformRole` within a strict `AccessScope`. When a user logs in, the system loads only the assignments valid for the platform they are accessing.
 
+An access context is not the same thing as an assignment. Assignments with the
+same `platformCode`, `scopeKey`, and `scopeId` form one context, and all of their
+effective roles are combined. Users choose a merchant or storefront scope, not
+a role.
+
 ### 5. `AccessInvitation`
 Handles the workflow of onboarding staff. It records an offer for a specific email address to receive an `AccessAssignment` (Platform + Role + Scope). It ensures that pending invites have an expiration and are securely tracked until the user registers or logs in to accept them.
 
@@ -206,9 +211,12 @@ This flowchart illustrates how a user's context is resolved into a scoped access
 flowchart TD
     Login[User Authenticates] --> SelectPlatform[Select Platform<br/>e.g., SELLER_PORTAL]
     SelectPlatform --> LoadAssignments[Load Active AccessAssignments<br/>for User & Platform]
-    LoadAssignments --> CheckMulti{Multiple<br/>Assignments?}
-    CheckMulti -- No --> IssueToken[Issue Context-Bound<br/>Access Token]
-    CheckMulti -- Yes --> ClientSelects[Client Prompts User<br/>to Select Context]
+    LoadAssignments --> GroupScopes[Group Assignments by<br/>Platform + Scope]
+    GroupScopes --> CheckMulti{Multiple<br/>Scopes?}
+    CheckMulti -- No --> CombineRoles[Combine Effective Roles<br/>in Selected Scope]
+    CheckMulti -- Yes --> SelectionToken[Issue Context-Free<br/>Selection Token]
+    SelectionToken --> ClientSelects[Client Prompts User<br/>to Select Merchant/Store]
     ClientSelects --> VerifySelection[Verify Selection]
-    VerifySelection --> IssueToken
+    VerifySelection --> CombineRoles
+    CombineRoles --> IssueToken[Issue Context-Bound<br/>Access Token]
 ```

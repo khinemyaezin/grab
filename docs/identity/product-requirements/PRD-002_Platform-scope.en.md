@@ -62,6 +62,8 @@ A user who manages several businesses selects the merchant or storefront they ar
 
 It must:
 - Deny management access if the user has no active Seller Portal assignment.
+- Group active assignments by platform and resource scope; roles within the same scope must not create separate contexts.
+- Combine all effective roles and authorities in the selected scope without asking the user to choose a role.
 - Automatically select the context if exactly one active context is available, displaying it prominently.
 - Require selection from the user if more than one active context exists, using recognizable names (not technical IDs as primary labels).
 - Verify that the selected context belongs to an active access assignment for the current user and platform.
@@ -125,14 +127,17 @@ A session remains tied to the selected business so refreshing does not silently 
 
 It must:
 - Identify the platform and active context in a protected session.
-- Preserve the same platform, assignment, and scope upon session refresh.
+- Preserve the same platform and scope upon session refresh and re-resolve the currently effective combined roles.
 - Revoke the current refresh session upon logging out.
-- Revoke sessions tied to an assignment when that assignment is removed without affecting unrelated sessions.
+- Removing one assignment must remove that role immediately without invalidating the context when another effective assignment remains in the same scope.
+- Reject or revoke the scoped session when no effective assignment remains for its platform and scope, without affecting unrelated contexts.
 
 ## 8. Business Rules
 
 - A valid identity assignment does not override an inactive merchant, storefront, or location; the owning module still enforces business status.
 - Platform and scope values are verified by the server; client-provided values are requests to select a context, not trusted authorization facts.
+- A context is distinct by `platformCode + scopeKey + scopeId`; every effective assignment in that context contributes its role and authorities.
+- Users select business scopes such as a merchant or storefront. They never select which of their effective roles to activate.
 - Provider roles or token claims cannot directly grant an unverified merchant, storefront, or fulfillment-location scope.
 - Existing RFC 7807 error responses remain the standard for unauthorized and forbidden requests.
 - Access checks must not materially degrade the platform's authentication response-time objective.
@@ -146,6 +151,7 @@ The module is successful when:
 - Automated tests prove that a Merchant A user cannot read or mutate Merchant B resources.
 - Merchant-, storefront-, and fulfillment-location-scoped denial tests pass for Catalog, Inventory, Merchant, and available Order operations.
 - Login, refresh, context switch, logout, assignment revocation, and session expiry preserve context behavior.
+- Automated tests prove that roles in one scope are combined while assignments in different scopes remain separate selectable contexts.
 - Existing Customer and Admin assignments are reconciled successfully.
 - Protected APIs no longer rely on `X-Actor-Id`, caller-selected `sellerId`, or equivalent values for authorization.
 - Confirmed cross-merchant data exposure incidents is `0`.

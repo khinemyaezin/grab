@@ -6,12 +6,7 @@ import com.identity.domain.enums.UserStatus;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.service.IdentityLookupPort;
-import com.identity.infrastructure.entity.AccessAssignmentEntity;
-import com.identity.infrastructure.entity.AuthorityEntity;
-import com.identity.infrastructure.entity.ExternalEntitlementMappingEntity;
-import com.identity.infrastructure.entity.ExternalIdentityEntity;
-import com.identity.infrastructure.entity.RoleEntity;
-import com.identity.infrastructure.entity.UserEntity;
+import com.identity.infrastructure.entity.*;
 import com.identity.infrastructure.repository.jpa.AccessAssignmentJpaRepository;
 import com.identity.infrastructure.repository.jpa.ExternalEntitlementMappingJpaRepository;
 import com.identity.infrastructure.repository.jpa.ExternalIdentityJpaRepository;
@@ -86,23 +81,29 @@ public class IdentityLookupAdapter implements IdentityLookupPort {
     }
 
     private Set<RoleEntity> scopedRoles(UserEntity user, AccessContext context) {
-        AccessAssignmentEntity assignment = accessAssignments
+        AccessAssignmentEntity anchor = accessAssignments
                 .findForContext(context.assignmentId(), user.getUuid(), context.platformCode())
                 .orElseThrow(this::invalidAccessContext);
 
-        boolean matchesScope = assignment.getScopeKey().equals(context.scopeKey())
-                && assignment.getScopeId().equals(context.scopeId());
-        
-        boolean effective = assignment.getStatus() == com.identity.domain.enums.AccessAssignmentStatus.ACTIVE
-                && (assignment.getExpiresAt() == null || assignment.getExpiresAt().isAfter(Instant.now()))
-                && assignment.getPlatformRole().isActive()
-                && assignment.getPlatformRole().getPlatform().isActive()
-                && assignment.getPlatformRole().getRole().isActive();
-
-        if (!matchesScope || !effective) {
+        boolean matchesScope = anchor.getScopeKey().equals(context.scopeKey())
+                && anchor.getScopeId().equals(context.scopeId());
+        if (!matchesScope) {
             throw invalidAccessContext();
         }
-        return new LinkedHashSet<>(Set.of(assignment.getPlatformRole().getRole()));
+
+        Set<RoleEntity> roles = accessAssignments.findEffectiveByUserAndPlatform(
+                        user.getUuid(), context.platformCode(), Instant.now()
+                ).stream()
+                .filter(assignment -> assignment.getScopeKey().equals(context.scopeKey()))
+                .filter(assignment -> assignment.getScopeId().equals(context.scopeId()))
+                .map(AccessAssignmentEntity::getPlatformRole)
+                .map(PlatformRoleEntity::getRole)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (roles.isEmpty()) {
+            throw invalidAccessContext();
+        }
+        return roles;
     }
 
     private IdentityDomainValidationException invalidAccessContext() {
