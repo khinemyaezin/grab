@@ -30,16 +30,14 @@ grab/ (root POM — packaging: pom)
 ├── framework/                    # Shared kernel: CQRS buses, domain primitives, Id, exceptions, specifications
 ├── logger-slf4j/                 # Logger SPI implementation (SLF4J adapter)
 ├── outbox-infrastructure/        # Transactional outbox infrastructure (JPA-based)
-├── catalog-domain/               # Catalog bounded context — domain layer (aggregates, entities, value objects, events, repos)
-├── catalog-infrastructure/       # Catalog bounded context — infrastructure layer (JPA entities, mappers, repos)
-├── inventory-domain/             # Inventory bounded context — domain layer
-├── inventory-infrastructure/     # Inventory bounded context — infrastructure layer
+├── {name}-domain/                # Bounded context — domain layer (aggregates, entities, value objects, events, repos)
+├── {name}-infrastructure/        # Bounded bounded context — infrastructure layer (JPA entities, mappers, repos)
 └── store/                        # Application module — Spring Boot app, REST controllers, CQRS services, handlers
     └── com.grab.store
         ├── ApiRootController.java    # Tier 1 API root — hypermedia entry point (GET /api)
         ├── shared/                   # Cross-cutting: GlobalApiExceptionHandler, CqrsConfiguration, OpenApiConfiguration
-        ├── catalog/                  # Catalog Spring Modulith module (@ApplicationModule)
-        │   ├── CatalogRootApi.java   # Tier 2 Catalog root (GET /api/v1/catalog)
+        ├── {domain-name}/                  # Spring Modulith module (@ApplicationModule)
+        │   ├── {domain-name}RootApi.java   # Tier 2 Catalog root (GET /api/v1/{domain-name})
         │   └── internal/
         │       ├── api/rest/     # Controllers, DTOs, Services, Mappers, Assemblers
         │       ├── command/      # Command records + handler/ subdirectory
@@ -47,15 +45,12 @@ grab/ (root POM — packaging: pom)
         │       ├── config/       # Module-specific DataSource, @Transactional annotations
         │       ├── event/        # Domain event listeners
         │       └── exception/    # Module-specific error codes + exception class
-        └── inventory/            # Inventory Spring Modulith module (@ApplicationModule)
-            ├── InventoryRootController.java  # Tier 2 Inventory root (GET /api/v1/inventory)
-            └── internal/         # (same structure as catalog)
+
 ```
 
 ### Module Dependency Graph (Maven)
 ```text
-framework ← catalog-domain ← catalog-infrastructure ← store
-framework ← inventory-domain ← inventory-infrastructure ← store
+framework ← domain ← infrastructure ← store
 framework ← outbox-infrastructure ← store
 framework ← logger-slf4j ← store
 ```
@@ -827,7 +822,16 @@ Test method names MUST follow the pattern: `{functionName}_{input}_{expectedBeha
 
 ---
 
-## 18. Code Generation Checklist
+## 18. Logging Guidelines
+
+- Logging MUST use the custom logger framework (`logger-slf4j` module).
+- All classes requiring logging in the **infrastructure** and **application** layers MUST declare the logger using this exact pattern:
+  ```java
+  private static final Logger log = Loggers.getLogger(<ClassName>.class);
+  ```
+---
+
+## 19. Code Generation Checklist
 
 Before generating or outputting any code, verify:
 
@@ -848,11 +852,12 @@ Before generating or outputting any code, verify:
 15. ✅ New bounded contexts include a Tier 2 root endpoint and are linked from `ApiRootController` (§9.9).
 16. ✅ Controllers inject assemblers directly and call `.toModel()` inline (§9.10).
 17. ✅ Nested function invocations are avoided; intermediate variables are extracted for readability.
+18. ✅ Logging in infra and application layers uses the custom logger SPI (`Loggers.getLogger()`).
 
 ---
 
-## 19. Coding Style
+## 20. Coding Style
 
-### 19.1 Function Invocations
+### 20.1 Function Invocations
 - **Extract intermediate variables**: Do not use nested function invocations (e.g., `doSomething(doA(doB()))`). Instead, extract the intermediate results into variables with descriptive names to improve readability and debuggability.
 

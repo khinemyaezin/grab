@@ -14,16 +14,24 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @MerchantEnabled
-@RequestMapping("/api/v1/merchant")
+@RequestMapping("/api/v1/merchants")
 public class MerchantRootController {
     @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
     public ResponseEntity<RepresentationModel<?>> root() {
         RepresentationModel<?> model = new RepresentationModel<>();
-        model.add(linkTo(methodOn(MerchantRootController.class).root()).withSelfRel());
-        model.add(linkTo(methodOn(MerchantController.class).listMyMerchants(null))
+        model.add(linkTo(methodOn(MerchantRootController.class)
+                .root())
+                .withSelfRel());
+
+        model.add(linkTo(methodOn(MerchantController.class)
+                .listMyMerchants(null))
                 .withRel("list-merchants"));
-        model.add(linkTo(methodOn(MerchantController.class).start(null, null))
-                .withRel("create-merchant-application"));
+        model.add(linkTo(methodOn(MerchantController.class)
+                .getC2CApplication(null))
+                .withRel("get-c2c-application"));
+        model.add(linkTo(methodOn(MerchantController.class)
+                .startC2CApplication(null,null))
+                .withRel("create-c2c-application"));
         return ResponseEntity.ok(model);
     }
 }

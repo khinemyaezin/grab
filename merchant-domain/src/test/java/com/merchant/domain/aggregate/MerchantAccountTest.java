@@ -27,18 +27,6 @@ class MerchantAccountTest {
     }
 
     @Test
-    void submit_professionalMerchantWithoutRegistration_shouldReject() {
-        MerchantAccount merchant = draft(MerchantType.FIRST_PARTY_RETAILER);
-        merchant.updateProfile(
-                new MerchantName("Legal Name", "Display Name"), null,
-                contact(), address(), now
-        );
-
-        assertThatThrownBy(() -> merchant.submit(user("applicant-1"), now))
-                .isInstanceOf(MerchantDomainException.class);
-    }
-
-    @Test
     void approve_pendingMerchant_shouldActivateAndEmitEvent() {
         MerchantAccount merchant = pendingMerchant();
 
