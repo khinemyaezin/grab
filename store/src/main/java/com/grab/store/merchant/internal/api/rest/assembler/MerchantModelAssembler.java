@@ -22,7 +22,13 @@ public class MerchantModelAssembler implements RepresentationModelAssembler<Merc
                         .withSelfRel(),
                 linkTo(methodOn(MerchantController.class)
                         .listMyMerchants(null))
-                        .withRel("list-merchants")
+                        .withRel("list-merchants"),
+                linkTo(methodOn(MerchantController.class)
+                        .update(entity.merchantId(), null, null))
+                        .withRel("edit-merchant-application"),
+                linkTo(methodOn(MerchantController.class)
+                        .submit(entity.merchantId(), null))
+                        .withRel("submit-merchant-application")
         );
     }
 }

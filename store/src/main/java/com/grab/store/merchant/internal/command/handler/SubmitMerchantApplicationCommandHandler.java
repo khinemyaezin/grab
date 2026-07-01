@@ -32,7 +32,6 @@ public class SubmitMerchantApplicationCommandHandler
         MerchantAccount merchant = merchants.findById(merchantId).orElseThrow(() -> notFound(merchantId));
         Id applicantId = command.applicantUserId();
         merchant.requireApplicant(applicantId);
-        registrationPolicy.requireRegistrationAvailable(merchant);
         Instant now = Instant.now();
         merchant.submit(applicantId, now);
         MerchantAccount saved = merchants.save(merchant);

@@ -12,6 +12,7 @@ import com.grab.store.merchant.internal.api.rest.mapper.UpdateMerchantProfileReq
 import com.grab.store.merchant.internal.command.*;
 import com.grab.store.merchant.internal.command.ChangeMerchantLifecycleCommand.Action;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
+import com.merchant.domain.enums.MerchantType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,8 +26,8 @@ public class MerchantCommandService {
     private final SubmitMerchantApplicationRequestMapper submitMapper;
     private final ChangeMerchantLifecycleRequestMapper lifecycleMapper;
 
-    public MerchantResponse start(StartMerchantApplicationRequest request, String applicantId) {
-        StartMerchantApplicationCommand command = startMapper.toCommand(applicantId, request);
+    public MerchantResponse start(StartMerchantApplicationRequest request, MerchantType type, String applicantId) {
+        StartMerchantApplicationCommand command = startMapper.toCommand(applicantId, type, request);
         MerchantAccountResult result = commands.dispatch(command);
         return startMapper.toResponse(result);
     }

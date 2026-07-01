@@ -89,7 +89,7 @@ public class MerchantAccount extends AggregateRoot<Id> {
         this.name = Objects.requireNonNull(name, "merchant name is required");
         this.registration = registration;
         this.contact = Objects.requireNonNull(contact, "contact is required");
-        this.registeredAddress = Objects.requireNonNull(registeredAddress, "registered address is required");
+        this.registeredAddress = registeredAddress;
         this.lifecycleReason = null;
         this.updatedAt = now;
     }
@@ -157,10 +157,6 @@ public class MerchantAccount extends AggregateRoot<Id> {
     private void requireCompleteProfile() {
         if (name.legalName() == null) throw incomplete("legalName");
         if (contact == null) throw incomplete("contact");
-        if (registeredAddress == null) throw incomplete("registeredAddress");
-        if (registration == null) {
-            throw incomplete("businessRegistration");
-        }
     }
 
     private void transition(

@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface MerchantAccountJpaRepository extends JpaRepository<MerchantAccountEntity, Long> {
     Optional<MerchantAccountEntity> findByUuid(String uuid);
     List<MerchantAccountEntity> findByApplicantUserIdOrderByCreatedAtDesc(String applicantUserId);
+    Optional<MerchantAccountEntity> findByApplicantUserIdAndType(String applicantUserId, MerchantType type);
     List<MerchantAccountEntity> findByStatusOrderByCreatedAt(MerchantStatus status);
 
     @Query("""
