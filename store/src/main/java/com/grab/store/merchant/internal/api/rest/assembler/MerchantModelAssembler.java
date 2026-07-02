@@ -21,9 +21,6 @@ public class MerchantModelAssembler implements RepresentationModelAssembler<Merc
                         .getMerchant(entity.merchantId(), null))
                         .withSelfRel(),
                 linkTo(methodOn(MerchantController.class)
-                        .listMyMerchants(null))
-                        .withRel("list-merchants"),
-                linkTo(methodOn(MerchantController.class)
                         .update(entity.merchantId(), null, null))
                         .withRel("edit-merchant-application"),
                 linkTo(methodOn(MerchantController.class)

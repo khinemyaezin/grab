@@ -2,8 +2,10 @@ package com.grab.store.merchant.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.store.merchant.internal.api.rest.dto.response.GetC2CApplicationResponse;
+import com.grab.store.merchant.internal.api.rest.dto.response.GetFirstPartyRetailerApplicationResponse;
 import com.grab.store.merchant.internal.api.rest.dto.response.MerchantResponse;
 import com.grab.store.merchant.internal.api.rest.mapper.GetC2CProfileRequestMapper;
+import com.grab.store.merchant.internal.api.rest.mapper.GetFirstPartyRetailerApplicationRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.GetMerchantRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.ListMerchantReviewQueueRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.ListMyMerchantsRequestMapper;
@@ -26,6 +28,7 @@ public class MerchantQueryService {
     private final ListMyMerchantsRequestMapper listMineMapper;
     private final ListMerchantReviewQueueRequestMapper reviewQueueMapper;
     private final GetC2CProfileRequestMapper getC2CApplicationMapper;
+    private final GetFirstPartyRetailerApplicationRequestMapper getFirstPartyRetailerApplicationMapper;
 
     public MerchantResponse get(String merchantId, SecurityPrincipal principal) {
         boolean reviewer = principal.getAuthorities().stream()
@@ -35,6 +38,7 @@ public class MerchantQueryService {
         MerchantAccountResult result = queries.dispatch(query);
         return getMapper.toResponse(result);
     }
+
 
     public List<MerchantResponse> mine(String applicantId) {
         ListMyMerchantsQuery query = listMineMapper.toQuery(applicantId);
@@ -52,5 +56,11 @@ public class MerchantQueryService {
         GetC2CApplicationQuery query = getC2CApplicationMapper.toQuery(applicantUserId);
         GetC2CApplicationResult view = queries.dispatch(query);
         return getC2CApplicationMapper.toResponse(view);
+    }
+
+    public GetFirstPartyRetailerApplicationResponse getFirstPartyRetailerApplication(String applicantUserId) {
+        GetFirstPartyRetailerApplicationQuery query = getFirstPartyRetailerApplicationMapper.toQuery(applicantUserId);
+        GetFirstPartyRetailerApplicationResult result = queries.dispatch(query);
+        return getFirstPartyRetailerApplicationMapper.toResponse(result);
     }
 }
