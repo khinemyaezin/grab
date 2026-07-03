@@ -9,7 +9,7 @@ import com.grab.framework.mapper.IdMapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class LoginRequestMapper {
-    public abstract LoginCommand toCommand(LoginRequest request);
+    public abstract LoginCommand toCommand(LoginRequest request, String platformCode);
 
     public abstract AuthResponse toResponse(AuthResult result);
 }

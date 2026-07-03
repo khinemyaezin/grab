@@ -4,6 +4,7 @@ import com.grab.framework.id.impl.CommonId;
 import com.identity.domain.event.RoleAuthorityChangedEvent;
 import com.identity.domain.event.RoleCreatedEvent;
 import com.identity.domain.event.RoleStatusChangedEvent;
+import com.identity.domain.enums.RoleKind;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,13 @@ class RoleTest {
 
     @Test
     void create_withValidDetails_shouldCreateActiveRoleAndEmitEvent() {
-        Role role = Role.create(new CommonId("r1"), " seller ", " Seller ", "Marketplace seller");
+        Role role = Role.createCustom(
+                new CommonId("r1"),
+                " seller ",
+                " Seller ",
+                "Marketplace seller",
+                Set.of("CATALOG_READ")
+        );
 
         assertEquals("SELLER", role.getCode());
         assertEquals("Seller", role.getName());
@@ -30,7 +37,13 @@ class RoleTest {
     void create_withInvalidCode_shouldRejectRole() {
         IdentityDomainValidationException exception = assertThrows(
                 IdentityDomainValidationException.class,
-                () -> Role.create(new CommonId("r1"), "not valid", "Seller", null)
+                () -> Role.createCustom(
+                        new CommonId("r1"),
+                        "not valid",
+                        "Seller",
+                        null,
+                        Set.of("CATALOG_READ")
+                )
         );
 
         assertInstanceOf(IdentityDomainError.InvalidRoleCode.class, exception.getMessageSource());
@@ -66,6 +79,44 @@ class RoleTest {
         role.assignAuthority("catalog_read");
 
         assertEquals(0, role.getEvents().size());
+    }
+
+    @Test
+    void assignAuthority_withSystemRole_shouldRejectRuntimeMutation() {
+        Role role = Role.rehydrate(
+                new CommonId("r1"),
+                "MERCHANT_OWNER",
+                "Merchant Owner",
+                null,
+                RoleKind.SYSTEM,
+                true,
+                true,
+                Set.of("MERCHANT_PROFILE_READ")
+        );
+
+        IdentityDomainValidationException exception = assertThrows(
+                IdentityDomainValidationException.class,
+                () -> role.assignAuthority("MERCHANT_PROFILE_WRITE")
+        );
+
+        assertInstanceOf(
+                IdentityDomainError.SystemRoleModificationForbidden.class,
+                exception.getMessageSource()
+        );
+    }
+
+    @Test
+    void revokeAuthority_withLastCustomAuthority_shouldRejectEmptyRole() {
+        Role role = hydratedRole(true);
+        role.assignAuthority("CATALOG_READ");
+        role.pullEvents();
+
+        IdentityDomainValidationException exception = assertThrows(
+                IdentityDomainValidationException.class,
+                () -> role.revokeAuthority("CATALOG_READ")
+        );
+
+        assertInstanceOf(IdentityDomainError.RoleAuthoritiesRequired.class, exception.getMessageSource());
     }
 
     private Role hydratedRole(boolean active) {

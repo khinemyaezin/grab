@@ -48,7 +48,7 @@ public class IdentityRootController {
                 .withRel("list-roles"));
 
         model.add(linkTo(methodOn(AuthController.class)
-                .login(null))
+                .login(null, null))
                 .withRel("login"));
 
         model.add(linkTo(methodOn(AuthController.class)
@@ -56,7 +56,7 @@ public class IdentityRootController {
                 .withRel("logout"));
 
         model.add(linkTo(methodOn(AuthController.class)
-                .register(null))
+                .register(null, null))
                 .withRel("register"));
 
         return ResponseEntity.ok(model);

@@ -1,12 +1,6 @@
 package com.identity.infrastructure.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -34,6 +28,14 @@ public class PlatformEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    @OneToMany(mappedBy = "platform")
+    @OneToMany(mappedBy = "platform", cascade = CascadeType.ALL)
     private Set<PlatformRoleEntity> platformRoles = new LinkedHashSet<>();
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "platform_authorities",
+            joinColumns = @JoinColumn(name = "platform_id"),
+            inverseJoinColumns = @JoinColumn(name = "authority_id")
+    )
+    private Set<AuthorityEntity> authorities = new LinkedHashSet<>();
 }

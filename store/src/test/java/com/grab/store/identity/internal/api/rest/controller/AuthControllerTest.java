@@ -84,10 +84,11 @@ class AuthControllerTest {
 
     @Test
     void login_withExplicitContext_shouldReturn200WithCookies() throws Exception {
-        LoginRequest request = new LoginRequest("test@example.com", "Password123!", "ADMIN_CONSOLE", "123");
-        when(authCommandService.login(any(LoginRequest.class))).thenReturn(authResponse);
+        LoginRequest request = new LoginRequest("test@example.com", "Password123!");
+        when(authCommandService.login(any(LoginRequest.class), any(String.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/v1/identity/auth/login")
+                        .header("X-Platform", "SELLER_PORTAL")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -106,9 +107,10 @@ class AuthControllerTest {
 
     @Test
     void login_withoutAccessContext_shouldReturn200WithCookies() throws Exception {
-        when(authCommandService.login(any(LoginRequest.class))).thenReturn(authResponse);
+        when(authCommandService.login(any(LoginRequest.class), any(String.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/v1/identity/auth/login")
+                        .header("X-Platform", "SELLER_PORTAL")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -118,26 +120,6 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access-token-123"));
-    }
-
-    @Test
-    void login_withInvalidExplicitPlatform_shouldReturn400() throws Exception {
-        LoginRequest request = new LoginRequest("test@example.com", "Password123!", "customer app", null);
-
-        mockMvc.perform(post("/api/v1/identity/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void login_withBlankExplicitAssignment_shouldReturn400() throws Exception {
-        LoginRequest request = new LoginRequest("test@example.com", "Password123!", "CUSTOMER_APP", "   ");
-
-        mockMvc.perform(post("/api/v1/identity/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
     }
 
     @Test

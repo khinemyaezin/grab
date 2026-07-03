@@ -1,9 +1,9 @@
 package com.grab.store.identity.internal.command.handler;
 
+import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.identity.internal.command.RegisterCommand;
-import com.grab.store.identity.internal.config.IdentityRegistrationProperties;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
@@ -12,9 +12,10 @@ import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.UserRepository;
-import com.identity.domain.service.GlobalUserRegistrationAccessPolicy;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.domain.service.RegistrationAccessPolicy;
+import com.identity.domain.service.RegistrationAccessPolicyResolver;
+import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.HashedPassword;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +50,9 @@ class RegisterCommandHandlerTest {
     @Mock
     private IdGenerator ids;
 
+    @Mock
+    private RegistrationAccessPolicyResolver policyResolver;
+
     private RegistrationAccessPolicy policy;
 
     private RegisterCommandHandler handler;
@@ -56,13 +60,17 @@ class RegisterCommandHandlerTest {
 
     @BeforeEach
     void setUp() {
-        IdentityRegistrationProperties registration = new IdentityRegistrationProperties(
-                " customer_app ",
-                " customer "
-        );
-        policy = new GlobalUserRegistrationAccessPolicy(registration.platformCode(), registration.roleCode());
-        handler = new RegisterCommandHandler(users, platforms, assignments, passwords, ids, policy);
-        command = new RegisterCommand("customer@example.com", "Password123!");
+        policy = new RegistrationAccessPolicy() {
+            @Override
+            public String platformCode() { return "CUSTOMER_APP"; }
+            @Override
+            public AccessAssignment createAssignment(Id assignmentId, Id userId, Platform platform) {
+                platform.requireSupportedRole("CUSTOMER");
+                return AccessAssignment.create(assignmentId, userId, platform, "CUSTOMER", AccessScope.global(), null, null);
+            }
+        };
+        handler = new RegisterCommandHandler(users, platforms, assignments, passwords, ids, policyResolver);
+        command = new RegisterCommand("customer@example.com", "Password123!", "CUSTOMER_APP");
     }
 
     @Test
@@ -71,6 +79,7 @@ class RegisterCommandHandlerTest {
 
         var platform = Optional.of(customerPlatform());
         when(platforms.findByCode("CUSTOMER_APP")).thenReturn(platform);
+        when(policyResolver.resolve("CUSTOMER_APP")).thenReturn(policy);
         when(passwords.hash(command.password())).thenReturn(new HashedPassword("stored-hash"));
         when(ids.generateId()).thenReturn(new CommonId("user-1"), new CommonId("assignment-1"));
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -160,6 +169,7 @@ class RegisterCommandHandlerTest {
     private void prepareDomainConstruction() {
         when(passwords.hash(command.password())).thenReturn(new HashedPassword("stored-hash"));
         when(ids.generateId()).thenReturn(new CommonId("user-1"), new CommonId("assignment-1"));
+        when(policyResolver.resolve("CUSTOMER_APP")).thenReturn(policy);
     }
 
     private Platform customerPlatform() {

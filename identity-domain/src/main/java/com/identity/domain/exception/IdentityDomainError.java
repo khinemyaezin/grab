@@ -15,6 +15,11 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.InvalidPlatformCode,
         IdentityDomainError.InvalidPlatformName,
         IdentityDomainError.PlatformRoleNotSupported,
+        IdentityDomainError.PlatformAuthorityNotSupported,
+        IdentityDomainError.SystemRoleModificationForbidden,
+        IdentityDomainError.RoleAuthoritiesRequired,
+        IdentityDomainError.AuthoritiesUnavailable,
+        IdentityDomainError.RoleNotAssignable,
         IdentityDomainError.InvalidAccessCode,
         IdentityDomainError.InvalidScopeKey,
         IdentityDomainError.InvalidAccessScope,
@@ -29,6 +34,64 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.SelfAccessInvitationForbidden,
         IdentityDomainError.AccessInvitationRecipientMismatch,
         IdentityDomainError.AccountNotActive {
+
+    record SystemRoleModificationForbidden(String roleCode) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BUSINESS_RULE; }
+
+        @Override
+        public String code() { return "idt.domain.role.system_modification_forbidden"; }
+
+        @Override
+        public Map<String, Object> args() { return Map.of("roleCode", roleCode); }
+    }
+
+    record RoleAuthoritiesRequired() implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BUSINESS_RULE; }
+
+        @Override
+        public String code() { return "idt.domain.role.authorities_required"; }
+
+        @Override
+        public Map<String, Object> args() { return Map.of(); }
+    }
+
+    record AuthoritiesUnavailable(java.util.Set<String> authorityCodes) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+
+        @Override
+        public String code() { return "idt.domain.authority.unavailable"; }
+
+        @Override
+        public Map<String, Object> args() { return Map.of("authorityCodes", authorityCodes); }
+    }
+
+    record RoleNotAssignable(String roleCode) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BUSINESS_RULE; }
+
+        @Override
+        public String code() { return "idt.domain.role.not_assignable"; }
+
+        @Override
+        public Map<String, Object> args() { return Map.of("roleCode", roleCode); }
+    }
+
+    record PlatformAuthorityNotSupported(String platformCode, String authorityCode)
+            implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+
+        @Override
+        public String code() { return "idt.domain.platform.authority_not_supported"; }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("platformCode", platformCode, "authorityCode", authorityCode);
+        }
+    }
 
     record AccountNotActive(String userId) implements IdentityDomainError {
         @Override

@@ -11,9 +11,11 @@ import com.grab.store.identity.internal.utility.InvitationTokenService;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.AccessInvitation;
 import com.identity.domain.aggregate.Platform;
+import com.identity.domain.aggregate.Role;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.AccessInvitationRepository;
 import com.identity.domain.repository.PlatformRepository;
+import com.identity.domain.repository.RoleRepository;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,7 @@ public class AcceptAccessInvitationCommandHandler
     private final AccessInvitationRepository invitations;
     private final AccessAssignmentRepository assignments;
     private final PlatformRepository platforms;
+    private final RoleRepository roles;
     private final InvitationTokenService tokens;
     private final IdGenerator ids;
 
@@ -46,6 +49,13 @@ public class AcceptAccessInvitationCommandHandler
                         "Platform not found"
                 )
         );
+        Role role = roles.findByCode(invitation.getRoleCode()).orElseThrow(() ->
+                new IdentityServiceException(
+                        new IdentityServiceError.RoleNotFound(invitation.getRoleCode()),
+                        "Role not found"
+                )
+        );
+        role.requireAssignable();
         if (assignments.existsCurrent(
                 command.userId(),
                 invitation.getPlatformCode(),

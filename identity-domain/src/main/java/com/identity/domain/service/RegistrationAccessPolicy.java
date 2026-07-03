@@ -5,6 +5,7 @@ import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 
 public interface RegistrationAccessPolicy {
-    String getPlatformCode();
+    String platformCode();
+
     AccessAssignment createAssignment(Id assignmentId, Id userId, Platform platform);
 }

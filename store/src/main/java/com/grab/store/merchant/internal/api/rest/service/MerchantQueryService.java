@@ -13,6 +13,7 @@ import com.grab.store.merchant.internal.command.MerchantAccountResult;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.grab.store.merchant.internal.query.*;
 import com.grab.store.shared.security.SecurityPrincipal;
+import com.grab.store.merchant.internal.api.rest.config.MerchantAuthorityCodes;
 import com.merchant.domain.enums.MerchantStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,7 @@ public class MerchantQueryService {
 
     public MerchantResponse get(String merchantId, SecurityPrincipal principal) {
         boolean reviewer = principal.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("MERCHANT_REVIEW"));
+                .anyMatch(authority -> authority.getAuthority().equals(MerchantAuthorityCodes.GLOBAL_READ));
         String actorId = principal.getPlatformUserId();
         GetMerchantQuery query = getMapper.toQuery(merchantId, actorId, reviewer);
         MerchantAccountResult result = queries.dispatch(query);

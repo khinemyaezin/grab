@@ -9,8 +9,10 @@ import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
+import com.identity.domain.aggregate.Role;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.PlatformRepository;
+import com.identity.domain.repository.RoleRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.service.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
@@ -24,6 +26,7 @@ import java.time.Instant;
 public class GrantAccessCommandHandler implements CommandHandler<GrantAccessCommand, AccessAssignmentResult> {
     private final UserRepository users;
     private final PlatformRepository platforms;
+    private final RoleRepository roles;
     private final AccessAssignmentRepository assignments;
     private final RoleDelegationPolicy delegationPolicy;
     private final IdGenerator ids;
@@ -41,6 +44,13 @@ public class GrantAccessCommandHandler implements CommandHandler<GrantAccessComm
                         "Platform not found"
                 )
         );
+        Role role = roles.findByCode(command.roleCode()).orElseThrow(() ->
+                new IdentityServiceException(
+                        new IdentityServiceError.RoleNotFound(command.roleCode()),
+                        "Role not found"
+                )
+        );
+        role.requireAssignable();
         AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
         AccessScope.from(command.actorScopeKey(), command.actorScopeId()).requireEncompasses(scope);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());

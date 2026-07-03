@@ -12,6 +12,7 @@ public sealed interface IdentityServiceError extends MessageSource permits
         IdentityServiceError.InvalidStatusTransition,
         IdentityServiceError.RoleExists,
         IdentityServiceError.RoleNotFound,
+        IdentityServiceError.RolePlatformBindingInvalid,
         IdentityServiceError.UserNotFound,
         IdentityServiceError.PlatformNotFound,
         IdentityServiceError.PlatformAccessUnavailable,
@@ -21,6 +22,23 @@ public sealed interface IdentityServiceError extends MessageSource permits
         IdentityServiceError.AccessContextSelectionRequired,
         IdentityServiceError.AccessContextSelectionInvalid,
         IdentityServiceError.AccessInvitationNotFound {
+
+    record RolePlatformBindingInvalid(String roleCode) implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.role.platform_binding_invalid";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("roleCode", roleCode);
+        }
+    }
 
     record EmailExists(String email) implements IdentityServiceError {
         @Override

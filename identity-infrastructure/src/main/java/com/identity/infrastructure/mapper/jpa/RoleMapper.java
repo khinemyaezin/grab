@@ -1,25 +1,32 @@
 package com.identity.infrastructure.mapper.jpa;
 
-import com.grab.framework.id.IdGenerator;
+import com.grab.framework.mapper.IdMapper;
 import com.identity.domain.aggregate.Role;
 import com.identity.infrastructure.entity.AuthorityEntity;
 import com.identity.infrastructure.entity.RoleEntity;
-import com.identity.infrastructure.mapper.CentralMapperConfig;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Mapper(config = CentralMapperConfig.class, uses = {IdGenerator.class})
-public abstract class RoleMapper {
+@RequiredArgsConstructor
+public class RoleMapper {
+    private final IdMapper ids;
 
-    @Mapping(source = "entity.uuid", target = "id")
-    @Mapping(target = "authorityCodes", expression = "java(mapAuthorities(entity))")
-    public abstract Role toDomain(RoleEntity entity);
-
-    protected Set<String> mapAuthorities(RoleEntity entity) {
-        if (entity == null || entity.getAuthorities() == null) return java.util.Collections.emptySet();
-        return entity.getAuthorities().stream().filter(AuthorityEntity::isActive).map(AuthorityEntity::getCode).collect(Collectors.toSet());
+    public Role toDomain(RoleEntity entity) {
+        Set<String> authorityCodes = entity.getAuthorities().stream()
+                .filter(AuthorityEntity::isActive)
+                .map(AuthorityEntity::getCode)
+                .collect(Collectors.toUnmodifiableSet());
+        return Role.rehydrate(
+                ids.map(entity.getUuid()),
+                entity.getCode(),
+                entity.getName(),
+                entity.getDescription(),
+                entity.getKind(),
+                entity.isActive(),
+                entity.isAssignable(),
+                authorityCodes
+        );
     }
 }

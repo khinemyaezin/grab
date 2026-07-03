@@ -15,11 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/identity/auth")
@@ -32,8 +28,11 @@ public class AuthController {
     private final AuthCookieHelper authCookieHelper;
 
     @PostMapping("/login")
-    public ResponseEntity<EntityModel<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = commandService.login(request);
+    public ResponseEntity<EntityModel<AuthResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            @RequestHeader(value = "X-Platform") String platformCode
+            ) {
+        AuthResponse response = commandService.login(request, platformCode);
         return ResponseEntity.ok()
                 .headers(authCookieHelper.createTokenCookies(response))
                 .body(authModelAssembler.toModel(response));
@@ -71,8 +70,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<EntityModel<UserProfileResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        UserProfileResponse response = commandService.register(request);
+    public ResponseEntity<EntityModel<UserProfileResponse>> register(
+            @RequestHeader(value = "X-Platform") String platformCode,
+            @Valid @RequestBody RegisterRequest request) {
+        UserProfileResponse response = commandService.register(request, platformCode);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userProfileModelAssembler.toModel(response));
     }

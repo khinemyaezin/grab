@@ -1,6 +1,7 @@
 package com.identity.infrastructure.configuration;
 
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -164,10 +165,13 @@ public class IdentityInfraConfig {
     @Bean
     public PlatformRepository platformRepository(
             PlatformJpaRepository platforms,
+            RoleJpaRepository roles,
+            AuthorityJpaRepository authorities,
             IdMapper ids,
+            IdGenerator idGenerator,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new DefaultPlatformRepository(platforms, ids, executor);
+        return new DefaultPlatformRepository(platforms, roles, authorities, ids, idGenerator, executor);
     }
 
     @Bean
@@ -211,6 +215,11 @@ public class IdentityInfraConfig {
             RoleMapper domainMapper,
             AuthorityJpaRepository authorityRepository) {
         return new RoleJpaAssemblerImpl(entityMapper, domainMapper, authorityRepository);
+    }
+
+    @Bean
+    public RoleMapper roleMapper(IdMapper ids) {
+        return new RoleMapper(ids);
     }
 
     @Bean

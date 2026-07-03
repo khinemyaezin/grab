@@ -18,14 +18,14 @@ public class AuthCommandService {
     private final RefreshTokenRequestMapper refreshMapper;
     private final LogoutRequestMapper logoutMapper;
 
-    public UserProfileResponse register(RegisterRequest r) {
-        RegisterCommand command = registerMapper.toCommand(r);
+    public UserProfileResponse register(RegisterRequest r, String platformCode) {
+        RegisterCommand command = registerMapper.toCommand(r, platformCode);
         UserProfileResult result = commandBus.dispatch(command);
         return registerMapper.toResponse(result);
     }
 
-    public AuthResponse login(LoginRequest r) {
-        LoginCommand command = loginMapper.toCommand(r);
+    public AuthResponse login(LoginRequest r, String platformCode) {
+        LoginCommand command = loginMapper.toCommand(r, platformCode);
         AuthResult result =  commandBus.dispatch(command);
         return loginMapper.toResponse(result);
     }

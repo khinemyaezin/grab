@@ -19,7 +19,7 @@ import java.util.List;
 
 @RestController
 @MerchantEnabled
-@RequestMapping("/api/v1/merchants")
+@RequestMapping("/api/v1/merchants/accounts")
 @RequiredArgsConstructor
 public class MerchantController {
 
@@ -27,7 +27,16 @@ public class MerchantController {
     private final MerchantQueryService queries;
     private final MerchantModelAssembler assembler;
 
-    @GetMapping("/accounts/{merchantId}")
+    @GetMapping()
+    public ResponseEntity<CollectionModel<EntityModel<MerchantResponse>>> getMerchants(
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        List<MerchantResponse> responses = queries.mine(principal.getPlatformUserId());
+        CollectionModel<EntityModel<MerchantResponse>> collection = assembler.toCollectionModel(responses);
+        return ResponseEntity.ok(collection);
+    }
+
+    @GetMapping("/{merchantId}")
     public ResponseEntity<EntityModel<MerchantResponse>> getMerchant(
             @PathVariable String merchantId,
             @AuthenticationPrincipal SecurityPrincipal principal
@@ -37,7 +46,7 @@ public class MerchantController {
         return ResponseEntity.ok(model);
     }
 
-    @PatchMapping("/accounts/{merchantId}/profile")
+    @PatchMapping("/{merchantId}/profile")
     public ResponseEntity<EntityModel<MerchantResponse>> update(
             @PathVariable String merchantId,
             @Valid @RequestBody UpdateMerchantProfileRequest request,
@@ -49,7 +58,7 @@ public class MerchantController {
         return ResponseEntity.ok(model);
     }
 
-    @PostMapping("/accounts/{merchantId}/submit")
+    @PostMapping("/{merchantId}/submit")
     public ResponseEntity<EntityModel<MerchantResponse>> submit(
             @PathVariable String merchantId,
             @AuthenticationPrincipal SecurityPrincipal principal

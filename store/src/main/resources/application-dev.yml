@@ -53,9 +53,6 @@ inventory:
     retention-ms: ${INVENTORY_OUTBOX_RETENTION_MS:604800000}
 
 identity:
-  registration:
-    platform-code: ${IDENTITY_REGISTRATION_PLATFORM_CODE:CUSTOMER_APP}
-    role-code: ${IDENTITY_REGISTRATION_ROLE_CODE:CUSTOMER}
   seed:
     enabled: ${IDENTITY_SEED_ENABLED:true}
     admin-email: ${IDENTITY_ADMIN_EMAIL:admin@example.com}

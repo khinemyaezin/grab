@@ -11,12 +11,7 @@ SELECT md5(platform.code || ':' || role.code),
        TRUE
 FROM platforms platform
          JOIN roles role ON (
-    (platform.code = 'CUSTOMER_APP' AND role.code IN (
-                                                      'CUSTOMER', 'USER_ADMIN'
-        )) OR
-    (platform.code = 'SELLER_PORTAL' AND role.code IN (
-                                                       'SELLER', 'CUSTOMER', 'USER_ADMIN'
-        )) OR
+    (platform.code = 'CUSTOMER_APP' AND role.code IN ('CUSTOMER')) OR
     (platform.code = 'ADMIN_CONSOLE' AND role.code IN (
                                                        'USER_ADMIN'
         ))
@@ -39,12 +34,12 @@ FROM users
          CROSS JOIN platform_roles
          JOIN platforms ON platforms.id = platform_roles.platform_id
          JOIN roles ON roles.id = platform_roles.role_id
-WHERE users.email = '${adminEmail}' -- Assigning all platform roles to the admin user
+WHERE users.email = '${adminEmail}'
+  AND roles.code = 'USER_ADMIN'
 ON CONFLICT DO NOTHING;
 
 -- Seed Data for Role Delegation Rules
-WITH configured_rules(delegator_code, delegated_code) AS (VALUES ('USER_ADMIN', 'SELLER'),
-                                                                 ('USER_ADMIN', 'CUSTOMER'))
+WITH configured_rules(delegator_code, delegated_code) AS (VALUES ('USER_ADMIN', 'CUSTOMER'))
 INSERT
 INTO role_delegation_rules (delegator_role_id, delegated_role_id)
 SELECT delegator.id, delegated.id
