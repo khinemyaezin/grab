@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class MerchantAccountStatusEventListener {
-    private static final Logger log = Loggers.getLogger(MerchantAccountStatusEventListener.class);
+public class MerchantAccountApprovedStatusEventListener {
+    private static final Logger log = Loggers.getLogger(MerchantAccountApprovedStatusEventListener.class);
 
     private final CommandBus commandBus;
     private final IdGenerator idGenerator;

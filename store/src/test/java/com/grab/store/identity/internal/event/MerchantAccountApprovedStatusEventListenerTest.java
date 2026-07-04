@@ -13,7 +13,7 @@ import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class MerchantAccountStatusEventListenerTest {
+class MerchantAccountApprovedStatusEventListenerTest {
     @Test
     void handleMerchantApproved_withApprovedEvent_shouldDispatchAccessReplacement() {
         MerchantApprovedEvent event = new MerchantApprovedEvent(
@@ -26,7 +26,7 @@ class MerchantAccountStatusEventListenerTest {
                 Instant.parse("2026-07-02T00:00:00Z")
         );
         RecordingCommandBus commandBus = new RecordingCommandBus();
-        MerchantAccountStatusEventListener listener = new MerchantAccountStatusEventListener(
+        MerchantAccountApprovedStatusEventListener listener = new MerchantAccountApprovedStatusEventListener(
                 commandBus,
                 new ConvertingIdGenerator()
         );

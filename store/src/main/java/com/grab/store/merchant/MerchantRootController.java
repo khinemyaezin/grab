@@ -29,6 +29,10 @@ public class MerchantRootController {
                 .getMerchants(null))
                 .withRel("list-merchants"));
 
+        model.add(linkTo(methodOn(MerchantController.class)
+                .getCurrentMerchant(null))
+                .withRel("get-current-merchant"));
+
         model.add(linkTo(methodOn(C2CApplicationController.class)
                 .getC2CApplication(null))
                 .withRel("get-c2c-application"));

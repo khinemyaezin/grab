@@ -30,14 +30,21 @@ public class MerchantQueryService {
     private final ListMerchantReviewQueueRequestMapper reviewQueueMapper;
     private final GetC2CProfileRequestMapper getC2CApplicationMapper;
     private final GetFirstPartyRetailerApplicationRequestMapper getFirstPartyRetailerApplicationMapper;
+    private final AuthenticatedMerchantScopeResolver merchantScopes;
 
     public MerchantResponse get(String merchantId, SecurityPrincipal principal) {
         boolean reviewer = principal.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals(MerchantAuthorityCodes.GLOBAL_READ));
+        boolean scopedAccess = merchantScopes.resolveScopedAccess(principal, merchantId, reviewer);
         String actorId = principal.getPlatformUserId();
-        GetMerchantQuery query = getMapper.toQuery(merchantId, actorId, reviewer);
+        GetMerchantQuery query = getMapper.toQuery(merchantId, actorId, reviewer, scopedAccess);
         MerchantAccountResult result = queries.dispatch(query);
         return getMapper.toResponse(result);
+    }
+
+    public MerchantResponse current(SecurityPrincipal principal) {
+        String merchantId = merchantScopes.resolveCurrentMerchantId(principal);
+        return get(merchantId, principal);
     }
 
 

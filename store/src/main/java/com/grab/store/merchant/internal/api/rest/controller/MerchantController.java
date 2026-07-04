@@ -36,6 +36,15 @@ public class MerchantController {
         return ResponseEntity.ok(collection);
     }
 
+    @GetMapping("/current")
+    public ResponseEntity<EntityModel<MerchantResponse>> getCurrentMerchant(
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        MerchantResponse response = queries.current(principal);
+        EntityModel<MerchantResponse> model = assembler.toModel(response);
+        return ResponseEntity.ok(model);
+    }
+
     @GetMapping("/{merchantId}")
     public ResponseEntity<EntityModel<MerchantResponse>> getMerchant(
             @PathVariable String merchantId,
