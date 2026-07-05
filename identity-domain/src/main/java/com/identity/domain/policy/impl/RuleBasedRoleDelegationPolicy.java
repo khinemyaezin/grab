@@ -1,7 +1,8 @@
-package com.identity.domain.service;
+package com.identity.domain.policy.impl;
 
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
+import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.repository.RoleDelegationRuleRepository;
 
 import java.util.Locale;

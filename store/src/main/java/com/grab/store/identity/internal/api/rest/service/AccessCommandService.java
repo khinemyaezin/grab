@@ -9,6 +9,7 @@ import com.grab.store.identity.internal.api.rest.mapper.GrantAccessRequestMapper
 import com.grab.store.identity.internal.api.rest.mapper.SwitchAccessContextRequestMapper;
 import com.grab.store.identity.internal.command.AccessAssignmentResult;
 import com.grab.store.identity.internal.command.AuthResult;
+import com.grab.store.identity.internal.command.GrantAccessCommand;
 import com.grab.store.identity.internal.command.SwitchAccessContextCommand;
 import com.grab.store.shared.security.SecurityPrincipal;
 import com.identity.domain.enums.AccessAssignmentStatus;
@@ -26,13 +27,14 @@ public class AccessCommandService {
 
     public AccessAssignmentResponse grant(GrantAccessRequest request, SecurityPrincipal principal) {
         AuthenticatedAccessScopeResolver.ActorScope actorScope = actorScopes.resolve(principal);
-        AccessAssignmentResult result = commandBus.dispatch(grantMapper.toCommand(
+        GrantAccessCommand command = grantMapper.toCommand(
                 request,
                 principal.getPlatformUserId(),
                 actorScope.key(),
                 actorScope.id(),
                 principal.actor().roles()
-        ));
+        );
+        AccessAssignmentResult result = commandBus.dispatch(command);
         return grantMapper.toResponse(result);
     }
 

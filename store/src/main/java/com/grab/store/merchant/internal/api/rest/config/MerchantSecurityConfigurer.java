@@ -14,12 +14,18 @@ public class MerchantSecurityConfigurer implements ModuleSecurityConfigurer {
     public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
         auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants").permitAll();
 
-        auth.requestMatchers(HttpMethod.GET, "/api/v1/admin/merchants/**").hasAuthority("MERCHANT_GLOBAL_READ");
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/admin/merchants/**").hasAuthority("MERCHANT_LIFECYCLE_WRITE");
+        auth.requestMatchers(HttpMethod.GET, "/api/v1/admin/merchants/**")
+                .hasAuthority(MerchantAuthorityCodes.GLOBAL_READ);
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/admin/merchants/**")
+                .hasAuthority(MerchantAuthorityCodes.LIFECYCLE_WRITE);
 
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/merchants/applications/**").hasAuthority("MERCHANT_APPLICATION_WRITE");
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/merchants/*/submit").hasAuthority("MERCHANT_APPLICATION_WRITE");
-        auth.requestMatchers(HttpMethod.PATCH, "/api/v1/merchants/*/profile").hasAuthority("MERCHANT_PROFILE_WRITE");
-        auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants/**").hasAuthority("MERCHANT_PROFILE_READ");
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/merchants/applications/**")
+                .hasAuthority(MerchantAuthorityCodes.APPLICATION_WRITE);
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/merchants/accounts/*/submit")
+                .hasAuthority(MerchantAuthorityCodes.APPLICATION_WRITE);
+        auth.requestMatchers(HttpMethod.PATCH, "/api/v1/merchants/accounts/*/profile")
+                .hasAuthority(MerchantAuthorityCodes.PROFILE_WRITE);
+        auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants/**")
+                .hasAuthority(MerchantAuthorityCodes.PROFILE_READ);
     }
 }

@@ -9,17 +9,13 @@ import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
 import com.grab.store.identity.internal.api.rest.assembler.UserProfileModelAssembler;
 import com.grab.store.identity.internal.api.rest.service.AuthCommandService;
-import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
+import com.grab.store.shared.security.util.AuthCookieHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/identity/auth")
@@ -32,10 +28,13 @@ public class AuthController {
     private final AuthCookieHelper authCookieHelper;
 
     @PostMapping("/login")
-    public ResponseEntity<EntityModel<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = commandService.login(request);
+    public ResponseEntity<EntityModel<AuthResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            @RequestHeader(value = "X-Platform") String platformCode
+            ) {
+        AuthResponse response = commandService.login(request, platformCode);
         return ResponseEntity.ok()
-                .headers(authCookieHelper.createTokenCookies(response))
+                .headers(authCookieHelper.createTokenCookies(response.accessToken(), response.refreshToken(), response.expiresInMs()))
                 .body(authModelAssembler.toModel(response));
     }
 
@@ -51,7 +50,7 @@ public class AuthController {
 
         AuthResponse response = commandService.refresh(new RefreshTokenRequest(token));
         return ResponseEntity.ok()
-                .headers(authCookieHelper.createTokenCookies(response))
+                .headers(authCookieHelper.createTokenCookies(response.accessToken(), response.refreshToken(), response.expiresInMs()))
                 .body(authModelAssembler.toModel(response));
     }
 
@@ -71,8 +70,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<EntityModel<UserProfileResponse>> register(@Valid @RequestBody RegisterRequest request) {
-        UserProfileResponse response = commandService.register(request);
+    public ResponseEntity<EntityModel<UserProfileResponse>> register(
+            @RequestHeader(value = "X-Platform") String platformCode,
+            @Valid @RequestBody RegisterRequest request) {
+        UserProfileResponse response = commandService.register(request, platformCode);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userProfileModelAssembler.toModel(response));
     }

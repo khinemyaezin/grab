@@ -24,7 +24,9 @@ public class GetMerchantQueryHandler implements QueryHandler<GetMerchantQuery, M
     public MerchantAccountResult handle(GetMerchantQuery query) {
         Id merchantId = query.merchantId();
         MerchantAccount merchant = merchants.findById(merchantId).orElseThrow(() -> notFound(merchantId));
-        if (!query.reviewerAccess()) merchant.requireApplicant(query.actorId());
+        if (!query.reviewerAccess() && !query.scopedAccess()) {
+            merchant.requireApplicant(query.actorId());
+        }
         return MerchantAccountResult.from(merchant);
     }
 

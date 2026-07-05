@@ -10,7 +10,6 @@ import com.grab.store.merchant.internal.exception.MerchantServiceError;
 import com.grab.store.merchant.internal.exception.MerchantServiceException;
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.repository.MerchantAccountRepository;
-import com.merchant.domain.service.MerchantRegistrationPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +22,6 @@ public class SubmitMerchantApplicationCommandHandler
         implements CommandHandler<SubmitMerchantApplicationCommand, MerchantAccountResult> {
 
     private final MerchantAccountRepository merchants;
-    private final MerchantRegistrationPolicy registrationPolicy;
 
     @Override
     @MerchantTransactional

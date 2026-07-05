@@ -8,6 +8,6 @@ import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class)
 public abstract class RegisterRequestMapper {
-    public abstract RegisterCommand toCommand(RegisterRequest request);
+    public abstract RegisterCommand toCommand(RegisterRequest request,String platformCode);
     public abstract UserProfileResponse toResponse(UserProfileResult result);
 }

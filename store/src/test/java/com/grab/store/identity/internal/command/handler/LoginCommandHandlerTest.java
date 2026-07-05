@@ -5,7 +5,6 @@ import com.grab.framework.security.AuthenticatedActor;
 import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.identity.internal.command.LoginCommand;
-import com.grab.store.identity.internal.config.IdentityRegistrationProperties;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
@@ -59,8 +58,7 @@ class LoginCommandHandlerTest {
                 assignments,
                 passwords,
                 tokens,
-                identities,
-                new IdentityRegistrationProperties(" customer_app ", " customer ")
+                identities
         );
         user = User.createLocal(
                 new CommonId("user-1"),
@@ -90,7 +88,7 @@ class LoginCommandHandlerTest {
         when(tokens.issue(org.mockito.ArgumentMatchers.any())).thenReturn(new TokenPair("access", "refresh", 60000));
 
         var result = handler.handle(new LoginCommand(
-                "customer@example.com", "Password123!", "SELLER_PORTAL", null
+                "customer@example.com", "Password123!", "SELLER_PORTAL"
         ));
 
         ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);
@@ -101,69 +99,6 @@ class LoginCommandHandlerTest {
             assertThat(context.scopeId()).isEqualTo("merchant-1");
         });
         assertThat(result.accessToken()).isEqualTo("access");
-    }
-
-    @Test
-    void handle_withoutPlatformSelection_shouldUseCustomerAppAssignment() {
-        AccessAssignment assignment = AccessAssignment.create(
-                new CommonId("customer-assignment"),
-                user.getId(),
-                new Platform(
-                        new CommonId("customer-platform"),
-                        "CUSTOMER_APP",
-                        "Customer App",
-                        true,
-                        Set.of("CUSTOMER")
-                ),
-                "CUSTOMER",
-                AccessScope.global(),
-                new CommonId("system"),
-                null
-        );
-        when(assignments.findEffectiveByUserAndPlatform(
-                org.mockito.ArgumentMatchers.eq(user.getId()),
-                org.mockito.ArgumentMatchers.eq("CUSTOMER_APP"),
-                org.mockito.ArgumentMatchers.any()
-        )).thenReturn(List.of(assignment));
-        when(identities.localIssuer()).thenReturn("local-issuer");
-        when(identities.resolve(org.mockito.ArgumentMatchers.any())).thenAnswer(invocation -> {
-            ExternalPrincipal principal = invocation.getArgument(0);
-            return new AuthenticatedActor(
-                    "user-1", "local-issuer", "user-1", "customer@example.com",
-                    Set.of("CUSTOMER"), Set.of("MERCHANT_APPLICATION_CREATE"), principal.accessContext()
-            );
-        });
-        when(tokens.issue(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new TokenPair("access", "refresh", 60000));
-
-        handler.handle(new LoginCommand("customer@example.com", "Password123!"));
-
-        ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);
-        verify(identities).resolve(principal.capture());
-        assertThat(principal.getValue().entitlements()).isEmpty();
-        assertThat(principal.getValue().accessContext()).isNotNull().satisfies(context -> {
-            assertThat(context.platformCode()).isEqualTo("CUSTOMER_APP");
-            assertThat(context.assignmentId()).isEqualTo("customer-assignment");
-            assertThat(context.scopeKey()).isEqualTo("global");
-        });
-    }
-
-    @Test
-    void handle_withAssignmentButNoPlatform_shouldRejectContextSelection() {
-        assertThatThrownBy(() -> handler.handle(new LoginCommand(
-                "customer@example.com",
-                "Password123!",
-                null,
-                new CommonId("assignment-1")
-        )))
-                .isInstanceOf(IdentityServiceException.class)
-                .satisfies(exception -> assertThat(
-                        ((IdentityServiceException) exception).getMessageSource().code()
-                ).isEqualTo("idt.service.access.context_selection_invalid"));
-
-        verify(assignments, never()).findById(org.mockito.ArgumentMatchers.any());
-        verify(identities, never()).resolve(org.mockito.ArgumentMatchers.any());
-        verify(tokens, never()).issue(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -188,7 +123,7 @@ class LoginCommandHandlerTest {
                 .thenReturn(new TokenPair("selection-access", "selection-refresh", 60000));
 
         var result = handler.handle(new LoginCommand(
-                "customer@example.com", "Password123!", "SELLER_PORTAL", null
+                "customer@example.com", "Password123!", "SELLER_PORTAL"
         ));
 
         ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);
@@ -220,7 +155,7 @@ class LoginCommandHandlerTest {
                 .thenReturn(new TokenPair("access", "refresh", 60000));
 
         var result = handler.handle(new LoginCommand(
-                "customer@example.com", "Password123!", "SELLER_PORTAL", null
+                "customer@example.com", "Password123!", "SELLER_PORTAL"
         ));
 
         ArgumentCaptor<ExternalPrincipal> principal = ArgumentCaptor.forClass(ExternalPrincipal.class);

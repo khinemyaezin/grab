@@ -4,6 +4,7 @@ import com.grab.framework.cqrs.command.Command;
 
 public record RegisterCommand(
         String email,
-        String password
+        String password,
+        String platformCode
 ) implements Command<UserProfileResult> {
 }

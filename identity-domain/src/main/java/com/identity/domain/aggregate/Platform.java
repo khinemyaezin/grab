@@ -17,13 +17,26 @@ public class Platform extends AggregateRoot<Id> {
     private String name;
     private boolean active;
     private final Set<String> roleCodes;
+    private final Set<String> authorityCodes;
 
     public Platform(Id id, String code, String name, boolean active, Set<String> roleCodes) {
+        this(id, code, name, active, roleCodes, Set.of());
+    }
+
+    public Platform(
+            Id id,
+            String code,
+            String name,
+            boolean active,
+            Set<String> roleCodes,
+            Set<String> authorityCodes
+    ) {
         super(id);
         this.code = normalizeCode(code);
         this.name = validateName(name);
         this.active = active;
         this.roleCodes = normalizeRoleCodes(roleCodes);
+        this.authorityCodes = normalizeRoleCodes(authorityCodes);
     }
 
     public boolean supportsRole(String roleCode) {
@@ -57,8 +70,25 @@ public class Platform extends AggregateRoot<Id> {
         roleCodes.remove(normalizeCode(roleCode));
     }
 
+    public void requireSupportedAuthorities(Set<String> requestedAuthorityCodes) {
+        Objects.requireNonNull(requestedAuthorityCodes, "authority codes are required");
+        for (String requestedAuthorityCode : requestedAuthorityCodes) {
+            String normalizedAuthorityCode = normalizeCode(requestedAuthorityCode);
+            if (!active || !authorityCodes.contains(normalizedAuthorityCode)) {
+                throw new IdentityDomainValidationException(
+                        new IdentityDomainError.PlatformAuthorityNotSupported(code, normalizedAuthorityCode),
+                        "Authority is not available on the platform"
+                );
+            }
+        }
+    }
+
     public Set<String> getRoleCodes() {
         return Set.copyOf(roleCodes);
+    }
+
+    public Set<String> getAuthorityCodes() {
+        return Set.copyOf(authorityCodes);
     }
 
     private static LinkedHashSet<String> normalizeRoleCodes(Set<String> roleCodes) {

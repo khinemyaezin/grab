@@ -7,7 +7,6 @@ import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.identity.internal.command.AuthResult;
 import com.grab.store.identity.internal.command.LoginCommand;
-import com.grab.store.identity.internal.config.IdentityRegistrationProperties;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
@@ -24,6 +23,7 @@ import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.time.Instant;
@@ -38,7 +38,6 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
     private final PasswordHasher passwordHasher;
     private final TokenLifeCycle tokenLifeCycle;
     private final PlatformIdentityResolver identityResolver;
-    private final IdentityRegistrationProperties registration;
 
     @Override
     @IdentityTransactional
@@ -85,33 +84,17 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
 
     private Optional<AccessContext> resolveRequestedContext(LoginCommand command, User user) {
         if (command.platformCode() == null) {
-            if (command.assignmentId() != null) {
-                throw new IdentityServiceException(
-                        new IdentityServiceError.AccessContextSelectionInvalid(),
-                        "Platform code is required when selecting an assignment"
-                );
-            }
-        }
-
-        String platformCode = command.platformCode() == null
-                ? registration.platformCode()
-                : command.platformCode();
-
-        if (command.assignmentId() != null) {
-            AccessAssignment assignment = accessAssignments
-                    .findById(command.assignmentId())
-                    .filter(candidate -> candidate.getUserId().equals(user.getId()))
-                    .filter(candidate -> candidate.getPlatformCode().equals(platformCode))
-                    .filter(candidate -> candidate.isEffectiveAt(Instant.now()))
-                    .orElseThrow(() -> platformAccessUnavailable(platformCode));
-            return Optional.of(toContext(assignment));
+            throw new IdentityServiceException(
+                    new IdentityServiceError.PlatformNotFound(""),
+                    "Platform code is required when selecting an assignment"
+            );
         }
 
         List<AccessAssignment> available = accessAssignments.findEffectiveByUserAndPlatform(
-                user.getId(), platformCode, Instant.now()
+                user.getId(), command.platformCode(), Instant.now()
         );
         if (available.isEmpty()) {
-            throw platformAccessUnavailable(platformCode);
+            throw platformAccessUnavailable(command.platformCode());
         }
         long availableContexts = available.stream()
                 .map(assignment -> new ContextKey(
@@ -122,9 +105,6 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
                 .limit(2)
                 .count();
         if (availableContexts > 1) {
-            // The user has proved their identity, but has not selected which access
-            // context to use yet. Issue a context-free session so they can call the
-            // authenticated access-context endpoints and complete the selection.
             return Optional.empty();
         }
         return Optional.of(toContext(available.getFirst()));

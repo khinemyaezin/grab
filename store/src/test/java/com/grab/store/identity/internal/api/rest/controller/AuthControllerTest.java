@@ -8,8 +8,8 @@ import com.grab.store.identity.internal.api.rest.dto.request.LogoutRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.RefreshTokenRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.service.AuthCommandService;
-import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
+import com.grab.store.shared.security.util.AuthCookieHelper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,7 +74,7 @@ class AuthControllerTest {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, "accessToken=access-token-123; Path=/; Secure; HttpOnly; Max-Age=3600; SameSite=Strict");
         headers.add(HttpHeaders.SET_COOKIE, "refreshToken=refresh-token-456; Path=/api/v1/identity/auth/refresh; Secure; HttpOnly; Max-Age=604800; SameSite=Strict");
-        when(authCookieHelper.createTokenCookies(any(AuthResponse.class))).thenReturn(headers);
+        when(authCookieHelper.createTokenCookies(any(String.class), any(String.class), any(Long.class))).thenReturn(headers);
 
         HttpHeaders clearHeaders = new HttpHeaders();
         clearHeaders.add(HttpHeaders.SET_COOKIE, "accessToken=; Path=/; Secure; HttpOnly; Max-Age=0; SameSite=Strict");
@@ -84,10 +84,11 @@ class AuthControllerTest {
 
     @Test
     void login_withExplicitContext_shouldReturn200WithCookies() throws Exception {
-        LoginRequest request = new LoginRequest("test@example.com", "Password123!", "ADMIN_CONSOLE", "123");
-        when(authCommandService.login(any(LoginRequest.class))).thenReturn(authResponse);
+        LoginRequest request = new LoginRequest("test@example.com", "Password123!");
+        when(authCommandService.login(any(LoginRequest.class), any(String.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/v1/identity/auth/login")
+                        .header("X-Platform", "SELLER_PORTAL")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -106,9 +107,10 @@ class AuthControllerTest {
 
     @Test
     void login_withoutAccessContext_shouldReturn200WithCookies() throws Exception {
-        when(authCommandService.login(any(LoginRequest.class))).thenReturn(authResponse);
+        when(authCommandService.login(any(LoginRequest.class), any(String.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/v1/identity/auth/login")
+                        .header("X-Platform", "SELLER_PORTAL")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -118,26 +120,6 @@ class AuthControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access-token-123"));
-    }
-
-    @Test
-    void login_withInvalidExplicitPlatform_shouldReturn400() throws Exception {
-        LoginRequest request = new LoginRequest("test@example.com", "Password123!", "customer app", null);
-
-        mockMvc.perform(post("/api/v1/identity/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void login_withBlankExplicitAssignment_shouldReturn400() throws Exception {
-        LoginRequest request = new LoginRequest("test@example.com", "Password123!", "CUSTOMER_APP", "   ");
-
-        mockMvc.perform(post("/api/v1/identity/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
     }
 
     @Test

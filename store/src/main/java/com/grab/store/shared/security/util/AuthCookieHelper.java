@@ -1,6 +1,5 @@
-package com.grab.store.identity.internal.api.rest.util;
+package com.grab.store.shared.security.util;
 
-import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -21,16 +20,16 @@ public class AuthCookieHelper {
     @Value("${security.api.cookie.refresh-token-path:/api/v1/identity/auth/refresh}")
     private String refreshTokenPath;
 
-    public HttpHeaders createTokenCookies(AuthResponse response) {
-        ResponseCookie jwtCookie = ResponseCookie.from("accessToken", response.accessToken())
+    public HttpHeaders createTokenCookies(String accessToken, String refreshToken, long expiresInMs) {
+        ResponseCookie jwtCookie = ResponseCookie.from("accessToken", accessToken)
                 .httpOnly(true)
                 .secure(secure)
                 .path("/")
-                .maxAge(response.expiresInMs() / 1000)
+                .maxAge(expiresInMs / 1000)
                 .sameSite(sameSite)
                 .build();
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
                 .secure(secure)
                 .path(refreshTokenPath)

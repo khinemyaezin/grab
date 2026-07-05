@@ -21,7 +21,6 @@ ON CONFLICT (code) DO NOTHING;
 INSERT INTO roles (uuid, code, name, description, active)
 VALUES
     ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380b01', 'CUSTOMER', 'CUSTOMER', 'Customer role', true),
-    ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380b02', 'SELLER', 'SELLER', 'Seller role', true),
     ('c1eebc99-9c0b-4ef8-bb6d-6bb9bd380118', 'USER_ADMIN', 'User Admin', 'Administer users and scoped access', TRUE)
 ON CONFLICT (code) DO NOTHING;
 
@@ -33,9 +32,5 @@ WHERE (r.code = 'USER_ADMIN' AND a.code IN (
                                             'USER_READ', 'USER_WRITE', 'ROLE_READ', 'ROLE_WRITE', 'ACCESS_ASSIGNMENT_READ', 'ACCESS_ASSIGNMENT_WRITE', 'ACCESS_INVITATION_WRITE',
                                             'MERCHANT_GLOBAL_READ', 'MERCHANT_LIFECYCLE_WRITE', 'MERCHANT_PROFILE_READ'
                                            ))
-   OR (r.code = 'SELLER' AND a.code IN (
-                                        'ACCESS_ASSIGNMENT_READ', 'ACCESS_ASSIGNMENT_WRITE', 'ACCESS_INVITATION_WRITE',
-                                        'MERCHANT_APPLICATION_WRITE', 'MERCHANT_PROFILE_WRITE', 'MERCHANT_PROFILE_READ'
-                                       ))
    OR (r.code = 'CUSTOMER' AND a.code IN ('MERCHANT_APPLICATION_WRITE'))
 ON CONFLICT DO NOTHING;

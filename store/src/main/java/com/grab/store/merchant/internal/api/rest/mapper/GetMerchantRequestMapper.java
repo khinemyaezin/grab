@@ -8,7 +8,12 @@ import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class GetMerchantRequestMapper {
-    public abstract GetMerchantQuery toQuery(String merchantId, String actorId, boolean reviewerAccess);
+    public abstract GetMerchantQuery toQuery(
+            String merchantId,
+            String actorId,
+            boolean reviewerAccess,
+            boolean scopedAccess
+    );
 
     public abstract MerchantResponse toResponse(MerchantAccountResult result);
 }

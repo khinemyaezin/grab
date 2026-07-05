@@ -5,7 +5,6 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.identity.internal.command.RegisterCommand;
 import com.grab.store.identity.internal.command.UserProfileResult;
-import com.grab.store.identity.internal.config.IdentityRegistrationProperties;
 import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
@@ -16,8 +15,8 @@ import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.service.PasswordHasher;
-import com.identity.domain.service.RegistrationAccessPolicy;
-import com.identity.domain.valueobject.AccessScope;
+import com.identity.domain.policy.RegistrationAccessPolicy;
+import com.identity.domain.policy.RegistrationAccessPolicyResolver;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.HashedPassword;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,7 @@ public class RegisterCommandHandler implements CommandHandler<RegisterCommand, U
     private final AccessAssignmentRepository accessAssignments;
     private final PasswordHasher passwordHasher;
     private final IdGenerator idGenerator;
-    private final RegistrationAccessPolicy policy;
+    private final RegistrationAccessPolicyResolver policyResolver;
 
     @Override
     @IdentityTransactional
@@ -44,10 +43,9 @@ public class RegisterCommandHandler implements CommandHandler<RegisterCommand, U
             );
         }
 
-        String platformCode = policy.getPlatformCode();
-        Platform platform = platforms.findByCode(platformCode).orElseThrow(() ->
+        Platform platform = platforms.findByCode(command.platformCode()).orElseThrow(() ->
                 new IdentityServiceException(
-                        new IdentityServiceError.PlatformNotFound(platformCode),
+                        new IdentityServiceError.PlatformNotFound(command.platformCode()),
                         "Registration platform not found"
                 )
         );
@@ -56,6 +54,7 @@ public class RegisterCommandHandler implements CommandHandler<RegisterCommand, U
         User user = User.createLocal(userId, email, password);
 
         Id assignmentId = idGenerator.generateId();
+        RegistrationAccessPolicy policy = policyResolver.resolve(command.platformCode());
         AccessAssignment assignment = policy.createAssignment(assignmentId, userId, platform);
 
         User saved = users.save(user);

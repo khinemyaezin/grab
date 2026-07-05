@@ -157,6 +157,10 @@ public class MerchantAccount extends AggregateRoot<Id> {
     private void requireCompleteProfile() {
         if (name.legalName() == null) throw incomplete("legalName");
         if (contact == null) throw incomplete("contact");
+
+        if (type.requiresBusinessRegistration() && registration == null) {
+            throw incomplete("businessRegistration");
+        }
     }
 
     private void transition(

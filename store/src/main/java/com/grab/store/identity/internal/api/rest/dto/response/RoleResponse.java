@@ -6,7 +6,10 @@ public record RoleResponse(
         String code,
         String name,
         String description,
+        String kind,
         boolean active,
-        Set<String> authorities
+        boolean assignable,
+        Set<String> authorities,
+        Set<String> platformCodes
 ) {
 }

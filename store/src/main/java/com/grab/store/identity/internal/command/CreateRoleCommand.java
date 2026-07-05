@@ -2,5 +2,13 @@ package com.grab.store.identity.internal.command;
 
 import com.grab.framework.cqrs.command.Command;
 
-public record CreateRoleCommand(String code, String name, String description) implements Command<RoleResult> {
+import java.util.Set;
+
+public record CreateRoleCommand(
+        String code,
+        String name,
+        String description,
+        String platformCode,
+        Set<String> authorityCodes
+) implements Command<RoleResult> {
 }

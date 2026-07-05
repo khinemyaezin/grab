@@ -6,10 +6,6 @@ import com.grab.framework.id.Id;
 public record LoginCommand(
         String email,
         String password,
-        String platformCode,
-        Id assignmentId
+        String platformCode
 ) implements Command<AuthResult> {
-    public LoginCommand(String email, String password) {
-        this(email, password, null, null);
-    }
 }

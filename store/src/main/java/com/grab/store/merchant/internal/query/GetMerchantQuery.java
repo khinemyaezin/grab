@@ -7,6 +7,7 @@ import com.grab.store.merchant.internal.command.MerchantAccountResult;
 public record GetMerchantQuery(
         Id merchantId,
         Id actorId,
-        boolean reviewerAccess
+        boolean reviewerAccess,
+        boolean scopedAccess
 ) implements Query<MerchantAccountResult> {
 }

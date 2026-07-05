@@ -1,5 +1,6 @@
 package com.identity.infrastructure.entity;
 
+import com.identity.domain.enums.RoleKind;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,8 +28,15 @@ public class RoleEntity {
 
     private String description;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_kind", nullable = false)
+    private RoleKind kind = RoleKind.CUSTOM;
+
     @Column(nullable = false)
     private boolean active = true;
+
+    @Column(nullable = false)
+    private boolean assignable = true;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "role_authorities", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "authority_id"))

@@ -4,6 +4,7 @@ import com.grab.framework.security.AccessTokenAuthenticator;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import com.grab.store.shared.security.ProviderBearerAuthenticationFilter;
+import com.grab.store.shared.security.util.AuthCookieHelper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -49,14 +50,16 @@ public class ApiSecurityConfig {
             List<ModuleSecurityConfigurer> moduleConfigurers,
             @Value("${security.api.core:*}") List<String> allowedOrigins,
             ObjectProvider<PlatformIdentityResolver> resolvers,
-            AccessTokenAuthenticator authenticator
+            AccessTokenAuthenticator authenticator,
+            AuthCookieHelper authCookieHelper
             ) throws Exception {
 
         ProviderBearerAuthenticationFilter bearerFilter =
                 new ProviderBearerAuthenticationFilter(
                         authenticator,
                         resolvers,
-                        entryPoint
+                        entryPoint,
+                        authCookieHelper
                 );
         return http.csrf(AbstractHttpConfigurer::disable)
                 .cors(c -> c.configurationSource(corsConfigurationSource(allowedOrigins)))

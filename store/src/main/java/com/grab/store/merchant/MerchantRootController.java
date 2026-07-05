@@ -1,5 +1,7 @@
 package com.grab.store.merchant;
 
+import com.grab.store.merchant.internal.api.rest.controller.C2CApplicationController;
+import com.grab.store.merchant.internal.api.rest.controller.FirstPartyRetailerApplicationController;
 import com.grab.store.merchant.internal.api.rest.controller.MerchantController;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import org.springframework.hateoas.MediaTypes;
@@ -24,14 +26,28 @@ public class MerchantRootController {
                 .withSelfRel());
 
         model.add(linkTo(methodOn(MerchantController.class)
-                .listMyMerchants(null))
+                .getMerchants(null))
                 .withRel("list-merchants"));
+
         model.add(linkTo(methodOn(MerchantController.class)
+                .getCurrentMerchant(null))
+                .withRel("get-current-merchant"));
+
+        model.add(linkTo(methodOn(C2CApplicationController.class)
                 .getC2CApplication(null))
                 .withRel("get-c2c-application"));
-        model.add(linkTo(methodOn(MerchantController.class)
+
+        model.add(linkTo(methodOn(C2CApplicationController.class)
                 .startC2CApplication(null,null))
                 .withRel("create-c2c-application"));
+
+        model.add(linkTo(methodOn(FirstPartyRetailerApplicationController.class)
+                .startFirstPartyApplication(null, null))
+                .withRel("get-first-party-retailer-application"));
+
+        model.add(linkTo(methodOn(FirstPartyRetailerApplicationController.class)
+                .startFirstPartyApplication(null,null))
+                .withRel("create-first-party-retailer-application"));
         return ResponseEntity.ok(model);
     }
 }

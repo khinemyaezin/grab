@@ -13,7 +13,10 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.grab.store.shared.security.util.AuthCookieHelper;
+import org.springframework.http.HttpHeaders;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class ProviderBearerAuthenticationFilter extends OncePerRequestFilter {
     private final AccessTokenAuthenticator authenticator;
     private final ObjectProvider<PlatformIdentityResolver> resolvers;
     private final AuthenticationEntryPoint entryPoint;
+    private final AuthCookieHelper authCookieHelper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
@@ -56,6 +60,13 @@ public class ProviderBearerAuthenticationFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } catch (IdentityAuthenticationException ex) {
             SecurityContextHolder.clearContext();
+            HttpHeaders headers = authCookieHelper.clearTokenCookies();
+            List<String> cookies = headers.get(HttpHeaders.SET_COOKIE);
+            if (cookies != null) {
+                for (String cookieValue : cookies) {
+                    response.addHeader(HttpHeaders.SET_COOKIE, cookieValue);
+                }
+            }
             entryPoint.commence(request, response, ex);
         }
     }
