@@ -35,7 +35,7 @@ public class MerchantAccountSubmitStatusEventListener {
                     event.merchantId(),
                     event.applicantUserId()
             );
-            replaceAccess(event.applicantUserId(), event.merchantId());
+            autoApproveMerchant(event.applicantUserId(), event.merchantId());
         } else {
             log.info(
                     "Merchant application requires manual approval for merchantId={} and applicantUserId={}",
@@ -45,7 +45,7 @@ public class MerchantAccountSubmitStatusEventListener {
         }
     }
 
-    private void replaceAccess(String applicantUserIdValue, String merchantIdValue) {
+    private void autoApproveMerchant(String applicantUserIdValue, String merchantIdValue) {
         Id applicantUserId = idGenerator.convertIdFrom(applicantUserIdValue);
         Id merchantId = idGenerator.convertIdFrom(merchantIdValue);
         ChangeMerchantLifecycleCommand command = new ChangeMerchantLifecycleCommand(

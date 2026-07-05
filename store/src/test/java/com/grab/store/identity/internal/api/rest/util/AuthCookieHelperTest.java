@@ -1,6 +1,7 @@
 package com.grab.store.identity.internal.api.rest.util;
 
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
+import com.grab.store.shared.security.util.AuthCookieHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +37,7 @@ class AuthCookieHelperTest {
                 "ACTIVE"
         );
 
-        HttpHeaders headers = authCookieHelper.createTokenCookies(response);
+        HttpHeaders headers = authCookieHelper.createTokenCookies("access-token-123", "refresh-token-456", 3600000L);
         
         List<String> cookies = headers.get(HttpHeaders.SET_COOKIE);
         assertThat(cookies).isNotNull();

@@ -6,7 +6,7 @@ import com.grab.store.identity.internal.api.rest.dto.response.AccessContextRespo
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.service.AccessCommandService;
 import com.grab.store.identity.internal.api.rest.service.AccessQueryService;
-import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
+import com.grab.store.shared.security.util.AuthCookieHelper;
 import com.grab.store.shared.security.SecurityPrincipal;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +64,7 @@ public class AccessContextController {
     ) {
         AuthResponse response = commandService.switchContext(assignmentId, currentRefreshToken, principal);
         return ResponseEntity.ok()
-                .headers(authCookieHelper.createTokenCookies(response))
+                .headers(authCookieHelper.createTokenCookies(response.accessToken(), response.refreshToken(), response.expiresInMs()))
                 .body(authModelAssembler.toModel(response));
     }
 }

@@ -12,7 +12,7 @@ import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.RoleRepository;
 import com.identity.domain.repository.UserRepository;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.service.RuleBasedRoleDelegationPolicy;
+import com.identity.domain.policy.impl.RuleBasedRoleDelegationPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

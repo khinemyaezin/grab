@@ -9,7 +9,7 @@ import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
 import com.grab.store.identity.internal.api.rest.assembler.UserProfileModelAssembler;
 import com.grab.store.identity.internal.api.rest.service.AuthCommandService;
-import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
+import com.grab.store.shared.security.util.AuthCookieHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
@@ -34,7 +34,7 @@ public class AuthController {
             ) {
         AuthResponse response = commandService.login(request, platformCode);
         return ResponseEntity.ok()
-                .headers(authCookieHelper.createTokenCookies(response))
+                .headers(authCookieHelper.createTokenCookies(response.accessToken(), response.refreshToken(), response.expiresInMs()))
                 .body(authModelAssembler.toModel(response));
     }
 
@@ -50,7 +50,7 @@ public class AuthController {
 
         AuthResponse response = commandService.refresh(new RefreshTokenRequest(token));
         return ResponseEntity.ok()
-                .headers(authCookieHelper.createTokenCookies(response))
+                .headers(authCookieHelper.createTokenCookies(response.accessToken(), response.refreshToken(), response.expiresInMs()))
                 .body(authModelAssembler.toModel(response));
     }
 

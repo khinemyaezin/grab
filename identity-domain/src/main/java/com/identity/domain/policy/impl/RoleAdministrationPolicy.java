@@ -1,4 +1,4 @@
-package com.identity.domain.service;
+package com.identity.domain.policy.impl;
 
 import com.grab.framework.id.Id;
 import com.identity.domain.aggregate.Platform;

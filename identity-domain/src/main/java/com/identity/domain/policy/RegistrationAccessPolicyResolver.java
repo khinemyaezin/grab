@@ -1,4 +1,4 @@
-package com.identity.domain.service;
+package com.identity.domain.policy;
 
 import java.util.List;
 import java.util.Map;

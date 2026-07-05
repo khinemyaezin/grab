@@ -3,6 +3,7 @@ package com.identity.domain.service;
 import com.grab.framework.id.impl.CommonId;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
+import com.identity.domain.policy.impl.SellerPlatformUserRegistrationAccessPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;

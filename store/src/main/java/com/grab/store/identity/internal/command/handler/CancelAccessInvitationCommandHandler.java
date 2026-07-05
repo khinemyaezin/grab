@@ -8,7 +8,7 @@ import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessInvitation;
 import com.identity.domain.repository.AccessInvitationRepository;
-import com.identity.domain.service.RoleDelegationPolicy;
+import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

@@ -14,7 +14,7 @@ import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.RoleRepository;
 import com.identity.domain.repository.UserRepository;
-import com.identity.domain.service.RoleDelegationPolicy;
+import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

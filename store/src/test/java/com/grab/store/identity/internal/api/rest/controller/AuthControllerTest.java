@@ -8,8 +8,8 @@ import com.grab.store.identity.internal.api.rest.dto.request.LogoutRequest;
 import com.grab.store.identity.internal.api.rest.dto.request.RefreshTokenRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.service.AuthCommandService;
-import com.grab.store.identity.internal.api.rest.util.AuthCookieHelper;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
+import com.grab.store.shared.security.util.AuthCookieHelper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,7 +74,7 @@ class AuthControllerTest {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, "accessToken=access-token-123; Path=/; Secure; HttpOnly; Max-Age=3600; SameSite=Strict");
         headers.add(HttpHeaders.SET_COOKIE, "refreshToken=refresh-token-456; Path=/api/v1/identity/auth/refresh; Secure; HttpOnly; Max-Age=604800; SameSite=Strict");
-        when(authCookieHelper.createTokenCookies(any(AuthResponse.class))).thenReturn(headers);
+        when(authCookieHelper.createTokenCookies(any(String.class), any(String.class), any(Long.class))).thenReturn(headers);
 
         HttpHeaders clearHeaders = new HttpHeaders();
         clearHeaders.add(HttpHeaders.SET_COOKIE, "accessToken=; Path=/; Secure; HttpOnly; Max-Age=0; SameSite=Strict");

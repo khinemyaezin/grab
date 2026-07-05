@@ -14,9 +14,8 @@ class MerchantModelAssemblerTest {
         EntityModel<MerchantResponse> model = assembler.toModel(response("DRAFT"));
 
         assertThat(model.getLink("self")).isPresent();
-        assertThat(model.getLink("update-merchant-application")).isPresent();
         assertThat(model.getLink("submit-merchant-application")).isPresent();
-        assertThat(model.getLink("edit-merchant-application")).isEmpty();
+        assertThat(model.getLink("edit-merchant-application")).isPresent();
     }
 
     @Test

@@ -9,7 +9,7 @@ import com.identity.domain.aggregate.Role;
 import com.identity.domain.repository.AuthorityRepository;
 import com.identity.domain.repository.PlatformRepository;
 import com.identity.domain.repository.RoleRepository;
-import com.identity.domain.service.RoleAdministrationPolicy;
+import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;

@@ -10,10 +10,12 @@ import com.merchant.domain.repository.MerchantAccountRepository;
 import com.merchant.domain.service.SystemDefaultMerchantApprovalPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -64,7 +66,14 @@ class MerchantAccountSubmitStatusEventListenerTest {
         listener.handleMerchantApplicationSubmitted(event);
 
         // Assert
-        verify(commandBus, times(1)).dispatch(any(ChangeMerchantLifecycleCommand.class));
+        ArgumentCaptor<ChangeMerchantLifecycleCommand> command =
+                ArgumentCaptor.forClass(ChangeMerchantLifecycleCommand.class);
+        verify(commandBus).dispatch(command.capture());
+        assertThat(command.getValue().merchantId()).isSameAs(merchantId);
+        assertThat(command.getValue().actorId()).isSameAs(applicantId);
+        assertThat(command.getValue().action())
+                .isEqualTo(ChangeMerchantLifecycleCommand.Action.APPROVE);
+        assertThat(command.getValue().reason()).isNull();
     }
 
     @Test
