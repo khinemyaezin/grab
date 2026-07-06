@@ -85,7 +85,7 @@ class LoginCommandHandlerTest {
                     Set.of("MERCHANT_OWNER"), Set.of("MERCHANT_WRITE_OWN"), principal.accessContext()
             );
         });
-        when(tokens.issue(org.mockito.ArgumentMatchers.any())).thenReturn(new TokenPair("access", "refresh", 60000));
+        when(tokens.issue(org.mockito.ArgumentMatchers.any())).thenReturn(new TokenPair("access", "refresh", 60000,false));
 
         var result = handler.handle(new LoginCommand(
                 "customer@example.com", "Password123!", "SELLER_PORTAL"
@@ -120,7 +120,7 @@ class LoginCommandHandlerTest {
             );
         });
         when(tokens.issue(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new TokenPair("selection-access", "selection-refresh", 60000));
+                .thenReturn(new TokenPair("selection-access", "selection-refresh", 60000, false));
 
         var result = handler.handle(new LoginCommand(
                 "customer@example.com", "Password123!", "SELLER_PORTAL"
@@ -152,7 +152,7 @@ class LoginCommandHandlerTest {
             );
         });
         when(tokens.issue(org.mockito.ArgumentMatchers.any()))
-                .thenReturn(new TokenPair("access", "refresh", 60000));
+                .thenReturn(new TokenPair("access", "refresh", 60000, false));
 
         var result = handler.handle(new LoginCommand(
                 "customer@example.com", "Password123!", "SELLER_PORTAL"

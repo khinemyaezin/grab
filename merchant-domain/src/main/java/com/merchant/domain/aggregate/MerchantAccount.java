@@ -70,9 +70,19 @@ public class MerchantAccount extends AggregateRoot<Id> {
             Instant now
     ) {
         MerchantAccount merchant = new MerchantAccount(
-                id, applicantUserId, type, new MerchantName(null, displayName),
-                null, null, null, MerchantStatus.DRAFT, null, null, null,
-                now, now, 0
+                id, applicantUserId,
+                type,
+                new MerchantName(null, displayName),
+                null,
+                null,
+                null,
+                MerchantStatus.DRAFT,
+                null,
+                null,
+                null,
+                now,
+                now,
+                0
         );
         merchant.addEvent(merchant.event(MerchantApplicationStartedEvent::new, applicantUserId, now));
         return merchant;
@@ -194,10 +204,10 @@ public class MerchantAccount extends AggregateRoot<Id> {
         );
     }
 
-    private MerchantLifecycleEvent event(EventFactory factory, Id actorId, Instant now) {
+    private MerchantLifecycleEvent event(MerchantEventFactory factory, Id actorId, Instant now) {
         return factory.create(
-                UUID.randomUUID().toString(),
                 getId().getValue(),
+                this.name.displayName(),
                 applicantUserId.getValue(),
                 status.name(),
                 actorId.getValue(),
@@ -207,10 +217,10 @@ public class MerchantAccount extends AggregateRoot<Id> {
     }
 
     @FunctionalInterface
-    private interface EventFactory {
+    public interface MerchantEventFactory {
         MerchantLifecycleEvent create(
-                String eventId,
                 String merchantId,
+                String merchantName,
                 String applicantUserId,
                 String status,
                 String actorId,
@@ -218,4 +228,5 @@ public class MerchantAccount extends AggregateRoot<Id> {
                 Instant occurredAt
         );
     }
+
 }

@@ -7,6 +7,8 @@ import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.repository.AccessAssignmentRepository;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.ScopeKey;
+import com.identity.infrastructure.repository.jpa.MerchantViewJpaRepository;
+import com.identity.infrastructure.view.MerchantView;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,6 +27,8 @@ class ListAccessContextsQueryHandlerTest {
 
     @Mock
     private AccessAssignmentRepository assignments;
+    @Mock
+    private MerchantViewJpaRepository merchantViewRepository;
 
     @Test
     void handle_shouldGroupRolesByPlatformAndScope() {
@@ -37,7 +41,7 @@ class ListAccessContextsQueryHandlerTest {
                 assignment("assignment-3", "MERCHANT_OWNER", "merchant-2")
         ));
 
-        var results = new ListAccessContextsQueryHandler(assignments)
+        var results = new ListAccessContextsQueryHandler(assignments, merchantViewRepository)
                 .handle(new ListAccessContextsQuery(userId, "SELLER_PORTAL"));
 
         assertThat(results).hasSize(2);

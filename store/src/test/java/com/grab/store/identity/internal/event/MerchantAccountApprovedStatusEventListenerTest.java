@@ -18,9 +18,10 @@ class MerchantAccountApprovedStatusEventListenerTest {
     @Test
     void handleMerchantApproved_withApprovedEvent_shouldDispatchAccessReplacement() {
         MerchantApprovedIntegrationEvent event = new MerchantApprovedIntegrationEvent(
-                "event-1",
                 "merchant-1",
                 "applicant-1",
+                "merchant-1",
+                "ACTIVE",
                 Instant.parse("2026-07-02T00:00:00Z"),
                 1
         );

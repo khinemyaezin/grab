@@ -9,6 +9,7 @@ public record AuthResponse(
         String userId,
         String email,
         Set<String> roles,
-        String status
+        String status,
+        boolean contextSelectionRequired
 ) {
 }

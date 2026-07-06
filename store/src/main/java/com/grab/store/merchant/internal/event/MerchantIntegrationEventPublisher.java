@@ -17,9 +17,10 @@ public class MerchantIntegrationEventPublisher {
     @EventListener
     public void handleMerchantApproved(MerchantApprovedEvent event) {
         events.publishEvent(new MerchantApprovedIntegrationEvent(
-                event.eventId(),
                 event.merchantId(),
                 event.applicantUserId(),
+                event.merchantName(),
+                event.status(),
                 event.occurredAt(),
                 EVENT_VERSION
         ));

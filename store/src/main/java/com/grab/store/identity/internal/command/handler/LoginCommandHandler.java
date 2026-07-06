@@ -66,7 +66,8 @@ public class LoginCommandHandler implements CommandHandler<LoginCommand, AuthRes
                 actor.platformUserId(),
                 actor.email(),
                 actor.roles(),
-                user.getStatus().name()
+                user.getStatus().name(),
+                accessContext.isEmpty()
         );
     }
 

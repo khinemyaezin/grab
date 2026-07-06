@@ -71,7 +71,13 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
                 now.plus(properties.refreshTokenTtl()),
                 actor.accessContext()
         );
-        return new TokenPair(access, refresh, properties.accessTokenTtl().toMillis());
+        boolean hasContext = Objects.nonNull(actor.accessContext());
+        return new TokenPair(
+                access,
+                refresh,
+                properties.accessTokenTtl().toMillis(),
+                hasContext
+        );
     }
 
     @Override

@@ -28,7 +28,8 @@ public class RefreshTokenCommandHandler implements CommandHandler<RefreshTokenCo
                 null,
                 null,
                 Set.of(),
-                "ACTIVE"
+                "ACTIVE",
+                !tokenPair.contextSelected()
         );
     }
 

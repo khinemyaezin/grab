@@ -15,13 +15,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -41,7 +35,7 @@ public class AccessContextController {
 
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<AccessContextResponse>>> listContexts(
-            @RequestParam @NotBlank String platformCode,
+            @RequestHeader(value = "X-Platform") @NotBlank String platformCode,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
         List<EntityModel<AccessContextResponse>> contexts = queryService

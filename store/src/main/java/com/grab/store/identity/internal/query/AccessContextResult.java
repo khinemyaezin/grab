@@ -8,6 +8,12 @@ public record AccessContextResult(
         Set<String> roleCodes,
         String scopeKey,
         String scopeId,
-        String expiresAt
+        String expiresAt,
+        DisplayContext display
 ) {
+    public record DisplayContext(
+            String title,
+            String status
+    ) {
+    }
 }

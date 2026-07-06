@@ -77,7 +77,8 @@ public class SwitchAccessContextCommandHandler implements CommandHandler<SwitchA
                 actor.platformUserId(),
                 actor.email(),
                 actor.roles(),
-                user.getStatus().name()
+                user.getStatus().name(),
+                false
         );
     }
 

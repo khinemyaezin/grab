@@ -34,7 +34,8 @@ class AuthCookieHelperTest {
                 "user-1",
                 "test@test.com",
                 Set.of("CUSTOMER"),
-                "ACTIVE"
+                "ACTIVE",
+                false
         );
 
         HttpHeaders headers = authCookieHelper.createTokenCookies("access-token-123", "refresh-token-456", 3600000L);

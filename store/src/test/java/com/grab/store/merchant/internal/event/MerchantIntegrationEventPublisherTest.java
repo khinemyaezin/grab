@@ -19,9 +19,10 @@ class MerchantIntegrationEventPublisherTest {
         Instant occurredAt = Instant.parse("2026-07-02T00:00:00Z");
 
         publisher.handleMerchantApproved(new MerchantApprovedEvent(
-                "event-1",
                 "merchant-1",
+                "Merchant-1",
                 "applicant-1",
+
                 "ACTIVE",
                 "reviewer-1",
                 2,
@@ -29,9 +30,10 @@ class MerchantIntegrationEventPublisherTest {
         ));
 
         assertThat(published.get()).isEqualTo(new MerchantApprovedIntegrationEvent(
-                "event-1",
                 "merchant-1",
                 "applicant-1",
+                "Merchant-1",
+                "ACTIVE",
                 occurredAt,
                 1
         ));
