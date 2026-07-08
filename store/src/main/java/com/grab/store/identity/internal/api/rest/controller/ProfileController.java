@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/identity/profile")
+@RequestMapping("/api/v1/identity/session")
 @RequiredArgsConstructor
 public class ProfileController {
 
@@ -21,10 +21,10 @@ public class ProfileController {
     private final CurrentUserProfileModelAssembler profileModelAssembler;
 
     @GetMapping
-    public ResponseEntity<EntityModel<CurrentUserProfileResponse>> profile(
+    public ResponseEntity<EntityModel<CurrentUserProfileResponse>> getProfile(
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        CurrentUserProfileResponse response = queryService.getProfile(principal.getPlatformUserId());
+        CurrentUserProfileResponse response = queryService.getProfile(principal.getPlatformUserId(), principal);
         return ResponseEntity.ok(profileModelAssembler.toModel(response));
     }
 }

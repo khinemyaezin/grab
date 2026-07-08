@@ -6,58 +6,57 @@ import com.grab.store.identity.internal.exception.IdentityServiceError;
 import com.grab.store.identity.internal.exception.IdentityServiceException;
 import com.grab.store.identity.internal.query.GetUserProfileQuery;
 import com.grab.store.identity.internal.query.GetUserProfileResult;
-import com.identity.domain.aggregate.AccessAssignment;
-import com.identity.domain.aggregate.User;
-import com.identity.domain.repository.AccessAssignmentRepository;
-import com.identity.domain.repository.UserRepository;
+import com.identity.infrastructure.repository.jpa.UserQueryRepository;
+import com.identity.infrastructure.view.UserAssignmentView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class GetUserProfileQueryHandler implements QueryHandler<GetUserProfileQuery, GetUserProfileResult> {
 
-    private final UserRepository userRepository;
-    private final AccessAssignmentRepository accessAssignmentRepository;
+    private final UserQueryRepository repository;
 
     @Override
     @IdentityReadTransactional
     public GetUserProfileResult handle(GetUserProfileQuery query) {
-        User user = userRepository.findById(query.userId())
-                .orElseThrow(() -> new IdentityServiceException(
-                        new IdentityServiceError.UserNotFound(query.userId().getValue()),
-                        "User not found"
-                ));
+        List<UserAssignmentView> userAssignmentViews = repository.queryUserAndByUserId(query.userId().getValue());
+        
+        if (userAssignmentViews.isEmpty()) {
+            throw new IdentityServiceException(
+                    new IdentityServiceError.UserNotFound(query.userId().getValue()),
+                    "User not found for userId: " + query.userId().getValue()
+            );
+        }
 
-        List<GetUserProfileResult.AccessContextInfo> contexts = accessAssignmentRepository.findByUser(user.getId())
-                .stream()
-                .map(this::toContextInfo)
-                .toList();
+        UserAssignmentView first = userAssignmentViews.getFirst();
+
+        List<GetUserProfileResult.AccessContextInfo> accessContexts = userAssignmentViews.stream()
+                .filter(view -> view.assignmentId() != null)
+                .map(view -> new GetUserProfileResult.AccessContextInfo(
+                        view.assignmentId(),
+                        view.platformCode(),
+                        view.roleCode(),
+                        view.scopeKey(),
+                        view.scopeId(),
+                        view.assignmentStatus()
+                ))
+                .collect(Collectors.toList());
 
         return new GetUserProfileResult(
-                user.getId().getValue(),
-                user.getEmail().value(),
-                user.getStatus().name(),
-                user.getCreatedAt().toString(),
-                contexts
+                first.userId(),
+                first.email(),
+                first.userStatus(),
+                first.createdAt(),
+                accessContexts
         );
     }
 
     @Override
     public Class<GetUserProfileQuery> getQueryType() {
         return GetUserProfileQuery.class;
-    }
-
-    private GetUserProfileResult.AccessContextInfo toContextInfo(AccessAssignment assignment) {
-        return new GetUserProfileResult.AccessContextInfo(
-                assignment.getId().getValue(),
-                assignment.getPlatformCode(),
-                assignment.getRoleCode(),
-                assignment.getScope().key().value(),
-                assignment.getScope().scopeId(),
-                assignment.getStatus().name()
-        );
     }
 }

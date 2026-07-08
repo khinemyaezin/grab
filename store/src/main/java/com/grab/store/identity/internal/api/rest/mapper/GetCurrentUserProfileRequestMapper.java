@@ -1,6 +1,7 @@
 package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
+import com.grab.framework.security.AccessContext;
 import com.grab.store.identity.internal.api.rest.dto.response.CurrentUserProfileResponse;
 import com.grab.store.identity.internal.query.GetUserProfileQuery;
 import com.grab.store.identity.internal.query.GetUserProfileResult;
@@ -10,5 +11,5 @@ import org.mapstruct.Mapper;
 public abstract class GetCurrentUserProfileRequestMapper {
     public abstract GetUserProfileQuery toQuery(String userId);
 
-    public abstract CurrentUserProfileResponse toResponse(GetUserProfileResult result);
+    public abstract CurrentUserProfileResponse toResponse(GetUserProfileResult result, AccessContext currentAccessContext);
 }

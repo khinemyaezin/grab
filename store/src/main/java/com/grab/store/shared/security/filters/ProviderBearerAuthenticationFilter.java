@@ -29,7 +29,7 @@ public class ProviderBearerAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         String token = null;
         String header = request.getHeader("Authorization");
-        
+
         if (header != null) {
             if (!header.startsWith("Bearer ") || header.length() <= 7) {
                 entryPoint.commence(request, response, new IdentityAuthenticationException(new IdentitySecurityError.MalformedToken(), "Malformed Bearer token"));
@@ -59,6 +59,11 @@ public class ProviderBearerAuthenticationFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } catch (IdentityAuthenticationException ex) {
             SecurityContextHolder.clearContext();
+            authCookieHelper.clearTokenCookies()
+                    .forEach((headerName, headerValues) -> {
+                        headerValues.forEach(value ->
+                                response.addHeader(headerName, value));
+                    });
             entryPoint.commence(request, response, ex);
         }
     }

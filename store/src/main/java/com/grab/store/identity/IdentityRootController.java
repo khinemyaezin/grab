@@ -1,16 +1,12 @@
 package com.grab.store.identity;
 
 import com.grab.store.identity.internal.api.rest.controller.*;
-import com.grab.store.shared.security.SecurityPrincipal;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Objects;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -32,7 +28,7 @@ public class IdentityRootController {
                 .withRel("list-access-contexts"));
 
         model.add(linkTo(methodOn(ProfileController.class)
-                .profile(null))
+                .getProfile(null))
                 .withRel("get-profile"));
 
         model.add(linkTo(methodOn(AuthController.class)

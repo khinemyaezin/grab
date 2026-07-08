@@ -1,6 +1,5 @@
 package com.grab.store.identity.internal.api.rest.assembler;
 
-import com.grab.store.identity.IdentityRootController;
 import com.grab.store.identity.internal.api.rest.controller.AccessContextController;
 import com.grab.store.identity.internal.api.rest.controller.AuthController;
 import com.grab.store.identity.internal.api.rest.controller.ProfileController;
@@ -24,7 +23,7 @@ public class AuthModelAssembler implements RepresentationModelAssembler<AuthResp
 
         if (response.accessToken() != null && !response.accessToken().isBlank()) {
             entity.add(linkTo(methodOn(ProfileController.class)
-                    .profile(null))
+                    .getProfile(null))
                     .withRel("get-profile"));
         }
         if (response.contextSelectionRequired()) {

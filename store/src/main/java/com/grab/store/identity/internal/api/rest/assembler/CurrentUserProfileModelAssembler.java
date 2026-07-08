@@ -17,7 +17,7 @@ public class CurrentUserProfileModelAssembler
     public EntityModel<CurrentUserProfileResponse> toModel(CurrentUserProfileResponse response) {
         return EntityModel.of(
                 response,
-                linkTo(methodOn(ProfileController.class).profile(null)).withSelfRel()
+                linkTo(methodOn(ProfileController.class).getProfile(null)).withSelfRel()
         );
     }
 }
