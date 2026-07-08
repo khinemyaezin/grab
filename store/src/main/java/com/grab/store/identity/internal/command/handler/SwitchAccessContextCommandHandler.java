@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.Set;
 
 @Component
@@ -77,7 +76,8 @@ public class SwitchAccessContextCommandHandler implements CommandHandler<SwitchA
                 actor.platformUserId(),
                 actor.email(),
                 actor.roles(),
-                user.getStatus().name()
+                user.getStatus().name(),
+                false
         );
     }
 

@@ -65,7 +65,8 @@ class AuthControllerTest {
                 "user-1",
                 "test@example.com",
                 Set.of("CUSTOMER"),
-                "ACTIVE"
+                "ACTIVE",
+                false
         );
 
         when(authModelAssembler.toModel(any(AuthResponse.class)))

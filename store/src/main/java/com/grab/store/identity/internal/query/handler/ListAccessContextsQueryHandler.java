@@ -6,6 +6,7 @@ import com.grab.store.identity.internal.query.AccessContextResult;
 import com.grab.store.identity.internal.query.ListAccessContextsQuery;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.repository.AccessAssignmentRepository;
+import com.identity.infrastructure.repository.jpa.MerchantViewJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -15,13 +16,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import com.identity.infrastructure.view.MerchantView;
 
 @Component
 @RequiredArgsConstructor
 public class ListAccessContextsQueryHandler
         implements QueryHandler<ListAccessContextsQuery, List<AccessContextResult>> {
     private final AccessAssignmentRepository assignments;
+    private final MerchantViewJpaRepository merchantViewRepository;
 
     @Override
     @IdentityReadTransactional
@@ -38,12 +43,22 @@ public class ListAccessContextsQueryHandler
                         Collectors.toList()
                 ));
 
+        Set<String> scopeIds = contexts.keySet().stream()
+                .map(ContextKey::scopeId)
+                .collect(Collectors.toSet());
+
+        Map<String, MerchantView> viewsByScopeId = merchantViewRepository.findAllByScopeIdIn(scopeIds).stream()
+                .collect(Collectors.toMap(
+                        MerchantView::getScopeId,
+                        Function.identity()));
+
         return contexts.values().stream()
-                .map(this::toResult)
+                .map(contextAssignments ->
+                        toResult(contextAssignments, viewsByScopeId))
                 .toList();
     }
 
-    private AccessContextResult toResult(List<AccessAssignment> contextAssignments) {
+    private AccessContextResult toResult(List<AccessAssignment> contextAssignments, Map<String, MerchantView> viewsByScopeId) {
         AccessAssignment anchor = contextAssignments.getFirst();
         Set<String> roleCodes = contextAssignments.stream()
                 .map(AccessAssignment::getRoleCode)
@@ -56,13 +71,20 @@ public class ListAccessContextsQueryHandler
                 .map(Instant::toString)
                 .orElse(null);
 
+        MerchantView view = viewsByScopeId.get(anchor.getScope().scopeId());
+        AccessContextResult.DisplayContext displayContext = view == null ? null : new AccessContextResult.DisplayContext(
+                view.getName(),
+                view.getStatus()
+        );
+
         return new AccessContextResult(
                 anchor.getId().getValue(),
                 anchor.getPlatformCode(),
                 Set.copyOf(roleCodes),
                 anchor.getScope().key().value(),
                 anchor.getScope().scopeId(),
-                expiresAt
+                expiresAt,
+                displayContext
         );
     }
 

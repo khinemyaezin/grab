@@ -3,7 +3,8 @@ package com.grab.store.shared.security.config;
 import com.grab.framework.security.AccessTokenAuthenticator;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
-import com.grab.store.shared.security.ProviderBearerAuthenticationFilter;
+import com.grab.store.shared.security.filters.ContextRequiredFilter;
+import com.grab.store.shared.security.filters.ProviderBearerAuthenticationFilter;
 import com.grab.store.shared.security.util.AuthCookieHelper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,6 +62,8 @@ public class ApiSecurityConfig {
                         entryPoint,
                         authCookieHelper
                 );
+        ContextRequiredFilter contextRequiredFilter = new ContextRequiredFilter();
+
         return http.csrf(AbstractHttpConfigurer::disable)
                 .cors(c -> c.configurationSource(corsConfigurationSource(allowedOrigins)))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -76,6 +79,7 @@ public class ApiSecurityConfig {
                     auth.anyRequest().authenticated();
                 })
                 .addFilterBefore(bearerFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(contextRequiredFilter, ProviderBearerAuthenticationFilter.class)
                 .build();
     }
 

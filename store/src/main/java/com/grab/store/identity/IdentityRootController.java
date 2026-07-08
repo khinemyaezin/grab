@@ -23,29 +23,13 @@ public class IdentityRootController {
                 .root())
                 .withSelfRel());
 
-        model.add(linkTo(methodOn(ProfileController.class)
-                .profile(null))
-                .withRel("get-profile"));
-
         model.add(linkTo(methodOn(AccessContextController.class)
                 .listContexts(null, null))
                 .withRel("list-access-contexts"));
 
-        model.add(linkTo(methodOn(AccessInvitationController.class)
-                .create(null, null))
-                .withRel("create-access-invitation"));
-
-        model.add(linkTo(methodOn(UserAdminController.class)
-                .listUsers(null, null))
-                .withRel("list-users"));
-
-        model.add(linkTo(methodOn(UserAdminController.class)
-                .getUser(null))
-                .withRel("get-user"));
-
-        model.add(linkTo(methodOn(RoleAdminController.class).
-                listRoles(null, null))
-                .withRel("list-roles"));
+        model.add(linkTo(methodOn(ProfileController.class)
+                .getProfile(null))
+                .withRel("get-profile"));
 
         model.add(linkTo(methodOn(AuthController.class)
                 .login(null, null))

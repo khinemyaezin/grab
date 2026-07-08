@@ -59,7 +59,13 @@ class MerchantAccountSubmitStatusEventListenerTest {
         when(approvalPolicy.canAutoApprove(merchant)).thenReturn(true);
 
         MerchantApplicationSubmittedEvent event = new MerchantApplicationSubmittedEvent(
-                "event-1", merchantIdValue, applicantIdValue, "PENDING_REVIEW", applicantIdValue, 1L, Instant.now()
+                merchantIdValue,
+                "",
+                applicantIdValue,
+                "PENDING_REVIEW",
+                applicantIdValue,
+                1L,
+                Instant.now()
         );
 
         // Act
