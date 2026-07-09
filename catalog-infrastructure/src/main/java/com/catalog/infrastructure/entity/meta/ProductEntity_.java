@@ -14,6 +14,7 @@ public class ProductEntity_ {
     public static volatile SingularAttribute<ProductEntity, Long> id;
     public static volatile SingularAttribute<ProductEntity, String> uuid;
     public static volatile SingularAttribute<ProductEntity, String> name;
+    public static volatile SingularAttribute<ProductEntity, String> merchantId;
     public static volatile SingularAttribute<ProductEntity, String> categoryId;
     public static volatile SingularAttribute<ProductEntity, String> listingCondition;
     public static volatile SetAttribute<ProductEntity, MediaEntity> medias;
@@ -26,6 +27,7 @@ public class ProductEntity_ {
     public static final String ID = "id";
     public static final String UUID = "uuid";
     public static final String NAME = "name";
+    public static final String MERCHANT_ID = "merchantId";
     public static final String CATEGORY_ENTITY = "categoryId";
     public static final String LISTING_CONDITION = "listingCondition";
     public static final String MEDIA_ENTITIES = "medias";

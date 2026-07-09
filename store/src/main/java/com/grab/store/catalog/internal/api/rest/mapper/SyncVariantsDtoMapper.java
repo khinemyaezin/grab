@@ -10,7 +10,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class SyncVariantsDtoMapper {
 
-    public abstract SyncVariantsCommand toCommand(String productId, SyncVariantsRequest request);
+    public abstract SyncVariantsCommand toCommand(String merchantId, String productId, SyncVariantsRequest request);
 
     public abstract SyncVariantsResponse toResponse(SyncVariantsResult result);
 }

@@ -68,6 +68,14 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
+    public Optional<Product> find(Id productId, Id merchantId) {
+        log.debug("Loading product by id={} for merchantId={}", productId.getValue(), merchantId.getValue());
+        return executor.query("Product", () -> productJpaRepo
+                .findByUuidAndMerchantId(productId.getValue(), merchantId.getValue())
+                .map(productJpaAssembler::toFullDomainGraph));
+    }
+
+    @Override
     public Optional<Product> findBySlug(String slug) {
         log.debug("Loading product by slug={}", slug);
         return executor.query("Product", () -> productJpaRepo.findBySlug(slug)
@@ -75,15 +83,15 @@ public class ProductRepositoryImpl implements ProductRepository {
     }
 
     @Override
-    public boolean isSlugTaken(String slug, String excludeProductUuid) {
-        log.debug("Checking product slug availability for slug={}, excludeProductUuid={}", slug, excludeProductUuid);
-        return executor.query("Product", () -> productJpaRepo.isSlugTaken(slug, excludeProductUuid));
+    public boolean isSlugTaken(Id merchantId, String slug, String excludeProductUuid) {
+        log.debug("Checking product slug availability for merchantId={}, slug={}, excludeProductUuid={}", merchantId.getValue(), slug, excludeProductUuid);
+        return executor.query("Product", () -> productJpaRepo.isSlugTaken(merchantId.getValue(), slug, excludeProductUuid));
     }
 
     @Override
-    public boolean isSkuTaken(String sku, String excludeVariantUuid) {
-        log.debug("Checking product sku availability for sku={}, excludeVariantUuid={}", sku, excludeVariantUuid);
-        return executor.query("Product", () -> productJpaRepo.isSkuTaken(sku, excludeVariantUuid));
+    public boolean isSkuTaken(Id merchantId, String sku, String excludeVariantUuid) {
+        log.debug("Checking product sku availability for merchantId={}, sku={}, excludeVariantUuid={}", merchantId.getValue(), sku, excludeVariantUuid);
+        return executor.query("Product", () -> productJpaRepo.isSkuTaken(merchantId.getValue(), sku, excludeVariantUuid));
     }
 
     @Override

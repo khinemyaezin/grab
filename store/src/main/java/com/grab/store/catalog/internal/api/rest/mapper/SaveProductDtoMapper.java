@@ -8,7 +8,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class SaveProductDtoMapper {
 
-    public abstract CreateProductSetCommand toCommand(SaveProductRequest request);
+    public abstract CreateProductSetCommand toCommand(SaveProductRequest request, String merchantId);
 
     protected abstract CreateProductSetCommand.Product toCommandProduct(SaveProductRequest.Product product);
 

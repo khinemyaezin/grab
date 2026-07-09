@@ -53,15 +53,15 @@ class UpdateVariantCommandHandlerTest {
         Id categoryId = new CommonId(CATEGORY_ID);
         Id variantId = new CommonId(VARIANT_ID);
 
-        Product product = Product.create(productId, "Product", categoryId);
+        Product product = Product.create(productId, productId, "Product", categoryId);
         ProductVariation variation = new ProductVariation(
                 new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "OLD-SKU", List.of(variation));
         product.addVariant(variant);
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, variantId, "NEW-SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU");
         UpdateVariantResult result = handler.handle(command);
 
         verify(productRepository).save(productCaptor.capture());
@@ -80,9 +80,9 @@ class UpdateVariantCommandHandlerTest {
     @Test
     void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
-        when(productRepository.find(productId)).thenReturn(Optional.empty());
+        when(productRepository.find(productId, productId)).thenReturn(Optional.empty());
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, new CommonId(VARIANT_ID), "SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, new CommonId(VARIANT_ID), "SKU");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -96,10 +96,10 @@ class UpdateVariantCommandHandlerTest {
     @Test
     void handle_variantNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, new CommonId(VARIANT_ID), "SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, new CommonId(VARIANT_ID), "SKU");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -115,16 +115,16 @@ class UpdateVariantCommandHandlerTest {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
         ProductVariation variation = new ProductVariation(
                 new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
         product.addVariant(variant);
         variant.markAsDeleted();
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, variantId, "NEW-SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -140,16 +140,16 @@ class UpdateVariantCommandHandlerTest {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
         ProductVariation variation = new ProductVariation(
                 new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
         product.addVariant(variant);
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
-        when(productRepository.isSkuTaken("NEW-SKU", VARIANT_ID)).thenReturn(true);
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+        when(productRepository.isSkuTaken(productId, "NEW-SKU", VARIANT_ID)).thenReturn(true);
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, variantId, "NEW-SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)

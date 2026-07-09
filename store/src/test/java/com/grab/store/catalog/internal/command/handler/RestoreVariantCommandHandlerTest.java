@@ -53,16 +53,16 @@ class RestoreVariantCommandHandlerTest {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
         ProductVariation variation = new ProductVariation(
                 new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
         product.addVariant(variant);
         variant.markAsDeleted();
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        RestoreVariantCommand command = new RestoreVariantCommand(productId, variantId);
+        RestoreVariantCommand command = new RestoreVariantCommand(productId, productId, variantId);
         RestoreVariantResult result = handler.handle(command);
 
         verify(productRepository).save(productCaptor.capture());
@@ -82,9 +82,9 @@ class RestoreVariantCommandHandlerTest {
     void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
-        when(productRepository.find(productId)).thenReturn(Optional.empty());
+        when(productRepository.find(productId, productId)).thenReturn(Optional.empty());
 
-        RestoreVariantCommand command = new RestoreVariantCommand(productId, variantId);
+        RestoreVariantCommand command = new RestoreVariantCommand(productId, productId, variantId);
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -100,15 +100,15 @@ class RestoreVariantCommandHandlerTest {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
 
-        Product product = Product.create(productId, "Product", new CommonId(CATEGORY_ID));
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
         ProductVariation variation = new ProductVariation(
                 new CommonId("opt-red"), new CommonId("type-color"));
         ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
         product.addVariant(variant);
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        RestoreVariantCommand command = new RestoreVariantCommand(productId, variantId);
+        RestoreVariantCommand command = new RestoreVariantCommand(productId, productId, variantId);
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)

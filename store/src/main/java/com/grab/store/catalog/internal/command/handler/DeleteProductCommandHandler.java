@@ -27,7 +27,7 @@ public class DeleteProductCommandHandler implements CommandHandler<DeleteProduct
     public DeleteProductResult handle(DeleteProductCommand command) {
         log.debug("Handling DeleteProductCommand for product: {}", command.productId());
 
-        Optional<Product> product = productRepository.find(command.productId());
+        Optional<Product> product = productRepository.find(command.productId(), command.merchantId());
         if (product.isEmpty()) {
             log.warn("Product not found for deletion: {}", command.productId());
             return new DeleteProductResult(false);

@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ProductSummaryDtoMapper {
 
-  public abstract ProductSummaryQuery toQuery(ProductSummaryRequest request, Pageable pageable);
+  public abstract ProductSummaryQuery toQuery(String merchantId, ProductSummaryRequest request, Pageable pageable);
 
   public abstract ProductSummaryResponse toResponse(ProductSummaryResult result );
 }

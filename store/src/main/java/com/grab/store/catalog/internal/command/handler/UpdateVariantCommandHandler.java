@@ -5,6 +5,7 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.command.UpdateVariantCommand;
@@ -30,7 +31,7 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
     public UpdateVariantResult handle(UpdateVariantCommand command) {
         log.debug("Handling UpdateVariantCommand for productId={} sku={}", command.productId(), command.variantId());
 
-        Optional<Product> hasProduct = productRepository.find(command.productId());
+        Optional<Product> hasProduct = productRepository.find(command.productId(), command.merchantId());
         if (hasProduct.isEmpty()) {
             throw new CatalogServiceException(
                     new CatalogServiceError.ProductNotFound(command.productId().getValue())
@@ -50,7 +51,7 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
             );
         }
 
-        validateSkuAvailability(command.sku(), command.variantId().getValue());
+        validateSkuAvailability(command.merchantId(), command.sku(), command.variantId().getValue());
 
         ProductVariant updated = new ProductVariant(
                 existing.getId(),
@@ -82,8 +83,8 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
         return UpdateVariantCommand.class;
     }
 
-    private void validateSkuAvailability(String sku, String excludeVariantUuid) {
-        if (productRepository.isSkuTaken(sku, excludeVariantUuid)) {
+    private void validateSkuAvailability(Id merchantId, String sku, String excludeVariantUuid) {
+        if (productRepository.isSkuTaken(merchantId, sku, excludeVariantUuid)) {
             throw new CatalogServiceException(
                     new CatalogServiceError.SkuAlreadyExists(sku)
             );

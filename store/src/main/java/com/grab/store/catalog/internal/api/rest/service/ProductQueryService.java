@@ -25,11 +25,13 @@ public class ProductQueryService {
     private final VariationMatrixQueryMapper variationMatrixQueryMapper;
     private final ProductSummaryDtoMapper productSummaryDtoMapper;
     private final ProductAuditDtoMapper productAuditDtoMapper;
+    private final AuthenticatedCatalogMerchantResolver merchantResolver;
 
     public GetProductResponse getProduct(String productId) {
         log.info("Getting product: {}", productId);
 
-        GetProductQuery query = new GetProductQuery(productId);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        GetProductQuery query = new GetProductQuery(merchantId, productId);
         GetProductResult result = queryBus.dispatch(query);
         return getProductDtoMapper.toResponse(result);
     }
@@ -44,7 +46,8 @@ public class ProductQueryService {
 
     public Page<ProductSummaryResponse> getProductSummary(ProductSummaryRequest request, Pageable pageable) {
         log.info("Searching products");
-        ProductSummaryQuery query = productSummaryDtoMapper.toQuery(request, pageable);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        ProductSummaryQuery query = productSummaryDtoMapper.toQuery(merchantId, request, pageable);
         Page<ProductSummaryResult> result = queryBus.dispatch(query);
         return result.map(productSummaryDtoMapper::toResponse);
     }
@@ -59,7 +62,9 @@ public class ProductQueryService {
     }
 
     public ProductAuditResponse getProductAudit(String productId) {
-        GetProductAuditResult result = queryBus.dispatch(new GetProductAuditQuery(productId));
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        GetProductAuditQuery query = new GetProductAuditQuery(merchantId, productId);
+        GetProductAuditResult result = queryBus.dispatch(query);
         return productAuditDtoMapper.toResponse(result);
     }
 }

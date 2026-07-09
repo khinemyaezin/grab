@@ -13,6 +13,7 @@ public abstract class ProductEntityMapper {
     @Mapping(ignore = true, target = ProductEntity_.ID)
     @Mapping(source = "id", target = ProductEntity_.UUID)
     @Mapping(source = "name", target = ProductEntity_.NAME)
+    @Mapping(source = "merchantId", target = ProductEntity_.MERCHANT_ID)
     @Mapping(source = "categoryId", target = ProductEntity_.CATEGORY_ENTITY)
     @Mapping(source = "listingCondition", target = ProductEntity_.LISTING_CONDITION)
     @Mapping(source = "slug", target = ProductEntity_.SLUG)

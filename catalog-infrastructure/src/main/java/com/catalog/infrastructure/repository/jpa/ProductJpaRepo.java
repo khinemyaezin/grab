@@ -13,21 +13,24 @@ import java.util.Optional;
 public interface ProductJpaRepo extends EntityRepository<ProductEntity, Long>, JpaRepository<ProductEntity, Long>, JpaSpecificationExecutor<ProductEntity> {
     Optional<ProductEntity> findByUuid(@Param("uuid") String uuid);
 
+    Optional<ProductEntity> findByUuidAndMerchantId(@Param("uuid") String uuid, @Param("merchantId") String merchantId);
+
     Optional<ProductEntity> findBySlug(@Param("slug") String slug);
 
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProductEntity p WHERE p.uuid = :uuid")
     boolean existsById(@Param("uuid") String uuid);
 
-    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProductEntity p WHERE p.slug = :slug AND (:excludeUuid IS NULL OR p.uuid <> :excludeUuid)")
-    boolean isSlugTaken(@Param("slug") String slug, @Param("excludeUuid") String excludeUuid);
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM ProductEntity p WHERE p.merchantId = :merchantId AND p.slug = :slug AND (:excludeUuid IS NULL OR p.uuid <> :excludeUuid)")
+    boolean isSlugTaken(@Param("merchantId") String merchantId, @Param("slug") String slug, @Param("excludeUuid") String excludeUuid);
 
     @Query("""
             SELECT CASE WHEN COUNT(v) > 0 THEN true ELSE false END
             FROM ProductVariantEntity v
-            WHERE LOWER(v.sku) = LOWER(:sku)
+            WHERE v.product.merchantId = :merchantId
+              AND LOWER(v.sku) = LOWER(:sku)
               AND (:excludeVariantUuid IS NULL OR v.uuid <> :excludeVariantUuid)
             """)
-    boolean isSkuTaken(@Param("sku") String sku, @Param("excludeVariantUuid") String excludeVariantUuid);
+    boolean isSkuTaken(@Param("merchantId") String merchantId, @Param("sku") String sku, @Param("excludeVariantUuid") String excludeVariantUuid);
 
     @Query("""
             SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END

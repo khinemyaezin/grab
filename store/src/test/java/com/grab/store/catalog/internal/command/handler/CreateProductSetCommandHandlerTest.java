@@ -10,7 +10,6 @@ import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
-import com.catalog.domain.valueobject.VariantCombination;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.id.Id;
@@ -84,6 +83,7 @@ class CreateProductSetCommandHandlerTest {
         ProductVariation redVariation = new ProductVariation(redOptionId, colorTypeId);
 
         CreateProductSetCommand command = new CreateProductSetCommand(
+                categoryId,
                 new CreateProductSetCommand.Product(
                         "Product with Variants",
                         categoryId,
@@ -101,7 +101,7 @@ class CreateProductSetCommandHandlerTest {
         );
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
-        when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
+        when(uniqueSlugResolver.resolve(categoryId, null, "Product with Variants", null)).thenReturn("product-with-variants");
         when(idGenerator.generateId()).thenReturn(productId, variantId);
         when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
         when(matrixCombinationService.generateMatrixCombination(anyList())).thenReturn(List.of(
@@ -128,6 +128,7 @@ class CreateProductSetCommandHandlerTest {
     void handle_categoryNotFoundThrows() {
         Id categoryId = new CommonId(CATEGORY_ID);
         CreateProductSetCommand command = new CreateProductSetCommand(
+                categoryId,
                 new CreateProductSetCommand.Product(
                         "Product",
                         categoryId,
@@ -153,6 +154,7 @@ class CreateProductSetCommandHandlerTest {
         Id generatedVariantId = new CommonId(VARIANT_ID);
 
         CreateProductSetCommand command = new CreateProductSetCommand(
+                categoryId,
                 new CreateProductSetCommand.Product(
                         "Simple Product",
                         categoryId,
@@ -164,7 +166,7 @@ class CreateProductSetCommandHandlerTest {
         );
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
-        when(uniqueSlugResolver.resolve(null, "Simple Product", null)).thenReturn("simple-product");
+        when(uniqueSlugResolver.resolve(categoryId, null, "Simple Product", null)).thenReturn("simple-product");
         when(idGenerator.generateId()).thenReturn(productId, generatedVariantId);
         when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
         when(skuGenerator.generate(any())).thenReturn("SMP");
@@ -195,6 +197,7 @@ class CreateProductSetCommandHandlerTest {
         Id redOptionId = new CommonId(RED_OPTION_ID);
 
         CreateProductSetCommand command = new CreateProductSetCommand(
+                categoryId,
                 new CreateProductSetCommand.Product(
                         "Product with Variants",
                         categoryId,
@@ -218,7 +221,7 @@ class CreateProductSetCommandHandlerTest {
         );
         when(matrixKeyGenerator.generateKey(anyList())).thenReturn(RED_MATRIX_KEY);
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
-        when(uniqueSlugResolver.resolve(null, "Product with Variants", null)).thenReturn("product-with-variants");
+        when(uniqueSlugResolver.resolve(categoryId, null, "Product with Variants", null)).thenReturn("product-with-variants");
         when(idGenerator.generateId()).thenReturn(productId);
         when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
         when(matrixCombinationService.generateMatrixCombination(anyList())).thenReturn(List.of(

@@ -4,7 +4,6 @@ import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.catalog.infrastructure.entity.meta.ProductVariantEntity_;
-import com.catalog.infrastructure.entity.meta.ProductVariationEntity_;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.springframework.data.domain.Page;
@@ -90,6 +89,11 @@ public class ProductSummaryJpqlQuery {
     ) {
 
         List<String> conditions = new ArrayList<>();
+
+        if (StringUtils.hasLength(criteria.merchantId())) {
+            conditions.add("p." + ProductEntity_.MERCHANT_ID + " = :merchantId");
+            params.put("merchantId", criteria.merchantId());
+        }
 
         if (StringUtils.hasLength(criteria.productName())) {
             conditions.add("LOWER(p." + ProductEntity_.NAME + ") LIKE :productName");

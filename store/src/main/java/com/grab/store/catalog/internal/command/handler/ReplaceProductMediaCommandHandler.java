@@ -25,7 +25,7 @@ public class ReplaceProductMediaCommandHandler implements CommandHandler<Replace
     @Override
     @CatalogTransactional
     public ProductMediaResult handle(ReplaceProductMediaCommand command) {
-        Product product = loadProduct(command.productId());
+        Product product = loadProduct(command.productId(), command.merchantId());
         List<ProductMedia> medias = command.medias() == null
                 ? List.of()
                 : command.medias().stream()
@@ -46,8 +46,8 @@ public class ReplaceProductMediaCommandHandler implements CommandHandler<Replace
         return ReplaceProductMediaCommand.class;
     }
 
-    private Product loadProduct(com.grab.framework.id.Id productId) {
-        return productRepository.find(productId).orElseThrow(() ->
+    private Product loadProduct(com.grab.framework.id.Id productId, com.grab.framework.id.Id merchantId) {
+        return productRepository.find(productId, merchantId).orElseThrow(() ->
                 new CatalogServiceException(new CatalogServiceError.ProductNotFound(productId.getValue()))
         );
     }

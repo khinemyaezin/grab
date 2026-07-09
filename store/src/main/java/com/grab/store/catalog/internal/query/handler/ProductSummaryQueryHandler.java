@@ -38,10 +38,12 @@ public class ProductSummaryQueryHandler implements QueryHandler<ProductSummaryQu
         log.debug("Handling ProductSummaryQuery");
 
         ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .merchantId(query.merchantId())
                 .productName(query.productName())
                 .sku(query.sku())
                 .variantStatus(query.variantStatus())
                 .categoryId(query.categoryId())
+                .productStatus(query.productStatus())
                 .build();
 
         Page<ProductSummary> page = productQueryRepository.search(criteria, query.pageable());

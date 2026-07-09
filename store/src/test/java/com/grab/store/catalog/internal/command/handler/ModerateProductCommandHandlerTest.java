@@ -10,7 +10,6 @@ import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ListingCondition;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariation;
-import com.catalog.domain.valueobject.SellerType;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.ModerateProductCommand;
@@ -128,6 +127,7 @@ class ModerateProductCommandHandlerTest {
 
     private Product draftProduct(Id productId, Id categoryId) {
         return Product.create(
+                productId,
                 productId,
                 "Product",
                 categoryId,

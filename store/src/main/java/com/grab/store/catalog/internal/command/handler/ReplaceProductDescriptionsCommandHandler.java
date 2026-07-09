@@ -25,7 +25,7 @@ public class ReplaceProductDescriptionsCommandHandler implements CommandHandler<
     @Override
     @CatalogTransactional
     public ProductDescriptionsResult handle(ReplaceProductDescriptionsCommand command) {
-        Product product = loadProduct(command.productId());
+        Product product = loadProduct(command.productId(), command.merchantId());
         List<Description> descriptions = command.descriptions() == null
                 ? List.of()
                 : command.descriptions().stream()
@@ -52,8 +52,8 @@ public class ReplaceProductDescriptionsCommandHandler implements CommandHandler<
         return ReplaceProductDescriptionsCommand.class;
     }
 
-    private Product loadProduct(com.grab.framework.id.Id productId) {
-        return productRepository.find(productId).orElseThrow(() ->
+    private Product loadProduct(com.grab.framework.id.Id productId, com.grab.framework.id.Id merchantId) {
+        return productRepository.find(productId, merchantId).orElseThrow(() ->
                 new CatalogServiceException(new CatalogServiceError.ProductNotFound(productId.getValue()))
         );
     }

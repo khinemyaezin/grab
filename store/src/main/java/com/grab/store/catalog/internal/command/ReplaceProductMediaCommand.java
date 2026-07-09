@@ -6,6 +6,7 @@ import com.grab.framework.id.Id;
 import java.util.List;
 
 public record ReplaceProductMediaCommand(
+        Id merchantId,
         Id productId,
         List<Media> medias
 ) implements Command<ProductMediaResult> {

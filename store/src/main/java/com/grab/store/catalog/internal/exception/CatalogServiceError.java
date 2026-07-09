@@ -29,8 +29,26 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.InvalidProductDescriptionPatch,
         CatalogServiceError.InvalidProductMediaPatch,
         CatalogServiceError.ProductAlreadyExisted,
+        CatalogServiceError.MerchantScopeRequired,
         CatalogServiceError.EmptyVariantOverrides,
         CatalogServiceError.InvalidEnumValue {
+
+    record MerchantScopeRequired(String scopeKey, String scopeId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.merchant_scope.required";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("scopeKey", scopeKey, "scopeId", scopeId);
+        }
+    }
 
     record ProductNotFound(String productId) implements CatalogServiceError {
         @Override

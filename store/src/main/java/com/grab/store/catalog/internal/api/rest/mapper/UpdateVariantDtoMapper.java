@@ -9,7 +9,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class UpdateVariantDtoMapper {
-    public abstract UpdateVariantCommand toCommand(String productId, String variantId, UpdateVariantRequest request);
+    public abstract UpdateVariantCommand toCommand(String merchantId, String productId, String variantId, UpdateVariantRequest request);
 
     public abstract UpdateVariantResponse toResponse(UpdateVariantResult result);
 }

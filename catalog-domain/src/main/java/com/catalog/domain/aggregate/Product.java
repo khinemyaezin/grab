@@ -44,6 +44,9 @@ public class Product extends AggregateRoot<Id> {
     private String name;
 
     @Getter
+    private final Id merchantId;
+
+    @Getter
     private Id categoryId;
 
     @Getter
@@ -55,8 +58,9 @@ public class Product extends AggregateRoot<Id> {
     @Getter
     private ListingCondition listingCondition;
 
-    private Product(Id id, String name, Id categoryId) {
+    private Product(Id id, Id merchantId, String name, Id categoryId) {
         super(id);
+        this.merchantId = Objects.requireNonNull(merchantId);
         this.name = Objects.requireNonNull(name);
         this.categoryId = Objects.requireNonNull(categoryId);
         this.status = ProductStatus.DRAFT;
@@ -65,6 +69,7 @@ public class Product extends AggregateRoot<Id> {
 
     public Product(
             Id id,
+            Id merchantId,
             String name,
             Id categoryId,
             ListingCondition listingCondition,
@@ -75,6 +80,7 @@ public class Product extends AggregateRoot<Id> {
             List<ProductVariant> variants
     ) {
         super(id);
+        this.merchantId = Objects.requireNonNull(merchantId);
         this.name = Objects.requireNonNull(name);
         this.categoryId = Objects.requireNonNull(categoryId);
         this.listingCondition = listingCondition;
@@ -91,12 +97,19 @@ public class Product extends AggregateRoot<Id> {
         }
     }
 
+    public static Product create(Id id, Id merchantId, String name, Id categoryId) {
+        return new Product(id, merchantId, name, categoryId);
+    }
+
+    /** @deprecated compatibility for pre-merchant callers; new code must supply the owner. */
+    @Deprecated
     public static Product create(Id id, String name, Id categoryId) {
-        return new Product(id, name, categoryId);
+        return create(id, id, name, categoryId);
     }
 
     public static Product create(
             Id id,
+            Id merchantId,
             String name,
             Id categoryId,
             ListingCondition condition,
@@ -104,7 +117,7 @@ public class Product extends AggregateRoot<Id> {
             List<Description> descriptions,
             List<ProductMedia> medias
     ) {
-        Product product = new Product(id, name, categoryId);
+        Product product = new Product(id, merchantId, name, categoryId);
         product.listingCondition = condition;
         if (slug != null && !slug.isBlank()) {
             product.slug = slug;
@@ -117,6 +130,21 @@ public class Product extends AggregateRoot<Id> {
         }
         return product;
     }
+
+    /** @deprecated compatibility for pre-merchant callers; new code must supply the owner. */
+    @Deprecated
+    public static Product create(
+            Id id,
+            String name,
+            Id categoryId,
+            ListingCondition condition,
+            String slug,
+            List<Description> descriptions,
+            List<ProductMedia> medias
+    ) {
+        return create(id, id, name, categoryId, condition, slug, descriptions, medias);
+    }
+
 
     public void changeCategory(Id categoryId) {
         if (Objects.equals(this.categoryId, categoryId)) {

@@ -10,7 +10,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class UpdateProductDtoMapper {
 
-    public abstract UpdateProductCommand toCommand(String productId, UpdateProductRequest request);
+    public abstract UpdateProductCommand toCommand(String merchantId, String productId, UpdateProductRequest request);
 
     public abstract UpdateProductResponse toResponse(UpdateProductResult result);
 }

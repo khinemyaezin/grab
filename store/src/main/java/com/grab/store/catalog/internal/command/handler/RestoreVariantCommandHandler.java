@@ -29,7 +29,7 @@ public class RestoreVariantCommandHandler implements CommandHandler<RestoreVaria
     public RestoreVariantResult handle(RestoreVariantCommand command) {
         log.debug("Handling RestoreVariantCommand for productId={}, sku={}", command.productId(), command.variantId());
 
-        Optional<Product> hasProduct = productRepository.find(command.productId());
+        Optional<Product> hasProduct = productRepository.find(command.productId(), command.merchantId());
         if (hasProduct.isEmpty()) {
             throw new CatalogServiceException(
                     new CatalogServiceError.ProductNotFound(command.productId().getValue())

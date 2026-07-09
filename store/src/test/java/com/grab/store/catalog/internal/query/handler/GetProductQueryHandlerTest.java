@@ -18,7 +18,6 @@ import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -59,7 +58,7 @@ class GetProductQueryHandlerTest {
     public void handle_withStandAloneId_shouldReturnStandAloneProduct() {
         Id productId = new CommonId();
         Id variantId = new CommonId();
-        GetProductQuery query = new GetProductQuery(productId.getValue());
+        GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
 
         when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
                 .thenReturn(Collections.emptyList());
@@ -68,8 +67,9 @@ class GetProductQueryHandlerTest {
                         new CommonId(invocationOnMock.getArgument(0)));
 
         List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
-        when(productRepository.find(productId)).thenReturn(Optional.of(
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
                 new Product(
+                        productId,
                         productId,
                         "",
                         new CommonId(),
@@ -101,7 +101,7 @@ class GetProductQueryHandlerTest {
     public void handle_withNoVariationPersisted_shouldReturnProduct() {
         Id productId = new CommonId();
         Id variantId = new CommonId();
-        GetProductQuery query = new GetProductQuery(productId.getValue());
+        GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
 
         when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
                 .thenReturn(Collections.emptyList());
@@ -112,8 +112,9 @@ class GetProductQueryHandlerTest {
         List<ProductVariation> customVariation = List.of(
                 new ProductVariation(new CommonId(), new CommonId()));
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
                 new Product(
+                        productId,
                         productId,
                         "",
                         new CommonId(),

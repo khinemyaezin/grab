@@ -6,6 +6,7 @@ import com.grab.framework.cqrs.command.Command;
 import java.util.List;
 
 public record CreateProductSetCommand(
+        Id merchantId,
         Product product,
         List<VariantType> variantTypes
 ) implements Command<CreateProductSetResult> {

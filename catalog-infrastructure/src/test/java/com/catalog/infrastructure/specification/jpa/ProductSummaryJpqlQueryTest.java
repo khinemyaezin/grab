@@ -183,6 +183,7 @@ class ProductSummaryJpqlQueryTest  extends ProductRepositoryTestConfig {
         product.setUuid(UUID.randomUUID().toString());
         product.setName(name);
         product.setCategoryId(categoryId);
+        product.setMerchantId("merchant-1");
         entityManager.persist(product);
 
         for (VariantData v : variants) {

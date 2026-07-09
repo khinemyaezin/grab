@@ -45,16 +45,16 @@ class DeleteProductCommandHandlerTest {
     @Test
     void handle_archivesProductBeforeSavingDeleteEvent() {
         Id productId = new CommonId("product-123");
-        Product product = Product.create(productId, "Product", new CommonId("category-456"));
+        Product product = Product.create(productId, productId, "Product", new CommonId("category-456"));
         product.addVariant(ProductVariant.create(
                 new CommonId("variant-1"),
                 "SKU-1",
                 List.of(new ProductVariation(new CommonId("opt-red"), new CommonId("type-color")))
         ));
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        DeleteProductResult result = handler.handle(new DeleteProductCommand(productId));
+        DeleteProductResult result = handler.handle(new DeleteProductCommand(productId, productId));
 
         verify(productRepository).save(productCaptor.capture());
         Product saved = productCaptor.getValue();
@@ -68,9 +68,9 @@ class DeleteProductCommandHandlerTest {
     @Test
     void handle_missingProductReturnsFalse() {
         Id productId = new CommonId("missing-product");
-        when(productRepository.find(productId)).thenReturn(Optional.empty());
+        when(productRepository.find(productId, productId)).thenReturn(Optional.empty());
 
-        DeleteProductResult result = handler.handle(new DeleteProductCommand(productId));
+        DeleteProductResult result = handler.handle(new DeleteProductCommand(productId, productId));
 
         assertThat(result.deleted()).isFalse();
     }

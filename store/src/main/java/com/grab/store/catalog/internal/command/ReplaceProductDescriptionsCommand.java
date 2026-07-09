@@ -6,6 +6,7 @@ import com.grab.framework.id.Id;
 import java.util.List;
 
 public record ReplaceProductDescriptionsCommand(
+        Id merchantId,
         Id productId,
         List<Description> descriptions
 ) implements Command<ProductDescriptionsResult> {

@@ -2,11 +2,11 @@ package com.grab.store.catalog.internal.command;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.cqrs.command.Command;
-import com.grab.framework.id.Id;
 
 import java.util.List;
 
 public record UpdateProductCommand(
+        Id merchantId,
         Id productId,
         String name,
         Id categoryId,

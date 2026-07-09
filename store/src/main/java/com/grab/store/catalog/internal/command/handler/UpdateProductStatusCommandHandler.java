@@ -33,7 +33,7 @@ public class UpdateProductStatusCommandHandler implements CommandHandler<UpdateP
     public UpdateProductStatusResult handle(UpdateProductStatusCommand command) {
         log.debug("Handling UpdateProductStatusCommand for productId={}, status={}", command.productId(), command.status());
 
-        Optional<Product> hasProduct = productRepository.find(command.productId());
+        Optional<Product> hasProduct = productRepository.find(command.productId(), command.merchantId());
         if (hasProduct.isEmpty()) {
             throw new CatalogServiceException(
                     new CatalogServiceError.ProductNotFound(command.productId().getValue())

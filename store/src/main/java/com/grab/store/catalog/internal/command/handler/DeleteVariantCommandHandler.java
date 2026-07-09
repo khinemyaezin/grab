@@ -29,7 +29,7 @@ public class DeleteVariantCommandHandler implements CommandHandler<DeleteVariant
     public DeleteVariantResult handle(DeleteVariantCommand command) {
         log.debug("Handling DeleteVariantCommand for productId={}, sku={}", command.productId(), command.variantId());
 
-        Optional<Product> hasProduct = productRepository.find(command.productId());
+        Optional<Product> hasProduct = productRepository.find(command.productId(), command.merchantId());
         if (hasProduct.isEmpty()) {
             log.warn("Product not found for delete variant: {}", command.productId());
             return new DeleteVariantResult(command.productId().getValue(), command.variantId().getValue(), false);

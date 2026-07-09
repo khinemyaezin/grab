@@ -40,6 +40,7 @@ class ProductContentCommandHandlerTest {
 
         ProductDescriptionsResult result = replaceDescriptionsHandler.handle(new ReplaceProductDescriptionsCommand(
                 new CommonId(PRODUCT_ID),
+                new CommonId(PRODUCT_ID),
                 List.of(new ReplaceProductDescriptionsCommand.Description(
                         existingDescriptionId,
                         "summary",
@@ -63,6 +64,7 @@ class ProductContentCommandHandlerTest {
 
         ProductMediaResult result = replaceMediaHandler.handle(new ReplaceProductMediaCommand(
                 new CommonId(PRODUCT_ID),
+                new CommonId(PRODUCT_ID),
                 List.of(new ReplaceProductMediaCommand.Media(
                         existingMediaId,
                         "IMAGE",
@@ -84,6 +86,7 @@ class ProductContentCommandHandlerTest {
 
         assertThatThrownBy(() -> replaceDescriptionsHandler.handle(new ReplaceProductDescriptionsCommand(
                 new CommonId(PRODUCT_ID),
+                new CommonId(PRODUCT_ID),
                 List.of(new ReplaceProductDescriptionsCommand.Description(
                         null,
                         " ",
@@ -102,6 +105,7 @@ class ProductContentCommandHandlerTest {
 
         assertThatThrownBy(() -> replaceMediaHandler.handle(new ReplaceProductMediaCommand(
                 new CommonId(PRODUCT_ID),
+                new CommonId(PRODUCT_ID),
                 List.of(new ReplaceProductMediaCommand.Media(
                         null,
                         "IMAGE",
@@ -115,6 +119,7 @@ class ProductContentCommandHandlerTest {
 
     private Product seedProduct() {
         Product product = Product.create(
+                new CommonId(PRODUCT_ID),
                 new CommonId(PRODUCT_ID),
                 "Camera",
                 new CommonId(CATEGORY_ID),

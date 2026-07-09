@@ -6,6 +6,7 @@ import com.grab.framework.cqrs.command.Command;
 import java.util.List;
 
 public record SyncVariantsCommand(
+        Id merchantId,
         Id productId,
         List<VariantType> variantTypes,
         List<Variant> variants

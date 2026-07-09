@@ -26,11 +26,13 @@ public class ProductCommandService {
     private final UpdateProductDtoMapper updateProductDtoMapper;
     private final UpdateProductStatusDtoMapper updateProductStatusDtoMapper;
     private final IdGenerator idGenerator;
+    private final AuthenticatedCatalogMerchantResolver merchantResolver;
 
     public String saveProduct(SaveProductRequest request) {
         log.info("Saving product: {}", request.product().name());
 
-        CreateProductSetCommand command = saveProductDtoMapper.toCommand(request);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        CreateProductSetCommand command = saveProductDtoMapper.toCommand(request, merchantId);
         CreateProductSetResult result = commandBus.dispatch(command);
 
         return result.productId();
@@ -39,7 +41,9 @@ public class ProductCommandService {
     public DeleteProductResponse deleteProduct(String productId) {
         log.info("Deleting product: {}", productId);
 
-        DeleteProductCommand command = new DeleteProductCommand(idGenerator.convertIdFrom(productId));
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        DeleteProductCommand command = new DeleteProductCommand(
+                idGenerator.convertIdFrom(merchantId), idGenerator.convertIdFrom(productId));
         DeleteProductResult result = commandBus.dispatch(command);
         
         return new DeleteProductResponse(productId, result.deleted());
@@ -48,14 +52,17 @@ public class ProductCommandService {
     public UpdateProductResponse updateProduct(String productId, UpdateProductRequest request) {
         log.info("Updating product: {}", productId);
 
-        UpdateProductCommand command = updateProductDtoMapper.toCommand(productId, request);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        UpdateProductCommand command = updateProductDtoMapper.toCommand(merchantId, productId, request);
         UpdateProductResult result = commandBus.dispatch(command);
         
         return updateProductDtoMapper.toResponse(result);
     }
 
     public ProductDescriptionsResponse replaceProductDescriptions(String productId, ReplaceProductDescriptionsRequest request) {
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
         ReplaceProductDescriptionsCommand command = new ReplaceProductDescriptionsCommand(
+                idGenerator.convertIdFrom(merchantId),
                 idGenerator.convertIdFrom(productId),
                 request.descriptions().stream()
                         .map(description -> new ReplaceProductDescriptionsCommand.Description(
@@ -71,7 +78,9 @@ public class ProductCommandService {
     }
 
     public ProductMediaResponse replaceProductMedia(String productId, ReplaceProductMediaRequest request) {
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
         ReplaceProductMediaCommand command = new ReplaceProductMediaCommand(
+                idGenerator.convertIdFrom(merchantId),
                 idGenerator.convertIdFrom(productId),
                 request.medias().stream()
                         .map(media -> new ReplaceProductMediaCommand.Media(
@@ -88,7 +97,8 @@ public class ProductCommandService {
     public UpdateProductStatusResponse updateProductStatus(String productId, UpdateProductStatusRequest request) {
         log.info("Updating product status: {}", productId);
 
-        UpdateProductStatusCommand command = updateProductStatusDtoMapper.toCommand(productId, request);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        UpdateProductStatusCommand command = updateProductStatusDtoMapper.toCommand(merchantId, productId, request);
         UpdateProductStatusResult result = commandBus.dispatch(command);
         
         return updateProductStatusDtoMapper.toResponse(result);

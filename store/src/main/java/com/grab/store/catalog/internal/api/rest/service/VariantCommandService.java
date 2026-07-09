@@ -28,11 +28,13 @@ public class VariantCommandService {
     private final DeleteVariantDtoMapper deleteVariantDtoMapper;
     private final RestoreVariantDtoMapper restoreVariantDtoMapper;
     private final SyncVariantsDtoMapper syncVariantsDtoMapper;
+    private final AuthenticatedCatalogMerchantResolver merchantResolver;
 
     public UpdateVariantResponse updateVariant(String productId, String variantId, UpdateVariantRequest request) {
         log.info("Updating variant: {} for product: {}", variantId, productId);
 
-        UpdateVariantCommand command = updateVariantDtoMapper.toCommand(productId, variantId, request);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        UpdateVariantCommand command = updateVariantDtoMapper.toCommand(merchantId, productId, variantId, request);
         UpdateVariantResult result = commandBus.dispatch(command);
         
         return updateVariantDtoMapper.toResponse(result);
@@ -41,7 +43,8 @@ public class VariantCommandService {
     public DeleteVariantResponse deleteVariant(String productId, String variantId) {
         log.info("Deleting variant: {} for product: {}", variantId, productId);
 
-        DeleteVariantCommand command = deleteVariantDtoMapper.toCommand(productId, variantId);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        DeleteVariantCommand command = deleteVariantDtoMapper.toCommand(merchantId, productId, variantId);
         DeleteVariantResult result = commandBus.dispatch(command);
         
         return deleteVariantDtoMapper.toResponse(result);
@@ -50,7 +53,8 @@ public class VariantCommandService {
     public RestoreVariantResponse restoreVariant(String productId, String variantId) {
         log.info("Restoring variant: {} for product: {}", variantId, productId);
 
-        RestoreVariantCommand command = restoreVariantDtoMapper.toCommand(productId, variantId);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        RestoreVariantCommand command = restoreVariantDtoMapper.toCommand(merchantId, productId, variantId);
         RestoreVariantResult result = commandBus.dispatch(command);
         
         return restoreVariantDtoMapper.toResponse(result);
@@ -59,7 +63,8 @@ public class VariantCommandService {
     public SyncVariantsResponse syncVariants(String productId, SyncVariantsRequest request) {
         log.info("Syncing variants for product: {}", productId);
 
-        SyncVariantsCommand command = syncVariantsDtoMapper.toCommand(productId, request);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        SyncVariantsCommand command = syncVariantsDtoMapper.toCommand(merchantId, productId, request);
         SyncVariantsResult result = commandBus.dispatch(command);
         
         return syncVariantsDtoMapper.toResponse(result);

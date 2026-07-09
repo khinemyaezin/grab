@@ -26,6 +26,10 @@ public class ProductEntity implements Serializable {
     @Column
     private String name;
 
+    @Setter
+    @Column(name = "merchant_id", nullable = false)
+    private String merchantId;
+
     @Getter
     @Setter
     @Column(name = "category_id", nullable = false)
