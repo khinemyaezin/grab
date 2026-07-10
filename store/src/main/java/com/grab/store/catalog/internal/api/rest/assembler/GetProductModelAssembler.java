@@ -25,10 +25,13 @@ public class GetProductModelAssembler
         entity.add(linkTo(methodOn(CategoryController.class).getCategory(response.category().id())).withRel("get-category"));
         entity.add(linkTo(methodOn(ProductController.class).updateProduct(response.id(), null)).withRel("update-product"));
         entity.add(linkTo(methodOn(ProductController.class).updateProductStatus(response.id(), null)).withRel("update-product-status"));
-        entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
 
         try {
             ProductStatus currentStatus = ProductStatus.valueOf(response.status().toUpperCase());
+
+            if (currentStatus != ProductStatus.ARCHIVED) {
+                entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
+            }
 
             if (currentStatus == ProductStatus.DRAFT) {
                 entity.add(linkTo(methodOn(ProductController.class).submitForReview(response.id(), null)).withRel("submit-product-for-review"));
