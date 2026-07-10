@@ -101,7 +101,6 @@ public class CategoryQueryRepositoryImpl implements CategoryQueryRepository {
                 parentId,
                 Boolean.TRUE.equals(entity.getActive()),
                 Boolean.TRUE.equals(entity.getListingAllowed()),
-                Boolean.TRUE.equals(entity.getReviewRequired()),
                 Boolean.TRUE.equals(entity.getC2cAllowed())
         );
     }

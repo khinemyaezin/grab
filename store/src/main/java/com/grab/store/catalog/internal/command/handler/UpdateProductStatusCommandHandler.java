@@ -49,10 +49,7 @@ public class UpdateProductStatusCommandHandler implements CommandHandler<UpdateP
         String oldStatus = product.getStatus() == null ? null : product.getStatus().name();
 
         ProductStatus newStatus = ProductStatus.valueOf(command.status());
-        if (newStatus == ProductStatus.ACTIVE) {
-            CatalogPolicyValidator.validateActivationPolicy(category, product);
-        }
-        if (newStatus == ProductStatus.IN_REVIEW || newStatus == ProductStatus.DRAFT || newStatus == ProductStatus.SUSPENDED) {
+        if (newStatus != ProductStatus.ARCHIVED) {
             CatalogPolicyValidator.validateCategoryPolicy(category);
         }
         product.changeStatus(newStatus);

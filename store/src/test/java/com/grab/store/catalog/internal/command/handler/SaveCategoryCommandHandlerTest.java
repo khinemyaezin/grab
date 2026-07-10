@@ -51,7 +51,6 @@ class SaveCategoryCommandHandlerTest {
                 null,
                 false,
                 true,
-                true,
                 true
         ));
 
@@ -62,7 +61,6 @@ class SaveCategoryCommandHandlerTest {
         assertThat(saved.getName()).isEqualTo("Electronics");
         assertThat(saved.isActive()).isTrue();
         assertThat(saved.isListingAllowed()).isFalse();
-        assertThat(saved.isReviewRequired()).isFalse();
         assertThat(saved.isC2cAllowed()).isFalse();
         assertThat(result.categoryId()).isEqualTo("category-root");
     }
@@ -81,7 +79,6 @@ class SaveCategoryCommandHandlerTest {
                 parentId,
                 true,
                 true,
-                true,
                 false
         ));
 
@@ -92,7 +89,6 @@ class SaveCategoryCommandHandlerTest {
         assertThat(saved.getParentId()).contains(parentId);
         assertThat(saved.isActive()).isTrue();
         assertThat(saved.isListingAllowed()).isTrue();
-        assertThat(saved.isReviewRequired()).isTrue();
         assertThat(saved.isC2cAllowed()).isFalse();
         assertThat(result.categoryId()).isEqualTo("category-child");
     }
@@ -108,7 +104,6 @@ class SaveCategoryCommandHandlerTest {
                 parentId,
                 true,
                 true,
-                false,
                 false
         )))
                 .isInstanceOf(CatalogServiceException.class)

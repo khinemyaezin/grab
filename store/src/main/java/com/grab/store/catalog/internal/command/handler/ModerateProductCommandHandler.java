@@ -38,15 +38,10 @@ public class ModerateProductCommandHandler implements CommandHandler<ModeratePro
         Action action = Action.valueOf(command.action());
 
         switch (action) {
-            case SUBMIT_REVIEW -> {
+            case PUBLISH -> {
                 CatalogPolicyValidator.validateCategoryPolicy(category);
-                product.submitForReview();
+                product.publish();
             }
-            case APPROVE -> {
-                CatalogPolicyValidator.validateActivationPolicy(category, product);
-                product.approve();
-            }
-            case REJECT -> product.reject(command.reason());
             case SUSPEND -> product.suspend(command.reason());
             case RESTORE -> {
                 CatalogPolicyValidator.validateCategoryPolicy(category);
@@ -70,9 +65,7 @@ public class ModerateProductCommandHandler implements CommandHandler<ModeratePro
     }
 
     private enum Action {
-        SUBMIT_REVIEW,
-        APPROVE,
-        REJECT,
+        PUBLISH,
         SUSPEND,
         RESTORE
     }

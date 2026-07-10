@@ -6,7 +6,6 @@ public record CategoryView(
         String parentId,
         boolean active,
         boolean listingAllowed,
-        boolean reviewRequired,
         boolean c2cAllowed
 ) {
 }

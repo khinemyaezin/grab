@@ -34,10 +34,7 @@ public class GetProductModelAssembler
             }
 
             if (currentStatus == ProductStatus.DRAFT) {
-                entity.add(linkTo(methodOn(ProductController.class).submitForReview(response.id(), null)).withRel("submit-product-for-review"));
-            } else if (currentStatus == ProductStatus.IN_REVIEW) {
-                entity.add(linkTo(methodOn(ProductController.class).approve(response.id(), null)).withRel("approve-product"));
-                entity.add(linkTo(methodOn(ProductController.class).reject(response.id(), null)).withRel("reject-product"));
+                entity.add(linkTo(methodOn(ProductController.class).publish(response.id(), null)).withRel("publish-product"));
             } else if (currentStatus == ProductStatus.ACTIVE) {
                 entity.add(linkTo(methodOn(ProductController.class).suspend(response.id(), null)).withRel("suspend-product"));
             } else if (currentStatus == ProductStatus.SUSPENDED) {

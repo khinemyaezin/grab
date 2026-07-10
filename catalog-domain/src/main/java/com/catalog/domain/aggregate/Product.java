@@ -3,8 +3,6 @@ package com.catalog.domain.aggregate;
 import com.catalog.domain.event.CategoryChangedEvent;
 import com.catalog.domain.event.ProductDeletedEvent;
 import com.catalog.domain.event.ProductRestoredEvent;
-import com.catalog.domain.event.ProductReviewRejectedEvent;
-import com.catalog.domain.event.ProductReviewSubmittedEvent;
 import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.event.ProductSuspendedEvent;
 import com.catalog.domain.event.ProductUpdatedEvent;
@@ -349,10 +347,6 @@ public class Product extends AggregateRoot<Id> {
             );
         }
 
-        if (newStatus == ProductStatus.IN_REVIEW) {
-            ensureReadyForReview();
-        }
-
         if (newStatus == ProductStatus.ACTIVE) {
             ensurePublishable();
         }
@@ -362,20 +356,8 @@ public class Product extends AggregateRoot<Id> {
         super.addEvent(new ProductStatusChangedEvent(this.getId(), old.name(), newStatus.name()));
     }
 
-    public void submitForReview() {
-        ensureReadyForReview();
-        changeStatus(ProductStatus.IN_REVIEW);
-        super.addEvent(new ProductReviewSubmittedEvent(this.getId(), this.getCategoryId()));
-    }
-
-    public void approve() {
-        ensurePublishable();
+    public void publish() {
         changeStatus(ProductStatus.ACTIVE);
-    }
-
-    public void reject(String reason) {
-        changeStatus(ProductStatus.DRAFT);
-        super.addEvent(new ProductReviewRejectedEvent(this.getId(), reason));
     }
 
     public void suspend(String reason) {
@@ -411,18 +393,13 @@ public class Product extends AggregateRoot<Id> {
         }
     }
 
-    public void ensureReadyForReview() {
-        if (this.descriptions.isEmpty()
-                || this.medias.isEmpty()) {
+    public void ensurePublishable() {
+        if (this.descriptions.isEmpty() || this.medias.isEmpty()) {
             throw new CatalogDomainValidationException(
                     new CatalogDomainError.ListingIncomplete(),
                     "Listing is incomplete."
             );
         }
-    }
-
-    public void ensurePublishable() {
-        ensureReadyForReview();
         if (this.getActiveVariants().isEmpty()) {
             throw new CatalogDomainValidationException(
                     new CatalogDomainError.ProductActivationRequiresActiveVariants(),

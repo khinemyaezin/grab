@@ -27,9 +27,7 @@ public class GetProductBySlugModelAssembler
         entity.add(linkTo(methodOn(ProductController.class).updateProductStatus(response.id(), null)).withRel("update-product-status"));
         entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
 
-        entity.add(linkTo(methodOn(ProductController.class).submitForReview(response.id(), null)).withRel("submit-product-for-review"));
-        entity.add(linkTo(methodOn(ProductController.class).approve(response.id(), null)).withRel("approve-product"));
-        entity.add(linkTo(methodOn(ProductController.class).reject(response.id(), null)).withRel("reject-product"));
+        entity.add(linkTo(methodOn(ProductController.class).publish(response.id(), null)).withRel("publish-product"));
         entity.add(linkTo(methodOn(ProductController.class).suspend(response.id(), null)).withRel("suspend-product"));
         entity.add(linkTo(methodOn(ProductController.class).restore(response.id(), null)).withRel("restore-product"));
 

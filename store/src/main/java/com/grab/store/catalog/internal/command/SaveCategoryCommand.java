@@ -8,7 +8,6 @@ public record SaveCategoryCommand(
         Id parentId,
         Boolean active,
         Boolean listingAllowed,
-        Boolean reviewRequired,
         Boolean c2cAllowed
 ) implements Command<SaveCategoryResult> {
 }

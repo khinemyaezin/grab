@@ -34,7 +34,7 @@ class GetCategoryParentQueryHandlerTest {
     void handle_mapsParentFromQueryRepository() {
         when(categoryQueryRepository.exists("cat-2")).thenReturn(true);
         when(categoryQueryRepository.findParent("cat-2")).thenReturn(Optional.of(
-                new CategoryView("cat-1", "Electronics", null, true, true, false, true)
+                new CategoryView("cat-1", "Electronics", null, true, true, true)
         ));
 
         CategoryResult result = handler.handle(new GetCategoryParentQuery("cat-2"));

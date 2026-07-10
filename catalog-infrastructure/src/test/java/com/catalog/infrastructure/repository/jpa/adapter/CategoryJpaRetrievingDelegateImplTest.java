@@ -129,7 +129,6 @@ public class CategoryJpaRetrievingDelegateImplTest extends CategoryRepositoryTes
         entity.setDepth(depth);
         entity.setActive(true);
         entity.setListingAllowed(true);
-        entity.setReviewRequired(false);
         entity.setC2cAllowed(true);
         entityManager.persist(entity);
     }

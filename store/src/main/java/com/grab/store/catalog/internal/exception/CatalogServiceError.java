@@ -14,7 +14,6 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.CategoryHasAssignedProducts,
         CatalogServiceError.CategoryListingProhibited,
         CatalogServiceError.CategoryC2CNotAllowed,
-        CatalogServiceError.ProductReviewRequired,
         CatalogServiceError.VariantNotFound,
         CatalogServiceError.VariantNotFoundOrNotDeleted,
         CatalogServiceError.VariantDeletedCannotUpdate,
@@ -186,22 +185,6 @@ public sealed interface CatalogServiceError extends MessageSource permits
         }
     }
 
-    record ProductReviewRequired(String productId) implements CatalogServiceError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BUSINESS_RULE;
-        }
-
-        @Override
-        public String code() {
-            return "cat.service.product.review_required";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("productId", productId);
-        }
-    }
 
     record VariantNotFound(String variantId) implements CatalogServiceError {
         @Override

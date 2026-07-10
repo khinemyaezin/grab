@@ -10,10 +10,9 @@ import java.util.Optional;
 @Getter
 public class Category extends AggregateRoot<Id> {
     private final String name;
-    private final Id parentId ;
+    private final Id parentId;
     private final boolean active;
     private final boolean listingAllowed;
-    private final boolean reviewRequired;
     private final boolean c2cAllowed;
 
     public Category(
@@ -22,7 +21,6 @@ public class Category extends AggregateRoot<Id> {
             Id parentId,
             boolean active,
             boolean listingAllowed,
-            boolean reviewRequired,
             boolean c2cAllowed
     ) {
         super(id);
@@ -30,12 +28,11 @@ public class Category extends AggregateRoot<Id> {
         this.parentId = parentId;
         this.active = active;
         this.listingAllowed = listingAllowed;
-        this.reviewRequired = reviewRequired;
         this.c2cAllowed = c2cAllowed;
     }
 
     public static Category createRoot(Id id, String name) {
-        return new Category(id, name, null, true, true, false, true);
+        return new Category(id, name, null, true, true, true);
     }
 
     public static Category createRoot(
@@ -43,15 +40,14 @@ public class Category extends AggregateRoot<Id> {
             String name,
             boolean active,
             boolean listingAllowed,
-            boolean reviewRequired,
             boolean c2cAllowed
     ) {
-        return new Category(id, name, null, active, listingAllowed, reviewRequired, c2cAllowed);
+        return new Category(id, name, null, active, listingAllowed, c2cAllowed);
     }
 
     public static Category createChild(Id id, String name, Category parent) {
         Objects.requireNonNull(parent, "Parent category must not be null");
-        return new Category(id, name, parent.getId(), true, true, false, true);
+        return new Category(id, name, parent.getId(), true, true, true);
     }
 
     public static Category createChild(
@@ -60,11 +56,10 @@ public class Category extends AggregateRoot<Id> {
             Category parent,
             boolean active,
             boolean listingAllowed,
-            boolean reviewRequired,
             boolean c2cAllowed
     ) {
         Objects.requireNonNull(parent, "Parent category must not be null");
-        return new Category(id, name, parent.getId(), active, listingAllowed, reviewRequired, c2cAllowed);
+        return new Category(id, name, parent.getId(), active, listingAllowed, c2cAllowed);
     }
 
     public Optional<Id> getParentId() {

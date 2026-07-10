@@ -52,7 +52,6 @@ public class GetCategoryParentQueryHandler implements QueryHandler<GetCategoryPa
                 category.parentId(),
                 category.active(),
                 category.listingAllowed(),
-                category.reviewRequired(),
                 category.c2cAllowed()
         );
     }

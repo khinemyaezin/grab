@@ -168,27 +168,11 @@ public class ProductController {
         return ResponseEntity.ok(getProductBySlugModelAssembler.toModel(response));
     }
 
-    @PostMapping(value = "/{productId}/submit-review")
-    public ResponseEntity<EntityModel<ProductModerationResponse>> submitForReview(
+    @PostMapping(value = "/{productId}/publish")
+    public ResponseEntity<EntityModel<ProductModerationResponse>> publish(
             @PathVariable String productId,
             @RequestBody(required = false) ProductModerationRequest request) {
-        ProductModerationResponse response = productCommandService.moderateProduct(productId, "SUBMIT_REVIEW", request);
-        return ResponseEntity.ok(toProductCommandModel(response));
-    }
-
-    @PostMapping(value = "/{productId}/approve")
-    public ResponseEntity<EntityModel<ProductModerationResponse>> approve(
-            @PathVariable String productId,
-            @RequestBody(required = false) ProductModerationRequest request) {
-        ProductModerationResponse response = productCommandService.moderateProduct(productId, "APPROVE", request);
-        return ResponseEntity.ok(toProductCommandModel(response));
-    }
-
-    @PostMapping(value = "/{productId}/reject")
-    public ResponseEntity<EntityModel<ProductModerationResponse>> reject(
-            @PathVariable String productId,
-            @RequestBody(required = false) ProductModerationRequest request) {
-        ProductModerationResponse response = productCommandService.moderateProduct(productId, "REJECT", request);
+        ProductModerationResponse response = productCommandService.moderateProduct(productId, "PUBLISH", request);
         return ResponseEntity.ok(toProductCommandModel(response));
     }
 

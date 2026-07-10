@@ -62,7 +62,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         product.updateMetadata(next);
         applyVariantSync(product, command);
 
-        CatalogPolicyValidator.validateActivationPolicy(category, product);
+        CatalogPolicyValidator.validateCategoryPolicy(category);
 
         productRepository.save(product);
 

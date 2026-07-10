@@ -80,7 +80,6 @@ class CategoryQueryRepositoryTest extends CategoryRepositoryTestConfig {
         entity.setName(name);
         entity.setActive(true);
         entity.setListingAllowed(true);
-        entity.setReviewRequired(false);
         entity.setC2cAllowed(true);
         return entity;
     }
