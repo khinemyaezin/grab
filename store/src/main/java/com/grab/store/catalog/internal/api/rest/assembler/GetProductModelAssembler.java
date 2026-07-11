@@ -28,16 +28,13 @@ public class GetProductModelAssembler
 
         try {
             ProductStatus currentStatus = ProductStatus.valueOf(response.status().toUpperCase());
-
-            if (currentStatus != ProductStatus.ARCHIVED) {
-                entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
-            }
-
             if (currentStatus == ProductStatus.DRAFT) {
                 entity.add(linkTo(methodOn(ProductController.class).publish(response.id(), null)).withRel("publish-product"));
+                entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
             } else if (currentStatus == ProductStatus.ACTIVE) {
                 entity.add(linkTo(methodOn(ProductController.class).suspend(response.id(), null)).withRel("suspend-product"));
-            } else if (currentStatus == ProductStatus.SUSPENDED) {
+                entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
+            } else if (currentStatus == ProductStatus.SUSPENDED || currentStatus == ProductStatus.ARCHIVED) {
                 entity.add(linkTo(methodOn(ProductController.class).restore(response.id(), null)).withRel("restore-product"));
             }
         } catch (IllegalArgumentException | NullPointerException e) {

@@ -1,5 +1,6 @@
 package com.catalog.infrastructure.specification.jpa;
 
+import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
@@ -107,7 +108,7 @@ public class ProductSummaryJpqlQuery {
 
         if(StringUtils.hasLength(criteria.productStatus())) {
             conditions.add("p." + ProductEntity_.STATUS + " = :productStatus");
-            params.put("productStatus", criteria.productStatus());
+            params.put("productStatus", ProductStatus.valueOf(criteria.productStatus().toUpperCase()));
         }
 
         if (StringUtils.hasLength(criteria.sku())) {
