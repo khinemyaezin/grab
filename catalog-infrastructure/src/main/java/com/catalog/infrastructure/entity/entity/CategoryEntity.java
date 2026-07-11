@@ -43,9 +43,6 @@ public class CategoryEntity implements NestedSet<Long>, ICategory {
     @Column(name = "listing_allowed", nullable = false)
     private Boolean listingAllowed = true;
 
-    @Column(name = "review_required", nullable = false)
-    private Boolean reviewRequired = false;
-
     @Column(name = "c2c_allowed", nullable = false)
     private Boolean c2cAllowed = true;
 

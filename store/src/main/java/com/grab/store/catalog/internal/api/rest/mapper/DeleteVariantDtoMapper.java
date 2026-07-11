@@ -9,7 +9,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class DeleteVariantDtoMapper {
 
-    public abstract DeleteVariantCommand toCommand(String productId, String variantId);
+    public abstract DeleteVariantCommand toCommand(String merchantId, String productId, String variantId);
 
     public abstract DeleteVariantResponse toResponse(DeleteVariantResult result);
 }

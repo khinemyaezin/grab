@@ -1,6 +1,10 @@
-You are a senior software architect. I need to write an Architectural Decision Record (ADR) for my project.
+You are a senior software architect. I need to write an Architectural Decision Record (ADR) for my project. There must be two parts, what is the domain bounded context and application architectural design. 
 
-# [Title]
+Domain bounded context or aggregate, the adr should explains the domain context what it will do, what is the responsiblity and what is the boundary and context map between other bounded context. Should draw diagram to show the bounded context and context map and explain each property why it is needed to enforce the business. Also explain the life cycle of aggregate with state diagram.
+
+Application architectural design, the adr should be explain the application design, components, interfaces, data flow, integration with other systems.
+
+# [Title] just title not number
 ---
 
 ## 1. The Problem
@@ -33,6 +37,7 @@ You are a senior software architect. I need to write an Architectural Decision R
 > *Diagrams to understand the architecture at a glance.*
 
 ### High-Level Flow / Components
+
 ```
 [Insert Mermaid flowchart, sequence, or component diagram here]
 ```

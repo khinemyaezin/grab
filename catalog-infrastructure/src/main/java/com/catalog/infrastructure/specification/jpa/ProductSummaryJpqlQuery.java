@@ -1,10 +1,10 @@
 package com.catalog.infrastructure.specification.jpa;
 
+import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.catalog.infrastructure.entity.meta.ProductVariantEntity_;
-import com.catalog.infrastructure.entity.meta.ProductVariationEntity_;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.springframework.data.domain.Page;
@@ -91,6 +91,11 @@ public class ProductSummaryJpqlQuery {
 
         List<String> conditions = new ArrayList<>();
 
+        if (StringUtils.hasLength(criteria.merchantId())) {
+            conditions.add("p." + ProductEntity_.MERCHANT_ID + " = :merchantId");
+            params.put("merchantId", criteria.merchantId());
+        }
+
         if (StringUtils.hasLength(criteria.productName())) {
             conditions.add("LOWER(p." + ProductEntity_.NAME + ") LIKE :productName");
             params.put("productName", "%" + criteria.productName().toLowerCase() + "%");
@@ -103,7 +108,7 @@ public class ProductSummaryJpqlQuery {
 
         if(StringUtils.hasLength(criteria.productStatus())) {
             conditions.add("p." + ProductEntity_.STATUS + " = :productStatus");
-            params.put("productStatus", criteria.productStatus());
+            params.put("productStatus", ProductStatus.valueOf(criteria.productStatus().toUpperCase()));
         }
 
         if (StringUtils.hasLength(criteria.sku())) {

@@ -16,6 +16,7 @@ public abstract class ProductMapper {
 
     @Mapping(source = "entity." + ProductEntity_.UUID, target="id")
     @Mapping(source = "entity." + ProductEntity_.NAME , target="name")
+    @Mapping(source = "entity." + ProductEntity_.MERCHANT_ID , target="merchantId")
     @Mapping(source = "entity." + ProductEntity_.CATEGORY_ENTITY , target="categoryId")
     @Mapping(source = "entity." + ProductEntity_.LISTING_CONDITION , target="listingCondition")
     @Mapping(source = "entity." + ProductEntity_.STATUS , target="status")

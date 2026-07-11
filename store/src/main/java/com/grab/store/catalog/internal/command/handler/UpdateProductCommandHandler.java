@@ -1,8 +1,6 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.*;
-import com.catalog.domain.exception.CatalogDomainError;
-import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.service.SkuGenerator;
@@ -13,7 +11,6 @@ import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.catalog.domain.valueobject.*;
 import com.grab.framework.cqrs.command.CommandHandler;
-import com.grab.framework.exception.DomainException;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
@@ -57,7 +54,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     public UpdateProductResult handle(UpdateProductCommand command) {
         log.debug("Handling UpdateProductCommand for productId={}", command.productId());
 
-        Product product = findProductOrElseThrow(command.productId());
+        Product product = findProductOrElseThrow(command.productId(), command.merchantId());
         Category category = findCategoryOrElseThrow(command.categoryId());
 
         ProductMetadata next = getProductMetadata(command, product, category);
@@ -65,7 +62,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         product.updateMetadata(next);
         applyVariantSync(product, command);
 
-        CatalogPolicyValidator.validateActivationPolicy(category, product);
+        CatalogPolicyValidator.validateCategoryPolicy(category);
 
         productRepository.save(product);
 
@@ -86,8 +83,8 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return UpdateProductCommand.class;
     }
 
-    private Product findProductOrElseThrow(Id productId) {
-        return productRepository.find(productId)
+    private Product findProductOrElseThrow(Id productId, Id merchantId) {
+        return productRepository.find(productId, merchantId)
                 .orElseThrow(() -> new CatalogServiceException(
                         new CatalogServiceError.ProductNotFound(productId.getValue())
                 ));
@@ -393,6 +390,6 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         }
 
         String name = nameProvided ? command.name() : product.getName();
-        return uniqueSlugResolver.resolve(command.slug(), name, product.getId().getValue());
+        return uniqueSlugResolver.resolve(command.merchantId(), command.slug(), name, product.getId().getValue());
     }
 }

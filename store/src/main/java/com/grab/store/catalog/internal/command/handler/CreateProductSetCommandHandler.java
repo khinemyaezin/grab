@@ -58,7 +58,7 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
         Category category = findCategoryOrElseThrow(command.product().categoryId());
         CatalogPolicyValidator.validateCategoryPolicy(category);
 
-        Product product = createProductDraft(command.product());
+        Product product = createProductDraft(command.merchantId(), command.product());
         List<ProductVariant> variants = buildVariants(command.product().name(), command.product().variants(), command.variantTypes());
         addVariants(product, variants);
 
@@ -90,11 +90,12 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
                 .toList();
     }
 
-    private Product createProductDraft(CreateProductSetCommand.Product product) {
+    private Product createProductDraft(Id commandMerchantId, CreateProductSetCommand.Product product) {
         Id productId = idGenerator.generateId();
-        String slug = uniqueSlugResolver.resolve(product.slug(), product.name(), null);
+        String slug = uniqueSlugResolver.resolve(commandMerchantId, product.slug(), product.name(), null);
         return Product.create(
                 productId,
+                commandMerchantId,
                 product.name(),
                 product.categoryId(),
                 convertToCondition(product.condition()),

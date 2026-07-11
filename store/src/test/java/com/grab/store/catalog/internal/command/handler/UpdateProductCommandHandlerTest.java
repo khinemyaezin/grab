@@ -81,12 +81,13 @@ class UpdateProductCommandHandlerTest {
         Id categoryId = new CommonId(CATEGORY_ID);
         Id newCategoryId = new CommonId(NEW_CATEGORY_ID);
 
-        Product existing = Product.create(productId, "Old Name", categoryId);
-        when(productRepository.find(productId)).thenReturn(Optional.of(existing));
+        Product existing = Product.create(productId, productId, "Old Name", categoryId);
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(existing));
         when(categoryRepository.find(newCategoryId)).thenReturn(Optional.of(Category.createRoot(newCategoryId, "Category")));
-        when(uniqueSlugResolver.resolve(null, "New Name", PRODUCT_ID)).thenReturn("new-name");
+        when(uniqueSlugResolver.resolve(productId, null, "New Name", PRODUCT_ID)).thenReturn("new-name");
 
         UpdateProductCommand command = new UpdateProductCommand(
+                productId,
                 productId,
                 "New Name",
                 newCategoryId,
@@ -113,9 +114,10 @@ class UpdateProductCommandHandlerTest {
     @Test
     void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
-        when(productRepository.find(productId)).thenReturn(Optional.empty());
+        when(productRepository.find(productId, productId)).thenReturn(Optional.empty());
 
         UpdateProductCommand command = new UpdateProductCommand(
+                productId,
                 productId,
                 "Name",
                 new CommonId(CATEGORY_ID),
@@ -138,12 +140,13 @@ class UpdateProductCommandHandlerTest {
         Id productId = new CommonId(PRODUCT_ID);
         Id categoryId = new CommonId(CATEGORY_ID);
         Id missingCategoryId = new CommonId(NEW_CATEGORY_ID);
-        Product existing = Product.create(productId, "Old Name", categoryId);
+        Product existing = Product.create(productId, productId, "Old Name", categoryId);
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(existing));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(existing));
         when(categoryRepository.find(missingCategoryId)).thenReturn(Optional.empty());
 
         UpdateProductCommand command = new UpdateProductCommand(
+                productId,
                 productId,
                 "New Name",
                 missingCategoryId,

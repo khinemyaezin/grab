@@ -38,6 +38,11 @@ public class InMemoryProductRepositoryTest implements ProductRepository {
     }
 
     @Override
+    public Optional<Product> find(Id productId, Id merchantId) {
+        return find(productId).filter(p -> p.getMerchantId().equals(merchantId));
+    }
+
+    @Override
     public Optional<Product> findBySlug(String slug) {
         return storage.values().stream()
                 .filter(product -> slug.equals(product.getSlug()))
@@ -45,15 +50,17 @@ public class InMemoryProductRepositoryTest implements ProductRepository {
     }
 
     @Override
-    public boolean isSlugTaken(String slug, String excludeProductUuid) {
+    public boolean isSlugTaken(Id merchantId, String slug, String excludeProductUuid) {
         return storage.values().stream()
+                .filter(p -> p.getMerchantId().equals(merchantId))
                 .anyMatch(product -> slug.equals(product.getSlug())
                         && (excludeProductUuid == null || !product.getId().getValue().equals(excludeProductUuid)));
     }
 
     @Override
-    public boolean isSkuTaken(String sku, String excludeVariantUuid) {
+    public boolean isSkuTaken(Id merchantId, String sku, String excludeVariantUuid) {
         return storage.values().stream()
+                .filter(p -> p.getMerchantId().equals(merchantId))
                 .flatMap(product -> product.getVariants().stream())
                 .anyMatch(variant -> variant.getSku().equalsIgnoreCase(sku)
                         && (excludeVariantUuid == null || !variant.getId().getValue().equals(excludeVariantUuid)));

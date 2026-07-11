@@ -9,7 +9,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class RestoreVariantDtoMapper {
 
-    public abstract RestoreVariantCommand toCommand(String productId, String variantId);
+    public abstract RestoreVariantCommand toCommand(String merchantId, String productId, String variantId);
 
     public abstract RestoreVariantResponse toResponse(RestoreVariantResult result);
 }

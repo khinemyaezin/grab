@@ -33,7 +33,7 @@ public class UpdateProductStatusCommandHandler implements CommandHandler<UpdateP
     public UpdateProductStatusResult handle(UpdateProductStatusCommand command) {
         log.debug("Handling UpdateProductStatusCommand for productId={}, status={}", command.productId(), command.status());
 
-        Optional<Product> hasProduct = productRepository.find(command.productId());
+        Optional<Product> hasProduct = productRepository.find(command.productId(), command.merchantId());
         if (hasProduct.isEmpty()) {
             throw new CatalogServiceException(
                     new CatalogServiceError.ProductNotFound(command.productId().getValue())
@@ -49,10 +49,7 @@ public class UpdateProductStatusCommandHandler implements CommandHandler<UpdateP
         String oldStatus = product.getStatus() == null ? null : product.getStatus().name();
 
         ProductStatus newStatus = ProductStatus.valueOf(command.status());
-        if (newStatus == ProductStatus.ACTIVE) {
-            CatalogPolicyValidator.validateActivationPolicy(category, product);
-        }
-        if (newStatus == ProductStatus.IN_REVIEW || newStatus == ProductStatus.DRAFT || newStatus == ProductStatus.SUSPENDED) {
+        if (newStatus != ProductStatus.ARCHIVED) {
             CatalogPolicyValidator.validateCategoryPolicy(category);
         }
         product.changeStatus(newStatus);

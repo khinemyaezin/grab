@@ -6,8 +6,6 @@ import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.service.ProductCommandService;
 import com.grab.store.catalog.internal.api.rest.service.ProductQueryService;
 import com.grab.store.catalog.internal.api.rest.service.VariantCommandService;
-import com.grab.store.inventory.internal.api.rest.controller.LocationController;
-import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,7 +14,6 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -171,27 +168,11 @@ public class ProductController {
         return ResponseEntity.ok(getProductBySlugModelAssembler.toModel(response));
     }
 
-    @PostMapping(value = "/{productId}/submit-review")
-    public ResponseEntity<EntityModel<ProductModerationResponse>> submitForReview(
+    @PostMapping(value = "/{productId}/publish")
+    public ResponseEntity<EntityModel<ProductModerationResponse>> publish(
             @PathVariable String productId,
             @RequestBody(required = false) ProductModerationRequest request) {
-        ProductModerationResponse response = productCommandService.moderateProduct(productId, "SUBMIT_REVIEW", request);
-        return ResponseEntity.ok(toProductCommandModel(response));
-    }
-
-    @PostMapping(value = "/{productId}/approve")
-    public ResponseEntity<EntityModel<ProductModerationResponse>> approve(
-            @PathVariable String productId,
-            @RequestBody(required = false) ProductModerationRequest request) {
-        ProductModerationResponse response = productCommandService.moderateProduct(productId, "APPROVE", request);
-        return ResponseEntity.ok(toProductCommandModel(response));
-    }
-
-    @PostMapping(value = "/{productId}/reject")
-    public ResponseEntity<EntityModel<ProductModerationResponse>> reject(
-            @PathVariable String productId,
-            @RequestBody(required = false) ProductModerationRequest request) {
-        ProductModerationResponse response = productCommandService.moderateProduct(productId, "REJECT", request);
+        ProductModerationResponse response = productCommandService.moderateProduct(productId, "PUBLISH", request);
         return ResponseEntity.ok(toProductCommandModel(response));
     }
 

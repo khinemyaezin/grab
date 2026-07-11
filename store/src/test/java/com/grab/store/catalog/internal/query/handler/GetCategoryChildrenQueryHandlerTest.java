@@ -37,7 +37,7 @@ class GetCategoryChildrenQueryHandlerTest {
         when(categoryQueryRepository.findChildren("cat-1")).thenReturn(Optional.of(
                 new CategoryChildrenView(
                         "cat-1",
-                        List.of(new CategoryView("cat-2", "Smartphones", "cat-1", true, true, false, true))
+                        List.of(new CategoryView("cat-2", "Smartphones", "cat-1", true, true, true))
                 )
         ));
 

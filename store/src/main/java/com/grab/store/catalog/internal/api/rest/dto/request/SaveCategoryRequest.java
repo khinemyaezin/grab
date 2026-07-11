@@ -9,7 +9,6 @@ public record SaveCategoryRequest(
         String parentId,
         Boolean active,
         Boolean listingAllowed,
-        Boolean reviewRequired,
         Boolean c2cAllowed
 ) implements Serializable {
 }

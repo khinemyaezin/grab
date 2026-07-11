@@ -46,7 +46,9 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     public GetProductResult handle(GetProductQuery query) {
         log.debug("Handling GetProductQuery for productId: {}", query.productId());
 
-        Product product = productRepository.find(idGenerator.convertIdFrom(query.productId()))
+        Id productId = idGenerator.convertIdFrom(query.productId());
+        Id merchantId = idGenerator.convertIdFrom(query.merchantId());
+        Product product = productRepository.find(productId, merchantId)
                 .orElseThrow(() -> new CatalogServiceException(
                         new CatalogServiceError.ProductNotFound(query.productId())
                 ));

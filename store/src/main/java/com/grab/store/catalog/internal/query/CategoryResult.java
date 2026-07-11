@@ -6,7 +6,6 @@ public record CategoryResult(
         String parentId,
         boolean active,
         boolean listingAllowed,
-        boolean reviewRequired,
         boolean c2cAllowed
 ) {
 }

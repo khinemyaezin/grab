@@ -16,7 +16,6 @@ public class CategoryEntity_ {
     public static volatile SingularAttribute<CategoryEntity, Integer> depth;
     public static volatile SingularAttribute<CategoryEntity, Boolean> active;
     public static volatile SingularAttribute<CategoryEntity, Boolean> listingAllowed;
-    public static volatile SingularAttribute<CategoryEntity, Boolean> reviewRequired;
     public static volatile SingularAttribute<CategoryEntity, Boolean> c2cAllowed;
 
     // Optional: Define constants for attribute names as type-safe strings
@@ -28,6 +27,5 @@ public class CategoryEntity_ {
     public static final String DEPTH = "depth";
     public static final String ACTIVE = "active";
     public static final String LISTING_ALLOWED = "listingAllowed";
-    public static final String REVIEW_REQUIRED = "reviewRequired";
     public static final String C2C_ALLOWED = "c2cAllowed";
 }

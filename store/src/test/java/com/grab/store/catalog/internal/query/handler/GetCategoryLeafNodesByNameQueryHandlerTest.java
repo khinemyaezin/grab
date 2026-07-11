@@ -31,7 +31,7 @@ class GetCategoryLeafNodesByNameQueryHandlerTest {
     @Test
     void handle_mapsLeafNodesFromQueryRepository() {
         when(categoryQueryRepository.findLeafNodesByName("elect")).thenReturn(List.of(
-                new CategoryView("cat-4", "Android Phones", "cat-2", true, true, false, true)
+                new CategoryView("cat-4", "Android Phones", "cat-2", true, true, true)
         ));
 
         CategoryLeavesResult result = handler.handle(new GetCategoryLeafNodesByNameQuery("elect"));

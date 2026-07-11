@@ -45,7 +45,6 @@ public class GetCategoryLeafNodesByNameQueryHandler implements QueryHandler<GetC
                 category.parentId(),
                 category.active(),
                 category.listingAllowed(),
-                category.reviewRequired(),
                 category.c2cAllowed()
         );
     }

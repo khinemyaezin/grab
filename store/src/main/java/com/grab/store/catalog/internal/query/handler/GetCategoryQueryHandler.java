@@ -41,7 +41,6 @@ public class GetCategoryQueryHandler implements QueryHandler<GetCategoryQuery, C
                 category.getParentId().map(Id::getValue).orElse(null),
                 category.isActive(),
                 category.isListingAllowed(),
-                category.isReviewRequired(),
                 category.isC2cAllowed()
         );
     }

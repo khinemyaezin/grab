@@ -30,7 +30,6 @@ public interface CategoryJpaRepo extends EntityRepository<CategoryEntity, Long>,
                 p.uuid,
                 c.active,
                 c.listingAllowed,
-                c.reviewRequired,
                 c.c2cAllowed
             )
             from CategoryEntity c

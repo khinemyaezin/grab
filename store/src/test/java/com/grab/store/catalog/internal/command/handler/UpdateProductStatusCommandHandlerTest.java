@@ -10,7 +10,6 @@ import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariation;
-import com.catalog.domain.valueobject.SellerType;
 import com.grab.framework.exception.ErrorCategory;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
@@ -60,11 +59,11 @@ class UpdateProductStatusCommandHandlerTest {
         Product product = createPublishableProduct(productId);
         addActiveVariant(product, "v1");
 
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
         when(categoryRepository.find(new CommonId(CATEGORY_ID)))
                 .thenReturn(Optional.of(com.catalog.domain.aggregate.Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
-        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
+        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, productId, "ACTIVE");
         UpdateProductStatusResult result = handler.handle(command);
 
         verify(productRepository).save(productCaptor.capture());
@@ -81,11 +80,11 @@ class UpdateProductStatusCommandHandlerTest {
     void handle_draftToActiveWithoutActiveVariantsThrows() {
         Id productId = new CommonId(PRODUCT_ID);
         Product product = createPublishableProduct(productId);
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
         when(categoryRepository.find(new CommonId(CATEGORY_ID)))
                 .thenReturn(Optional.of(com.catalog.domain.aggregate.Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
-        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
+        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, productId, "ACTIVE");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogDomainValidationException.class)
@@ -103,11 +102,11 @@ class UpdateProductStatusCommandHandlerTest {
         Product product = createPublishableProduct(productId);
         addActiveVariant(product, "v1");
         product.changeStatus(ProductStatus.ACTIVE);
-        when(productRepository.find(productId)).thenReturn(Optional.of(product));
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
         when(categoryRepository.find(new CommonId(CATEGORY_ID)))
                 .thenReturn(Optional.of(com.catalog.domain.aggregate.Category.createRoot(new CommonId(CATEGORY_ID), "Category")));
 
-        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "DRAFT");
+        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, productId, "DRAFT");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogDomainValidationException.class)
@@ -122,9 +121,9 @@ class UpdateProductStatusCommandHandlerTest {
     @Test
     void handle_productNotFoundThrows() {
         Id productId = new CommonId(PRODUCT_ID);
-        when(productRepository.find(productId)).thenReturn(Optional.empty());
+        when(productRepository.find(productId, productId)).thenReturn(Optional.empty());
 
-        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, "ACTIVE");
+        UpdateProductStatusCommand command = new UpdateProductStatusCommand(productId, productId, "ACTIVE");
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -145,6 +144,7 @@ class UpdateProductStatusCommandHandlerTest {
 
     private Product createPublishableProduct(Id productId) {
         return Product.create(
+                productId,
                 productId,
                 "Product",
                 new CommonId(CATEGORY_ID),

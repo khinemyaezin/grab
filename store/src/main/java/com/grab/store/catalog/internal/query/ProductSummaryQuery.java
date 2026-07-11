@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public record ProductSummaryQuery(
+        String merchantId,
         String productName,
         String sku,
         String variantStatus,

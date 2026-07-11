@@ -14,7 +14,6 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.CategoryHasAssignedProducts,
         CatalogServiceError.CategoryListingProhibited,
         CatalogServiceError.CategoryC2CNotAllowed,
-        CatalogServiceError.ProductReviewRequired,
         CatalogServiceError.VariantNotFound,
         CatalogServiceError.VariantNotFoundOrNotDeleted,
         CatalogServiceError.VariantDeletedCannotUpdate,
@@ -29,8 +28,26 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.InvalidProductDescriptionPatch,
         CatalogServiceError.InvalidProductMediaPatch,
         CatalogServiceError.ProductAlreadyExisted,
+        CatalogServiceError.MerchantScopeRequired,
         CatalogServiceError.EmptyVariantOverrides,
         CatalogServiceError.InvalidEnumValue {
+
+    record MerchantScopeRequired(String scopeKey, String scopeId) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.merchant_scope.required";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("scopeKey", scopeKey, "scopeId", scopeId);
+        }
+    }
 
     record ProductNotFound(String productId) implements CatalogServiceError {
         @Override
@@ -168,22 +185,6 @@ public sealed interface CatalogServiceError extends MessageSource permits
         }
     }
 
-    record ProductReviewRequired(String productId) implements CatalogServiceError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BUSINESS_RULE;
-        }
-
-        @Override
-        public String code() {
-            return "cat.service.product.review_required";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("productId", productId);
-        }
-    }
 
     record VariantNotFound(String variantId) implements CatalogServiceError {
         @Override
