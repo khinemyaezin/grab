@@ -10,5 +10,8 @@ public record ReceiveStockCommand(
         StockMovementType type,
         String referenceId,
         Id createdBy
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<InventoryItemResult> {
 }

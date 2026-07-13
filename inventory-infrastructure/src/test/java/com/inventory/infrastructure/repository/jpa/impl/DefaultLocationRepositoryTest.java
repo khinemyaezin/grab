@@ -14,10 +14,6 @@ import com.inventory.infrastructure.view.LocationView;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Objects;
@@ -136,48 +132,6 @@ class DefaultLocationRepositoryTest {
         verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
     }
 
-    @Test
-    void queryAll_returnsPagedResults() {
-        Pageable pageable = PageRequest.of(0, 10);
-        LocationView view = locationView("loc-1", "WH-001");
-        Page<LocationView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllBySellerId("seller-1", pageable)).thenReturn(expectedPage);
-
-        Page<LocationView> result = repository.queryAll("seller-1", pageable);
-
-        assertSame(expectedPage, result);
-        assertEquals(1, result.getContent().size());
-        verify(jpaRepository).findAllBySellerId("seller-1", pageable);
-        verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
-    }
-
-    @Test
-    void queryByActive_returnsOnlyActiveLocations() {
-        Pageable pageable = PageRequest.of(0, 10);
-        LocationView view = locationView("loc-1", "WH-001");
-        Page<LocationView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllBySellerIdAndActiveTrue("seller-1", pageable)).thenReturn(expectedPage);
-
-        Page<LocationView> result = repository.queryByActive("seller-1", pageable);
-
-        assertSame(expectedPage, result);
-        verify(jpaRepository).findAllBySellerIdAndActiveTrue("seller-1", pageable);
-        verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
-    }
-
-    @Test
-    void queryByType_returnsLocationsByType() {
-        Pageable pageable = PageRequest.of(0, 10);
-        LocationView view = locationView("loc-1", "WH-001");
-        Page<LocationView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllBySellerIdAndType("seller-1", LocationType.WAREHOUSE, pageable)).thenReturn(expectedPage);
-
-        Page<LocationView> result = repository.queryByType("seller-1", LocationType.WAREHOUSE, pageable);
-
-        assertSame(expectedPage, result);
-        verify(jpaRepository).findAllBySellerIdAndType("seller-1", LocationType.WAREHOUSE, pageable);
-        verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
-    }
 
     @Test
     void save_createsNewEntity_whenNotExisting() {
@@ -292,12 +246,12 @@ class DefaultLocationRepositoryTest {
         return new Address("123 Main St", null, "Springfield", "IL", "62701", "US");
     }
 
-    private static LocationEntity createLocationEntity(String uuid, String code, String sellerId, LocationType type, boolean active) {
+    private static LocationEntity createLocationEntity(String uuid, String code, String merchantId, LocationType type, boolean active) {
         LocationEntity entity = new LocationEntity();
         entity.setUuid(uuid);
         entity.setCode(code);
         entity.setName(code + " Name");
-        entity.setSellerId(sellerId);
+        entity.setMerchantId(merchantId);
         entity.setType(type);
         entity.setStreet("123 Main St");
         entity.setCity("Springfield");
@@ -308,8 +262,8 @@ class DefaultLocationRepositoryTest {
         return entity;
     }
 
-    private static Location createLocation(String uuid, String code, String sellerId, LocationType type, boolean active) {
-        return new Location(id(uuid), id(sellerId), code, code + " Name", type, address(), active);
+    private static Location createLocation(String uuid, String code, String merchantId, LocationType type, boolean active) {
+        return new Location(id(uuid), id(merchantId), code, code + " Name", type, address(), active);
     }
 
     private static LocationView locationView(String uuid, String code) {

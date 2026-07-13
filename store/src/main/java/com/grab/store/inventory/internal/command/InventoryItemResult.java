@@ -3,7 +3,7 @@ package com.grab.store.inventory.internal.command;
 public record InventoryItemResult(
         String id,
         String sku,
-        String sellerId,
+        String merchantId,
         String productVariantId,
         String locationId,
         int onHand,

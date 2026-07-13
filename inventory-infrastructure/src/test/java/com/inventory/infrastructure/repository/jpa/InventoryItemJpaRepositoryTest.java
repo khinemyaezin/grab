@@ -29,7 +29,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
         activeItem1 = new InventoryItemEntity();
         activeItem1.setUuid("uuid-inv-1");
         activeItem1.setSku("SKU-001");
-        activeItem1.setSellerId("seller-1");
+        activeItem1.setMerchantId("seller-1");
         activeItem1.setProductVariantId("variant-1");
         activeItem1.setLocationId("loc-1");
         activeItem1.setOnHand(100);
@@ -45,7 +45,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
         activeItem2 = new InventoryItemEntity();
         activeItem2.setUuid("uuid-inv-2");
         activeItem2.setSku("SKU-002");
-        activeItem2.setSellerId("seller-1");
+        activeItem2.setMerchantId("seller-1");
         activeItem2.setProductVariantId("variant-2");
         activeItem2.setLocationId("loc-1");
         activeItem2.setOnHand(200);
@@ -61,7 +61,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
         discontinuedItem = new InventoryItemEntity();
         discontinuedItem.setUuid("uuid-inv-3");
         discontinuedItem.setSku("SKU-003");
-        discontinuedItem.setSellerId("seller-1");
+        discontinuedItem.setMerchantId("seller-1");
         discontinuedItem.setProductVariantId("variant-3");
         discontinuedItem.setLocationId("loc-2");
         discontinuedItem.setOnHand(0);
@@ -76,7 +76,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
         lowStockItem = new InventoryItemEntity();
         lowStockItem.setUuid("uuid-inv-4");
         lowStockItem.setSku("SKU-004");
-        lowStockItem.setSellerId("seller-1");
+        lowStockItem.setMerchantId("seller-1");
         lowStockItem.setProductVariantId("variant-4");
         lowStockItem.setLocationId("loc-1");
         lowStockItem.setOnHand(10);
@@ -98,7 +98,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
 
         assertThat(result).isPresent();
         assertThat(result.get().getSku()).isEqualTo("SKU-001");
-        assertThat(result.get().getSellerId()).isEqualTo("seller-1");
+        assertThat(result.get().getMerchantId()).isEqualTo("seller-1");
     }
 
     @Test
@@ -132,8 +132,8 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllBySellerId_returnsAllItemsForSeller() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllBySellerId("seller-1");
+    void findAllByMerchantId_returnsAllItemsForSeller() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByMerchantId("seller-1");
 
         assertThat(result).hasSize(4);
         assertThat(result).extracting(InventoryItemEntity::getSku)
@@ -141,8 +141,8 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllBySellerId_returnsEmptyForUnknownSeller() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllBySellerId("unknown-seller");
+    void findAllByMerchantId_returnsEmptyForUnknownSeller() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByMerchantId("unknown-seller");
 
         assertThat(result).isEmpty();
     }
@@ -152,7 +152,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
         List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllBySku("SKU-001");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUuid()).isEqualTo("uuid-inv-1");
+        assertThat(result.getFirst().getUuid()).isEqualTo("uuid-inv-1");
     }
 
     @Test
@@ -179,8 +179,8 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllByStatusAndSellerId_returnsMatchingItems() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByStatusAndSellerId(InventoryStatus.ACTIVE, "seller-1");
+    void findAllByStatusAndMerchantId_returnsMatchingItems() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByStatusAndMerchantId(InventoryStatus.ACTIVE, "seller-1");
 
         assertThat(result).hasSize(3);
         assertThat(result).extracting(InventoryItemEntity::getSku)
@@ -189,23 +189,23 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllByStatusAndSellerId_returnsDiscontinuedItems() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByStatusAndSellerId(InventoryStatus.DISCONTINUED, "seller-1");
+    void findAllByStatusAndMerchantId_returnsDiscontinuedItems() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByStatusAndMerchantId(InventoryStatus.DISCONTINUED, "seller-1");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getSku()).isEqualTo("SKU-003");
+        assertThat(result.getFirst().getSku()).isEqualTo("SKU-003");
     }
 
     @Test
-    void findAllByStatusAndSellerId_returnsEmptyWhenNoMatch() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByStatusAndSellerId(InventoryStatus.SUSPENDED, "seller-1");
+    void findAllByStatusAndMerchantId_returnsEmptyWhenNoMatch() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByStatusAndMerchantId(InventoryStatus.SUSPENDED, "seller-1");
 
         assertThat(result).isEmpty();
     }
 
     @Test
-    void findLowStockItemsAndSellerId_returnsLowStockItems() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findLowStockItemsAndSellerId("seller-1");
+    void findLowStockItemsAndMerchantId_returnsLowStockItems() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findLowStockItemsAndMerchantId("seller-1");
 
         assertThat(result).isNotEmpty();
         assertThat(result).extracting(InventoryItemEntity::getSku).contains("SKU-004");
@@ -213,15 +213,15 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findLowStockItemsAndSellerId_excludesDiscontinuedItems() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findLowStockItemsAndSellerId("seller-1");
+    void findLowStockItemsAndMerchantId_excludesDiscontinuedItems() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findLowStockItemsAndMerchantId("seller-1");
 
         assertThat(result).extracting(InventoryItemEntity::getSku).doesNotContain("SKU-003");
     }
 
     @Test
-    void findLowStockItemsAndSellerId_returnsEmptyForUnknownSeller() {
-        List<InventoryItemEntity> result = inventoryItemJpaRepository.findLowStockItemsAndSellerId("unknown-seller");
+    void findLowStockItemsAndMerchantId_returnsEmptyForUnknownSeller() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findLowStockItemsAndMerchantId("unknown-seller");
 
         assertThat(result).isEmpty();
     }

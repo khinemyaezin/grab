@@ -1,6 +1,8 @@
 package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.grab.store.inventory.internal.api.rest.assembler.LocationModelAssembler;
+import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.LocationCommandService;
 import com.grab.store.inventory.internal.api.rest.service.LocationQueryService;
 import com.inventory.domain.enums.LocationType;
@@ -18,6 +20,8 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.grab.store.shared.security.SecurityPrincipal;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -30,13 +34,15 @@ public class LocationController {
     private final LocationCommandService locationCommandService;
     private final LocationQueryService locationQueryService;
     private final LocationModelAssembler locationModelAssembler;
+    private final AuthenticatedInventoryScopeResolver scopeResolver;
 
     @PostMapping
     public ResponseEntity<EntityModel<LocationResponse>> createLocation(
             @Valid @RequestBody CreateLocationRequest request,
-            @RequestHeader(value = "X-Actor-Id") String sellerId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        LocationResponse response = locationCommandService.createLocation(request, sellerId);
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
+        LocationResponse response = locationCommandService.createLocation(request, actorId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationModelAssembler.toModel(response));
     }
@@ -45,36 +51,40 @@ public class LocationController {
     public ResponseEntity<EntityModel<LocationResponse>> updateLocation(
             @PathVariable String locationId,
             @Valid @RequestBody UpdateLocationRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        LocationResponse response =  locationCommandService.updateLocation(locationId, request, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        LocationResponse response =  locationCommandService.updateLocation(locationId, request, access);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
     @PatchMapping("/{locationId}/activate")
     public ResponseEntity<EntityModel<LocationResponse>> activateLocation(
             @PathVariable String locationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        LocationResponse response = locationCommandService.activateLocation(locationId, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        LocationResponse response = locationCommandService.activateLocation(locationId, access);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
     @PatchMapping("/{locationId}/deactivate")
     public ResponseEntity<EntityModel<LocationResponse>> deactivateLocation(
             @PathVariable String locationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        LocationResponse response = locationCommandService.deactivateLocation(locationId, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        LocationResponse response = locationCommandService.deactivateLocation(locationId, access);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
     @DeleteMapping("/{locationId}")
     public ResponseEntity<Void> deleteLocation(
             @PathVariable String locationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String sellerId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        locationCommandService.deleteLocation(locationId, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        locationCommandService.deleteLocation(locationId, access);
         return ResponseEntity.noContent().build();
     }
 
@@ -93,13 +103,14 @@ public class LocationController {
 
     @GetMapping
     public ResponseEntity<PagedModel<EntityModel<LocationResponse>>> listLocations(
-            @RequestHeader(value = "X-Actor-Id") String sellerId,
+            @AuthenticationPrincipal SecurityPrincipal principal,
             @RequestParam(value = "active", required = false) Boolean active,
             @RequestParam(value = "type", required = false) LocationType type,
             @PageableDefault(size = 20) Pageable pageable,
             PagedResourcesAssembler<LocationResponse> pagedResourcesAssembler
     ) {
-        Page<LocationResponse> response = locationQueryService.listLocations(sellerId, active, type, pageable);
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        Page<LocationResponse> response = locationQueryService.listLocations(merchantId, active, type, pageable);
         PagedModel<EntityModel<LocationResponse>> pageModel = pagedResourcesAssembler.toModel(response, locationModelAssembler);
         pageModel.add(linkTo(methodOn(LocationController.class)
                 .createLocation(null, null))

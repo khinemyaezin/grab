@@ -1,10 +1,12 @@
 package com.grab.store.inventory.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
+import com.grab.framework.id.IdGenerator;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
 import com.grab.store.inventory.internal.api.rest.mapper.GetZoneRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.ListZonesRequestMapper;
 import com.grab.store.inventory.internal.query.GetZoneQuery;
+import com.grab.store.inventory.internal.query.GetZoneLocationIdQuery;
 import com.grab.store.inventory.internal.query.GetZoneResult;
 import com.grab.store.inventory.internal.query.ListZonesByLocationQuery;
 import com.grab.store.inventory.internal.query.ListZonesResult;
@@ -20,6 +22,7 @@ public class ZoneQueryService {
     private final QueryBus queryBus;
     private final GetZoneRequestMapper getZoneRequestMapper;
     private final ListZonesRequestMapper listZonesRequestMapper;
+    private final IdGenerator idGenerator;
 
     public ZoneResponse getZone(String zoneId) {
         GetZoneQuery query = getZoneRequestMapper.toQuery(zoneId);
@@ -31,5 +34,10 @@ public class ZoneQueryService {
         ListZonesByLocationQuery query = listZonesRequestMapper.toQuery(locationId, pageable);
         Page<ListZonesResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(listZonesRequestMapper::toResponse);
+    }
+
+    public String getLocationId(String zoneId) {
+        var query = new GetZoneLocationIdQuery(idGenerator.convertIdFrom(zoneId));
+        return queryBus.dispatch(query);
     }
 }

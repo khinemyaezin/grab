@@ -11,6 +11,9 @@ import com.grab.store.inventory.internal.command.CreateBinCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.domain.aggregate.Location;
+import com.inventory.domain.repository.LocationRepository;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,18 +26,25 @@ public class CreateBinCommandHandler implements CommandHandler<CreateBinCommand,
     private final ZoneRepository zoneRepository;
     private final BinRepository binRepository;
     private final IdGenerator idGenerator;
+    private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
 
     @Override
     @InventoryTransactional
     public BinResult handle(CreateBinCommand command) {
         log.info("Creating bin with code={} for zoneId={}", command.code(), command.zoneId().getValue());
-        
+
         Zone zone = zoneRepository.findById(command.zoneId())
-                .orElseThrow(() -> {
-                    log.warn("Zone not found: zoneId={}", command.zoneId().getValue());
-                    return new InventoryServiceException(
-                            new InventoryServiceError.ZoneNotFound(command.zoneId().getValue()));
-                });
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.ZoneNotFound(command.zoneId().getValue())));
+
+        Location location = locationRepository.findById(zone.getLocationId())
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.LocationNotFound(zone.getLocationId().getValue())));
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
+        
+
 
         if (binRepository.existsByCodeAndZoneId(command.code(), command.zoneId())) {
             log.warn("Bin already exists with code={} in zoneId={}", command.code(), command.zoneId().getValue());

@@ -10,6 +10,8 @@ public record UpdateZoneCommand(
         String name,
         ZoneType type,
         Boolean active,
-        String actorId
+        String actorId,
+        String scopeKey,
+        String scopeId
 ) implements Command<ZoneResult> {
 }

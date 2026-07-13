@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Table(name = "inventory_item", indexes = {
         @Index(name = "idx_inventory_sku", columnList = "sku"),
         @Index(name = "idx_inventory_location", columnList = "location_id"),
-        @Index(name = "idx_inventory_seller", columnList = "seller_id"),
+        @Index(name = "idx_inventory_seller", columnList = "merchant_id"),
         @Index(name = "idx_inventory_sku_location", columnList = "sku, location_id", unique = true)
 })
 public class InventoryItemEntity {
@@ -28,8 +28,8 @@ public class InventoryItemEntity {
     @Column(nullable = false)
     private String sku;
 
-    @Column(name = "seller_id", nullable = false)
-    private String sellerId;
+    @Column(name = "merchant_id", nullable = false)
+    private String merchantId;
 
     @Column(name = "product_variant_id")
     private String productVariantId;

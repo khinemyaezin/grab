@@ -5,6 +5,8 @@ import com.grab.store.inventory.internal.api.rest.assembler.BinModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
+import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.BinCommandService;
 import com.grab.store.inventory.internal.api.rest.service.BinQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
@@ -46,6 +48,9 @@ class BinControllerTest {
     @MockBean
     private BinModelAssembler binModelAssembler;
 
+    @MockBean
+    private AuthenticatedInventoryScopeResolver scopeResolver;
+
     private ObjectMapper objectMapper;
 
     private BinResponse sampleBinResponse;
@@ -70,11 +75,15 @@ class BinControllerTest {
 
         when(binModelAssembler.toModel(any(BinResponse.class)))
                 .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
+
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("actor-1");
+        when(scopeResolver.resolve(any())).thenReturn(new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123"));
+
     }
 
     @Test
     void createBin_shouldReturn201() throws Exception {
-        when(binCommandService.createBin(any(CreateBinRequest.class), eq("actor-1")))
+        when(binCommandService.createBin(any(CreateBinRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleBinResponse);
 
         mockMvc.perform(post("/api/v1/inventory/bins")
@@ -89,7 +98,8 @@ class BinControllerTest {
 
     @Test
     void createBin_withoutActorId_shouldReturn201() throws Exception {
-        when(binCommandService.createBin(any(CreateBinRequest.class), eq(null)))
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
+        when(binCommandService.createBin(any(CreateBinRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleBinResponse);
 
         mockMvc.perform(post("/api/v1/inventory/bins")
@@ -117,7 +127,7 @@ class BinControllerTest {
                 "bin-1", "zone-1", "B-A1", "Bin A1 Updated", 200, true
         );
 
-        when(binCommandService.updateBin(eq("bin-1"), any(UpdateBinRequest.class), eq("actor-1")))
+        when(binCommandService.updateBin(eq("bin-1"), any(UpdateBinRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(updated);
 
         mockMvc.perform(patch("/api/v1/inventory/bins/bin-1")
@@ -132,7 +142,7 @@ class BinControllerTest {
 
     @Test
     void activateBin_shouldReturn200() throws Exception {
-        when(binCommandService.activateBin("bin-1", "actor-1"))
+        when(binCommandService.activateBin("bin-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(sampleBinResponse);
 
         mockMvc.perform(patch("/api/v1/inventory/bins/bin-1/activate")
@@ -148,7 +158,7 @@ class BinControllerTest {
                 "bin-1", "zone-1", "B-A1", "Bin A1", 100, false
         );
 
-        when(binCommandService.deactivateBin("bin-1", "actor-1"))
+        when(binCommandService.deactivateBin("bin-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(deactivated);
 
         mockMvc.perform(patch("/api/v1/inventory/bins/bin-1/deactivate")
@@ -200,7 +210,7 @@ class BinControllerTest {
 
     @Test
     void deleteBin_shouldReturn204() throws Exception {
-        doNothing().when(binCommandService).deleteBin("bin-1", "actor-1");
+        doNothing().when(binCommandService).deleteBin("bin-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123"));
 
         mockMvc.perform(delete("/api/v1/inventory/bins/bin-1")
                         .header("X-Actor-Id", "actor-1"))

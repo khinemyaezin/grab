@@ -3,7 +3,7 @@ package com.grab.store.inventory.internal.api.rest.dto.response;
 public record InventoryResponse(
         String id,
         String sku,
-        String sellerId,
+        String merchantId,
         String productVariantId,
         String locationId,
         int onHand,

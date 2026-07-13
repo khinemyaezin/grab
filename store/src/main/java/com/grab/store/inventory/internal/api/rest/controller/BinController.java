@@ -4,8 +4,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.BinModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
-import com.grab.store.inventory.internal.api.rest.service.BinCommandService;
-import com.grab.store.inventory.internal.api.rest.service.BinQueryService;
+import com.grab.store.inventory.internal.api.rest.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +16,8 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.grab.store.shared.security.SecurityPrincipal;
 
 @RestController
 @RequestMapping("/api/v1/inventory/bins")
@@ -26,13 +27,15 @@ public class BinController {
     private final BinCommandService binCommandService;
     private final BinQueryService binQueryService;
     private final BinModelAssembler binModelAssembler;
+    private final AuthenticatedInventoryScopeResolver scopeResolver;
 
     @PostMapping("")
     public ResponseEntity<EntityModel<BinResponse>> createBin(
             @Valid @RequestBody CreateBinRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        BinResponse response = binCommandService.createBin(request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.createBin(request, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(binModelAssembler.toModel(response));
     }
@@ -41,36 +44,40 @@ public class BinController {
     public ResponseEntity<EntityModel<BinResponse>> updateBin(
             @PathVariable String binId,
             @Valid @RequestBody UpdateBinRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        BinResponse response = binCommandService.updateBin(binId, request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.updateBin(binId, request, access);
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
     @PatchMapping("/{binId}/activate")
     public ResponseEntity<EntityModel<BinResponse>> activateBin(
             @PathVariable String binId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        BinResponse response = binCommandService.activateBin(binId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.activateBin(binId, access);
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
     @PatchMapping("/{binId}/deactivate")
     public ResponseEntity<EntityModel<BinResponse>> deactivateBin(
             @PathVariable String binId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        BinResponse response = binCommandService.deactivateBin(binId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.deactivateBin(binId, access);
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
     @DeleteMapping("/{binId}")
     public ResponseEntity<Void> deleteBin(
             @PathVariable String binId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        binCommandService.deleteBin(binId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        binCommandService.deleteBin(binId, access);
         return ResponseEntity.noContent().build();
     }
 

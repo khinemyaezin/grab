@@ -33,8 +33,8 @@ public class LocationQueryService {
         return getLocationByCodeRequestMapper.toResponse(result);
     }
 
-    public Page<LocationResponse> listLocations(String sellerId, Boolean active, LocationType type, Pageable pageable) {
-        var query = listLocationsRequestMapper.toQuery(sellerId, active, type, pageable);
+    public Page<LocationResponse> listLocations(String merchantId, Boolean active, LocationType type, Pageable pageable) {
+        var query = listLocationsRequestMapper.toQuery(merchantId, active, type, pageable);
         Page<ListLocationsResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(listLocationsRequestMapper::toResponse);
     }

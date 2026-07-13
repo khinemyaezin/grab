@@ -9,5 +9,8 @@ public record AdjustStockCommand(
         int newOnHandQuantity,
         AdjustmentReason reason,
         Id createdBy
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<InventoryItemResult> {
 }

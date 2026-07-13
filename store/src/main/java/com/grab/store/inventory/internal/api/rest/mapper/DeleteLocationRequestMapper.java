@@ -7,5 +7,5 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class DeleteLocationRequestMapper {
 
-    public abstract DeleteLocationCommand toCommand(String locationId, String actorId);
+    public abstract DeleteLocationCommand toCommand(String locationId, String actorId, String scopeKey, String scopeId);
 }

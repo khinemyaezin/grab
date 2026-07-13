@@ -50,6 +50,8 @@ public class InventoryServiceException extends DomainException {
                     "Unable to add zone: " + e.codeValue();
             case InventoryServiceError.UnableToAddBin e ->
                     "Unable to add bin: " + e.codeValue();
+            case InventoryServiceError.InventoryScopeForbidden e ->
+                    "A valid Seller Portal inventory scope is required";
         };
     }
 }

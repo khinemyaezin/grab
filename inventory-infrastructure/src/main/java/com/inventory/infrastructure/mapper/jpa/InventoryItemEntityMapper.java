@@ -15,7 +15,7 @@ public abstract class InventoryItemEntityMapper {
     @Mapping(ignore = true, target = InventoryItemEntity_.ID)
     @Mapping(source = "id", target = InventoryItemEntity_.UUID)
     @Mapping(source = "sku", target = InventoryItemEntity_.SKU)
-    @Mapping(source = "sellerId", target = InventoryItemEntity_.SELLER_ID)
+    @Mapping(source = "merchantId", target = InventoryItemEntity_.MERCHANT_ID)
     @Mapping(source = "productVariantId", target = InventoryItemEntity_.PRODUCT_VARIANT_ID)
     @Mapping(source = "locationId", target = InventoryItemEntity_.LOCATION_ID)
     @Mapping(source = "quantity.onHand", target = InventoryItemEntity_.ON_HAND)

@@ -10,13 +10,13 @@ public interface InventoryRepository {
 
     Optional<InventoryItem> findById(Id id);
 
-    List<InventoryItem> findAll(Id sellerId);
+    List<InventoryItem> findAll(Id merchantId);
 
     List<InventoryItem> findBySku(String sku);
 
-    List<InventoryItem> findOutOfStock(Id sellerId);
+    List<InventoryItem> findOutOfStock(Id merchantId);
 
-    List<InventoryItem> findLowStock(Id sellerId);
+    List<InventoryItem> findLowStock(Id merchantId);
 
     List<InventoryItem> findByLocation(Id locationId);
 

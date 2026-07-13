@@ -5,7 +5,7 @@ import com.grab.framework.id.Id;
 import com.inventory.domain.enums.LocationType;
 
 public record CreateLocationCommand(
-        String sellerId,
+        String merchantId,
         String code,
         String name,
         LocationType type,

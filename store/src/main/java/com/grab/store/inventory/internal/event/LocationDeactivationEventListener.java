@@ -5,6 +5,7 @@ import com.inventory.domain.aggregate.Zone;
 import com.inventory.domain.event.LocationDeactivatedEvent;
 import com.inventory.domain.repository.ZoneRepository;
 import com.grab.store.inventory.internal.command.DeactivateZoneCommand;
+import com.grab.store.shared.security.PlatformScopes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -37,7 +38,9 @@ public class LocationDeactivationEventListener {
             try {
                 DeactivateZoneCommand command = new DeactivateZoneCommand(
                         zone.getId(),
-                        "system-cascade-deactivation"
+                        "system-cascade-deactivation",
+                        PlatformScopes.FULFILLMENT_LOCATION_SCOPE,
+                        event.locationId().getValue()
                 );
                 commandBus.dispatch(command);
                 log.info("Dispatched DeactivateZoneCommand for zoneId={}", zone.getId().getValue());

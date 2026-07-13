@@ -26,7 +26,7 @@ class InventoryItemTest {
 
     private static final String SKU = "SKU-001";
     private static final Id ID = id("item-1");
-    private static final Id SELLER_ID = id("seller-1");
+    private static final Id MERCHANT_ID = id("seller-1");
     private static final Id PRODUCT_VARIANT_ID = id("variant-1");
     private static final Id LOCATION_ID = id("location-1");
     private static final Id USER_ID = id("user-1");
@@ -36,7 +36,7 @@ class InventoryItemTest {
 
     @BeforeEach
     void setUp() {
-        item = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, defaultReorderConfig());
+        item = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, ReorderConfig.defaultConfig());
     }
 
     @Nested
@@ -47,7 +47,7 @@ class InventoryItemTest {
         void create_shouldInitializeWithRequiredFields() {
             assertThat(item.getId()).isEqualTo(ID);
             assertThat(item.getSku()).isEqualTo(SKU);
-            assertThat(item.getSellerId()).isEqualTo(SELLER_ID);
+            assertThat(item.getMerchantId()).isEqualTo(MERCHANT_ID);
             assertThat(item.getProductVariantId()).isEqualTo(PRODUCT_VARIANT_ID);
             assertThat(item.getLocationId()).isEqualTo(LOCATION_ID);
             assertThat(item.getStatus()).isEqualTo(InventoryStatus.ACTIVE);
@@ -61,7 +61,7 @@ class InventoryItemTest {
 
         @Test
         void create_withZeroInitialQuantity_shouldNotEmitEvent() {
-            InventoryItem zeroItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 0, defaultReorderConfig());
+            InventoryItem zeroItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 0, ReorderConfig.defaultConfig());
 
             assertThat(zeroItem.getEvents()).isEmpty();
         }
@@ -79,7 +79,7 @@ class InventoryItemTest {
 
         @Test
         void constructor_withNullSku_shouldThrow() {
-            assertThatThrownBy(() -> new InventoryItem(ID, null, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, null, null, null, null))
+            assertThatThrownBy(() -> new InventoryItem(ID, null, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("sku is required");
         }
@@ -88,12 +88,12 @@ class InventoryItemTest {
         void constructor_withNullSellerId_shouldThrow() {
             assertThatThrownBy(() -> new InventoryItem(ID, SKU, null, PRODUCT_VARIANT_ID, LOCATION_ID, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
-                    .hasMessageContaining("sellerId is required");
+                    .hasMessageContaining("merchantId is required");
         }
 
         @Test
         void constructor_withNullLocationId_shouldThrow() {
-            assertThatThrownBy(() -> new InventoryItem(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, null, null, null, null, null))
+            assertThatThrownBy(() -> new InventoryItem(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, null, null, null, null, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("locationId is required");
         }
@@ -114,7 +114,7 @@ class InventoryItemTest {
         @Test
         void getAvailableQuantity_shouldNeverBeNegative() {
             InventoryQuantity quantity = new InventoryQuantity(10, 15, 0, 5);
-            InventoryItem testItem = new InventoryItem(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, quantity, null, InventoryStatus.ACTIVE, LocalDateTime.now());
+            InventoryItem testItem = new InventoryItem(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, quantity, null, InventoryStatus.ACTIVE, LocalDateTime.now());
 
             assertThat(testItem.getAvailableQuantity()).isZero();
         }
@@ -597,7 +597,7 @@ class InventoryItemTest {
         @Test
         void isLowStock_shouldReturnTrueWhenBelowSafetyStock() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
-            InventoryItem lowStockItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 10, config);
+            InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 10, config);
 
             assertThat(lowStockItem.isLowStock()).isTrue();
         }
@@ -605,7 +605,7 @@ class InventoryItemTest {
         @Test
         void isLowStock_shouldReturnFalseWhenAboveSafetyStock() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
-            InventoryItem normalItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
+            InventoryItem normalItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
 
             assertThat(normalItem.isLowStock()).isFalse();
         }
@@ -613,7 +613,7 @@ class InventoryItemTest {
         @Test
         void needsReorder_shouldReturnTrueWhenBelowReorderPoint() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
-            InventoryItem lowStockItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
+            InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
 
             assertThat(lowStockItem.needsReorder()).isTrue();
         }
@@ -621,7 +621,7 @@ class InventoryItemTest {
         @Test
         void getSuggestedReorderQuantity_shouldReturnConfiguredQuantity() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
-            InventoryItem lowStockItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
+            InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
 
             assertThat(lowStockItem.getSuggestedReorderQuantity()).isEqualTo(50);
         }
@@ -629,7 +629,7 @@ class InventoryItemTest {
         @Test
         void receiveStock_shouldEmitLowStockAlertWhenBelowThreshold() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
-            InventoryItem testItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
+            InventoryItem testItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
             testItem.pullEvents();
 
             testItem.writeOff(40, "LOST", "notes", USER_ID, MOVEMENT_ID);
@@ -641,7 +641,7 @@ class InventoryItemTest {
         @Test
         void reserveStock_shouldEmitLowStockAlertWhenBelowThreshold() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
-            InventoryItem testItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
+            InventoryItem testItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
             testItem.pullEvents();
 
             testItem.reserveStock(40, "order-1", USER_ID, MOVEMENT_ID);
@@ -653,7 +653,7 @@ class InventoryItemTest {
         @Test
         void shipStock_shouldEmitLowStockAlertWhenBelowThreshold() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
-            InventoryItem testItem = InventoryItem.create(ID, SKU, SELLER_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
+            InventoryItem testItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
             testItem.reserveStock(40, "order-1", USER_ID, id("mov-1"));
             testItem.shipStock(30, "order-1", USER_ID, id("mov-2"));
 
@@ -843,9 +843,7 @@ class InventoryItemTest {
         }
     }
 
-    private static ReorderConfig defaultReorderConfig() {
-        return new ReorderConfig(0, 0, 0, null);
-    }
+
 
     private static Id id(String value) {
         return () -> value;

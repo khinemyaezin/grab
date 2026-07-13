@@ -20,9 +20,9 @@ public interface LocationJpaRepository extends JpaRepository<LocationEntity, Lon
 
     boolean existsByCode(String code);
 
-    Page<LocationView> findAllBySellerId(@Param("sellerId") String sellerId, Pageable pageable);
+    Page<LocationView> findAllByMerchantId(@Param("merchantId") String merchantId, Pageable pageable);
 
-    Page<LocationView> findAllBySellerIdAndActiveTrue(@Param("sellerId") String sellerId, Pageable pageable);
+    Page<LocationView> findAllByMerchantIdAndActiveTrue(@Param("merchantId") String merchantId, Pageable pageable);
 
-    Page<LocationView> findAllBySellerIdAndType(@Param("sellerId") String sellerId, @Param("type") LocationType type, Pageable pageable);
+    Page<LocationView> findAllByMerchantIdAndType(@Param("merchantId") String merchantId, @Param("type") LocationType type, Pageable pageable);
 }

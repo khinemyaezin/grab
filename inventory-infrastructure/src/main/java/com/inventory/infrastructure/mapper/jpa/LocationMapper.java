@@ -20,7 +20,7 @@ public abstract class LocationMapper {
     @Mapping(source = "entity." + LocationEntity_.NAME, target = "name")
     @Mapping(source = "entity." + LocationEntity_.TYPE, target = "type")
     @Mapping(target = "address", expression = "java(mapAddress(entity))")
-    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "active", source = "entity." + LocationEntity_.ACTIVE)
     public abstract Location toDomain(LocationEntity entity);
 
     @BeforeMapping

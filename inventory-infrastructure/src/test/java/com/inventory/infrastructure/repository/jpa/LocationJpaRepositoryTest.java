@@ -27,7 +27,7 @@ public class LocationJpaRepositoryTest extends RepositoryTestConfig {
         activeWarehouse.setUuid("uuid-warehouse-1");
         activeWarehouse.setCode("WH-001");
         activeWarehouse.setName("Main Warehouse");
-        activeWarehouse.setSellerId("seller-1");
+        activeWarehouse.setMerchantId("seller-1");
         activeWarehouse.setType(LocationType.WAREHOUSE);
         activeWarehouse.setStreet("123 Main St");
         activeWarehouse.setCity("Springfield");
@@ -40,7 +40,7 @@ public class LocationJpaRepositoryTest extends RepositoryTestConfig {
         activeStore.setUuid("uuid-store-1");
         activeStore.setCode("ST-001");
         activeStore.setName("Downtown Store");
-        activeStore.setSellerId("seller-1");
+        activeStore.setMerchantId("seller-1");
         activeStore.setType(LocationType.STORE);
         activeStore.setStreet("456 Oak Ave");
         activeStore.setCity("Springfield");
@@ -53,7 +53,7 @@ public class LocationJpaRepositoryTest extends RepositoryTestConfig {
         inactiveWarehouse.setUuid("uuid-warehouse-2");
         inactiveWarehouse.setCode("WH-002");
         inactiveWarehouse.setName("Old Warehouse");
-        inactiveWarehouse.setSellerId("seller-1");
+        inactiveWarehouse.setMerchantId("seller-1");
         inactiveWarehouse.setType(LocationType.WAREHOUSE);
         inactiveWarehouse.setStreet("789 Elm St");
         inactiveWarehouse.setCity("Springfield");
@@ -112,8 +112,8 @@ public class LocationJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllBySellerId_returnsAllLocationsForSeller() {
-        Page<LocationView> result = locationJpaRepository.findAllBySellerId("seller-1", PageRequest.of(0, 10));
+    void findAllByMerchantId_returnsAllLocationsForSeller() {
+        Page<LocationView> result = locationJpaRepository.findAllByMerchantId("seller-1", PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(3);
         assertThat(result.getContent()).extracting(LocationView::code)
@@ -121,15 +121,15 @@ public class LocationJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllBySellerId_returnsEmptyForUnknownSeller() {
-        Page<LocationView> result = locationJpaRepository.findAllBySellerId("unknown-seller", PageRequest.of(0, 10));
+    void findAllByMerchantId_returnsEmptyForUnknownSeller() {
+        Page<LocationView> result = locationJpaRepository.findAllByMerchantId("unknown-seller", PageRequest.of(0, 10));
 
         assertThat(result.getContent()).isEmpty();
     }
 
     @Test
-    void findAllBySellerIdAndActiveTrue_returnsOnlyActiveLocations() {
-        Page<LocationView> result = locationJpaRepository.findAllBySellerIdAndActiveTrue("seller-1", PageRequest.of(0, 10));
+    void findAllByMerchantIdAndActiveTrue_returnsOnlyActiveLocations() {
+        Page<LocationView> result = locationJpaRepository.findAllByMerchantIdAndActiveTrue("seller-1", PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getContent()).extracting(LocationView::code)
@@ -138,8 +138,8 @@ public class LocationJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllBySellerIdAndType_returnsOnlyMatchingType() {
-        Page<LocationView> result = locationJpaRepository.findAllBySellerIdAndType("seller-1", LocationType.WAREHOUSE, PageRequest.of(0, 10));
+    void findAllByMerchantIdAndType_returnsOnlyMatchingType() {
+        Page<LocationView> result = locationJpaRepository.findAllByMerchantIdAndType("seller-1", LocationType.WAREHOUSE, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getContent()).extracting(LocationView::code)
@@ -148,25 +148,25 @@ public class LocationJpaRepositoryTest extends RepositoryTestConfig {
     }
 
     @Test
-    void findAllBySellerIdAndType_returnsEmptyWhenNoMatch() {
+    void findAllByMerchantIdAndType_returnsEmptyWhenNoMatch() {
         LocationEntity otherSellerStore = new LocationEntity();
         otherSellerStore.setUuid("uuid-other");
         otherSellerStore.setCode("ST-OTHER");
         otherSellerStore.setName("Other Store");
-        otherSellerStore.setSellerId("seller-2");
+        otherSellerStore.setMerchantId("seller-2");
         otherSellerStore.setType(LocationType.STORE);
         otherSellerStore.setActive(true);
         locationJpaRepository.save(otherSellerStore);
 
-        Page<LocationView> result = locationJpaRepository.findAllBySellerIdAndType("seller-2", LocationType.WAREHOUSE, PageRequest.of(0, 10));
+        Page<LocationView> result = locationJpaRepository.findAllByMerchantIdAndType("seller-2", LocationType.WAREHOUSE, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).isEmpty();
     }
 
     @Test
-    void findAllBySellerId_respectsPagination() {
-        Page<LocationView> page0 = locationJpaRepository.findAllBySellerId("seller-1", PageRequest.of(0, 2));
-        Page<LocationView> page1 = locationJpaRepository.findAllBySellerId("seller-1", PageRequest.of(1, 2));
+    void findAllByMerchantId_respectsPagination() {
+        Page<LocationView> page0 = locationJpaRepository.findAllByMerchantId("seller-1", PageRequest.of(0, 2));
+        Page<LocationView> page1 = locationJpaRepository.findAllByMerchantId("seller-1", PageRequest.of(1, 2));
 
         assertThat(page0.getContent()).hasSize(2);
         assertThat(page0.getTotalElements()).isEqualTo(3);

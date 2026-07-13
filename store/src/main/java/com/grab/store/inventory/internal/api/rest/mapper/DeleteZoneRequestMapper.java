@@ -7,5 +7,10 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class DeleteZoneRequestMapper {
 
-    public abstract DeleteZoneCommand toCommand(String zoneId, String actorId);
+    public abstract DeleteZoneCommand toCommand(
+            String zoneId,
+            String actorId,
+            String scopeKey,
+            String scopeId
+    );
 }

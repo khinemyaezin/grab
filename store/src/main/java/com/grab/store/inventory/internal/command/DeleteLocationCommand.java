@@ -6,5 +6,8 @@ import com.grab.framework.id.Id;
 public record DeleteLocationCommand(
         Id locationId,
         String actorId
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<Void> {
 }

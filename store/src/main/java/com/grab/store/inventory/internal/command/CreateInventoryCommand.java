@@ -5,7 +5,7 @@ import com.grab.framework.id.Id;
 
 public record CreateInventoryCommand(
         String sku,
-        Id sellerId,
+        Id merchantId,
         Id productVariantId,
         Id locationId,
         int initialQuantity,
@@ -14,5 +14,8 @@ public record CreateInventoryCommand(
         Integer reorderQuantity,
         Integer maxStock,
         Id createdBy
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<InventoryItemResult> {
 }

@@ -4,24 +4,22 @@ import com.grab.framework.security.AccessContext;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.grab.store.merchant.internal.exception.MerchantServiceError;
 import com.grab.store.merchant.internal.exception.MerchantServiceException;
+import com.grab.store.shared.security.PlatformScopes;
+import com.grab.store.shared.security.ScopeResolverHelper;
 import com.grab.store.shared.security.SecurityPrincipal;
 import org.springframework.stereotype.Component;
 
 @Component
 @MerchantEnabled
 public class AuthenticatedMerchantScopeResolver {
-    private static final String SELLER_PORTAL = "SELLER_PORTAL";
-    private static final String MERCHANT_ACCOUNT_SCOPE = "merchant.account";
     private static final String UNKNOWN = "UNKNOWN";
 
     public String resolveCurrentMerchantId(SecurityPrincipal principal) {
-        AccessContext context = principal.getAccessContext()
-                .orElseThrow(() -> forbidden(UNKNOWN, UNKNOWN, UNKNOWN));
-
-        if (!isMerchantAccountContext(context) || context.scopeId().isBlank()) {
-            throw forbidden(context.platformCode(), context.scopeKey(), context.scopeId());
-        }
-        return context.scopeId();
+        return ScopeResolverHelper.resolveScopeId(
+                        principal,
+                        PlatformScopes.SELLER_PORTAL,
+                        PlatformScopes.MERCHANT_ACCOUNT_SCOPE)
+                .orElseThrow(() -> buildForbiddenException(principal));
     }
 
     public boolean resolveScopedAccess(
@@ -37,15 +35,20 @@ public class AuthenticatedMerchantScopeResolver {
         if (context == null) {
             return false;
         }
-        if (!isMerchantAccountContext(context) || !merchantId.equals(context.scopeId())) {
+        if (!PlatformScopes.SELLER_PORTAL.equals(context.platformCode())
+                || !PlatformScopes.MERCHANT_ACCOUNT_SCOPE.equals(context.scopeKey())
+                || !merchantId.equals(context.scopeId())) {
             throw forbidden(context.platformCode(), context.scopeKey(), context.scopeId());
         }
         return true;
     }
 
-    private boolean isMerchantAccountContext(AccessContext context) {
-        return SELLER_PORTAL.equals(context.platformCode())
-                && MERCHANT_ACCOUNT_SCOPE.equals(context.scopeKey());
+    private MerchantServiceException buildForbiddenException(SecurityPrincipal principal) {
+        AccessContext context = principal != null ? principal.getAccessContext().orElse(null) : null;
+        if (context == null) {
+            return forbidden(UNKNOWN, UNKNOWN, UNKNOWN);
+        }
+        return forbidden(context.platformCode(), context.scopeKey(), context.scopeId());
     }
 
     private MerchantServiceException forbidden(String platformCode, String scopeKey, String scopeId) {

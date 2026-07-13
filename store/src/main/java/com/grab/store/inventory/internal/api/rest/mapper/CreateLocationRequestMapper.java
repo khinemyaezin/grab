@@ -18,7 +18,7 @@ public abstract class CreateLocationRequestMapper {
     @Mapping(target = "state", source = "request.address.state")
     @Mapping(target = "postalCode", source = "request.address.postalCode")
     @Mapping(target = "country", source = "request.address.country")
-    @Mapping(target = "sellerId", source = "createdBy")
+    @Mapping(target = "merchantId", source = "createdBy")
     public abstract CreateLocationCommand toCommand(CreateLocationRequest request, String createdBy);
 
     public abstract LocationResponse toResponse(LocationResult result);

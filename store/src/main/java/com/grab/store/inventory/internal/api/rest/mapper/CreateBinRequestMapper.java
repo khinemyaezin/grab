@@ -10,7 +10,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class CreateBinRequestMapper {
 
-    public abstract CreateBinCommand toCommand(CreateBinRequest request, String actorId);
+    public abstract CreateBinCommand toCommand(CreateBinRequest request, String actorId, String scopeKey, String scopeId);
 
     public abstract BinResponse toResponse(BinResult result);
 }

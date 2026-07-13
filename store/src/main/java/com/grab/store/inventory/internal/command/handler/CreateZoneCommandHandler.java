@@ -11,6 +11,7 @@ import com.grab.store.inventory.internal.command.ZoneResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,18 +24,21 @@ public class CreateZoneCommandHandler implements CommandHandler<CreateZoneComman
     private final LocationRepository locationRepository;
     private final ZoneRepository zoneRepository;
     private final IdGenerator idGenerator;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
 
     @Override
     @InventoryTransactional
     public ZoneResult handle(CreateZoneCommand command) {
         log.info("Creating zone with code={} for locationId={}", command.code(), command.locationId().getValue());
-        
+
         Location location = locationRepository.findById(command.locationId())
                 .orElseThrow(() -> {
                     log.warn("Location not found: locationId={}", command.locationId().getValue());
                     return new InventoryServiceException(
                             new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
                 });
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
 
         if (zoneRepository.existsByCodeAndLocationId(command.code(), command.locationId())) {
             log.warn("Zone already exists with code={} in locationId={}", command.code(), command.locationId().getValue());

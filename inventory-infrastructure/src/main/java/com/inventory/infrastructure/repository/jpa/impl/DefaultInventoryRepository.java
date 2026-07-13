@@ -12,14 +12,13 @@ import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.infrastructure.entity.InventoryItemEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
-import com.inventory.infrastructure.repository.jpa.InventoryQueryRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultInventoryRepository implements InventoryRepository, InventoryQueryRepository {
+public class DefaultInventoryRepository implements InventoryRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultInventoryRepository.class);
 
@@ -58,17 +57,17 @@ public class DefaultInventoryRepository implements InventoryRepository, Inventor
     }
 
     @Override
-    public List<InventoryItem> findLowStock(Id sellerId) {
+    public List<InventoryItem> findLowStock(Id merchantId) {
         return executor.query("InventoryItem", () ->
-                jpaRepository.findLowStockItemsAndSellerId(sellerId.getValue()).stream()
+                jpaRepository.findLowStockItemsAndMerchantId(merchantId.getValue()).stream()
                         .map(mapper::toFullDomainGraph)
                         .toList());
     }
 
     @Override
-    public List<InventoryItem> findOutOfStock(Id sellerId) {
+    public List<InventoryItem> findOutOfStock(Id merchantId) {
         return executor.query("InventoryItem", () ->
-                jpaRepository.findAllByStatusAndSellerId(InventoryStatus.OUT_OF_STOCK, sellerId.getValue()).stream()
+                jpaRepository.findAllByStatusAndMerchantId(InventoryStatus.OUT_OF_STOCK, merchantId.getValue()).stream()
                         .map(mapper::toFullDomainGraph)
                         .toList());
     }
@@ -81,8 +80,8 @@ public class DefaultInventoryRepository implements InventoryRepository, Inventor
     }
 
     @Override
-    public List<InventoryItem> findAll(Id sellerId) {
-        return executor.query("InventoryItem", () -> jpaRepository.findAllBySellerId(sellerId.getValue()).stream()
+    public List<InventoryItem> findAll(Id merchantId) {
+        return executor.query("InventoryItem", () -> jpaRepository.findAllByMerchantId(merchantId.getValue()).stream()
                 .map(mapper::toFullDomainGraph)
                 .toList());
     }

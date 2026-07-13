@@ -3,6 +3,8 @@ package com.grab.store.catalog.internal.api.rest.service;
 import com.grab.framework.security.AccessContext;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
+import com.grab.store.shared.security.PlatformScopes;
+import com.grab.store.shared.security.ScopeResolverHelper;
 import com.grab.store.shared.security.SecurityPrincipal;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,8 +12,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AuthenticatedCatalogMerchantResolver {
-    private static final String SELLER_PORTAL = "SELLER_PORTAL";
-    private static final String MERCHANT_ACCOUNT_SCOPE = "merchant.account";
     private static final String UNKNOWN = "UNKNOWN";
 
     public String resolveCurrentMerchantId() {
@@ -20,14 +20,19 @@ public class AuthenticatedCatalogMerchantResolver {
             throw forbidden(UNKNOWN, UNKNOWN);
         }
 
-        AccessContext context = principal.getAccessContext().orElseThrow(() -> forbidden(UNKNOWN, UNKNOWN));
-        if (!SELLER_PORTAL.equals(context.platformCode())
-                || !MERCHANT_ACCOUNT_SCOPE.equals(context.scopeKey())
-                || context.scopeId() == null
-                || context.scopeId().isBlank()) {
-            throw forbidden(context.scopeKey(), context.scopeId());
+        return ScopeResolverHelper.resolveScopeId(
+                        principal,
+                        PlatformScopes.SELLER_PORTAL,
+                        PlatformScopes.MERCHANT_ACCOUNT_SCOPE)
+                .orElseThrow(() -> buildForbiddenException(principal));
+    }
+
+    private CatalogServiceException buildForbiddenException(SecurityPrincipal principal) {
+        AccessContext context = principal != null ? principal.getAccessContext().orElse(null) : null;
+        if (context == null) {
+            return forbidden(UNKNOWN, UNKNOWN);
         }
-        return context.scopeId();
+        return forbidden(context.scopeKey(), context.scopeId());
     }
 
     private CatalogServiceException forbidden(String scopeKey, String scopeId) {

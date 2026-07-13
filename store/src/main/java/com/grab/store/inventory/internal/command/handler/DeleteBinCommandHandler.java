@@ -7,6 +7,11 @@ import com.grab.store.inventory.internal.command.DeleteBinCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.domain.aggregate.Location;
+import com.inventory.domain.aggregate.Zone;
+import com.inventory.domain.repository.LocationRepository;
+import com.inventory.domain.repository.ZoneRepository;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -17,18 +22,30 @@ import org.springframework.stereotype.Component;
 public class DeleteBinCommandHandler implements CommandHandler<DeleteBinCommand, Void> {
 
     private final BinRepository binRepository;
+    private final ZoneRepository zoneRepository;
+    private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
 
     @Override
     @InventoryTransactional
     public Void handle(DeleteBinCommand command) {
         log.info("Deleting bin with id={}", command.binId().getValue());
         
+        
         Bin bin = binRepository.findById(command.binId())
-                .orElseThrow(() -> {
-                    log.warn("Bin not found: binId={}", command.binId().getValue());
-                    return new InventoryServiceException(
-                            new InventoryServiceError.BinNotFound(command.binId().getValue()));
-                });
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.BinNotFound(command.binId().getValue())));
+
+        Zone zone = zoneRepository.findById(bin.getZoneId())
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.ZoneNotFound(bin.getZoneId().getValue())));
+
+        Location location = locationRepository.findById(zone.getLocationId())
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.LocationNotFound(zone.getLocationId().getValue())));
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
+
 
         bin.delete();
         binRepository.delete(command.binId());

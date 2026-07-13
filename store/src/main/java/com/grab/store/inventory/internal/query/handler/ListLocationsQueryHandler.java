@@ -20,7 +20,7 @@ public class ListLocationsQueryHandler implements QueryHandler<ListLocationsQuer
     @Override
     @InventoryReadTransactional
     public Page<ListLocationsResult> handle(ListLocationsQuery query) {
-        return locationRepository.queryAll(query.sellerId().getValue(), query.pageable())
+        return locationRepository.queryAll(query.merchantId().getValue(), query.pageable())
                 .map(this::convertToLocation);
     }
 

@@ -29,6 +29,11 @@ public class IdentityDomainConfig {
     }
 
     @Bean
+    public com.identity.domain.policy.impl.InventoryOperatorAccessPlacementPolicy inventoryOperatorAccessPlacementPolicy() {
+        return new com.identity.domain.policy.impl.InventoryOperatorAccessPlacementPolicy();
+    }
+
+    @Bean
     public AccessPlacementPolicyResolver accessPlacementPolicyResolver(List<AccessPlacementPolicy> policies) {
         return new AccessPlacementPolicyResolver(policies);
     }

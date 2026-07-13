@@ -23,7 +23,8 @@ public sealed interface InventoryServiceError extends MessageSource permits
         InventoryServiceError.ZoneHasDependentBins,
         InventoryServiceError.AddressCountryRequired,
         InventoryServiceError.UnableToAddZone,
-        InventoryServiceError.UnableToAddBin {
+        InventoryServiceError.UnableToAddBin,
+        InventoryServiceError.InventoryScopeForbidden {
 
     record LocationNotFound(String locationId) implements InventoryServiceError {
         @Override
@@ -334,6 +335,27 @@ public sealed interface InventoryServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("code", codeValue);
+        }
+    }
+
+    record InventoryScopeForbidden(String platformCode, String scopeKey, String scopeId) implements InventoryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "inv.service.scope.forbidden";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "platformCode", platformCode,
+                    "scopeKey", scopeKey,
+                    "scopeId", scopeId
+            );
         }
     }
 }

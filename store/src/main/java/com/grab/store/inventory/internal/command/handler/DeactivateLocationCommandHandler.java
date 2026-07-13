@@ -10,6 +10,7 @@ import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class DeactivateLocationCommandHandler implements CommandHandler<DeactivateLocationCommand, LocationResult> {
 
     private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
     private final InventoryRepository inventoryRepository;
 
     @Override
@@ -27,11 +29,12 @@ public class DeactivateLocationCommandHandler implements CommandHandler<Deactiva
     public LocationResult handle(DeactivateLocationCommand command) {
         log.info("Deactivating location with id={}", command.locationId().getValue());
         
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> {
-                    log.warn("Location not found: locationId={}", command.locationId().getValue());
-                    return new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
-                });
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
 
         boolean hasInventory = inventoryRepository.findByLocation(command.locationId()).stream()
                 .anyMatch(this::hasRemainingStockOrReservations);

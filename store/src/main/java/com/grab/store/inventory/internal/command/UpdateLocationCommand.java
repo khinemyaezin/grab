@@ -17,5 +17,8 @@ public record UpdateLocationCommand(
         String country,
         boolean addressProvided,
         Id updatedBy
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<LocationResult> {
 }

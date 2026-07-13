@@ -37,7 +37,9 @@ public class ZoneDeactivationEventListener {
             try {
                 DeactivateBinCommand command = new DeactivateBinCommand(
                         bin.getId(),
-                        "system-cascade-deactivation"
+                        "system-cascade-deactivation",
+                        "UNKNOWN",
+                        "UNKNOWN"
                 );
                 commandBus.dispatch(command);
                 log.info("Dispatched DeactivateBinCommand for binId={}", bin.getId().getValue());
