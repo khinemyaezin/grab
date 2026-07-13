@@ -136,48 +136,6 @@ class DefaultLocationRepositoryTest {
         verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
     }
 
-    @Test
-    void queryAll_returnsPagedResults() {
-        Pageable pageable = PageRequest.of(0, 10);
-        LocationView view = locationView("loc-1", "WH-001");
-        Page<LocationView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllBySellerId("seller-1", pageable)).thenReturn(expectedPage);
-
-        Page<LocationView> result = repository.queryAll("seller-1", pageable);
-
-        assertSame(expectedPage, result);
-        assertEquals(1, result.getContent().size());
-        verify(jpaRepository).findAllBySellerId("seller-1", pageable);
-        verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
-    }
-
-    @Test
-    void queryByActive_returnsOnlyActiveLocations() {
-        Pageable pageable = PageRequest.of(0, 10);
-        LocationView view = locationView("loc-1", "WH-001");
-        Page<LocationView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllBySellerIdAndActiveTrue("seller-1", pageable)).thenReturn(expectedPage);
-
-        Page<LocationView> result = repository.queryByActive("seller-1", pageable);
-
-        assertSame(expectedPage, result);
-        verify(jpaRepository).findAllBySellerIdAndActiveTrue("seller-1", pageable);
-        verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
-    }
-
-    @Test
-    void queryByType_returnsLocationsByType() {
-        Pageable pageable = PageRequest.of(0, 10);
-        LocationView view = locationView("loc-1", "WH-001");
-        Page<LocationView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllBySellerIdAndType("seller-1", LocationType.WAREHOUSE, pageable)).thenReturn(expectedPage);
-
-        Page<LocationView> result = repository.queryByType("seller-1", LocationType.WAREHOUSE, pageable);
-
-        assertSame(expectedPage, result);
-        verify(jpaRepository).findAllBySellerIdAndType("seller-1", LocationType.WAREHOUSE, pageable);
-        verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
-    }
 
     @Test
     void save_createsNewEntity_whenNotExisting() {

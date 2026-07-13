@@ -99,33 +99,6 @@ class DefaultZoneRepositoryTest {
         verify(executor).query(eq(ZONE_RESOURCE), any(Supplier.class));
     }
 
-    @Test
-    void queryByLocationId_validLocationId_shouldDelegateToJpaRepository() {
-        Pageable pageable = PageRequest.of(0, 20);
-        ZoneView view = new ZoneView("zone-1", "ZONE-P1", "Picking Zone A", ZoneType.PICKING, true, "loc-1");
-        Page<ZoneView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllByLocationId("loc-1", pageable)).thenReturn(expectedPage);
-
-        Page<ZoneView> result = repository.queryByLocationId("loc-1", pageable);
-
-        assertSame(expectedPage, result);
-        verify(jpaRepository).findAllByLocationId("loc-1", pageable);
-        verify(executor).query(eq(ZONE_RESOURCE), any(Supplier.class));
-    }
-
-    @Test
-    void queryByLocationIdAndActive_validLocationId_shouldDelegateToJpaRepository() {
-        Pageable pageable = PageRequest.of(0, 20);
-        ZoneView view = new ZoneView("zone-1", "ZONE-P1", "Picking Zone A", ZoneType.PICKING, true, "loc-1");
-        Page<ZoneView> expectedPage = new PageImpl<>(List.of(view));
-        when(jpaRepository.findAllByLocationIdAndActive("loc-1", true, pageable)).thenReturn(expectedPage);
-
-        Page<ZoneView> result = repository.queryByLocationIdAndActive("loc-1", true, pageable);
-
-        assertSame(expectedPage, result);
-        verify(jpaRepository).findAllByLocationIdAndActive("loc-1", true, pageable);
-        verify(executor).query(eq(ZONE_RESOURCE), any(Supplier.class));
-    }
 
     @Test
     void save_newZone_shouldPersistAndPublishEvents() {

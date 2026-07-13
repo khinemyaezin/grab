@@ -11,7 +11,6 @@ import com.inventory.domain.repository.ZoneRepository;
 import com.inventory.infrastructure.entity.ZoneEntity;
 import com.inventory.infrastructure.mapper.jpa.ZoneJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.ZoneJpaRepository;
-import com.inventory.infrastructure.repository.jpa.ZoneQueryRepository;
 import com.inventory.infrastructure.view.ZoneView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultZoneRepository implements ZoneRepository, ZoneQueryRepository {
+public class DefaultZoneRepository implements ZoneRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultZoneRepository.class);
 
@@ -46,17 +45,6 @@ public class DefaultZoneRepository implements ZoneRepository, ZoneQueryRepositor
                 .toList());
     }
 
-    @Override
-    public Page<ZoneView> queryByLocationId(String locationId, Pageable pageable) {
-        log.debug("Loading zones by locationId={}", locationId);
-        return executor.query("Zone", () -> jpaRepository.findAllByLocationId(locationId, pageable));
-    }
-
-    @Override
-    public Page<ZoneView> queryByLocationIdAndActive(String locationId, boolean active, Pageable pageable) {
-        log.debug("Loading zones by locationId={} and active={}", locationId, active);
-        return executor.query("Zone", () -> jpaRepository.findAllByLocationIdAndActive(locationId, active, pageable));
-    }
 
     @Override
     public Zone save(Zone zone) {

@@ -35,6 +35,12 @@ import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryReservat
 import com.inventory.infrastructure.repository.jpa.impl.DefaultLocationRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultStockMovementRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultZoneRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultBinQueryRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryQueryRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryReservationQueryRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultLocationQueryRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultStockMovementQueryRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultZoneQueryRepository;
 import com.inventory.infrastructure.repository.jpa.support.InventoryPersistenceExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -218,5 +224,40 @@ public class InventoryInfraConfig {
                                                            StockMovementJpaAssembler mapper,
                                                            @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor){
         return new DefaultStockMovementRepository(jpaRepository, mapper, executor);
+    }
+
+    @Bean
+    public DefaultInventoryQueryRepository inventoryQueryRepository() {
+        return new DefaultInventoryQueryRepository();
+    }
+
+    @Bean
+    public DefaultInventoryReservationQueryRepository inventoryReservationQueryRepository(InventoryReservationJpaRepository jpaRepository,
+                                                                          @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultInventoryReservationQueryRepository(jpaRepository, executor);
+    }
+
+    @Bean
+    public DefaultLocationQueryRepository locationQueryRepository(LocationJpaRepository jpaRepository,
+                                                  @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultLocationQueryRepository(jpaRepository, executor);
+    }
+
+    @Bean
+    public DefaultZoneQueryRepository zoneQueryRepository(ZoneJpaRepository jpaRepository,
+                                          @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultZoneQueryRepository(jpaRepository, executor);
+    }
+
+    @Bean
+    public DefaultBinQueryRepository binQueryRepository(BinJpaRepository jpaRepository,
+                                        @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultBinQueryRepository(jpaRepository, executor);
+    }
+
+    @Bean
+    public DefaultStockMovementQueryRepository stockMovementQueryRepository(StockMovementJpaRepository jpaRepository,
+                                                            @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor){
+        return new DefaultStockMovementQueryRepository(jpaRepository, executor);
     }
 }

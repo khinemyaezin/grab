@@ -12,14 +12,13 @@ import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.infrastructure.entity.InventoryItemEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
-import com.inventory.infrastructure.repository.jpa.InventoryQueryRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultInventoryRepository implements InventoryRepository, InventoryQueryRepository {
+public class DefaultInventoryRepository implements InventoryRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultInventoryRepository.class);
 

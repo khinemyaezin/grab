@@ -11,7 +11,6 @@ import com.inventory.domain.repository.BinRepository;
 import com.inventory.infrastructure.entity.BinEntity;
 import com.inventory.infrastructure.mapper.jpa.BinJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.BinJpaRepository;
-import com.inventory.infrastructure.repository.jpa.BinQueryRepository;
 import com.inventory.infrastructure.view.BinView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultBinRepository implements BinRepository, BinQueryRepository {
+public class DefaultBinRepository implements BinRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultBinRepository.class);
 
@@ -53,17 +52,6 @@ public class DefaultBinRepository implements BinRepository, BinQueryRepository {
                 .toList());
     }
 
-    @Override
-    public Page<BinView> queryByZoneId(String zoneId, Pageable pageable) {
-        log.debug("Loading bins by zoneId={}", zoneId);
-        return executor.query("Bin", () -> jpaRepository.findAllByZoneId(zoneId, pageable));
-    }
-
-    @Override
-    public Page<BinView> queryByZoneIdAndActive(String zoneId, boolean active, Pageable pageable) {
-        log.debug("Loading bins by zoneId={} and active={}", zoneId, active);
-        return executor.query("Bin", () -> jpaRepository.findAllByZoneIdAndActive(zoneId, active, pageable));
-    }
 
     @Override
     public Bin save(Bin bin) {

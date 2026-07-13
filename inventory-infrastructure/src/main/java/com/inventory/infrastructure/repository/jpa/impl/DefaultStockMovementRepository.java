@@ -10,7 +10,6 @@ import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.infrastructure.entity.StockMovementEntity;
 import com.inventory.infrastructure.mapper.jpa.StockMovementJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.StockMovementJpaRepository;
-import com.inventory.infrastructure.repository.jpa.StockMovementQueryRepository;
 import com.inventory.infrastructure.view.StockMovementView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultStockMovementRepository implements StockMovementRepository, StockMovementQueryRepository {
+public class DefaultStockMovementRepository implements StockMovementRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultStockMovementRepository.class);
 
@@ -53,44 +52,4 @@ public class DefaultStockMovementRepository implements StockMovementRepository, 
                 .map(mapper::toFullDomainGraph));
     }
 
-    @Override
-    public Page<StockMovementView> queryByInventoryItemId(String inventoryItemId, Pageable pageable) {
-        return executor.query("StockMovement", () ->
-                jpaRepository.findAllByInventoryItemUuidOrderByCreatedAtDesc(
-                        inventoryItemId,
-                        pageable
-                ));
-    }
-
-    @Override
-    public Page<StockMovementView> queryByInventoryItemIdAndDateRange(String inventoryItemId, LocalDateTime from, LocalDateTime to, Pageable pageable) {
-        return executor.query("StockMovement", () ->
-                jpaRepository.findByInventoryItemUuidAndDateRange(inventoryItemId, from, to, pageable));
-    }
-
-    @Override
-    public Page<StockMovementView> queryByReferenceId(String referenceId, Pageable pageable) {
-        return executor.query("StockMovement", () ->
-                jpaRepository.findAllByReferenceId(referenceId, pageable));
-    }
-
-    @Override
-    public Page<StockMovementView> queryByType(StockMovementType type, Pageable pageable) {
-        return executor.query("StockMovement", () ->
-                jpaRepository.findAllByType(type, pageable));
-    }
-
-    @Override
-    public Page<StockMovementView> queryRecentMovements(int days, Pageable pageable) {
-        LocalDateTime since = LocalDateTime.now().minusDays(days);
-        log.debug("Loading recent stock movements since={} for days={}", since, days);
-        return executor.query("StockMovement", () ->
-                jpaRepository.findRecentMovements(since, pageable));
-    }
-
-    @Override
-    public int countByInventoryItemIdAndType(String inventoryItemId, StockMovementType type) {
-        return executor.query("StockMovement", () ->
-                jpaRepository.countByInventoryItemUuidAndType(inventoryItemId, type));
-    }
 }

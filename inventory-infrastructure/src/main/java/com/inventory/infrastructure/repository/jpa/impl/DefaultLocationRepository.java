@@ -12,7 +12,6 @@ import com.inventory.domain.repository.LocationRepository;
 import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.mapper.jpa.LocationJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
-import com.inventory.infrastructure.repository.jpa.LocationQueryRepository;
 import com.inventory.infrastructure.view.LocationView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultLocationRepository implements LocationRepository, LocationQueryRepository {
+public class DefaultLocationRepository implements LocationRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultLocationRepository.class);
 
@@ -45,21 +44,6 @@ public class DefaultLocationRepository implements LocationRepository, LocationQu
                 .map(mapper::toFullDomainGraph));
     }
 
-    @Override
-    public Page<LocationView> queryAll(String sellerId, Pageable pageable) {
-        return executor.query("Location", () -> jpaRepository.findAllBySellerId(sellerId, pageable));
-    }
-
-    @Override
-    public Page<LocationView> queryByActive(String sellerId, Pageable pageable) {
-        return executor.query("Location", () ->
-                jpaRepository.findAllBySellerIdAndActiveTrue(sellerId, pageable));
-    }
-
-    @Override
-    public Page<LocationView> queryByType(String sellerId, LocationType type, Pageable pageable) {
-        return executor.query("Location", () -> jpaRepository.findAllBySellerIdAndType(sellerId, type, pageable));
-    }
 
     @Override
     public Location save(Location location) {

@@ -10,7 +10,6 @@ import com.inventory.domain.repository.InventoryReservationRepository;
 import com.inventory.infrastructure.entity.InventoryReservationEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryReservationJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryReservationJpaRepository;
-import com.inventory.infrastructure.repository.jpa.InventoryReservationQueryRepository;
 import com.inventory.infrastructure.view.InventoryReservationView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,7 +18,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class DefaultInventoryReservationRepository implements InventoryReservationRepository, InventoryReservationQueryRepository {
+public class DefaultInventoryReservationRepository implements InventoryReservationRepository {
 
     private static final Logger log = Loggers.getLogger(DefaultInventoryReservationRepository.class);
 
@@ -60,17 +59,4 @@ public class DefaultInventoryReservationRepository implements InventoryReservati
                 .map(mapper::toFullDomainGraph));
     }
 
-    @Override
-    public Page<InventoryReservationView> queryByInventoryItemId(String inventoryItemId, Pageable pageable) {
-        return executor.query("InventoryReservation", () -> jpaRepository.findAllByInventoryItemUuid(
-                inventoryItemId,
-                pageable
-        ));
-    }
-
-    @Override
-    public Page<InventoryReservationView> queryActiveByOrderId(String orderId, Pageable pageable) {
-        return executor.query("InventoryReservation", () ->
-                jpaRepository.findAllByOrderIdAndStatus(orderId, InventoryReservationStatus.ACTIVE, pageable));
-    }
 }
