@@ -8,6 +8,7 @@ import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryReq
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.*;
+import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
 import com.grab.store.inventory.internal.api.rest.service.InventoryCommandService;
 import com.grab.store.inventory.internal.api.rest.service.InventoryQueryService;
 import jakarta.validation.Valid;
@@ -21,6 +22,8 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.grab.store.shared.security.SecurityPrincipal;
 
 @RestController
 @RequestMapping("/api/v1/inventory/items")
@@ -32,12 +35,14 @@ public class InventoryController {
     private final InventoryMovementModelAssembler inventoryMovementModelAssembler;
     private final InventoryModelAssembler inventoryModelAssembler;
     private final InventoryReservationModelAssembler inventoryReservationModelAssembler;
+    private final AuthenticatedInventoryScopeResolver scopeResolver;
 
     @PostMapping
     public ResponseEntity<EntityModel<InventoryResponse>> createInventory(
             @Valid @RequestBody CreateInventoryRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         InventoryResponse response = inventoryCommandService.createInventory(request, actorId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(inventoryModelAssembler.toModel(response));
@@ -54,8 +59,9 @@ public class InventoryController {
     public ResponseEntity<EntityModel<InventoryResponse>> receiveStock(
             @PathVariable String inventoryItemId,
             @Valid @RequestBody ReceiveStockRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         InventoryResponse response = inventoryCommandService.receiveStock(inventoryItemId, request, actorId);
         return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
     }
@@ -64,9 +70,10 @@ public class InventoryController {
     public ResponseEntity<EntityModel<InventoryReservationResponse>> reserveStock(
             @PathVariable String inventoryItemId,
             @Valid @RequestBody ReserveStockRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId,
+            @AuthenticationPrincipal SecurityPrincipal principal,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         InventoryReservationResponse response = inventoryCommandService.reserveStock(
                 inventoryItemId, request, idempotencyKey, actorId);
         return ResponseEntity.ok(inventoryReservationModelAssembler.toModel(response));
@@ -76,8 +83,9 @@ public class InventoryController {
     public ResponseEntity<EntityModel<InventoryReservationResponse>> releaseReservation(
             @PathVariable String inventoryItemId,
             @PathVariable String reservationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         InventoryReservationResponse response = inventoryCommandService.releaseReservation(inventoryItemId, reservationId, actorId);
         return ResponseEntity.ok(
                 inventoryReservationModelAssembler.toModel(response)
@@ -88,8 +96,9 @@ public class InventoryController {
     public ResponseEntity<EntityModel<InventoryReservationResponse>> shipReservation(
             @PathVariable String inventoryItemId,
             @PathVariable String reservationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         InventoryReservationResponse response = inventoryCommandService.shipReservation(inventoryItemId, reservationId, actorId);
         return ResponseEntity.ok( inventoryReservationModelAssembler.toModel(response));
     }
@@ -98,8 +107,9 @@ public class InventoryController {
     public ResponseEntity<EntityModel<InventoryResponse>> adjustStock(
             @PathVariable String inventoryItemId,
             @Valid @RequestBody AdjustStockRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         InventoryResponse response = inventoryCommandService.adjustStock(inventoryItemId, request, actorId);
         return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
     }

@@ -5,6 +5,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.ZoneModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
+import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
 import com.grab.store.inventory.internal.api.rest.service.ZoneCommandService;
 import com.grab.store.inventory.internal.api.rest.service.ZoneQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
@@ -18,7 +19,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.MediaType;
@@ -49,6 +49,9 @@ class ZoneControllerTest {
     @MockBean
     private ZoneModelAssembler zoneModelAssembler;
 
+    @MockBean
+    private AuthenticatedInventoryScopeResolver scopeResolver;
+
     private ObjectMapper objectMapper;
 
     private ZoneResponse sampleZoneResponse;
@@ -73,6 +76,8 @@ class ZoneControllerTest {
 
         when(zoneModelAssembler.toModel(any(ZoneResponse.class)))
                 .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
+
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("actor-1");
     }
 
     @Test
@@ -92,6 +97,7 @@ class ZoneControllerTest {
 
     @Test
     void createZone_withoutActorId_shouldReturn201() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
         when(zoneCommandService.createZone(eq("loc-1"), any(CreateZoneRequest.class), eq(null)))
                 .thenReturn(sampleZoneResponse);
 

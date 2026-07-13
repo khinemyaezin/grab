@@ -4,6 +4,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.ZoneModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
+import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
 import com.grab.store.inventory.internal.api.rest.service.ZoneCommandService;
 import com.grab.store.inventory.internal.api.rest.service.ZoneQueryService;
 import jakarta.validation.Valid;
@@ -18,6 +19,8 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.grab.store.shared.security.SecurityPrincipal;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -29,13 +32,15 @@ public class ZoneController {
     private final ZoneCommandService zoneCommandService;
     private final ZoneQueryService zoneQueryService;
     private final ZoneModelAssembler zoneModelAssembler;
+    private final AuthenticatedInventoryScopeResolver scopeResolver;
 
     @PostMapping("/locations/{locationId}")
     public ResponseEntity<EntityModel<ZoneResponse>> createZone(
             @PathVariable String locationId,
             @Valid @RequestBody CreateZoneRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         ZoneResponse response = zoneCommandService.createZone(locationId, request, actorId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(zoneModelAssembler.toModel(response));
@@ -45,8 +50,9 @@ public class ZoneController {
     public ResponseEntity<EntityModel<ZoneResponse>> updateZone(
             @PathVariable String zoneId,
             @Valid @RequestBody UpdateZoneRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         ZoneResponse response = zoneCommandService.updateZone(zoneId, request, actorId);
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
@@ -54,8 +60,9 @@ public class ZoneController {
     @PatchMapping("/{zoneId}/activate")
     public ResponseEntity<EntityModel<ZoneResponse>> activateZone(
             @PathVariable String zoneId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         ZoneResponse response = zoneCommandService.activateZone(zoneId, actorId);
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
@@ -63,8 +70,9 @@ public class ZoneController {
     @PatchMapping("/{zoneId}/deactivate")
     public ResponseEntity<EntityModel<ZoneResponse>> deactivateZone(
             @PathVariable String zoneId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         ZoneResponse response = zoneCommandService.deactivateZone(zoneId, actorId);
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
@@ -72,8 +80,9 @@ public class ZoneController {
     @DeleteMapping("/{zoneId}")
     public ResponseEntity<Void> deleteZone(
             @PathVariable String zoneId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
+            @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
         zoneCommandService.deleteZone(zoneId, actorId);
         return ResponseEntity.noContent().build();
     }

@@ -12,6 +12,7 @@ import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockReques
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
+import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
 import com.grab.store.inventory.internal.api.rest.service.InventoryCommandService;
 import com.grab.store.inventory.internal.api.rest.service.InventoryQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
@@ -62,6 +63,9 @@ class InventoryControllerTest {
 
     @MockBean
     private InventoryReservationModelAssembler inventoryReservationModelAssembler;
+
+    @MockBean
+    private AuthenticatedInventoryScopeResolver scopeResolver;
 
     private ObjectMapper objectMapper;
 
@@ -121,6 +125,8 @@ class InventoryControllerTest {
 
         when(inventoryMovementModelAssembler.toModel(any(StockMovementResponse.class)))
                 .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
+
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("actor-1");
     }
 
     @Test
@@ -140,6 +146,7 @@ class InventoryControllerTest {
 
     @Test
     void createInventory_withoutActorId_shouldReturn201() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
         when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), eq(null)))
                 .thenReturn(sampleInventoryResponse);
 

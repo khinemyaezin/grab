@@ -5,6 +5,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.BinModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
+import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
 import com.grab.store.inventory.internal.api.rest.service.BinCommandService;
 import com.grab.store.inventory.internal.api.rest.service.BinQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
@@ -46,6 +47,9 @@ class BinControllerTest {
     @MockBean
     private BinModelAssembler binModelAssembler;
 
+    @MockBean
+    private AuthenticatedInventoryScopeResolver scopeResolver;
+
     private ObjectMapper objectMapper;
 
     private BinResponse sampleBinResponse;
@@ -70,6 +74,8 @@ class BinControllerTest {
 
         when(binModelAssembler.toModel(any(BinResponse.class)))
                 .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
+
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("actor-1");
     }
 
     @Test
@@ -89,6 +95,7 @@ class BinControllerTest {
 
     @Test
     void createBin_withoutActorId_shouldReturn201() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
         when(binCommandService.createBin(any(CreateBinRequest.class), eq(null)))
                 .thenReturn(sampleBinResponse);
 
