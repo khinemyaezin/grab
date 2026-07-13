@@ -7,15 +7,11 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.aggregate.Location;
-import com.inventory.domain.enums.LocationType;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.mapper.jpa.LocationJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
-import com.inventory.infrastructure.view.LocationView;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;

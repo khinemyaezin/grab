@@ -5,17 +5,12 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.entity.StockMovement;
-import com.inventory.domain.enums.StockMovementType;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.infrastructure.entity.StockMovementEntity;
 import com.inventory.infrastructure.mapper.jpa.StockMovementJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.StockMovementJpaRepository;
-import com.inventory.infrastructure.view.StockMovementView;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RequiredArgsConstructor

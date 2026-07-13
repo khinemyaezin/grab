@@ -152,7 +152,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
         List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllBySku("SKU-001");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUuid()).isEqualTo("uuid-inv-1");
+        assertThat(result.getFirst().getUuid()).isEqualTo("uuid-inv-1");
     }
 
     @Test
@@ -193,7 +193,7 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
         List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByStatusAndMerchantId(InventoryStatus.DISCONTINUED, "seller-1");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getSku()).isEqualTo("SKU-003");
+        assertThat(result.getFirst().getSku()).isEqualTo("SKU-003");
     }
 
     @Test

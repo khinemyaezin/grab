@@ -11,10 +11,7 @@ import com.inventory.domain.repository.ZoneRepository;
 import com.inventory.infrastructure.entity.ZoneEntity;
 import com.inventory.infrastructure.mapper.jpa.ZoneJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.ZoneJpaRepository;
-import com.inventory.infrastructure.view.ZoneView;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;

@@ -5,15 +5,11 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.entity.InventoryReservation;
-import com.inventory.domain.enums.InventoryReservationStatus;
 import com.inventory.domain.repository.InventoryReservationRepository;
 import com.inventory.infrastructure.entity.InventoryReservationEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryReservationJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryReservationJpaRepository;
-import com.inventory.infrastructure.view.InventoryReservationView;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 

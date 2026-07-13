@@ -39,14 +39,6 @@ public class Location extends AggregateRoot<Id> {
         return location;
     }
 
-    public static Location createWarehouse(Id id, String code, String name, Address address, Id merchantId) {
-        return new Location(id, merchantId, code, name, LocationType.WAREHOUSE, address, true);
-    }
-
-    public static Location createStore(Id id, String code, String name, Address address, Id merchantId) {
-        return new Location(id, merchantId, code, name, LocationType.STORE, address, true);
-    }
-
     public void update(String code, String name, LocationType type, Address address) {
         if (code != null) {
             this.code = code;
