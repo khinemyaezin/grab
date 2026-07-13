@@ -30,9 +30,9 @@ public interface ReorderService {
         LOW
     }
 
-    List<ReorderSuggestion> calculateReorderSuggestions(Id sellerId);
+    List<ReorderSuggestion> calculateReorderSuggestions(Id merchantId);
     List<ReorderSuggestion> calculateReorderSuggestionsForLocation(Id locationId);
     List<ReorderSuggestion> calculateReorderSuggestionsForSku(String sku);
-    List<InventoryItem> getCriticalReorderItems(Id sellerId);
+    List<InventoryItem> getCriticalReorderItems(Id merchantId);
     ReorderPriority calculatePriority(InventoryItem item);
 }

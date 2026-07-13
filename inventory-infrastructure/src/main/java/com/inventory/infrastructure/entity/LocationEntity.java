@@ -30,7 +30,7 @@ public class LocationEntity {
     private String name;
 
     @Column(nullable = false)
-    private String sellerId;
+    private String merchantId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

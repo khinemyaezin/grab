@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 public record InventoryItemView(
         String uuid,
         String sku,
-        String sellerId,
+        String merchantId,
         String productVariantId,
         String locationId,
         int onHand,

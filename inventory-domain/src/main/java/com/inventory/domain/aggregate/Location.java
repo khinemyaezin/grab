@@ -18,33 +18,33 @@ import java.util.Objects;
 public class Location extends AggregateRoot<Id> {
     private String code;
     private String name;
-    private final Id sellerId;
+    private final Id merchantId;
     private LocationType type;
     private Address address;
     private boolean active;
 
-    public Location(Id id, Id sellerId, String code, String name, LocationType type, Address address, boolean active) {
+    public Location(Id id, Id merchantId, String code, String name, LocationType type, Address address, boolean active) {
         super(id);
         this.code = Objects.requireNonNull(code, "code is required");
         this.name = Objects.requireNonNull(name, "name is required");
-        this.sellerId = Objects.requireNonNull(sellerId, "sellerId is required");
+        this.merchantId = Objects.requireNonNull(merchantId, "merchantId is required");
         this.type = Objects.requireNonNull(type, "type is required");
         this.active = active;
         this.address = address;
     }
 
-    public static Location create(Id id, Id sellerId, String code, String name, LocationType type, Address address) {
-        Location location = new Location(id, sellerId, code, name, type, address, true);
+    public static Location create(Id id, Id merchantId, String code, String name, LocationType type, Address address) {
+        Location location = new Location(id, merchantId, code, name, type, address, true);
         location.addEvent(new LocationCreatedEvent(id, code, name, type, LocalDateTime.now()));
         return location;
     }
 
-    public static Location createWarehouse(Id id, String code, String name, Address address, Id sellerId) {
-        return new Location(id, sellerId, code, name, LocationType.WAREHOUSE, address, true);
+    public static Location createWarehouse(Id id, String code, String name, Address address, Id merchantId) {
+        return new Location(id, merchantId, code, name, LocationType.WAREHOUSE, address, true);
     }
 
-    public static Location createStore(Id id, String code, String name, Address address, Id sellerId) {
-        return new Location(id, sellerId, code, name, LocationType.STORE, address, true);
+    public static Location createStore(Id id, String code, String name, Address address, Id merchantId) {
+        return new Location(id, merchantId, code, name, LocationType.STORE, address, true);
     }
 
     public void update(String code, String name, LocationType type, Address address) {

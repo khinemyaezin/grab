@@ -25,7 +25,7 @@ import java.util.Objects;
 public class InventoryItem extends AggregateRoot<Id> {
 
     private final String sku;
-    private final Id sellerId;
+    private final Id merchantId;
     private final Id productVariantId;
     private final Id locationId;
     private final ReorderConfig reorderConfig;
@@ -36,7 +36,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     public InventoryItem(
             Id id,
             String sku,
-            Id sellerId,
+            Id merchantId,
             Id productVariantId,
             Id locationId,
             InventoryQuantity quantity,
@@ -46,7 +46,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     ) {
         super(id);
         this.sku = Objects.requireNonNull(sku, "sku is required");
-        this.sellerId = Objects.requireNonNull(sellerId, "sellerId is required");
+        this.merchantId = Objects.requireNonNull(merchantId, "merchantId is required");
         this.productVariantId = productVariantId;
         this.locationId = Objects.requireNonNull(locationId, "locationId is required");
         this.quantity = quantity != null ? quantity : InventoryQuantity.zero();
@@ -58,14 +58,14 @@ public class InventoryItem extends AggregateRoot<Id> {
     public static InventoryItem create(
             Id id,
             String sku,
-            Id sellerId,
+            Id merchantId,
             Id productVariantId,
             Id locationId,
             int initialQuantity,
             ReorderConfig reorderConfig
     ) {
         InventoryItem item = new InventoryItem(
-                id, sku, sellerId, productVariantId, locationId,
+                id, sku, merchantId, productVariantId, locationId,
                 InventoryQuantity.withOnHand(initialQuantity),
                 reorderConfig,
                 InventoryStatus.ACTIVE,
@@ -386,7 +386,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         return "InventoryItem{" +
                 "id=" + getId().getValue() +
                 ", sku='" + sku + '\'' +
-                ", sellerId=" + sellerId.getValue() +
+                ", merchantId=" + merchantId.getValue() +
                 ", locationId=" + locationId.getValue() +
                 ", available=" + getAvailableQuantity() +
                 ", onHand=" + quantity.onHand() +

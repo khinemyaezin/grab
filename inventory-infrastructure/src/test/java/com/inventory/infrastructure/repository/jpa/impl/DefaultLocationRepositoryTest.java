@@ -250,12 +250,12 @@ class DefaultLocationRepositoryTest {
         return new Address("123 Main St", null, "Springfield", "IL", "62701", "US");
     }
 
-    private static LocationEntity createLocationEntity(String uuid, String code, String sellerId, LocationType type, boolean active) {
+    private static LocationEntity createLocationEntity(String uuid, String code, String merchantId, LocationType type, boolean active) {
         LocationEntity entity = new LocationEntity();
         entity.setUuid(uuid);
         entity.setCode(code);
         entity.setName(code + " Name");
-        entity.setSellerId(sellerId);
+        entity.setMerchantId(merchantId);
         entity.setType(type);
         entity.setStreet("123 Main St");
         entity.setCity("Springfield");
@@ -266,8 +266,8 @@ class DefaultLocationRepositoryTest {
         return entity;
     }
 
-    private static Location createLocation(String uuid, String code, String sellerId, LocationType type, boolean active) {
-        return new Location(id(uuid), id(sellerId), code, code + " Name", type, address(), active);
+    private static Location createLocation(String uuid, String code, String merchantId, LocationType type, boolean active) {
+        return new Location(id(uuid), id(merchantId), code, code + " Name", type, address(), active);
     }
 
     private static LocationView locationView(String uuid, String code) {

@@ -16,18 +16,18 @@ public class DefaultLocationQueryRepository implements LocationQueryRepository {
     private final PersistenceExecutor executor;
 
     @Override
-    public Page<LocationView> queryAll(String sellerId, Pageable pageable) {
-        return executor.query("Location", () -> jpaRepository.findAllBySellerId(sellerId, pageable));
+    public Page<LocationView> queryAll(String merchantId, Pageable pageable) {
+        return executor.query("Location", () -> jpaRepository.findAllByMerchantId(merchantId, pageable));
     }
 
     @Override
-    public Page<LocationView> queryByActive(String sellerId, Pageable pageable) {
+    public Page<LocationView> queryByActive(String merchantId, Pageable pageable) {
         return executor.query("Location", () ->
-                jpaRepository.findAllBySellerIdAndActiveTrue(sellerId, pageable));
+                jpaRepository.findAllByMerchantIdAndActiveTrue(merchantId, pageable));
     }
 
     @Override
-    public Page<LocationView> queryByType(String sellerId, LocationType type, Pageable pageable) {
-        return executor.query("Location", () -> jpaRepository.findAllBySellerIdAndType(sellerId, type, pageable));
+    public Page<LocationView> queryByType(String merchantId, LocationType type, Pageable pageable) {
+        return executor.query("Location", () -> jpaRepository.findAllByMerchantIdAndType(merchantId, type, pageable));
     }
 }
