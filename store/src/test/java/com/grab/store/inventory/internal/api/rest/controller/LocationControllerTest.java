@@ -10,6 +10,7 @@ import com.grab.store.inventory.internal.api.rest.dto.response.LocationAddressRe
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.LocationCommandService;
 import com.grab.store.inventory.internal.api.rest.service.LocationQueryService;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
@@ -90,6 +91,8 @@ class LocationControllerTest {
                 .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
 
         when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("actor-1");
+        when(scopeResolver.resolve(any())).thenReturn(new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123"));
+
     }
 
     @Test
@@ -138,7 +141,7 @@ class LocationControllerTest {
                         "IL", "60601", "USA")
         );
 
-        when(locationCommandService.updateLocation(eq("loc-1"), any(UpdateLocationRequest.class), eq("actor-1")))
+        when(locationCommandService.updateLocation(eq("loc-1"), any(UpdateLocationRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(updated);
 
         mockMvc.perform(patch("/api/v1/inventory/locations/loc-1")
@@ -152,7 +155,7 @@ class LocationControllerTest {
 
     @Test
     void activateLocation_shouldReturn200() throws Exception {
-        when(locationCommandService.activateLocation("loc-1", "actor-1"))
+        when(locationCommandService.activateLocation("loc-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(sampleLocationResponse);
 
         mockMvc.perform(patch("/api/v1/inventory/locations/loc-1/activate")
@@ -170,7 +173,7 @@ class LocationControllerTest {
                         "IL", "62701", "USA")
         );
 
-        when(locationCommandService.deactivateLocation("loc-1", "actor-1"))
+        when(locationCommandService.deactivateLocation("loc-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(deactivated);
 
         mockMvc.perform(patch("/api/v1/inventory/locations/loc-1/deactivate")
@@ -246,7 +249,7 @@ class LocationControllerTest {
 
     @Test
     void deleteLocation_shouldReturn204() throws Exception {
-        doNothing().when(locationCommandService).deleteLocation("loc-1", "actor-1");
+        doNothing().when(locationCommandService).deleteLocation("loc-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123"));
 
         mockMvc.perform(delete("/api/v1/inventory/locations/loc-1")
                         .header("X-Actor-Id", "actor-1"))

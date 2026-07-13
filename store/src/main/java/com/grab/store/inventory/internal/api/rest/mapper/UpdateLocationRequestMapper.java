@@ -20,7 +20,7 @@ public abstract class UpdateLocationRequestMapper {
     @Mapping(target = "postalCode", source = "request.address.postalCode")
     @Mapping(target = "country", source = "request.address.country")
     @Mapping(target = "addressProvided", expression = "java(request.address() != null)")
-    public abstract UpdateLocationCommand toCommand(String locationId, UpdateLocationRequest request, String updatedBy);
+    public abstract UpdateLocationCommand toCommand(String locationId, UpdateLocationRequest request, String updatedBy, String scopeKey, String scopeId);
 
     public abstract LocationResponse toResponse(LocationResult result);
 

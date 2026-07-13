@@ -20,25 +20,26 @@ public class AuthenticatedInventoryScopeResolver {
                 .orElseThrow(() -> buildForbiddenException(principal));
     }
 
-    public boolean resolveLocationAccess(SecurityPrincipal principal, String targetLocationId) {
+    public ResolvedInventoryAccess resolve(SecurityPrincipal principal) {
         AccessContext context = principal != null ? principal.getAccessContext().orElse(null) : null;
-        if (context == null) {
+        if (context == null
+                || !PlatformScopes.SELLER_PORTAL.equals(context.platformCode())
+                || context.scopeId() == null
+                || context.scopeId().isBlank()) {
             throw buildForbiddenException(principal);
         }
 
-        if (PlatformScopes.SELLER_PORTAL.equals(context.platformCode())) {
-            if (PlatformScopes.MERCHANT_ACCOUNT_SCOPE.equals(context.scopeKey())) {
-                if (context.scopeId() != null && !context.scopeId().isBlank()) {
-                    return true;
-                }
-            } else if (PlatformScopes.FULFILLMENT_LOCATION_SCOPE.equals(context.scopeKey())) {
-                if (targetLocationId != null && targetLocationId.equals(context.scopeId())) {
-                    return true;
-                }
-            }
+        boolean inventoryCapable = PlatformScopes.MERCHANT_ACCOUNT_SCOPE.equals(context.scopeKey())
+                || PlatformScopes.FULFILLMENT_LOCATION_SCOPE.equals(context.scopeKey());
+        if (!inventoryCapable) {
+            throw buildForbiddenException(principal);
         }
 
-        throw buildForbiddenException(principal);
+        return new ResolvedInventoryAccess(
+                principal.getPlatformUserId(),
+                context.scopeKey(),
+                context.scopeId()
+        );
     }
 
     private InventoryServiceException buildForbiddenException(SecurityPrincipal principal) {

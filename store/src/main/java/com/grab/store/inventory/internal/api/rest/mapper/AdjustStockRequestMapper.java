@@ -10,7 +10,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class AdjustStockRequestMapper {
 
-    public abstract AdjustStockCommand toCommand(String inventoryItemId, AdjustStockRequest request, String createdBy);
+    public abstract AdjustStockCommand toCommand(String inventoryItemId, AdjustStockRequest request, String createdBy, String scopeKey, String scopeId);
 
     public abstract InventoryResponse toResponse(InventoryItemResult result);
 }

@@ -9,6 +9,8 @@ public record CreateZoneCommand(
         String code,
         String name,
         ZoneType type,
-        String actorId
+        String actorId,
+        String scopeKey,
+        String scopeId
 ) implements Command<ZoneResult> {
 }

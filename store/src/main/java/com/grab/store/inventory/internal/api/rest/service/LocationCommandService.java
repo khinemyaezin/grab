@@ -10,6 +10,7 @@ import com.grab.store.inventory.internal.api.rest.mapper.DeactivateLocationReque
 import com.grab.store.inventory.internal.api.rest.mapper.DeleteLocationRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.UpdateLocationRequestMapper;
 import lombok.RequiredArgsConstructor;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,26 +30,26 @@ public class LocationCommandService {
         return createLocationRequestMapper.toResponse(result);
     }
 
-    public LocationResponse updateLocation(String locationId, UpdateLocationRequest request, String actorId) {
-        var command = updateLocationRequestMapper.toCommand(locationId, request, actorId);
+    public LocationResponse updateLocation(String locationId, UpdateLocationRequest request, ResolvedInventoryAccess access) {
+        var command = updateLocationRequestMapper.toCommand(locationId, request, access.actorId(), access.scopeKey(), access.scopeId());
         var result = commandBus.dispatch(command);
         return updateLocationRequestMapper.toResponse(result);
     }
 
-    public LocationResponse activateLocation(String locationId, String actorId) {
-        var command = activateLocationRequestMapper.toCommand(locationId, actorId);
+    public LocationResponse activateLocation(String locationId, ResolvedInventoryAccess access) {
+        var command = activateLocationRequestMapper.toCommand(locationId, access.actorId(), access.scopeKey(), access.scopeId());
         var result = commandBus.dispatch(command);
         return activateLocationRequestMapper.toResponse(result);
     }
 
-    public LocationResponse deactivateLocation(String locationId, String actorId) {
-        var command = deactivateLocationRequestMapper.toCommand(locationId, actorId);
+    public LocationResponse deactivateLocation(String locationId, ResolvedInventoryAccess access) {
+        var command = deactivateLocationRequestMapper.toCommand(locationId, access.actorId(), access.scopeKey(), access.scopeId());
         var result = commandBus.dispatch(command);
         return deactivateLocationRequestMapper.toResponse(result);
     }
 
-    public void deleteLocation(String locationId, String actorId) {
-        var command = deleteLocationRequestMapper.toCommand(locationId, actorId);
+    public void deleteLocation(String locationId, ResolvedInventoryAccess access) {
+        var command = deleteLocationRequestMapper.toCommand(locationId, access.actorId(), access.scopeKey(), access.scopeId());
         commandBus.dispatch(command);
     }
 }

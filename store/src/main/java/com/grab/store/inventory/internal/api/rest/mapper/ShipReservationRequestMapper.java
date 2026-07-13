@@ -9,7 +9,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ShipReservationRequestMapper {
 
-    public abstract ShipReservationCommand toCommand(String inventoryItemId, String reservationId, String createdBy);
+    public abstract ShipReservationCommand toCommand(String inventoryItemId, String reservationId, String createdBy, String scopeKey, String scopeId);
 
     public abstract InventoryReservationResponse toResponse(InventoryReservationResult result);
 }

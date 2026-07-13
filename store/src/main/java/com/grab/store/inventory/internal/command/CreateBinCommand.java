@@ -8,6 +8,8 @@ public record CreateBinCommand(
         String code,
         String name,
         Integer maxCapacity,
-        String actorId
+        String actorId,
+        String scopeKey,
+        String scopeId
 ) implements Command<BinResult> {
 }

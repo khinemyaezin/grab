@@ -7,5 +7,8 @@ public record ReleaseReservationCommand(
         Id inventoryItemId,
         Id reservationId,
         Id createdBy
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<InventoryReservationResult> {
 }

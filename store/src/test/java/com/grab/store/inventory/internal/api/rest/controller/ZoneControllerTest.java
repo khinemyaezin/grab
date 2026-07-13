@@ -6,6 +6,7 @@ import com.grab.store.inventory.internal.api.rest.dto.request.CreateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.ZoneCommandService;
 import com.grab.store.inventory.internal.api.rest.service.ZoneQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
@@ -78,11 +79,13 @@ class ZoneControllerTest {
                 .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
 
         when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("actor-1");
+        when(scopeResolver.resolve(any())).thenReturn(new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123"));
+
     }
 
     @Test
     void createZone_shouldReturn201() throws Exception {
-        when(zoneCommandService.createZone(eq("loc-1"), any(CreateZoneRequest.class), eq("actor-1")))
+        when(zoneCommandService.createZone(eq("loc-1"), any(CreateZoneRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleZoneResponse);
 
         mockMvc.perform(post("/api/v1/inventory/zones/locations/loc-1")
@@ -98,7 +101,7 @@ class ZoneControllerTest {
     @Test
     void createZone_withoutActorId_shouldReturn201() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
-        when(zoneCommandService.createZone(eq("loc-1"), any(CreateZoneRequest.class), eq(null)))
+        when(zoneCommandService.createZone(eq("loc-1"), any(CreateZoneRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleZoneResponse);
 
         mockMvc.perform(post("/api/v1/inventory/zones/locations/loc-1")
@@ -126,7 +129,7 @@ class ZoneControllerTest {
                 "zone-1", "loc-1", "Z-A1", "Zone A1 Updated", "STORAGE", true
         );
 
-        when(zoneCommandService.updateZone(eq("zone-1"), any(UpdateZoneRequest.class), eq("actor-1")))
+        when(zoneCommandService.updateZone(eq("zone-1"), any(UpdateZoneRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(updated);
 
         mockMvc.perform(patch("/api/v1/inventory/zones/zone-1")
@@ -140,7 +143,7 @@ class ZoneControllerTest {
 
     @Test
     void activateZone_shouldReturn200() throws Exception {
-        when(zoneCommandService.activateZone("zone-1", "actor-1"))
+        when(zoneCommandService.activateZone("zone-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(sampleZoneResponse);
 
         mockMvc.perform(patch("/api/v1/inventory/zones/zone-1/activate")
@@ -156,7 +159,7 @@ class ZoneControllerTest {
                 "zone-1", "loc-1", "Z-A1", "Zone A1", "STORAGE", false
         );
 
-        when(zoneCommandService.deactivateZone("zone-1", "actor-1"))
+        when(zoneCommandService.deactivateZone("zone-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(deactivated);
 
         mockMvc.perform(patch("/api/v1/inventory/zones/zone-1/deactivate")
@@ -192,7 +195,7 @@ class ZoneControllerTest {
 
     @Test
     void deleteZone_shouldReturn204() throws Exception {
-        doNothing().when(zoneCommandService).deleteZone("zone-1", "actor-1");
+        doNothing().when(zoneCommandService).deleteZone("zone-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123"));
 
         mockMvc.perform(delete("/api/v1/inventory/zones/zone-1")
                         .header("X-Actor-Id", "actor-1"))

@@ -4,9 +4,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.BinModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
-import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
-import com.grab.store.inventory.internal.api.rest.service.BinCommandService;
-import com.grab.store.inventory.internal.api.rest.service.BinQueryService;
+import com.grab.store.inventory.internal.api.rest.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -36,8 +34,8 @@ public class BinController {
             @Valid @RequestBody CreateBinRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        BinResponse response = binCommandService.createBin(request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.createBin(request, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(binModelAssembler.toModel(response));
     }
@@ -48,8 +46,8 @@ public class BinController {
             @Valid @RequestBody UpdateBinRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        BinResponse response = binCommandService.updateBin(binId, request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.updateBin(binId, request, access);
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
@@ -58,8 +56,8 @@ public class BinController {
             @PathVariable String binId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        BinResponse response = binCommandService.activateBin(binId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.activateBin(binId, access);
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
@@ -68,8 +66,8 @@ public class BinController {
             @PathVariable String binId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        BinResponse response = binCommandService.deactivateBin(binId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        BinResponse response = binCommandService.deactivateBin(binId, access);
         return ResponseEntity.ok(binModelAssembler.toModel(response));
     }
 
@@ -78,8 +76,8 @@ public class BinController {
             @PathVariable String binId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        binCommandService.deleteBin(binId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        binCommandService.deleteBin(binId, access);
         return ResponseEntity.noContent().build();
     }
 

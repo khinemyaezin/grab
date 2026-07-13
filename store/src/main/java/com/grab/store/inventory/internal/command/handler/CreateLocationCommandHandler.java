@@ -34,7 +34,7 @@ public class CreateLocationCommandHandler implements CommandHandler<CreateLocati
 
         Location location = Location.create(
                 idGenerator.generateId(),
-                idGenerator.convertIdFrom(command.sellerId()),
+                idGenerator.convertIdFrom(command.merchantId()),
                 command.code(),
                 command.name(),
                 command.type(),

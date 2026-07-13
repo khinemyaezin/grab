@@ -6,5 +6,8 @@ import com.grab.framework.id.Id;
 public record DeactivateLocationCommand(
         Id locationId,
         Id initiatedBy
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<LocationResult> {
 }

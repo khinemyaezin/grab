@@ -8,7 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public record ListLocationsQuery(
-        Id sellerId,
+        Id merchantId,
         Boolean active,
         LocationType type,
         Pageable pageable

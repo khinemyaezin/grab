@@ -3,11 +3,9 @@ package com.grab.store.inventory.internal.command.handler;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
-import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.enums.StockMovementType;
 import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.valueobject.ReorderConfig;
 import com.grab.store.inventory.internal.command.CreateInventoryCommand;
@@ -15,6 +13,9 @@ import com.grab.store.inventory.internal.command.InventoryItemResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.domain.aggregate.Location;
+import com.inventory.domain.repository.LocationRepository;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
     private final IdGenerator idGenerator;
 
     @Override
@@ -52,7 +54,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         InventoryItem item = InventoryItem.create(
                 idGenerator.generateId(),
                 command.sku(),
-                command.sellerId(),
+                command.merchantId(),
                 command.productVariantId(),
                 command.locationId(),
                 command.initialQuantity(),
@@ -99,7 +101,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         return new InventoryItemResult(
                 item.getId().getValue(),
                 item.getSku(),
-                item.getSellerId().getValue(),
+                item.getMerchantId().getValue(),
                 item.getProductVariantId() == null ? null : item.getProductVariantId().getValue(),
                 item.getLocationId().getValue(),
                 item.getQuantity().onHand(),

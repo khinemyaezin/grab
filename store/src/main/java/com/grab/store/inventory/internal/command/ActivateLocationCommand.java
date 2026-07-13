@@ -5,6 +5,8 @@ import com.grab.framework.id.Id;
 
 public record ActivateLocationCommand(
         Id locationId,
-        Id initiatedBy
+        Id initiatedBy,
+        String scopeKey,
+        String scopeId
 ) implements Command<LocationResult> {
 }

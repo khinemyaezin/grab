@@ -9,6 +9,8 @@ public record UpdateBinCommand(
         String name,
         Integer maxCapacity,
         Boolean active,
-        String actorId
+        String actorId,
+        String scopeKey,
+        String scopeId
 ) implements Command<BinResult> {
 }

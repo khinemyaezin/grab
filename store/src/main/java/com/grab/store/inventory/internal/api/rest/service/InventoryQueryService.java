@@ -1,9 +1,11 @@
 package com.grab.store.inventory.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
+import com.grab.framework.id.IdGenerator;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
+import com.grab.store.inventory.internal.query.GetInventoryLocationIdQuery;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsResult;
 import com.grab.store.inventory.internal.query.GetInventoryReservationsResult;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryMovementsRequestMapper;
@@ -22,6 +24,7 @@ public class InventoryQueryService {
     private final GetInventoryRequestMapper getInventoryRequestMapper;
     private final GetInventoryMovementsRequestMapper getInventoryMovementsRequestMapper;
     private final GetInventoryReservationsRequestMapper getInventoryReservationsRequestMapper;
+    private final IdGenerator idGenerator;
 
     public InventoryResponse getInventory(String inventoryItemId) {
         var query = getInventoryRequestMapper.toQuery(inventoryItemId);
@@ -39,5 +42,10 @@ public class InventoryQueryService {
         var query = getInventoryReservationsRequestMapper.toQuery(inventoryItemId, pageable);
         Page<GetInventoryReservationsResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(getInventoryReservationsRequestMapper::toResponse);
+    }
+
+    public String getLocationId(String inventoryItemId) {
+        var query = new GetInventoryLocationIdQuery(idGenerator.convertIdFrom(inventoryItemId));
+        return queryBus.dispatch(query);
     }
 }

@@ -9,6 +9,7 @@ import com.grab.store.inventory.internal.command.UpdateLocationCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -19,17 +20,19 @@ import org.springframework.stereotype.Component;
 public class UpdateLocationCommandHandler implements CommandHandler<UpdateLocationCommand, LocationResult> {
 
     private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
 
     @Override
     @InventoryTransactional
     public LocationResult handle(UpdateLocationCommand command) {
         log.info("Updating location with id={}", command.locationId().getValue());
         
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> {
-                    log.warn("Location not found: locationId={}", command.locationId().getValue());
-                    return new InventoryServiceException(new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
-                });
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
 
         if (command.code() != null && !command.code().isBlank() && !command.code().equals(location.getCode())) {
             if (locationRepository.existsByCode(command.code())) {

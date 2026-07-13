@@ -3,18 +3,19 @@ package com.grab.store.inventory.internal.command.handler;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
-import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.InventoryReservation;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.InventoryReservationRepository;
-import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.grab.store.inventory.internal.command.InventoryReservationResult;
 import com.grab.store.inventory.internal.command.ReserveStockCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.domain.aggregate.Location;
+import com.inventory.domain.repository.LocationRepository;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,7 @@ public class ReserveStockCommandHandler implements CommandHandler<ReserveStockCo
     private final StockMovementRepository stockMovementRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
     private final IdGenerator idGenerator;
 
     @Override
@@ -39,11 +41,16 @@ public class ReserveStockCommandHandler implements CommandHandler<ReserveStockCo
             }
         }
 
+        
         InventoryItem item = inventoryRepository.findById(command.inventoryItemId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.InventoryNotFound(command.inventoryItemId().getValue())));
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.InventoryNotFound(command.inventoryItemId().getValue())));
 
         Location location = locationRepository.findById(item.getLocationId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(item.getLocationId().getValue())));
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.LocationNotFound(item.getLocationId().getValue())));
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
         if (!location.isActive()) {
             throw new InventoryServiceException(new InventoryServiceError.LocationInactive(item.getLocationId().getValue()));
         }

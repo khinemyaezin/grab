@@ -13,5 +13,8 @@ public record ReserveStockCommand(
         LocalDateTime expiresAt,
         String idempotencyKey,
         Id createdBy
+,
+        String scopeKey,
+        String scopeId
 ) implements Command<InventoryReservationResult> {
 }

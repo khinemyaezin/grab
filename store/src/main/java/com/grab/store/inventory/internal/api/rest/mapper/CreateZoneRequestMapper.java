@@ -10,7 +10,13 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class CreateZoneRequestMapper {
 
-    public abstract CreateZoneCommand toCommand(String locationId, CreateZoneRequest request, String actorId);
+    public abstract CreateZoneCommand toCommand(
+            String locationId,
+            CreateZoneRequest request,
+            String actorId,
+            String scopeKey,
+            String scopeId
+    );
 
     public abstract ZoneResponse toResponse(ZoneResult result);
 }

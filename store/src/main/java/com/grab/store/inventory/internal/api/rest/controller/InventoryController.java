@@ -9,6 +9,7 @@ import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockReques
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.*;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.InventoryCommandService;
 import com.grab.store.inventory.internal.api.rest.service.InventoryQueryService;
 import jakarta.validation.Valid;
@@ -42,8 +43,8 @@ public class InventoryController {
             @Valid @RequestBody CreateInventoryRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        InventoryResponse response = inventoryCommandService.createInventory(request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.createInventory(request, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(inventoryModelAssembler.toModel(response));
     }
@@ -61,8 +62,8 @@ public class InventoryController {
             @Valid @RequestBody ReceiveStockRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        InventoryResponse response = inventoryCommandService.receiveStock(inventoryItemId, request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.receiveStock(inventoryItemId, request, access);
         return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
     }
 
@@ -73,9 +74,9 @@ public class InventoryController {
             @AuthenticationPrincipal SecurityPrincipal principal,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
         InventoryReservationResponse response = inventoryCommandService.reserveStock(
-                inventoryItemId, request, idempotencyKey, actorId);
+                inventoryItemId, request, idempotencyKey, access);
         return ResponseEntity.ok(inventoryReservationModelAssembler.toModel(response));
     }
 
@@ -85,8 +86,8 @@ public class InventoryController {
             @PathVariable String reservationId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        InventoryReservationResponse response = inventoryCommandService.releaseReservation(inventoryItemId, reservationId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryReservationResponse response = inventoryCommandService.releaseReservation(inventoryItemId, reservationId, access);
         return ResponseEntity.ok(
                 inventoryReservationModelAssembler.toModel(response)
         );
@@ -98,8 +99,8 @@ public class InventoryController {
             @PathVariable String reservationId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        InventoryReservationResponse response = inventoryCommandService.shipReservation(inventoryItemId, reservationId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryReservationResponse response = inventoryCommandService.shipReservation(inventoryItemId, reservationId, access);
         return ResponseEntity.ok( inventoryReservationModelAssembler.toModel(response));
     }
 
@@ -109,8 +110,8 @@ public class InventoryController {
             @Valid @RequestBody AdjustStockRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        InventoryResponse response = inventoryCommandService.adjustStock(inventoryItemId, request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.adjustStock(inventoryItemId, request, access);
         return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
     }
 

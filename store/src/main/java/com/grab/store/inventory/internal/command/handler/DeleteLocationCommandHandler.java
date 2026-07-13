@@ -8,6 +8,7 @@ import com.grab.store.inventory.internal.command.DeleteLocationCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class DeleteLocationCommandHandler implements CommandHandler<DeleteLocationCommand, Void> {
 
     private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
     private final ZoneRepository zoneRepository;
 
     @Override
@@ -25,12 +27,12 @@ public class DeleteLocationCommandHandler implements CommandHandler<DeleteLocati
     public Void handle(DeleteLocationCommand command) {
         log.info("Deleting location with id={}", command.locationId().getValue());
         
+        
         Location location = locationRepository.findById(command.locationId())
-                .orElseThrow(() -> {
-                    log.warn("Location not found: locationId={}", command.locationId().getValue());
-                    return new InventoryServiceException(
-                            new InventoryServiceError.LocationNotFound(command.locationId().getValue()));
-                });
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.LocationNotFound(command.locationId().getValue())));
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
 
         if (zoneRepository.existsByLocationId(command.locationId())) {
             log.warn("Cannot delete location with dependent zones: locationId={}", command.locationId().getValue());

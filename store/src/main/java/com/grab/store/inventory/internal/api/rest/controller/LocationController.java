@@ -2,6 +2,7 @@ package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.grab.store.inventory.internal.api.rest.assembler.LocationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.LocationCommandService;
 import com.grab.store.inventory.internal.api.rest.service.LocationQueryService;
 import com.inventory.domain.enums.LocationType;
@@ -40,8 +41,8 @@ public class LocationController {
             @Valid @RequestBody CreateLocationRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String sellerId = scopeResolver.resolveOwnerMerchantId(principal);
-        LocationResponse response = locationCommandService.createLocation(request, sellerId);
+        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
+        LocationResponse response = locationCommandService.createLocation(request, actorId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationModelAssembler.toModel(response));
     }
@@ -52,8 +53,8 @@ public class LocationController {
             @Valid @RequestBody UpdateLocationRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String sellerId = scopeResolver.resolveOwnerMerchantId(principal);
-        LocationResponse response =  locationCommandService.updateLocation(locationId, request, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        LocationResponse response =  locationCommandService.updateLocation(locationId, request, access);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
@@ -62,8 +63,8 @@ public class LocationController {
             @PathVariable String locationId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String sellerId = scopeResolver.resolveOwnerMerchantId(principal);
-        LocationResponse response = locationCommandService.activateLocation(locationId, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        LocationResponse response = locationCommandService.activateLocation(locationId, access);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
@@ -72,8 +73,8 @@ public class LocationController {
             @PathVariable String locationId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String sellerId = scopeResolver.resolveOwnerMerchantId(principal);
-        LocationResponse response = locationCommandService.deactivateLocation(locationId, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        LocationResponse response = locationCommandService.deactivateLocation(locationId, access);
         return ResponseEntity.ok(locationModelAssembler.toModel(response));
     }
 
@@ -82,8 +83,8 @@ public class LocationController {
             @PathVariable String locationId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String sellerId = scopeResolver.resolveOwnerMerchantId(principal);
-        locationCommandService.deleteLocation(locationId, sellerId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        locationCommandService.deleteLocation(locationId, access);
         return ResponseEntity.noContent().build();
     }
 
@@ -108,8 +109,8 @@ public class LocationController {
             @PageableDefault(size = 20) Pageable pageable,
             PagedResourcesAssembler<LocationResponse> pagedResourcesAssembler
     ) {
-        String sellerId = scopeResolver.resolveOwnerMerchantId(principal);
-        Page<LocationResponse> response = locationQueryService.listLocations(sellerId, active, type, pageable);
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        Page<LocationResponse> response = locationQueryService.listLocations(merchantId, active, type, pageable);
         PagedModel<EntityModel<LocationResponse>> pageModel = pagedResourcesAssembler.toModel(response, locationModelAssembler);
         pageModel.add(linkTo(methodOn(LocationController.class)
                 .createLocation(null, null))

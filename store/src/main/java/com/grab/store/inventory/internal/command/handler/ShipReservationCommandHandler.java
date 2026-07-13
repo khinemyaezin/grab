@@ -13,6 +13,9 @@ import com.grab.store.inventory.internal.command.ShipReservationCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.domain.aggregate.Location;
+import com.inventory.domain.repository.LocationRepository;
+import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,15 +26,24 @@ public class ShipReservationCommandHandler implements CommandHandler<ShipReserva
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
+    private final LocationRepository locationRepository;
+    private final InventoryLocationAccessPolicy locationAccessPolicy;
     private final IdGenerator idGenerator;
 
     @Override
     @InventoryTransactional
     public InventoryReservationResult handle(ShipReservationCommand command) {
+        
         InventoryItem item = inventoryRepository.findById(command.inventoryItemId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.InventoryNotFound(command.inventoryItemId().getValue())));
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.InventoryNotFound(command.inventoryItemId().getValue())));
 
-        InventoryReservation reservation = inventoryReservationRepository.findById(command.reservationId())
+        Location location = locationRepository.findById(item.getLocationId())
+                .orElseThrow(() -> new InventoryServiceException(
+                        new InventoryServiceError.LocationNotFound(item.getLocationId().getValue())));
+
+        locationAccessPolicy.requireAccess(command.scopeKey(), command.scopeId(), location);
+InventoryReservation reservation = inventoryReservationRepository.findById(command.reservationId())
                 .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.ReservationNotFound(command.reservationId().getValue())));
 
         if (!item.getId().equals(reservation.getInventoryItemId())) {

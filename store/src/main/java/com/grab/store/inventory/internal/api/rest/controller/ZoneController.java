@@ -5,6 +5,7 @@ import com.grab.store.inventory.internal.api.rest.dto.request.CreateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.ZoneCommandService;
 import com.grab.store.inventory.internal.api.rest.service.ZoneQueryService;
 import jakarta.validation.Valid;
@@ -40,8 +41,8 @@ public class ZoneController {
             @Valid @RequestBody CreateZoneRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        ZoneResponse response = zoneCommandService.createZone(locationId, request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        ZoneResponse response = zoneCommandService.createZone(locationId, request, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(zoneModelAssembler.toModel(response));
     }
@@ -52,8 +53,8 @@ public class ZoneController {
             @Valid @RequestBody UpdateZoneRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        ZoneResponse response = zoneCommandService.updateZone(zoneId, request, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        ZoneResponse response = zoneCommandService.updateZone(zoneId, request, access);
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
 
@@ -62,8 +63,8 @@ public class ZoneController {
             @PathVariable String zoneId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        ZoneResponse response = zoneCommandService.activateZone(zoneId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        ZoneResponse response = zoneCommandService.activateZone(zoneId, access);
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
 
@@ -72,8 +73,8 @@ public class ZoneController {
             @PathVariable String zoneId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        ZoneResponse response = zoneCommandService.deactivateZone(zoneId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        ZoneResponse response = zoneCommandService.deactivateZone(zoneId, access);
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
     }
 
@@ -82,8 +83,8 @@ public class ZoneController {
             @PathVariable String zoneId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        String actorId = scopeResolver.resolveOwnerMerchantId(principal);
-        zoneCommandService.deleteZone(zoneId, actorId);
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        zoneCommandService.deleteZone(zoneId, access);
         return ResponseEntity.noContent().build();
     }
 

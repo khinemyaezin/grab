@@ -10,7 +10,13 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class UpdateZoneRequestMapper {
 
-    public abstract UpdateZoneCommand toCommand(String zoneId, UpdateZoneRequest request, String actorId);
+    public abstract UpdateZoneCommand toCommand(
+            String zoneId,
+            UpdateZoneRequest request,
+            String actorId,
+            String scopeKey,
+            String scopeId
+    );
 
     public abstract ZoneResponse toResponse(ZoneResult result);
 }

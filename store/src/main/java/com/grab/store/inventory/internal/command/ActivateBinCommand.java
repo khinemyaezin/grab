@@ -5,6 +5,8 @@ import com.grab.framework.id.Id;
 
 public record ActivateBinCommand(
         Id binId,
-        String actorId
+        String actorId,
+        String scopeKey,
+        String scopeId
 ) implements Command<BinResult> {
 }

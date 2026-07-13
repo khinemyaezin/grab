@@ -13,6 +13,7 @@ import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservat
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
+import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.InventoryCommandService;
 import com.grab.store.inventory.internal.api.rest.service.InventoryQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
@@ -127,11 +128,13 @@ class InventoryControllerTest {
                 .thenAnswer(invocation -> EntityModel.of(invocation.getArgument(0)));
 
         when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("actor-1");
+        when(scopeResolver.resolve(any())).thenReturn(new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123"));
+
     }
 
     @Test
     void createInventory_shouldReturn201() throws Exception {
-        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), eq("actor-1")))
+        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items")
@@ -147,7 +150,7 @@ class InventoryControllerTest {
     @Test
     void createInventory_withoutActorId_shouldReturn201() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
-        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), eq(null)))
+        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items")
@@ -170,7 +173,7 @@ class InventoryControllerTest {
 
     @Test
     void receiveStock_shouldReturn200() throws Exception {
-        when(inventoryCommandService.receiveStock(eq("inv-1"), any(ReceiveStockRequest.class), eq("actor-1")))
+        when(inventoryCommandService.receiveStock(eq("inv-1"), any(ReceiveStockRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items/inv-1/receive")
@@ -185,7 +188,7 @@ class InventoryControllerTest {
     @Test
     void reserveStock_shouldReturn200() throws Exception {
         when(inventoryCommandService.reserveStock(
-                eq("inv-1"), any(ReserveStockRequest.class), eq("idem-1"), eq("actor-1")))
+                eq("inv-1"), any(ReserveStockRequest.class), eq("idem-1"), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleReservationResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items/inv-1/reserve")
@@ -201,7 +204,7 @@ class InventoryControllerTest {
     @Test
     void reserveStock_withoutIdempotencyKey_shouldReturn200() throws Exception {
         when(inventoryCommandService.reserveStock(
-                eq("inv-1"), any(ReserveStockRequest.class), eq(null), eq("actor-1")))
+                eq("inv-1"), any(ReserveStockRequest.class), eq(null), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleReservationResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items/inv-1/reserve")
@@ -214,7 +217,7 @@ class InventoryControllerTest {
 
     @Test
     void releaseReservation_shouldReturn200() throws Exception {
-        when(inventoryCommandService.releaseReservation("inv-1", "res-1", "actor-1"))
+        when(inventoryCommandService.releaseReservation("inv-1", "res-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(sampleReservationResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items/inv-1/reservations/res-1/release")
@@ -226,7 +229,7 @@ class InventoryControllerTest {
 
     @Test
     void shipReservation_shouldReturn200() throws Exception {
-        when(inventoryCommandService.shipReservation("inv-1", "res-1", "actor-1"))
+        when(inventoryCommandService.shipReservation("inv-1", "res-1", new ResolvedInventoryAccess("actor-1", "merchant-account", "merchant-123")))
                 .thenReturn(sampleReservationResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items/inv-1/reservations/res-1/ship")
@@ -237,7 +240,7 @@ class InventoryControllerTest {
 
     @Test
     void adjustStock_shouldReturn200() throws Exception {
-        when(inventoryCommandService.adjustStock(eq("inv-1"), any(AdjustStockRequest.class), eq("actor-1")))
+        when(inventoryCommandService.adjustStock(eq("inv-1"), any(AdjustStockRequest.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items/inv-1/adjust")

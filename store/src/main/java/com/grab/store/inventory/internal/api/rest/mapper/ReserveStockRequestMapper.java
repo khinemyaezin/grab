@@ -10,7 +10,7 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ReserveStockRequestMapper {
 
-    public abstract ReserveStockCommand toCommand(String inventoryItemId, ReserveStockRequest request, String idempotencyKey, String createdBy);
+    public abstract ReserveStockCommand toCommand(String inventoryItemId, ReserveStockRequest request, String idempotencyKey, String createdBy, String scopeKey, String scopeId);
 
     public abstract InventoryReservationResponse toResponse(InventoryReservationResult result);
 }

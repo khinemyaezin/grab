@@ -12,7 +12,7 @@ import org.mapstruct.Mapping;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ActivateLocationRequestMapper {
 
-    public abstract ActivateLocationCommand toCommand(String locationId, String initiatedBy);
+    public abstract ActivateLocationCommand toCommand(String locationId, String initiatedBy, String scopeKey, String scopeId);
 
     public abstract LocationResponse toResponse(LocationResult result);
 

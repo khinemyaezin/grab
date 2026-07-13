@@ -12,7 +12,7 @@ import org.springframework.data.domain.Pageable;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ListLocationsRequestMapper {
 
-    public abstract ListLocationsQuery toQuery(String sellerId, Boolean active, LocationType type, Pageable pageable);
+    public abstract ListLocationsQuery toQuery(String merchantId, Boolean active, LocationType type, Pageable pageable);
 
     public abstract LocationResponse toResponse(ListLocationsResult result);
 

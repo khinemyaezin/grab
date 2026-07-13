@@ -7,5 +7,5 @@ import org.mapstruct.Mapper;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class DeleteBinRequestMapper {
 
-    public abstract DeleteBinCommand toCommand(String binId, String actorId);
+    public abstract DeleteBinCommand toCommand(String binId, String actorId, String scopeKey, String scopeId);
 }
