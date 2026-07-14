@@ -23,8 +23,8 @@ public class InventoryRootController {
                 .withSelfRel());
 
         model.add(linkTo(methodOn(LocationController.class)
-                .listLocations(null, null, null, null, null))
-                .withRel("paged-location"));
+                .searchLocations(null, null, null, null))
+                .withRel("search-locations"));
         model.add(linkTo(methodOn(LocationController.class)
                 .createLocation(null, null))
                 .withRel("create-location"));

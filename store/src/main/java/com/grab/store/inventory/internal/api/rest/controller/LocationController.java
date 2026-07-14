@@ -7,6 +7,7 @@ import com.grab.store.inventory.internal.api.rest.service.LocationCommandService
 import com.grab.store.inventory.internal.api.rest.service.LocationQueryService;
 import com.inventory.domain.enums.LocationType;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateLocationRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchLocationRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateLocationRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
 import jakarta.validation.Valid;
@@ -112,6 +113,29 @@ public class LocationController {
         String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
         Page<LocationResponse> response = locationQueryService.listLocations(merchantId, active, type, pageable);
         PagedModel<EntityModel<LocationResponse>> pageModel = pagedResourcesAssembler.toModel(response, locationModelAssembler);
+        pageModel.add(linkTo(methodOn(LocationController.class)
+                .createLocation(null, null))
+                .withRel("create-location"));
+
+        return ResponseEntity.ok(pageModel);
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<PagedModel<EntityModel<LocationResponse>>> searchLocations(
+            @Valid @RequestBody SearchLocationRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal,
+            @PageableDefault(size = 20) Pageable pageable,
+            PagedResourcesAssembler<LocationResponse> pagedResourcesAssembler
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        Page<LocationResponse> response = locationQueryService.searchLocations(merchantId, request, pageable);
+        PagedModel<EntityModel<LocationResponse>> pageModel = pagedResourcesAssembler.toModel(response, locationModelAssembler);
+        pageModel.add(linkTo(methodOn(LocationController.class)
+                .searchLocations(null, null, null, null))
+                .withRel("search-locations"));
+        pageModel.add(linkTo(methodOn(LocationController.class)
+                .listLocations(null, null, null, null, null))
+                .withRel("list-locations"));
         pageModel.add(linkTo(methodOn(LocationController.class)
                 .createLocation(null, null))
                 .withRel("create-location"));

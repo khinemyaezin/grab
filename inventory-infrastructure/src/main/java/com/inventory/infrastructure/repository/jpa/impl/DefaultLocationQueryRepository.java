@@ -4,6 +4,8 @@ import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.enums.LocationType;
 import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
 import com.inventory.infrastructure.repository.jpa.LocationQueryRepository;
+import com.inventory.infrastructure.specification.jpa.LocationSearchCriteria;
+import com.inventory.infrastructure.specification.jpa.LocationSearchSpecification;
 import com.inventory.infrastructure.view.LocationView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 public class DefaultLocationQueryRepository implements LocationQueryRepository {
 
     private final LocationJpaRepository jpaRepository;
+    private final LocationSearchSpecification searchSpecification;
     private final PersistenceExecutor executor;
 
     @Override
@@ -29,5 +32,10 @@ public class DefaultLocationQueryRepository implements LocationQueryRepository {
     @Override
     public Page<LocationView> queryByType(String merchantId, LocationType type, Pageable pageable) {
         return executor.query("Location", () -> jpaRepository.findAllByMerchantIdAndType(merchantId, type, pageable));
+    }
+
+    @Override
+    public Page<LocationView> search(LocationSearchCriteria criteria, Pageable pageable) {
+        return executor.query("Location", () -> searchSpecification.search(criteria, pageable));
     }
 }

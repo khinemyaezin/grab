@@ -44,6 +44,10 @@ public class ZoneModelAssembler implements RepresentationModelAssembler<ZoneResp
                 .withRel("paged-bin"));
 
         entity.add(linkTo(methodOn(BinController.class)
+                .searchBins(null, null, null, null))
+                .withRel("search-bins"));
+
+        entity.add(linkTo(methodOn(BinController.class)
                 .createBin(null, null))
                 .withRel("create-bin"));
 

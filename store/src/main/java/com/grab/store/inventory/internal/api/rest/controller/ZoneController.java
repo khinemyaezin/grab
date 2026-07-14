@@ -2,6 +2,7 @@ package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.grab.store.inventory.internal.api.rest.assembler.ZoneModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateZoneRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
@@ -110,5 +111,33 @@ public class ZoneController {
     ) {
         ZoneResponse response = zoneQueryService.getZone(zoneId);
         return ResponseEntity.ok(zoneModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<PagedModel<EntityModel<ZoneResponse>>> searchZones(
+            @Valid @RequestBody SearchZoneRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal,
+            @PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable,
+            PagedResourcesAssembler<ZoneResponse> pagedResourcesAssembler
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        Page<ZoneResponse> response = zoneQueryService.searchZones(merchantId, request, pageable);
+        PagedModel<EntityModel<ZoneResponse>> pageModel = pagedResourcesAssembler.toModel(response, zoneModelAssembler);
+
+        if (request.locationId() != null && !request.locationId().isBlank()) {
+            pageModel.add(linkTo(methodOn(ZoneController.class)
+                    .searchZones(null, null, null, null))
+                    .withRel("search-zones"));
+
+            pageModel.add(linkTo(methodOn(ZoneController.class)
+                    .listZones(request.locationId(), null, null))
+                    .withRel("list-zones"));
+
+            pageModel.add(linkTo(methodOn(ZoneController.class)
+                    .createZone(request.locationId(), null, null))
+                    .withRel("create-zone"));
+        }
+
+        return ResponseEntity.ok(pageModel);
     }
 }
