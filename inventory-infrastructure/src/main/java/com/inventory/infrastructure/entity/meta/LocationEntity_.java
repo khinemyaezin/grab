@@ -13,6 +13,7 @@ public class LocationEntity_ {
     public static volatile SingularAttribute<LocationEntity, String> uuid;
     public static volatile SingularAttribute<LocationEntity, String> code;
     public static volatile SingularAttribute<LocationEntity, String> name;
+    public static volatile SingularAttribute<LocationEntity, String> merchantId;
     public static volatile SingularAttribute<LocationEntity, LocationType> type;
     public static volatile SingularAttribute<LocationEntity, String> street;
     public static volatile SingularAttribute<LocationEntity, String> street2;
@@ -27,6 +28,7 @@ public class LocationEntity_ {
     public static final String UUID = "uuid";
     public static final String CODE = "code";
     public static final String NAME = "name";
+    public static final String MERCHANT_ID = "merchantId";
     public static final String TYPE = "type";
     public static final String STREET = "street";
     public static final String STREET2 = "street2";

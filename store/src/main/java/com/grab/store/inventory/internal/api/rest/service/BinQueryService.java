@@ -2,14 +2,16 @@ package com.grab.store.inventory.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.id.IdGenerator;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
 import com.grab.store.inventory.internal.api.rest.mapper.GetBinRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.ListBinsRequestMapper;
+import com.grab.store.inventory.internal.api.rest.mapper.SearchBinsRequestMapper;
 import com.grab.store.inventory.internal.query.GetBinQuery;
 import com.grab.store.inventory.internal.query.GetBinLocationIdQuery;
-import com.grab.framework.id.impl.CommonId;
 import com.grab.store.inventory.internal.query.GetBinResult;
 import com.grab.store.inventory.internal.query.ListBinsResult;
+import com.grab.store.inventory.internal.query.SearchBinsResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +24,7 @@ public class BinQueryService {
     private final QueryBus queryBus;
     private final GetBinRequestMapper getBinRequestMapper;
     private final ListBinsRequestMapper listBinsRequestMapper;
+    private final SearchBinsRequestMapper searchBinsRequestMapper;
     private final IdGenerator idGenerator;
 
     public BinResponse getBin(String binId) {
@@ -34,6 +37,12 @@ public class BinQueryService {
         var query = listBinsRequestMapper.toQuery(zoneId, active, pageable);
         Page<ListBinsResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(listBinsRequestMapper::toResponse);
+    }
+
+    public Page<BinResponse> searchBins(String merchantId, SearchBinRequest request, Pageable pageable) {
+        var query = searchBinsRequestMapper.toQuery(merchantId, request, pageable);
+        Page<SearchBinsResult> resultPage = queryBus.dispatch(query);
+        return resultPage.map(searchBinsRequestMapper::toResponse);
     }
 
     public String getLocationId(String binId) {

@@ -3,6 +3,8 @@ package com.inventory.infrastructure.repository.jpa.impl;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.enums.LocationType;
 import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
+import com.inventory.infrastructure.specification.jpa.LocationSearchCriteria;
+import com.inventory.infrastructure.specification.jpa.LocationSearchSpecification;
 import com.inventory.infrastructure.view.LocationView;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,14 +27,16 @@ class DefaultLocationQueryRepositoryTest {
     private static final String LOCATION_RESOURCE = "Location";
 
     private LocationJpaRepository jpaRepository;
+    private LocationSearchSpecification searchSpecification;
     private PersistenceExecutor executor;
     private DefaultLocationQueryRepository repository;
 
     @BeforeEach
     void setUp() {
         jpaRepository = mock(LocationJpaRepository.class);
+        searchSpecification = mock(LocationSearchSpecification.class);
         executor = mock(PersistenceExecutor.class);
-        repository = new DefaultLocationQueryRepository(jpaRepository, executor);
+        repository = new DefaultLocationQueryRepository(jpaRepository, searchSpecification, executor);
 
         when(executor.query(eq(LOCATION_RESOURCE), any(Supplier.class))).thenAnswer(invocation -> {
             Supplier<?> supplier = invocation.getArgument(1);
@@ -80,6 +84,21 @@ class DefaultLocationQueryRepositoryTest {
 
         assertSame(expectedPage, result);
         verify(jpaRepository).findAllByMerchantIdAndType("seller-1", LocationType.WAREHOUSE, pageable);
+        verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
+    }
+
+    @Test
+    void search_withCriteria_shouldDelegateToSpecification() {
+        Pageable pageable = PageRequest.of(0, 10);
+        LocationSearchCriteria criteria = new LocationSearchCriteria("seller-1", "WH", LocationType.WAREHOUSE, true);
+        LocationView view = locationView("loc-1", "WH-001");
+        Page<LocationView> expectedPage = new PageImpl<>(List.of(view));
+        when(searchSpecification.search(criteria, pageable)).thenReturn(expectedPage);
+
+        Page<LocationView> result = repository.search(criteria, pageable);
+
+        assertSame(expectedPage, result);
+        verify(searchSpecification).search(criteria, pageable);
         verify(executor).query(eq(LOCATION_RESOURCE), any(Supplier.class));
     }
 

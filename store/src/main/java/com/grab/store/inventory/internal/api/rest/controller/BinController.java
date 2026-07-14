@@ -2,6 +2,7 @@ package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.grab.store.inventory.internal.api.rest.assembler.BinModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateBinRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.UpdateBinRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
 import com.grab.store.inventory.internal.api.rest.service.*;
@@ -18,6 +19,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.grab.store.shared.security.SecurityPrincipal;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/api/v1/inventory/bins")
@@ -99,5 +103,33 @@ public class BinController {
         Page<BinResponse> responses = binQueryService.listBins(zoneId, active, pageable);
         PagedModel<EntityModel<BinResponse>> pagedModel = pagedResourcesAssembler.toModel(responses, binModelAssembler);
         return ResponseEntity.ok(pagedModel);
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<PagedModel<EntityModel<BinResponse>>> searchBins(
+            @Valid @RequestBody SearchBinRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal,
+            @PageableDefault(size = 20) Pageable pageable,
+            PagedResourcesAssembler<BinResponse> pagedResourcesAssembler
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        Page<BinResponse> response = binQueryService.searchBins(merchantId, request, pageable);
+        PagedModel<EntityModel<BinResponse>> pageModel = pagedResourcesAssembler.toModel(response, binModelAssembler);
+
+        pageModel.add(linkTo(methodOn(BinController.class)
+                .createBin(null, null))
+                .withRel("create-bin"));
+
+        if (request.zoneId() != null && !request.zoneId().isBlank()) {
+            pageModel.add(linkTo(methodOn(BinController.class)
+                    .searchBins(null, null, null, null))
+                    .withRel("search-bins"));
+
+            pageModel.add(linkTo(methodOn(BinController.class)
+                    .listBins(request.zoneId(), null, null, null))
+                    .withRel("list-bins"));
+        }
+
+        return ResponseEntity.ok(pageModel);
     }
 }

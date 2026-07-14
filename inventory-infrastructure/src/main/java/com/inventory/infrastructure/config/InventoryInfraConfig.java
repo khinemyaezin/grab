@@ -36,6 +36,12 @@ import com.inventory.infrastructure.repository.jpa.impl.DefaultLocationQueryRepo
 import com.inventory.infrastructure.repository.jpa.impl.DefaultStockMovementQueryRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultZoneQueryRepository;
 import com.inventory.infrastructure.repository.jpa.support.InventoryPersistenceExecutor;
+import com.inventory.infrastructure.entity.BinEntity;
+import com.inventory.infrastructure.entity.LocationEntity;
+import com.inventory.infrastructure.entity.ZoneEntity;
+import com.inventory.infrastructure.specification.jpa.BinSearchSpecification;
+import com.inventory.infrastructure.specification.jpa.LocationSearchSpecification;
+import com.inventory.infrastructure.specification.jpa.ZoneSearchSpecification;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -232,21 +238,39 @@ public class InventoryInfraConfig {
     }
 
     @Bean
+    public LocationSearchSpecification locationSearchSpecification(JpaContext context) {
+        return new LocationSearchSpecification(context.getEntityManagerByManagedType(LocationEntity.class));
+    }
+
+    @Bean
+    public ZoneSearchSpecification zoneSearchSpecification(JpaContext context) {
+        return new ZoneSearchSpecification(context.getEntityManagerByManagedType(ZoneEntity.class));
+    }
+
+    @Bean
+    public BinSearchSpecification binSearchSpecification(JpaContext context) {
+        return new BinSearchSpecification(context.getEntityManagerByManagedType(BinEntity.class));
+    }
+
+    @Bean
     public DefaultLocationQueryRepository locationQueryRepository(LocationJpaRepository jpaRepository,
+                                                  LocationSearchSpecification locationSearchSpecification,
                                                   @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
-        return new DefaultLocationQueryRepository(jpaRepository, executor);
+        return new DefaultLocationQueryRepository(jpaRepository, locationSearchSpecification, executor);
     }
 
     @Bean
     public DefaultZoneQueryRepository zoneQueryRepository(ZoneJpaRepository jpaRepository,
+                                          ZoneSearchSpecification zoneSearchSpecification,
                                           @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
-        return new DefaultZoneQueryRepository(jpaRepository, executor);
+        return new DefaultZoneQueryRepository(jpaRepository, zoneSearchSpecification, executor);
     }
 
     @Bean
     public DefaultBinQueryRepository binQueryRepository(BinJpaRepository jpaRepository,
+                                        BinSearchSpecification binSearchSpecification,
                                         @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
-        return new DefaultBinQueryRepository(jpaRepository, executor);
+        return new DefaultBinQueryRepository(jpaRepository, binSearchSpecification, executor);
     }
 
     @Bean

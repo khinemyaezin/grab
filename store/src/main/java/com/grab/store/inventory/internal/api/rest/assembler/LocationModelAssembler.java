@@ -42,7 +42,11 @@ public class LocationModelAssembler
 
         entity.add(linkTo(methodOn(ZoneController.class)
                 .listZones(response.id(), null, null))
-                .withRel("paged-zone"));
+                .withRel("list-zones"));
+
+        entity.add(linkTo(methodOn(ZoneController.class)
+                .searchZones(null, null, null, null))
+                .withRel("search-zones"));
 
         entity.add(linkTo(methodOn(ZoneController.class)
                 .getZoneById(null))
