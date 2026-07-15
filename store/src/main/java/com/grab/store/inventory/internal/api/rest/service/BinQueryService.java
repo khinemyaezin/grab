@@ -10,7 +10,9 @@ import com.grab.store.inventory.internal.api.rest.mapper.SearchBinsRequestMapper
 import com.grab.store.inventory.internal.query.GetBinQuery;
 import com.grab.store.inventory.internal.query.GetBinLocationIdQuery;
 import com.grab.store.inventory.internal.query.GetBinResult;
+import com.grab.store.inventory.internal.query.ListBinsByZoneQuery;
 import com.grab.store.inventory.internal.query.ListBinsResult;
+import com.grab.store.inventory.internal.query.SearchBinsQuery;
 import com.grab.store.inventory.internal.query.SearchBinsResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,19 +36,19 @@ public class BinQueryService {
     }
 
     public Page<BinResponse> listBins(String zoneId, Boolean active, Pageable pageable) {
-        var query = listBinsRequestMapper.toQuery(zoneId, active, pageable);
+        ListBinsByZoneQuery query = listBinsRequestMapper.toQuery(zoneId, active, pageable);
         Page<ListBinsResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(listBinsRequestMapper::toResponse);
     }
 
     public Page<BinResponse> searchBins(String merchantId, SearchBinRequest request, Pageable pageable) {
-        var query = searchBinsRequestMapper.toQuery(merchantId, request, pageable);
+        SearchBinsQuery query = searchBinsRequestMapper.toQuery(merchantId, request, pageable);
         Page<SearchBinsResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(searchBinsRequestMapper::toResponse);
     }
 
     public String getLocationId(String binId) {
-        var query = new GetBinLocationIdQuery(idGenerator.convertIdFrom(binId));
+        GetBinLocationIdQuery query = new GetBinLocationIdQuery(idGenerator.convertIdFrom(binId));
         return queryBus.dispatch(query);
     }
 }

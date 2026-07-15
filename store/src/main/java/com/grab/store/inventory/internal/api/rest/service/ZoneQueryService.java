@@ -12,6 +12,7 @@ import com.grab.store.inventory.internal.query.GetZoneLocationIdQuery;
 import com.grab.store.inventory.internal.query.GetZoneResult;
 import com.grab.store.inventory.internal.query.ListZonesByLocationQuery;
 import com.grab.store.inventory.internal.query.ListZonesResult;
+import com.grab.store.inventory.internal.query.SearchZonesQuery;
 import com.grab.store.inventory.internal.query.SearchZonesResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,13 +42,13 @@ public class ZoneQueryService {
     }
 
     public Page<ZoneResponse> searchZones(String merchantId, SearchZoneRequest request, Pageable pageable) {
-        var query = searchZonesRequestMapper.toQuery(merchantId, request, pageable);
+        SearchZonesQuery query = searchZonesRequestMapper.toQuery(merchantId, request, pageable);
         Page<SearchZonesResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(searchZonesRequestMapper::toResponse);
     }
 
     public String getLocationId(String zoneId) {
-        var query = new GetZoneLocationIdQuery(idGenerator.convertIdFrom(zoneId));
+        GetZoneLocationIdQuery query = new GetZoneLocationIdQuery(idGenerator.convertIdFrom(zoneId));
         return queryBus.dispatch(query);
     }
 }

@@ -13,6 +13,14 @@ import com.grab.store.inventory.internal.api.rest.mapper.ReceiveStockRequestMapp
 import com.grab.store.inventory.internal.api.rest.mapper.ReleaseReservationRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.ReserveStockRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.ShipReservationRequestMapper;
+import com.grab.store.inventory.internal.command.AdjustStockCommand;
+import com.grab.store.inventory.internal.command.CreateInventoryCommand;
+import com.grab.store.inventory.internal.command.InventoryItemResult;
+import com.grab.store.inventory.internal.command.InventoryReservationResult;
+import com.grab.store.inventory.internal.command.ReceiveStockCommand;
+import com.grab.store.inventory.internal.command.ReleaseReservationCommand;
+import com.grab.store.inventory.internal.command.ReserveStockCommand;
+import com.grab.store.inventory.internal.command.ShipReservationCommand;
 import lombok.RequiredArgsConstructor;
 import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import org.springframework.stereotype.Service;
@@ -30,38 +38,38 @@ public class InventoryCommandService {
     private final AdjustStockRequestMapper adjustStockRequestMapper;
 
     public InventoryResponse createInventory(CreateInventoryRequest request, ResolvedInventoryAccess access) {
-        var command = createInventoryRequestMapper.toCommand(request, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        CreateInventoryCommand command = createInventoryRequestMapper.toCommand(request, access.actorId(), access.scopeKey(), access.scopeId());
+        InventoryItemResult result = commandBus.dispatch(command);
         return createInventoryRequestMapper.toResponse(result);
     }
 
     public InventoryResponse receiveStock(String inventoryItemId, ReceiveStockRequest request, ResolvedInventoryAccess access) {
-        var command = receiveStockRequestMapper.toCommand(inventoryItemId, request, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ReceiveStockCommand command = receiveStockRequestMapper.toCommand(inventoryItemId, request, access.actorId(), access.scopeKey(), access.scopeId());
+        InventoryItemResult result = commandBus.dispatch(command);
         return receiveStockRequestMapper.toResponse(result);
     }
 
     public InventoryReservationResponse reserveStock(String inventoryItemId, ReserveStockRequest request, String idempotencyKey, ResolvedInventoryAccess access) {
-        var command = reserveStockRequestMapper.toCommand(inventoryItemId, request, idempotencyKey, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ReserveStockCommand command = reserveStockRequestMapper.toCommand(inventoryItemId, request, idempotencyKey, access.actorId(), access.scopeKey(), access.scopeId());
+        InventoryReservationResult result = commandBus.dispatch(command);
         return reserveStockRequestMapper.toResponse(result);
     }
 
     public InventoryReservationResponse releaseReservation(String inventoryItemId, String reservationId, ResolvedInventoryAccess access) {
-        var command = releaseReservationRequestMapper.toCommand(inventoryItemId, reservationId, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ReleaseReservationCommand command = releaseReservationRequestMapper.toCommand(inventoryItemId, reservationId, access.actorId(), access.scopeKey(), access.scopeId());
+        InventoryReservationResult result = commandBus.dispatch(command);
         return releaseReservationRequestMapper.toResponse(result);
     }
 
     public InventoryReservationResponse shipReservation(String inventoryItemId, String reservationId, ResolvedInventoryAccess access) {
-        var command = shipReservationRequestMapper.toCommand(inventoryItemId, reservationId, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ShipReservationCommand command = shipReservationRequestMapper.toCommand(inventoryItemId, reservationId, access.actorId(), access.scopeKey(), access.scopeId());
+        InventoryReservationResult result = commandBus.dispatch(command);
         return shipReservationRequestMapper.toResponse(result);
     }
 
     public InventoryResponse adjustStock(String inventoryItemId, AdjustStockRequest request, ResolvedInventoryAccess access) {
-        var command = adjustStockRequestMapper.toCommand(inventoryItemId, request, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        AdjustStockCommand command = adjustStockRequestMapper.toCommand(inventoryItemId, request, access.actorId(), access.scopeKey(), access.scopeId());
+        InventoryItemResult result = commandBus.dispatch(command);
         return adjustStockRequestMapper.toResponse(result);
     }
 }

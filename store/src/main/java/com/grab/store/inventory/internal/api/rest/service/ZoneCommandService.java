@@ -9,6 +9,12 @@ import com.grab.store.inventory.internal.api.rest.mapper.CreateZoneRequestMapper
 import com.grab.store.inventory.internal.api.rest.mapper.DeactivateZoneRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.DeleteZoneRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.UpdateZoneRequestMapper;
+import com.grab.store.inventory.internal.command.ActivateZoneCommand;
+import com.grab.store.inventory.internal.command.CreateZoneCommand;
+import com.grab.store.inventory.internal.command.DeactivateZoneCommand;
+import com.grab.store.inventory.internal.command.DeleteZoneCommand;
+import com.grab.store.inventory.internal.command.UpdateZoneCommand;
+import com.grab.store.inventory.internal.command.ZoneResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,35 +30,35 @@ public class ZoneCommandService {
     private final DeleteZoneRequestMapper deleteZoneRequestMapper;
 
     public ZoneResponse createZone(String locationId, CreateZoneRequest request, ResolvedInventoryAccess access) {
-        var command = createZoneRequestMapper.toCommand(
+        CreateZoneCommand command = createZoneRequestMapper.toCommand(
                 locationId, request, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ZoneResult result = commandBus.dispatch(command);
         return createZoneRequestMapper.toResponse(result);
     }
 
     public ZoneResponse updateZone(String zoneId, UpdateZoneRequest request, ResolvedInventoryAccess access) {
-        var command = updateZoneRequestMapper.toCommand(
+        UpdateZoneCommand command = updateZoneRequestMapper.toCommand(
                 zoneId, request, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ZoneResult result = commandBus.dispatch(command);
         return updateZoneRequestMapper.toResponse(result);
     }
 
     public ZoneResponse activateZone(String zoneId, ResolvedInventoryAccess access) {
-        var command = activateZoneRequestMapper.toCommand(
+        ActivateZoneCommand command = activateZoneRequestMapper.toCommand(
                 zoneId, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ZoneResult result = commandBus.dispatch(command);
         return activateZoneRequestMapper.toResponse(result);
     }
 
     public ZoneResponse deactivateZone(String zoneId, ResolvedInventoryAccess access) {
-        var command = deactivateZoneRequestMapper.toCommand(
+        DeactivateZoneCommand command = deactivateZoneRequestMapper.toCommand(
                 zoneId, access.actorId(), access.scopeKey(), access.scopeId());
-        var result = commandBus.dispatch(command);
+        ZoneResult result = commandBus.dispatch(command);
         return deactivateZoneRequestMapper.toResponse(result);
     }
 
     public void deleteZone(String zoneId, ResolvedInventoryAccess access) {
-        var command = deleteZoneRequestMapper.toCommand(
+        DeleteZoneCommand command = deleteZoneRequestMapper.toCommand(
                 zoneId, access.actorId(), access.scopeKey(), access.scopeId());
         commandBus.dispatch(command);
     }
