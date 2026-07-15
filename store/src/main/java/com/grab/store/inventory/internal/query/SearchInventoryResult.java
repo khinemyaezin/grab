@@ -8,6 +8,8 @@ public record SearchInventoryResult(
         Id merchantId,
         String productVariantId,
         Id locationId,
+        String locationCode,
+        String locationName,
         int onHand,
         int reserved,
         int damaged,

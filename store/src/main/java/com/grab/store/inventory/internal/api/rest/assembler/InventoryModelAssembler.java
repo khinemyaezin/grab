@@ -22,16 +22,19 @@ public class InventoryModelAssembler
                 .withSelfRel());
         entity.add(linkTo(methodOn(InventoryController.class)
                 .receiveStock(response.id(), null, null))
-                .withRel("receive"));
+                .withRel("receive-inventory-item"));
+        entity.add(linkTo(methodOn(InventoryController.class)
+                .reserveStock(response.id(), null, null, null))
+                .withRel("reserve-inventory-item"));
         entity.add(linkTo(methodOn(InventoryController.class)
                 .adjustStock(response.id(), null, null))
-                .withRel("adjust"));
+                .withRel("adjust-inventory-item"));
         entity.add(linkTo(methodOn(InventoryController.class)
                 .getMovements(response.id(), null, null))
-                .withRel("movements"));
+                .withRel("list-inventory-item-movements"));
         entity.add(linkTo(methodOn(InventoryController.class)
                 .getReservations(response.id(), null, null))
-                .withRel("reservations"));
+                .withRel("list-inventory-item-reservations"));
 
         return entity;
     }

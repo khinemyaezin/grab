@@ -69,7 +69,7 @@ public class InventoryController {
                 .withRel("search-inventory-items"));
         pageModel.add(linkTo(methodOn(InventoryController.class)
                 .createInventory(null, null))
-                .withRel("create-inventory"));
+                .withRel("create-inventory-item"));
         return ResponseEntity.ok(pageModel);
     }
 

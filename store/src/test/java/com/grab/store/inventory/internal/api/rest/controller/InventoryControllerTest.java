@@ -90,7 +90,7 @@ class InventoryControllerTest {
 
         sampleInventoryResponse = new InventoryResponse(
                 "inv-1", "SKU-001", "seller-1", "variant-1",
-                "loc-1", 100, 10, 0, 90,
+                "loc-1", "LOC-1", "Warehouse One", 100, 10, 0, 90,
                 "ACTIVE", 20, 30, 50, 200
         );
 
@@ -351,8 +351,10 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$._embedded.inventoryResponseList").isArray())
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].id").value("inv-1"))
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationCode").value("LOC-1"))
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationName").value("Warehouse One"))
                 .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
-                .andExpect(jsonPath("$._links.create-inventory.href").exists());
+                .andExpect(jsonPath("$._links.create-inventory-item.href").exists());
     }
 
     @Test

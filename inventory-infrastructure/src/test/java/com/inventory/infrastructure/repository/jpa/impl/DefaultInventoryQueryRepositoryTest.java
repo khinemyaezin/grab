@@ -46,7 +46,7 @@ class DefaultInventoryQueryRepositoryTest {
         Pageable pageable = PageRequest.of(0, 10);
         InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU", "loc-1", InventoryStatus.ACTIVE);
         InventoryItemView view = new InventoryItemView(
-                "uuid-inv-1", "SKU-001", "seller-1", "variant-1", "loc-1",
+                "uuid-inv-1", "SKU-001", "seller-1", "variant-1", "loc-1", "LOC-1", "Warehouse One",
                 100, 10, 0, 0, 20, 30, 50, 200,
                 InventoryStatus.ACTIVE, LocalDateTime.now()
         );

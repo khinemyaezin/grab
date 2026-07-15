@@ -6,6 +6,8 @@ public record InventoryResponse(
         String merchantId,
         String productVariantId,
         String locationId,
+        String locationCode,
+        String locationName,
         int onHand,
         int reserved,
         int damaged,

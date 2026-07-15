@@ -1,8 +1,11 @@
 package com.inventory.infrastructure.specification.jpa;
 
 import com.inventory.domain.enums.InventoryStatus;
+import com.inventory.domain.enums.LocationType;
 import com.inventory.infrastructure.entity.InventoryItemEntity;
+import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
+import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
 import com.inventory.infrastructure.repository.jpa.config.RepositoryTestConfig;
 import com.inventory.infrastructure.view.InventoryItemView;
 import jakarta.persistence.EntityManager;
@@ -25,6 +28,9 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
     @Autowired
     private InventoryItemJpaRepository inventoryItemJpaRepository;
 
+    @Autowired
+    private LocationJpaRepository locationJpaRepository;
+
     private InventorySearchSpecification specification;
 
     private InventoryItemEntity activeItem1;
@@ -35,7 +41,14 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
     @BeforeEach
     void setUp() {
         inventoryItemJpaRepository.deleteAll();
+        locationJpaRepository.deleteAll();
         specification = new InventorySearchSpecification(entityManager);
+
+        locationJpaRepository.saveAll(List.of(
+                location("loc-1", "LOC-1", "Warehouse One", "seller-1"),
+                location("loc-2", "LOC-2", "Store Two", "seller-1"),
+                location("loc-3", "LOC-3", "Warehouse Three", "seller-2")
+        ));
 
         activeItem1 = item("uuid-inv-1", "SKU-001", "seller-1", "loc-1", InventoryStatus.ACTIVE);
         activeItem2 = item("uuid-inv-2", "SKU-002", "seller-1", "loc-2", InventoryStatus.ACTIVE);
@@ -82,6 +95,10 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getContent()).extracting(InventoryItemView::sku)
                 .containsExactlyInAnyOrder("SKU-001", "SKU-003");
+        assertThat(result.getContent()).allSatisfy(view -> {
+            assertThat(view.locationCode()).isEqualTo("LOC-1");
+            assertThat(view.locationName()).isEqualTo("Warehouse One");
+        });
     }
 
     @Test
@@ -99,7 +116,22 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).sku()).isEqualTo("SKU-001");
+        InventoryItemView view = result.getContent().get(0);
+        assertThat(view.sku()).isEqualTo("SKU-001");
+        assertThat(view.locationCode()).isEqualTo("LOC-1");
+        assertThat(view.locationName()).isEqualTo("Warehouse One");
+    }
+
+    @Test
+    void search_includesLocationCodeAndName() {
+        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU-002", null, null);
+        Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+        InventoryItemView view = result.getContent().get(0);
+        assertThat(view.locationId()).isEqualTo("loc-2");
+        assertThat(view.locationCode()).isEqualTo("LOC-2");
+        assertThat(view.locationName()).isEqualTo("Store Two");
     }
 
     @Test
@@ -112,6 +144,17 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
         assertThat(page0.getContent()).extracting(InventoryItemView::sku).containsExactly("SKU-001", "SKU-002");
         assertThat(page1.getContent()).hasSize(1);
         assertThat(page1.getContent()).extracting(InventoryItemView::sku).containsExactly("SKU-003");
+    }
+
+    private static LocationEntity location(String uuid, String code, String name, String merchantId) {
+        LocationEntity entity = new LocationEntity();
+        entity.setUuid(uuid);
+        entity.setCode(code);
+        entity.setName(name);
+        entity.setMerchantId(merchantId);
+        entity.setType(LocationType.WAREHOUSE);
+        entity.setActive(true);
+        return entity;
     }
 
     private static InventoryItemEntity item(

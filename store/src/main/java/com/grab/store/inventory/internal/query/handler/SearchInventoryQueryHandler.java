@@ -46,6 +46,8 @@ public class SearchInventoryQueryHandler implements QueryHandler<SearchInventory
                 idGenerator.convertIdFrom(view.merchantId()),
                 view.productVariantId(),
                 idGenerator.convertIdFrom(view.locationId()),
+                view.locationCode(),
+                view.locationName(),
                 view.onHand(),
                 view.reserved(),
                 view.damaged(),

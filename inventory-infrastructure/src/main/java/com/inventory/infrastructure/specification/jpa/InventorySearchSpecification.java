@@ -1,7 +1,9 @@
 package com.inventory.infrastructure.specification.jpa;
 
 import com.inventory.infrastructure.entity.InventoryItemEntity;
+import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.entity.meta.InventoryItemEntity_;
+import com.inventory.infrastructure.entity.meta.LocationEntity_;
 import com.inventory.infrastructure.view.InventoryItemView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -38,6 +40,7 @@ public class InventorySearchSpecification {
 
         CriteriaQuery<InventoryItemView> dataQuery = cb.createQuery(InventoryItemView.class);
         Root<InventoryItemEntity> root = dataQuery.from(InventoryItemEntity.class);
+        Root<LocationEntity> location = dataQuery.from(LocationEntity.class);
         dataQuery.select(cb.construct(
                 InventoryItemView.class,
                 root.get(InventoryItemEntity_.UUID),
@@ -45,6 +48,8 @@ public class InventorySearchSpecification {
                 root.get(InventoryItemEntity_.MERCHANT_ID),
                 root.get(InventoryItemEntity_.PRODUCT_VARIANT_ID),
                 root.get(InventoryItemEntity_.LOCATION_ID),
+                location.get(LocationEntity_.CODE),
+                location.get(LocationEntity_.NAME),
                 root.get(InventoryItemEntity_.ON_HAND),
                 root.get(InventoryItemEntity_.RESERVED),
                 root.get(InventoryItemEntity_.IN_TRANSIT),
@@ -56,7 +61,9 @@ public class InventorySearchSpecification {
                 root.get(InventoryItemEntity_.STATUS),
                 root.get(InventoryItemEntity_.LAST_UPDATED)
         ));
-        dataQuery.where(toPredicates(cb, root, criteria).toArray(new Predicate[0]));
+        List<Predicate> predicates = toPredicates(cb, root, criteria);
+        predicates.add(cb.equal(root.get(InventoryItemEntity_.LOCATION_ID), location.get(LocationEntity_.UUID)));
+        dataQuery.where(predicates.toArray(new Predicate[0]));
         applySort(cb, dataQuery, root, pageable.getSort());
 
         TypedQuery<InventoryItemView> typedQuery = entityManager.createQuery(dataQuery);
