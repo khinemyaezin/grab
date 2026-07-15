@@ -1,5 +1,6 @@
 package com.grab.store.inventory.internal.api.rest.controller;
 
+import com.grab.store.catalog.api.CatalogApiLinks;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
@@ -70,6 +71,8 @@ public class InventoryController {
         pageModel.add(linkTo(methodOn(InventoryController.class)
                 .createInventory(null, null))
                 .withRel("create-inventory-item"));
+        pageModel.add(CatalogApiLinks.searchProducts());
+        pageModel.add(CatalogApiLinks.getProduct());
         return ResponseEntity.ok(pageModel);
     }
 

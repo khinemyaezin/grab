@@ -40,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -354,7 +355,9 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationCode").value("LOC-1"))
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationName").value("Warehouse One"))
                 .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
-                .andExpect(jsonPath("$._links.create-inventory-item.href").exists());
+                .andExpect(jsonPath("$._links.create-inventory-item.href").exists())
+                .andExpect(jsonPath("$._links.search-products.href").value(containsString("/api/v1/catalog/products/search")))
+                .andExpect(jsonPath("$._links.get-product.href").value(containsString("/api/v1/catalog/products/{productId}")));
     }
 
     @Test

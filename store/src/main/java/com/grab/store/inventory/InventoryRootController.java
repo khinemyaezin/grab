@@ -1,5 +1,6 @@
 package com.grab.store.inventory;
 
+import com.grab.store.catalog.api.CatalogApiLinks;
 import com.grab.store.inventory.internal.api.rest.controller.InventoryController;
 import com.grab.store.inventory.internal.api.rest.controller.LocationController;
 import org.springframework.hateoas.MediaTypes;
@@ -42,6 +43,9 @@ public class InventoryRootController {
         model.add(linkTo(methodOn(InventoryController.class)
                 .getInventory(null))
                 .withRel("inventory-item"));
+
+        model.add(CatalogApiLinks.searchProducts());
+        model.add(CatalogApiLinks.getProduct());
 
         return ResponseEntity.ok(model);
     }

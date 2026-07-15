@@ -11,8 +11,9 @@ You MUST follow every rule below when generating, reviewing, or refactoring code
 - **Spring Modulith:**
   - Each bounded context has `@ApplicationModule(allowedDependencies = "shared")` marker class (e.g. `CatalogModule`, `InventoryModule`).
   - **`shared`** is declared OPEN: `@ApplicationModule(type = ApplicationModule.Type.OPEN)` on `com.grab.store.shared` (`package-info.java`).
-  - Internal package goes under `internal/`. Cross-module communication is via domain/integration events only — no direct method calls into another module's internals.
+  - Internal package goes under `internal/`. Cross-module communication is via domain/integration events and published named interfaces only — no direct method calls into another module's `internal/` packages.
   - **Named interfaces for cross-module events:** publish events from a public named-interface package (e.g. `com.grab.store.merchant.events` with `@NamedInterface("events")`). Consuming modules declare the dependency explicitly, e.g. `@ApplicationModule(allowedDependencies = {"shared", "merchant::events"})` on `IdentityModule`.
+  - **Named interfaces for cross-module HATEOAS links:** publish link facades from a public named-interface package (e.g. `com.grab.store.catalog.api` with `@NamedInterface("api")`). Consuming modules declare `{module}::api` in `allowedDependencies` (see R8 Cross-domain link relations).
 - **Domain layer** (`{name}-domain/`): NO Spring, JPA, or MapStruct annotations. Contains aggregates, entities, value objects, events, repository interfaces, domain services, **domain policies**.
 - **Infrastructure layer** (`{name}-infrastructure/`): JPA entities, JPA↔domain mappers (MapStruct), repository implementations, outbox event producers.
 - **Application layer** (`store/`): Controllers, services, command/query handlers, mappers, assemblers, event listeners, **application policies**.
@@ -131,7 +132,7 @@ Rules: kebab-case, action-first, plural for collections, never `paged-*`, never 
 
 ### 3-Tier API Discovery
 1. **Tier 1** (`ApiRootController` at `GET /api/v1`): links to all bounded context roots
-2. **Tier 2** (`{Context}RootController` at `GET /api/v1/{context}`): links to top-level resources
+2. **Tier 2** (`{Context}RootController` at `GET /api/v1/{context}`): links to top-level resources **plus** any cross-domain workflow entry links required by that context (via `{owner}::api` — see Cross-domain link relations)
 3. **Tier 3**: Individual resource endpoints
 - New bounded context = new Tier 2 root + update `ApiRootController`
 - Root endpoints return `ResponseEntity<RepresentationModel<?>>` with `MediaTypes.HAL_JSON_VALUE`
@@ -139,6 +140,68 @@ Rules: kebab-case, action-first, plural for collections, never `paged-*`, never 
 ### Bare EntityModel
 - `EntityModel.of(dto)` without links is acceptable for bulk/utility/audit endpoints
 - Prefer adding a meaningful navigation link
+
+### Cross-domain link relations
+
+HATEOAS links may point across bounded contexts for **UI/workflow discovery**. Links are navigation affordances only — the owning module still serves the data and owns the endpoint.
+
+#### Ownership rules
+| Concern | Owner |
+|---|---|
+| Endpoint URI + controller | Owning bounded context (e.g. catalog owns `/api/v1/catalog/products/search`) |
+| Data returned by that endpoint | Owning bounded context |
+| Advertising the link from another context's response | Consuming module via published `{owner}::api` facade |
+| Local read-model / projection for validation | Consuming module (not a substitute for the owner's list/search API) |
+
+#### MUST
+- Advertise cross-domain navigation through a **published link facade** in the owning module: package `com.grab.store.{owner}.api` with `@NamedInterface("api")`.
+- Facade class name: `{Owner}ApiLinks` (e.g. `CatalogApiLinks`). Methods return `org.springframework.hateoas.Link` via `linkTo(methodOn(...))` — never hardcoded path strings.
+- Consuming modules import **only** `{owner}.api` types and declare `allowedDependencies = { ..., "{owner}::api" }`.
+- Place cross-domain links where the client needs them for a workflow:
+  - Tier 2 `{Consumer}RootController` when the context entry exposes a use case that needs another context (e.g. create inventory needs product search).
+  - Relevant `PagedModel` / assemblers that surface the create/compose workflow (e.g. inventory search page linking `search-products`).
+- Keep the **same `rel` names** as the owning context's root (e.g. catalog root uses `search-products` / `get-product` — inventory advertises those same rels). Do not invent parallel rel synonyms for the same endpoint.
+- Prefer linking to the owning Tier 2 root (`get-{owner}-root`) only as a last resort when a specific published link does not exist yet (extra hop for the client).
+
+#### MUST NOT
+- Import another module's `internal/` controllers, assemblers, services, or handlers from a consumer.
+- Proxy or re-implement another module's list/search/get under the consumer's API path solely to attach a HATEOAS link.
+- Expose a local projection (e.g. `product_variant_view`) as the primary product/catalog browse API for UI picking — use the owning catalog links instead.
+- Hardcode absolute/relative URL strings in assemblers or root controllers for cross-domain endpoints.
+- Add `{owner}::api` dependency "just in case" — only when a real cross-domain workflow link is required.
+- Put business data from another aggregate into the consuming module's response just because a link was added; link = navigate, query owner for payload.
+
+#### Published `{Owner}ApiLinks` shape
+```java
+// com.grab.store.{owner}.api — @NamedInterface("api") on package-info.java
+public final class CatalogApiLinks {
+    private CatalogApiLinks() {}
+
+    public static Link searchProducts() {
+        return linkTo(methodOn(ProductController.class).getProducts(null, null, null))
+                .withRel("search-products");
+    }
+
+    public static Link getProduct() {
+        return linkTo(methodOn(ProductController.class).getProduct(null))
+                .withRel("get-product");
+    }
+}
+```
+- Facade may reference the owner's own `internal/.../controller` types — that is **within** the owning module. Consumers never touch those controllers.
+- Expand the facade when new stable entry-point links are needed by other modules; keep methods coarse (search/get/create of top-level resources), not every sub-action.
+
+#### Client discovery expectation
+```
+GET /api/v1/{consumer}  (or workflow PagedModel)
+  → _links.{owner-rel}   → call owning module endpoint
+  → _links.create-{entity} → consumer write endpoint
+```
+Frontend MUST follow `_links` hrefs; MUST NOT hardcode cross-module paths when those rels are present.
+
+#### Workflow composition (optional escalation)
+- When a use case needs many links from several modules, prefer a thin **workflow** / composition resource under `shared` or a dedicated non-domain package (e.g. `GET /api/v1/workflows/create-inventory-item`) rather than stuffing unrelated foreign links onto every consumer resource representation.
+- Do not elevate inventory/catalog domain handlers into workflow orchestrators for HATEOAS-only concerns.
 
 ---
 
@@ -258,7 +321,9 @@ Separate **write** and **query** concerns. For each aggregate/entity root:
 | Read view | `{Domain}View` / `{Domain}Summary` under `view/` |
 | API Root | `ApiRootController` |
 | Bounded Context Root | `{Context}RootController` |
-| Modulith named interface package | `{module}.events` + `@NamedInterface("events")` |
+| Modulith named interface package (events) | `{module}.events` + `@NamedInterface("events")` |
+| Modulith named interface package (API links) | `{module}.api` + `@NamedInterface("api")` |
+| Cross-module HATEOAS link facade | `{Owner}ApiLinks` under `{owner}.api` |
 | Test method | `{functionName}_{input}_{expectedBehavior}` (e.g., `save_withValidValue_shouldSaveToDatabase`) |
 
 ---
@@ -328,4 +393,5 @@ Business rules are controlled by **policies**, not by handlers, services, or con
 20. Write path: command handler → domain `{Domain}Repository` impl; query list/search → `{Domain}QueryRepository` (not JpaRepository)
 21. Paged search uses a specification class injected into the query repository impl; results are view records
 22. Cross-module events use named interfaces (`{module}::events`) and consuming modules list them in `allowedDependencies`
-23. `shared` remains `@ApplicationModule(type = OPEN)`
+23. Cross-module HATEOAS navigation uses `{owner}::api` + `{Owner}ApiLinks` facade — consumers do not import owner `internal/` controllers; same rel names as the owning root; no URL hardcoding; no proxying owner list/search
+24. `shared` remains `@ApplicationModule(type = OPEN)`
