@@ -13,8 +13,7 @@ public record CreateInventoryCommand(
         Integer reorderPoint,
         Integer reorderQuantity,
         Integer maxStock,
-        Id createdBy
-,
+        Id createdBy,
         String scopeKey,
         String scopeId
 ) implements Command<InventoryItemResult> {

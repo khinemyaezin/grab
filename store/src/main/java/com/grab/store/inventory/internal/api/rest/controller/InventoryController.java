@@ -47,8 +47,9 @@ public class InventoryController {
             @Valid @RequestBody CreateInventoryRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
         ResolvedInventoryAccess access = scopeResolver.resolve(principal);
-        InventoryResponse response = inventoryCommandService.createInventory(request, access);
+        InventoryResponse response = inventoryCommandService.createInventory(request, merchantId, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(inventoryModelAssembler.toModel(response));
     }

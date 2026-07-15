@@ -37,8 +37,8 @@ public class InventoryCommandService {
     private final ShipReservationRequestMapper shipReservationRequestMapper;
     private final AdjustStockRequestMapper adjustStockRequestMapper;
 
-    public InventoryResponse createInventory(CreateInventoryRequest request, ResolvedInventoryAccess access) {
-        CreateInventoryCommand command = createInventoryRequestMapper.toCommand(request, access.actorId(), access.scopeKey(), access.scopeId());
+    public InventoryResponse createInventory(CreateInventoryRequest request, String merchantId, ResolvedInventoryAccess access) {
+        CreateInventoryCommand command = createInventoryRequestMapper.toCommand(request, merchantId, access.actorId(), access.scopeKey(), access.scopeId());
         InventoryItemResult result = commandBus.dispatch(command);
         return createInventoryRequestMapper.toResponse(result);
     }

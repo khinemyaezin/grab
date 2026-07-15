@@ -42,6 +42,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -106,7 +107,7 @@ class InventoryControllerTest {
         );
 
         sampleCreateRequest = new CreateInventoryRequest(
-                "SKU-001", "seller-1", "variant-1",
+                "SKU-001", "variant-1",
                 "loc-1", 100, 20, 30, 50, 200
         );
 
@@ -138,7 +139,7 @@ class InventoryControllerTest {
 
     @Test
     void createInventory_shouldReturn201() throws Exception {
-        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), any(ResolvedInventoryAccess.class)))
+        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), nullable(String.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items")
@@ -154,7 +155,7 @@ class InventoryControllerTest {
     @Test
     void createInventory_withoutActorId_shouldReturn201() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
-        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), any(ResolvedInventoryAccess.class)))
+        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), nullable(String.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items")
@@ -311,7 +312,7 @@ class InventoryControllerTest {
     @Test
     void createInventory_withInvalidRequest_shouldReturn400() throws Exception {
         CreateInventoryRequest invalidRequest = new CreateInventoryRequest(
-                "", "", null, "", -1, null, null, null, null
+                "", null, "", -1, null, null, null, null
         );
 
         mockMvc.perform(post("/api/v1/inventory/items")

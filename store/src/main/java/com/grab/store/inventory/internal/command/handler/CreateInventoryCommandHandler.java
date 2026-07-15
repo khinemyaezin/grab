@@ -15,7 +15,6 @@ import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
-import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,7 +27,6 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final LocationRepository locationRepository;
-    private final InventoryLocationAccessPolicy locationAccessPolicy;
     private final IdGenerator idGenerator;
 
     @Override
