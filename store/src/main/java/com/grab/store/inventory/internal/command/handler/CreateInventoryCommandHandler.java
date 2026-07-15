@@ -15,6 +15,8 @@ import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
+import com.inventory.infrastructure.entity.ProductVariantViewEntity;
+import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final LocationRepository locationRepository;
+    private final ProductVariantViewJpaRepository productVariantViewRepository;
     private final IdGenerator idGenerator;
 
     @Override
@@ -42,6 +45,10 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         if (!location.isActive()) {
             log.warn("Location is inactive: locationId={}", command.locationId().getValue());
             throw new InventoryServiceException(new InventoryServiceError.LocationInactive(command.locationId().getValue()));
+        }
+
+        if (command.productVariantId() != null) {
+            validateProductVariant(command.productVariantId().getValue());
         }
 
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
@@ -89,6 +96,18 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     @Override
     public Class<CreateInventoryCommand> getCommandType() {
         return CreateInventoryCommand.class;
+    }
+
+    private void validateProductVariant(String productVariantId) {
+        ProductVariantViewEntity variantView = productVariantViewRepository.findByVariantUuid(productVariantId)
+                .orElseThrow(() -> {
+                    log.warn("Product variant not found in projection: productVariantId={}", productVariantId);
+                    return new InventoryServiceException(new InventoryServiceError.ProductVariantNotFound(productVariantId));
+                });
+        if (ProductVariantViewEntity.STATUS_DELETED.equals(variantView.getStatus())) {
+            log.warn("Product variant is deleted: productVariantId={}", productVariantId);
+            throw new InventoryServiceException(new InventoryServiceError.ProductVariantDeleted(productVariantId));
+        }
     }
 
     private int valueOrZero(Integer value) {
