@@ -5,8 +5,7 @@ import lombok.Builder;
 @Builder
 public record ProductSearchCriteria(
     String merchantId,
-    String productName,
-    String sku,
+    String query,
     String variantStatus,
     String categoryId,
     String productStatus

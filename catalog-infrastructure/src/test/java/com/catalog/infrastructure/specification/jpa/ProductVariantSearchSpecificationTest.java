@@ -4,29 +4,32 @@ import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
 import com.catalog.infrastructure.repository.jpa.config.ProductRepositoryTestConfig;
+import com.catalog.infrastructure.view.ProductVariantView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.jpa.repository.JpaContext;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ProductSummaryJpqlQueryTest  extends ProductRepositoryTestConfig {
+class ProductVariantSearchSpecificationTest extends ProductRepositoryTestConfig {
+
+    private static final String MERCHANT_ID = "merchant-1";
 
     @Autowired
     private EntityManager entityManager;
 
-    @Autowired
-    private JpaContext jpaContext;
+    private ProductVariantSearchSpecification specification;
 
     @BeforeEach
     void setUp() {
+        specification = new ProductVariantSearchSpecification(entityManager);
+
         persistProduct("Premium Cotton T-Shirt", "cat-1",
                 variant("TSH-RED-XS", "ACTIVE",
                         variation("opt-red-1", "type-color-1", "Red", "Color"),
@@ -56,126 +59,67 @@ class ProductSummaryJpqlQueryTest  extends ProductRepositoryTestConfig {
     }
 
     @Test
-    void search_withNoCriteria_returnAllProducts() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder().build();
+    void search_withMerchantOnly_returnAllVariantsForMerchant() {
+        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .merchantId(MERCHANT_ID)
+                .build();
 
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
+        Page<ProductVariantView> page = specification.search(criteria, PageRequest.of(0, 10));
+
+        assertEquals(5, page.getTotalElements());
+        assertEquals(5, page.getContent().size());
+    }
+
+    @Test
+    void search_withQueryMatchingProductName_returnMatchedVariants() {
+        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .merchantId(MERCHANT_ID)
+                .query("cotton")
+                .build();
+
+        Page<ProductVariantView> page = specification.search(criteria, PageRequest.of(0, 10));
 
         assertEquals(3, page.getTotalElements());
-        assertEquals(3, page.getContent().size());
+        assertTrue(page.getContent().stream().allMatch(v -> "Premium Cotton T-Shirt".equals(v.productName())));
     }
 
     @Test
-    void search_withProductNameCaseInsensitivePartialMatch_returnMatchedProduct() {
+    void search_withQueryMatchingSku_returnMatchedVariants() {
         ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .productName("cotton")
+                .merchantId(MERCHANT_ID)
+                .query("JNS")
                 .build();
 
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
+        Page<ProductVariantView> page = specification.search(criteria, PageRequest.of(0, 10));
 
         assertEquals(1, page.getTotalElements());
-        assertEquals("Premium Cotton T-Shirt", page.getContent().getFirst().getName());
+        assertEquals("JNS-BLACK-M", page.getContent().getFirst().sku());
     }
 
     @Test
-    void search_withMultipleMatchesProductName_returnMatchedProducts() {
+    void search_withVariantStatus_returnMatchedVariants() {
         ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .productName("s")
-                .build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
-
-        assertEquals(3, page.getTotalElements());
-    }
-
-    @Test
-    void search_withSku_returnMatchedProducts() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .sku("JNS")
-                .build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
-
-        assertEquals(1, page.getTotalElements());
-        assertEquals("Slim Fit Jeans", page.getContent().getFirst().getName());
-    }
-
-    @Test
-    void search_withSkuCaseInsensitive_returnMatchedProducts() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .sku("tsh-red")
-                .build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
-
-        assertEquals(1, page.getTotalElements());
-        assertEquals("Premium Cotton T-Shirt", page.getContent().getFirst().getName());
-    }
-
-    @Test
-    void search_withStatus_returnMatchedProducts() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .merchantId(MERCHANT_ID)
                 .variantStatus("DELETED")
                 .build();
 
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
+        Page<ProductVariantView> page = specification.search(criteria, PageRequest.of(0, 10));
 
         assertEquals(1, page.getTotalElements());
-        assertEquals("Premium Cotton T-Shirt", page.getContent().getFirst().getName());
+        assertEquals("TSH-RED-L", page.getContent().getFirst().sku());
     }
 
     @Test
-    void search_withActiveStatus_returnActiveProducts() {
+    void search_withCategoryId_returnVariantsUnderGivenCategoryId() {
         ProductSearchCriteria criteria = ProductSearchCriteria.builder()
-                .variantStatus("ACTIVE")
-                .build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
-
-        assertEquals(3, page.getTotalElements());
-    }
-
-    @Test
-    void search_withPageNumberAndPageSize_returnCorrectPageWithLimitedSize() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder().build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 2));
-
-        assertEquals(3, page.getTotalElements());
-        assertEquals(2, page.getContent().size());
-        assertEquals(2, page.getTotalPages());
-    }
-
-    @Test
-    void search_withSecondPageNumber_returnSecondPageNumber() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder().build();
-
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(1, 2));
-
-        assertEquals(3, page.getTotalElements());
-        assertEquals(1, page.getContent().size());
-    }
-
-    @Test
-    void search_withCategoryId_returnProductsUnderGivenCategoryId() {
-        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .merchantId(MERCHANT_ID)
                 .categoryId("cat-2")
                 .build();
 
-        Page<ProductEntity> page = ProductSummaryJpqlQuery.search(
-                entityManager, criteria, PageRequest.of(0, 10));
+        Page<ProductVariantView> page = specification.search(criteria, PageRequest.of(0, 10));
 
         assertEquals(1, page.getTotalElements());
-        assertEquals("Slim Fit Jeans", page.getContent().getFirst().getName());
+        assertEquals("Slim Fit Jeans", page.getContent().getFirst().productName());
     }
 
     private void persistProduct(String name, String categoryId, VariantData... variants) {
@@ -183,7 +127,7 @@ class ProductSummaryJpqlQueryTest  extends ProductRepositoryTestConfig {
         product.setUuid(UUID.randomUUID().toString());
         product.setName(name);
         product.setCategoryId(categoryId);
-        product.setMerchantId("merchant-1");
+        product.setMerchantId(MERCHANT_ID);
         entityManager.persist(product);
 
         for (VariantData v : variants) {
@@ -217,5 +161,4 @@ class ProductSummaryJpqlQueryTest  extends ProductRepositoryTestConfig {
 
     private record VariationData(String optionId, String typeId,
                                  String optionValue, String typeValue) {}
-
 }

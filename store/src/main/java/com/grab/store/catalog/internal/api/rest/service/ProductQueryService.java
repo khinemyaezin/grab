@@ -3,8 +3,9 @@ package com.grab.store.catalog.internal.api.rest.service;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
+import com.grab.store.catalog.internal.api.rest.dto.request.ProductSearchRequest;
+import com.grab.store.catalog.internal.api.rest.dto.request.ProductVariantSearchRequest;
 import com.grab.store.catalog.internal.api.rest.dto.request.VariationMatrixRequest;
-import com.grab.store.catalog.internal.api.rest.dto.request.ProductSummaryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
 import com.grab.store.catalog.internal.query.*;
@@ -24,6 +25,7 @@ public class ProductQueryService {
     private final GetProductBySlugDtoMapper getProductBySlugDtoMapper;
     private final VariationMatrixQueryMapper variationMatrixQueryMapper;
     private final ProductSummaryDtoMapper productSummaryDtoMapper;
+    private final ProductVariantSummaryDtoMapper productVariantSummaryDtoMapper;
     private final ProductAuditDtoMapper productAuditDtoMapper;
     private final AuthenticatedCatalogMerchantResolver merchantResolver;
 
@@ -44,12 +46,23 @@ public class ProductQueryService {
         return variationMatrixQueryMapper.toResponse(result);
     }
 
-    public Page<ProductSummaryResponse> getProductSummary(ProductSummaryRequest request, Pageable pageable) {
+    public Page<ProductSearchResponse> getProductSummary(ProductSearchRequest request, Pageable pageable) {
         log.info("Searching products");
         String merchantId = merchantResolver.resolveCurrentMerchantId();
-        ProductSummaryQuery query = productSummaryDtoMapper.toQuery(merchantId, request, pageable);
-        Page<ProductSummaryResult> result = queryBus.dispatch(query);
+        ProductSearchQuery query = productSummaryDtoMapper.toQuery(merchantId, request, pageable);
+        Page<ProductSearchResult> result = queryBus.dispatch(query);
         return result.map(productSummaryDtoMapper::toResponse);
+    }
+
+    public Page<ProductVariantSearchResponse> getProductVariantSummary(
+            ProductVariantSearchRequest request,
+            Pageable pageable
+    ) {
+        log.info("Searching product variants");
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        ProductVariantSummaryQuery query = productVariantSummaryDtoMapper.toQuery(merchantId, request, pageable);
+        Page<ProductVariantSummaryResult> result = queryBus.dispatch(query);
+        return result.map(productVariantSummaryDtoMapper::toResponse);
     }
 
     public GetProductBySlugResponse getProductBySlug(String slug) {
@@ -57,7 +70,6 @@ public class ProductQueryService {
 
         GetProductBySlugQuery query = new GetProductBySlugQuery(slug);
         GetProductBySlugResult result = queryBus.dispatch(query);
-        
         return getProductBySlugDtoMapper.toResponse(result);
     }
 

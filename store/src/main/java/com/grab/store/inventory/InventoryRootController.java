@@ -44,9 +44,7 @@ public class InventoryRootController {
                 .getInventory(null))
                 .withRel("inventory-item"));
 
-        model.add(CatalogApiLinks.searchProducts());
-        model.add(CatalogApiLinks.getProduct());
-
+        model.add(CatalogApiLinks.searchProductVariants());
         return ResponseEntity.ok(model);
     }
 }

@@ -356,8 +356,7 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationName").value("Warehouse One"))
                 .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
                 .andExpect(jsonPath("$._links.create-inventory-item.href").exists())
-                .andExpect(jsonPath("$._links.search-products.href").value(containsString("/api/v1/catalog/products/search")))
-                .andExpect(jsonPath("$._links.get-product.href").value(containsString("/api/v1/catalog/products/{productId}")));
+                .andExpect(jsonPath("$._links.search-product-variants.href").value(containsString("/api/v1/catalog/products/variants/search")));
     }
 
     @Test

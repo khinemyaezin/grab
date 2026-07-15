@@ -16,7 +16,7 @@ public class RestoreVariantModelAssembler implements RepresentationModelAssemble
     public EntityModel<RestoreVariantResponse> toModel(RestoreVariantResponse response) {
         return EntityModel.of(response,
                 linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product"),
-                linkTo(methodOn(ProductController.class).getProducts(null, null, null)).withRel("search-products")
+                linkTo(methodOn(ProductController.class).searchProducts(null, null, null)).withRel("search-products")
         );
     }
 }

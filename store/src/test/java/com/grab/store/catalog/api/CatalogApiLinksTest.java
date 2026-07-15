@@ -8,19 +8,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CatalogApiLinksTest {
 
     @Test
-    void searchProducts_shouldUseCatalogSearchRelAndHref() {
-        Link link = CatalogApiLinks.searchProducts();
+    void searchProductVariants_shouldUseCatalogVariantSearchRelAndHref() {
+        Link link = CatalogApiLinks.searchProductVariants();
 
-        assertThat(link.getRel().value()).isEqualTo("search-products");
-        assertThat(link.getHref()).endsWith("/api/v1/catalog/products/search");
-    }
-
-    @Test
-    void getProduct_shouldUseCatalogProductDetailRelAndTemplatedHref() {
-        Link link = CatalogApiLinks.getProduct();
-
-        assertThat(link.getRel().value()).isEqualTo("get-product");
-        assertThat(link.getHref()).contains("/api/v1/catalog/products/");
-        assertThat(link.getHref()).contains("{productId}");
+        assertThat(link.getRel().value()).isEqualTo("search-product-variants");
+        assertThat(link.getHref()).endsWith("/api/v1/catalog/products/variants/search");
     }
 }

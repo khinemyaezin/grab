@@ -5,13 +5,12 @@ import com.grab.store.shared.PageableQueryRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public record ProductSummaryQuery(
+public record ProductVariantSummaryQuery(
         String merchantId,
-        String productName,
-        String sku,
+        String query,
         String variantStatus,
         String categoryId,
         String productStatus,
         Pageable pageable
-) implements Query<Page<ProductSummaryResult>>, PageableQueryRequest {
+) implements Query<Page<ProductVariantSummaryResult>>, PageableQueryRequest {
 }

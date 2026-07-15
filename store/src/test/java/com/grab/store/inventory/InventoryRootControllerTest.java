@@ -25,8 +25,7 @@ class InventoryRootControllerTest {
     void root_shouldExposeCatalogProductLinksForCreateInventoryWorkflow() throws Exception {
         mockMvc.perform(get("/api/v1/inventory"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$._links.search-products.href").value(containsString("/api/v1/catalog/products/search")))
-                .andExpect(jsonPath("$._links.get-product.href").value(containsString("/api/v1/catalog/products/{productId}")))
+                .andExpect(jsonPath("$._links.search-product-variants.href").value(containsString("/api/v1/catalog/products/variants/search")))
                 .andExpect(jsonPath("$._links.create-inventory-item.href").exists())
                 .andExpect(jsonPath("$._links.search-inventory-items.href").exists());
     }

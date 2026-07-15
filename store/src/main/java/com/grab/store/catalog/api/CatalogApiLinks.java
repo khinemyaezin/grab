@@ -11,13 +11,8 @@ public final class CatalogApiLinks {
     private CatalogApiLinks() {
     }
 
-    public static Link searchProducts() {
-        return linkTo(methodOn(ProductController.class).getProducts(null, null, null))
-                .withRel("search-products");
-    }
-
-    public static Link getProduct() {
-        return linkTo(methodOn(ProductController.class).getProduct(null))
-                .withRel("get-product");
+    public static Link searchProductVariants() {
+        return linkTo(methodOn(ProductController.class).searchProductVariants(null, null, null))
+                .withRel("search-product-variants");
     }
 }

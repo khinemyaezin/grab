@@ -71,8 +71,7 @@ public class InventoryController {
         pageModel.add(linkTo(methodOn(InventoryController.class)
                 .createInventory(null, null))
                 .withRel("create-inventory-item"));
-        pageModel.add(CatalogApiLinks.searchProducts());
-        pageModel.add(CatalogApiLinks.getProduct());
+        pageModel.add(CatalogApiLinks.searchProductVariants());
         return ResponseEntity.ok(pageModel);
     }
 
