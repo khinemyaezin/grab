@@ -5,6 +5,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementMod
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.*;
@@ -25,6 +26,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.grab.store.shared.security.SecurityPrincipal;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/api/v1/inventory/items")
@@ -47,6 +51,25 @@ public class InventoryController {
         InventoryResponse response = inventoryCommandService.createInventory(request, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<PagedModel<EntityModel<InventoryResponse>>> searchInventoryItems(
+            @Valid @RequestBody SearchInventoryRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal,
+            @PageableDefault(size = 20) Pageable pageable,
+            PagedResourcesAssembler<InventoryResponse> pagedResourcesAssembler
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        Page<InventoryResponse> response = inventoryQueryService.searchInventoryItems(merchantId, request, pageable);
+        PagedModel<EntityModel<InventoryResponse>> pageModel = pagedResourcesAssembler.toModel(response, inventoryModelAssembler);
+        pageModel.add(linkTo(methodOn(InventoryController.class)
+                .searchInventoryItems(null, null, null, null))
+                .withRel("search-inventory-items"));
+        pageModel.add(linkTo(methodOn(InventoryController.class)
+                .createInventory(null, null))
+                .withRel("create-inventory"));
+        return ResponseEntity.ok(pageModel);
     }
 
     @GetMapping("/{inventoryItemId}")

@@ -7,6 +7,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementMod
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
@@ -17,7 +18,10 @@ import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAcces
 import com.grab.store.inventory.internal.api.rest.service.InventoryCommandService;
 import com.grab.store.inventory.internal.api.rest.service.InventoryQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.enums.AdjustmentReason;
+import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.enums.StockMovementType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -327,5 +331,39 @@ class InventoryControllerTest {
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void searchInventoryItems_shouldReturn200() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("seller-1");
+        Page<InventoryResponse> page = new PageImpl<>(List.of(sampleInventoryResponse));
+        when(inventoryQueryService.searchInventoryItems(eq("seller-1"), any(SearchInventoryRequest.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        SearchInventoryRequest request = new SearchInventoryRequest("SKU", "loc-1", InventoryStatus.ACTIVE);
+
+        mockMvc.perform(post("/api/v1/inventory/items/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Actor-Id", "seller-1")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.inventoryResponseList").isArray())
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].id").value("inv-1"))
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
+                .andExpect(jsonPath("$._links.create-inventory.href").exists());
+    }
+
+    @Test
+    void searchInventoryItems_withoutSellerId_shouldReturn403() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+
+        SearchInventoryRequest request = new SearchInventoryRequest(null, null, null);
+
+        mockMvc.perform(post("/api/v1/inventory/items/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
     }
 }
