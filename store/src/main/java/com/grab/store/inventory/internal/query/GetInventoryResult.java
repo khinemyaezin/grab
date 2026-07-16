@@ -5,8 +5,10 @@ import com.grab.framework.id.Id;
 public record GetInventoryResult(
         Id id,
         String sku,
-        String productVariantId,
+        String productName,
         Id locationId,
+        String locationCode,
+        String locationName,
         int onHand,
         int reserved,
         int damaged,

@@ -45,7 +45,7 @@ public class InventoryServiceException extends DomainException {
             case InventoryServiceError.ZoneHasDependentBins e ->
                     "Cannot delete zone with dependent bins: " + e.zoneId();
             case InventoryServiceError.ProductVariantNotFound e ->
-                    "Product variant not found: " + e.productVariantId();
+                    "Product variant not found for sku: " + e.sku();
             case InventoryServiceError.ProductVariantDeleted e ->
                     "Product variant is deleted: " + e.productVariantId();
             case InventoryServiceError.AddressCountryRequired ignored ->

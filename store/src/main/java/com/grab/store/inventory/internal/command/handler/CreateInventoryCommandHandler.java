@@ -17,6 +17,7 @@ import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.infrastructure.entity.ProductVariantViewEntity;
 import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
+import com.inventory.infrastructure.view.ProductView;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,7 +30,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final LocationRepository locationRepository;
-    private final ProductVariantViewJpaRepository productVariantViewRepository;
+    private final ProductVariantViewJpaRepository productVariantViewJpaRepository;
     private final IdGenerator idGenerator;
 
     @Override
@@ -47,9 +48,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
             throw new InventoryServiceException(new InventoryServiceError.LocationInactive(command.locationId().getValue()));
         }
 
-        if (command.productVariantId() != null) {
-            validateProductVariant(command.productVariantId().getValue());
-        }
+        ProductView variantView = resolveActiveProductVariantBySku(command.sku());
 
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
             log.warn("Inventory already exists for sku={} at locationId={}", command.sku(), command.locationId().getValue());
@@ -60,7 +59,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
                 idGenerator.generateId(),
                 command.sku(),
                 command.merchantId(),
-                command.productVariantId(),
+                idGenerator.convertIdFrom(variantView.getVariantUuid()),
                 command.locationId(),
                 command.initialQuantity(),
                 new ReorderConfig(
@@ -73,7 +72,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         inventoryRepository.save(item);
 
         if (command.initialQuantity() > 0) {
-            log.info("Creating initial stock movement for inventoryItemId={}, quantity={}", item.getId().getValue(), command.initialQuantity());
+            log.info("Creating initial stock movement for inventoryItemUuid={}, quantity={}", item.getId().getValue(), command.initialQuantity());
             StockMovement movement = StockMovement.create(
                     idGenerator.generateId(),
                     item.getId(),
@@ -98,16 +97,12 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         return CreateInventoryCommand.class;
     }
 
-    private void validateProductVariant(String productVariantId) {
-        ProductVariantViewEntity variantView = productVariantViewRepository.findByVariantUuid(productVariantId)
+    private ProductView resolveActiveProductVariantBySku(String sku) {
+        return productVariantViewJpaRepository.findBySkuAndStatus(sku, ProductVariantViewEntity.STATUS_ACTIVE)
                 .orElseThrow(() -> {
-                    log.warn("Product variant not found in projection: productVariantId={}", productVariantId);
-                    return new InventoryServiceException(new InventoryServiceError.ProductVariantNotFound(productVariantId));
+                    log.warn("Active product variant not found in projection for sku={}", sku);
+                    return new InventoryServiceException(new InventoryServiceError.ProductVariantNotFound(sku));
                 });
-        if (ProductVariantViewEntity.STATUS_DELETED.equals(variantView.getStatus())) {
-            log.warn("Product variant is deleted: productVariantId={}", productVariantId);
-            throw new InventoryServiceException(new InventoryServiceError.ProductVariantDeleted(productVariantId));
-        }
     }
 
     private int valueOrZero(Integer value) {

@@ -5,6 +5,7 @@ public record InventoryResponse(
         String sku,
         String merchantId,
         String productVariantId,
+        String productName,
         String locationId,
         String locationCode,
         String locationName,

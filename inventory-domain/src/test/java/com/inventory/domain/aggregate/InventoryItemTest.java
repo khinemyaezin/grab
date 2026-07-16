@@ -627,6 +627,63 @@ class InventoryItemTest {
         }
 
         @Test
+        void getSuggestedReorderQuantity_shouldCapAtMaxStock() {
+            ReorderConfig config = new ReorderConfig(10, 30, 50, 40);
+            InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
+
+            assertThat(lowStockItem.getSuggestedReorderQuantity()).isEqualTo(15);
+        }
+
+        @Test
+        void create_shouldReject_whenInitialQuantityExceedsMaxStock() {
+            ReorderConfig config = new ReorderConfig(10, 30, 50, 80);
+
+            assertThatThrownBy(() -> InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config))
+                    .isInstanceOf(InventoryDomainValidationException.class)
+                    .satisfies(ex -> {
+                        InventoryDomainValidationException validationEx = (InventoryDomainValidationException) ex;
+                        assertThat(validationEx.getMessageSource()).isInstanceOf(InventoryDomainError.ExceedsMaxStock.class);
+                    });
+        }
+
+        @Test
+        void receiveStock_shouldReject_whenExceedingMaxStock() {
+            ReorderConfig config = new ReorderConfig(10, 30, 50, 120);
+            InventoryItem cappedItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config);
+
+            assertThatThrownBy(() -> cappedItem.receiveStock(30, StockMovementType.PURCHASE_ORDER_RECEIPT, "PO-1", "notes", USER_ID, MOVEMENT_ID))
+                    .isInstanceOf(InventoryDomainValidationException.class)
+                    .satisfies(ex -> {
+                        InventoryDomainValidationException validationEx = (InventoryDomainValidationException) ex;
+                        assertThat(validationEx.getMessageSource()).isInstanceOf(InventoryDomainError.ExceedsMaxStock.class);
+                    });
+            assertThat(cappedItem.getQuantity().onHand()).isEqualTo(100);
+        }
+
+        @Test
+        void receiveStock_shouldAllow_whenWithinMaxStock() {
+            ReorderConfig config = new ReorderConfig(10, 30, 50, 120);
+            InventoryItem cappedItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config);
+
+            cappedItem.receiveStock(20, StockMovementType.PURCHASE_ORDER_RECEIPT, "PO-1", "notes", USER_ID, MOVEMENT_ID);
+
+            assertThat(cappedItem.getQuantity().onHand()).isEqualTo(120);
+        }
+
+        @Test
+        void adjustStock_shouldReject_whenNewOnHandExceedsMaxStock() {
+            ReorderConfig config = new ReorderConfig(10, 30, 50, 120);
+            InventoryItem cappedItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config);
+
+            assertThatThrownBy(() -> cappedItem.adjustStock(150, AdjustmentReason.CYCLE_COUNT, "notes", USER_ID, MOVEMENT_ID))
+                    .isInstanceOf(InventoryDomainValidationException.class)
+                    .satisfies(ex -> {
+                        InventoryDomainValidationException validationEx = (InventoryDomainValidationException) ex;
+                        assertThat(validationEx.getMessageSource()).isInstanceOf(InventoryDomainError.ExceedsMaxStock.class);
+                    });
+        }
+
+        @Test
         void receiveStock_shouldEmitLowStockAlertWhenBelowThreshold() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem testItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);

@@ -6,18 +6,28 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
 import com.grab.store.inventory.internal.query.SearchInventoryQuery;
 import com.grab.store.inventory.internal.query.SearchInventoryResult;
+import com.inventory.infrastructure.entity.ProductVariantViewEntity;
 import com.inventory.infrastructure.repository.jpa.InventoryQueryRepository;
+import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
 import com.inventory.infrastructure.specification.jpa.InventorySearchCriteria;
 import com.inventory.infrastructure.view.InventoryItemView;
+import com.inventory.infrastructure.view.ProductView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
 public class SearchInventoryQueryHandler implements QueryHandler<SearchInventoryQuery, Page<SearchInventoryResult>> {
 
     private final InventoryQueryRepository inventoryQueryRepository;
+    private final ProductVariantViewJpaRepository productVariantViewJpaRepository;
     private final IdGenerator idGenerator;
 
     @Override
@@ -30,8 +40,9 @@ public class SearchInventoryQueryHandler implements QueryHandler<SearchInventory
                 locationId != null ? locationId.getValue() : null,
                 query.status()
         );
-        return inventoryQueryRepository.search(criteria, query.pageable())
-                .map(this::toResult);
+        Page<InventoryItemView> viewPage = inventoryQueryRepository.search(criteria, query.pageable());
+        Map<String, String> productNamesBySku = resolveProductNames(viewPage.getContent());
+        return viewPage.map(view -> toResult(view, productNamesBySku));
     }
 
     @Override
@@ -39,12 +50,33 @@ public class SearchInventoryQueryHandler implements QueryHandler<SearchInventory
         return SearchInventoryQuery.class;
     }
 
-    private SearchInventoryResult toResult(InventoryItemView view) {
+    private Map<String, String> resolveProductNames(List<InventoryItemView> views) {
+        Set<String> skus = views.stream()
+                .map(InventoryItemView::sku)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (skus.isEmpty()) {
+            return Map.of();
+        }
+        return productVariantViewJpaRepository
+                .findAllBySkuInAndStatus(skus, ProductVariantViewEntity.STATUS_ACTIVE)
+                .stream()
+                .collect(Collectors.toMap(
+                        ProductView::getSku,
+                        ProductView::getProductName,
+                        (first, second) -> first
+                ));
+    }
+
+    private SearchInventoryResult toResult(InventoryItemView view, Map<String, String> productNamesBySku) {
+        String productName = view.sku() == null
+                ? null
+                : productNamesBySku.get(view.sku());
         return new SearchInventoryResult(
                 idGenerator.convertIdFrom(view.uuid()),
                 view.sku(),
                 idGenerator.convertIdFrom(view.merchantId()),
-                view.productVariantId(),
+                productName,
                 idGenerator.convertIdFrom(view.locationId()),
                 view.locationCode(),
                 view.locationName(),

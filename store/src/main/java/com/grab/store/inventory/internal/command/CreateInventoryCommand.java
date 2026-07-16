@@ -6,7 +6,6 @@ import com.grab.framework.id.Id;
 public record CreateInventoryCommand(
         String sku,
         Id merchantId,
-        Id productVariantId,
         Id locationId,
         int initialQuantity,
         Integer safetyStock,

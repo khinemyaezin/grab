@@ -90,7 +90,7 @@ class InventoryControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
 
         sampleInventoryResponse = new InventoryResponse(
-                "inv-1", "SKU-001", "seller-1", "variant-1",
+                "inv-1", "SKU-001", "seller-1", "variant-1", "T-Shirt",
                 "loc-1", "LOC-1", "Warehouse One", 100, 10, 0, 90,
                 "ACTIVE", 20, 30, 50, 200
         );
@@ -108,7 +108,7 @@ class InventoryControllerTest {
         );
 
         sampleCreateRequest = new CreateInventoryRequest(
-                "SKU-001", "variant-1",
+                "SKU-001",
                 "loc-1", 100, 20, 30, 50, 200
         );
 
@@ -174,7 +174,8 @@ class InventoryControllerTest {
         mockMvc.perform(get("/api/v1/inventory/items/inv-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("inv-1"))
-                .andExpect(jsonPath("$.sku").value("SKU-001"));
+                .andExpect(jsonPath("$.sku").value("SKU-001"))
+                .andExpect(jsonPath("$.locationName").value("Warehouse One"));
     }
 
     @Test
@@ -313,7 +314,7 @@ class InventoryControllerTest {
     @Test
     void createInventory_withInvalidRequest_shouldReturn400() throws Exception {
         CreateInventoryRequest invalidRequest = new CreateInventoryRequest(
-                "", null, "", -1, null, null, null, null
+                "", "", -1, null, null, null, null
         );
 
         mockMvc.perform(post("/api/v1/inventory/items")

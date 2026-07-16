@@ -28,6 +28,7 @@ public sealed interface InventoryDomainError extends MessageSource permits
         InventoryDomainError.InvalidReorderPoint,
         InventoryDomainError.InvalidReorderQuantity,
         InventoryDomainError.InvalidMaxStock,
+        InventoryDomainError.ExceedsMaxStock,
         InventoryDomainError.InvalidReorderConfig,
         InventoryDomainError.StockOperationBlocked {
 
@@ -402,6 +403,27 @@ public sealed interface InventoryDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("maxStock", maxStock);
+        }
+    }
+
+    record ExceedsMaxStock(int maxStock, int currentOnHand, int incomingQuantity) implements InventoryDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "inv.domain.exceeds_max_stock";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "maxStock", maxStock,
+                    "currentOnHand", currentOnHand,
+                    "incomingQuantity", incomingQuantity
+            );
         }
     }
 

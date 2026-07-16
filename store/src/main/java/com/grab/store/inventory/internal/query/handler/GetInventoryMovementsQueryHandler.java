@@ -33,7 +33,7 @@ public class GetInventoryMovementsQueryHandler implements QueryHandler<GetInvent
     private GetInventoryMovementsResult toMovement(StockMovementView movement) {
         return new GetInventoryMovementsResult(
                 idGenerator.convertIdFrom(movement.uuid()),
-                idGenerator.convertIdFrom(movement.inventoryItemId()),
+                idGenerator.convertIdFrom(movement.inventoryItemUuid()),
                 movement.type().name(),
                 movement.quantity(),
                 movement.quantityBefore(),

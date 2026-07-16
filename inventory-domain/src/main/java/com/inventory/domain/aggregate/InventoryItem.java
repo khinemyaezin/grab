@@ -64,10 +64,18 @@ public class InventoryItem extends AggregateRoot<Id> {
             int initialQuantity,
             ReorderConfig reorderConfig
     ) {
+        ReorderConfig config = reorderConfig != null ? reorderConfig : ReorderConfig.defaultConfig();
+        if (config.wouldExceedMaxStock(0, initialQuantity)) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.ExceedsMaxStock(config.maxStock(), 0, initialQuantity),
+                    "Initial quantity " + initialQuantity + " would exceed max stock " + config.maxStock()
+            );
+        }
+
         InventoryItem item = new InventoryItem(
                 id, sku, merchantId, productVariantId, locationId,
                 InventoryQuantity.withOnHand(initialQuantity),
-                reorderConfig,
+                config,
                 InventoryStatus.ACTIVE,
                 LocalDateTime.now()
         );
@@ -88,6 +96,7 @@ public class InventoryItem extends AggregateRoot<Id> {
         validateNotBlocked();
         validateReceiveType(type);
         validatePositiveQuantity(qty);
+        validateDoesNotExceedMaxStock(quantity.onHand(), qty);
 
         int before = quantity.onHand();
         this.quantity = quantity.addOnHand(qty);
@@ -174,6 +183,10 @@ public class InventoryItem extends AggregateRoot<Id> {
     public StockMovement adjustStock(int newOnHandQuantity, AdjustmentReason reason, String notes, Id userId, Id movementId) {
         validateNotBlocked();
         int before = quantity.onHand();
+        if (newOnHandQuantity > before) {
+            validateDoesNotExceedMaxStock(0, newOnHandQuantity);
+        }
+
         int adjustment = newOnHandQuantity - before;
 
         this.quantity = new InventoryQuantity(
@@ -360,6 +373,19 @@ public class InventoryItem extends AggregateRoot<Id> {
             throw new InventoryDomainValidationException(
                     new InventoryDomainError.NegativeQuantity(qty),
                     "Qty cannot be negative"
+            );
+        }
+    }
+
+    private void validateDoesNotExceedMaxStock(int currentOnHand, int incomingQuantity) {
+        if (reorderConfig.wouldExceedMaxStock(currentOnHand, incomingQuantity)) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.ExceedsMaxStock(
+                            reorderConfig.maxStock(),
+                            currentOnHand,
+                            incomingQuantity
+                    ),
+                    "Quantity would exceed max stock " + reorderConfig.maxStock()
             );
         }
     }

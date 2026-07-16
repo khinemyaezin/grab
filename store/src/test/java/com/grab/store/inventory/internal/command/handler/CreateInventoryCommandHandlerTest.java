@@ -11,6 +11,7 @@ import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.infrastructure.entity.ProductVariantViewEntity;
 import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
+import com.inventory.infrastructure.view.ProductView;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -41,7 +43,7 @@ class CreateInventoryCommandHandlerTest {
     private LocationRepository locationRepository;
 
     @Mock
-    private ProductVariantViewJpaRepository productVariantViewRepository;
+    private ProductVariantViewJpaRepository productVariantViewJpaRepository;
 
     @Mock
     private IdGenerator idGenerator;
@@ -49,11 +51,10 @@ class CreateInventoryCommandHandlerTest {
     @InjectMocks
     private CreateInventoryCommandHandler handler;
 
-    private CreateInventoryCommand command(String productVariantId) {
+    private CreateInventoryCommand command() {
         return new CreateInventoryCommand(
                 "SKU001",
                 new CommonId("merchant-1"),
-                productVariantId == null ? null : new CommonId(productVariantId),
                 new CommonId("location-1"),
                 0,
                 null,
@@ -72,64 +73,52 @@ class CreateInventoryCommandHandlerTest {
         when(locationRepository.findById(any())).thenReturn(Optional.of(location));
     }
 
-    private ProductVariantViewEntity variantView(String status) {
-        ProductVariantViewEntity view = new ProductVariantViewEntity();
-        view.setVariantUuid("variant-1");
-        view.setProductUuid("product-1");
-        view.setSku("SKU001");
-        view.setStatus(status);
+    private ProductView variantView() {
+        ProductView view = mock(ProductView.class);
+        when(view.getVariantUuid()).thenReturn("variant-1");
         return view;
     }
 
     @Test
-    void handle_shouldCreateInventory_whenProductVariantExistsInProjection() {
+    void handle_shouldCreateInventory_whenActiveProductVariantExistsForSku() {
         stubActiveLocation();
-        when(productVariantViewRepository.findByVariantUuid("variant-1"))
-                .thenReturn(Optional.of(variantView(ProductVariantViewEntity.STATUS_ACTIVE)));
+        ProductView variant = variantView();
+        when(productVariantViewJpaRepository.findBySkuAndStatus("SKU001", ProductVariantViewEntity.STATUS_ACTIVE))
+                .thenReturn(Optional.of(variant));
         when(inventoryRepository.existsBySkuAndLocation(anyString(), any())).thenReturn(false);
         when(idGenerator.generateId()).thenReturn(new CommonId("inventory-1"));
+        when(idGenerator.convertIdFrom("variant-1")).thenReturn(new CommonId("variant-1"));
 
-        InventoryItemResult result = handler.handle(command("variant-1"));
+        InventoryItemResult result = handler.handle(command());
 
         assertThat(result.productVariantId()).isEqualTo("variant-1");
+        assertThat(result.sku()).isEqualTo("SKU001");
         verify(inventoryRepository).save(any());
     }
 
     @Test
-    void handle_shouldReject_whenProductVariantNotInProjection() {
+    void handle_shouldReject_whenActiveProductVariantNotInProjection() {
         stubActiveLocation();
-        when(productVariantViewRepository.findByVariantUuid("variant-1")).thenReturn(Optional.empty());
+        when(productVariantViewJpaRepository.findBySkuAndStatus("SKU001", ProductVariantViewEntity.STATUS_ACTIVE))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> handler.handle(command("variant-1")))
+        assertThatThrownBy(() -> handler.handle(command()))
                 .isInstanceOf(InventoryServiceException.class)
-                .hasMessageContaining("Product variant not found: variant-1");
+                .hasMessageContaining("Product variant not found for sku: SKU001");
 
         verify(inventoryRepository, never()).save(any());
     }
 
     @Test
-    void handle_shouldReject_whenProductVariantIsDeleted() {
+    void handle_shouldReject_whenOnlyDeletedProductVariantExistsForSku() {
         stubActiveLocation();
-        when(productVariantViewRepository.findByVariantUuid("variant-1"))
-                .thenReturn(Optional.of(variantView(ProductVariantViewEntity.STATUS_DELETED)));
+        when(productVariantViewJpaRepository.findBySkuAndStatus(eq("SKU001"), eq(ProductVariantViewEntity.STATUS_ACTIVE)))
+                .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> handler.handle(command("variant-1")))
+        assertThatThrownBy(() -> handler.handle(command()))
                 .isInstanceOf(InventoryServiceException.class)
-                .hasMessageContaining("Product variant is deleted: variant-1");
+                .hasMessageContaining("Product variant not found for sku: SKU001");
 
         verify(inventoryRepository, never()).save(any());
-    }
-
-    @Test
-    void handle_shouldSkipVariantValidation_whenProductVariantIdIsNull() {
-        stubActiveLocation();
-        when(inventoryRepository.existsBySkuAndLocation(anyString(), any())).thenReturn(false);
-        when(idGenerator.generateId()).thenReturn(new CommonId("inventory-1"));
-
-        InventoryItemResult result = handler.handle(command(null));
-
-        assertThat(result.productVariantId()).isNull();
-        verify(productVariantViewRepository, never()).findByVariantUuid(anyString());
-        verify(inventoryRepository).save(any());
     }
 }

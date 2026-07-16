@@ -14,10 +14,6 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-/**
- * Local read-model projection of catalog product variants, maintained from
- * catalog integration events. Catalog remains the source of truth.
- */
 @Getter
 @Setter
 @Entity
@@ -40,7 +36,7 @@ public class ProductVariantViewEntity {
     @Column(name = "product_uuid", nullable = false)
     private String productUuid;
 
-    @Column
+    @Column(nullable = false)
     private String sku;
 
     @Column(name = "product_name")
