@@ -56,6 +56,11 @@ public class InventoryServiceException extends DomainException {
                     "Unable to add bin: " + e.codeValue();
             case InventoryServiceError.InventoryScopeForbidden e ->
                     "A valid Seller Portal inventory scope is required";
+            case InventoryServiceError.TransferSameLocation e ->
+                    "Cannot transfer inventory to the same location: " + e.locationId();
+            case InventoryServiceError.AllocationFailed e ->
+                    "Unable to allocate stock for sku=" + e.sku() + ", quantity=" + e.quantity()
+                            + " (" + e.reasonCode() + ")";
         };
     }
 }

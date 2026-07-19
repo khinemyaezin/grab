@@ -8,6 +8,7 @@ public record InventoryItemResult(
         String locationId,
         int onHand,
         int reserved,
+        int inTransit,
         int damaged,
         int available,
         String status,

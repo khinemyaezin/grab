@@ -28,7 +28,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     private final Id merchantId;
     private final Id productVariantId;
     private final Id locationId;
-    private final ReorderConfig reorderConfig;
+    private ReorderConfig reorderConfig;
     private InventoryQuantity quantity;
     private InventoryStatus status;
     private LocalDateTime lastUpdated;
@@ -298,6 +298,73 @@ public class InventoryItem extends AggregateRoot<Id> {
         updateStatusBasedOnQuantity();
 
         return movement;
+    }
+
+    public StockMovement announceInTransit(int qty, String referenceId, Id userId, Id movementId) {
+        validateNotBlocked();
+        validatePositiveQuantity(qty);
+        if (qty == 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.QuantityNotPositive(),
+                    "Quantity to announce in transit must be greater than zero"
+            );
+        }
+
+        int before = quantity.onHand();
+        this.quantity = quantity.addInTransit(qty);
+        this.lastUpdated = LocalDateTime.now();
+
+        return StockMovement.create(
+                movementId,
+                getId(),
+                StockMovementType.IN_TRANSIT_ANNOUNCE,
+                qty,
+                before,
+                before,
+                quantity.reserved(),
+                referenceId,
+                userId
+        );
+    }
+
+    public StockMovement receiveInTransit(int qty, String referenceId, Id userId, Id movementId) {
+        validateNotBlocked();
+        validatePositiveQuantity(qty);
+        if (qty == 0) {
+            throw new InventoryDomainValidationException(
+                    new InventoryDomainError.QuantityNotPositive(),
+                    "Quantity to receive from in transit must be greater than zero"
+            );
+        }
+        validateDoesNotExceedMaxStock(quantity.onHand(), qty);
+
+        int before = quantity.onHand();
+        this.quantity = quantity.receiveInTransit(qty);
+        this.lastUpdated = LocalDateTime.now();
+
+        StockMovement movement = StockMovement.create(
+                movementId,
+                getId(),
+                StockMovementType.IN_TRANSIT_RECEIPT,
+                qty,
+                before,
+                before,
+                quantity.reserved(),
+                referenceId,
+                userId
+        );
+
+        addEvent(new StockReceivedEvent(getId(), sku, qty, locationId, LocalDateTime.now()));
+        checkAndRaiseLowStockAlert();
+        updateStatusBasedOnQuantity();
+
+        return movement;
+    }
+
+    public void updateReorderConfig(ReorderConfig config) {
+        this.reorderConfig = Objects.requireNonNull(config, "reorderConfig is required");
+        this.lastUpdated = LocalDateTime.now();
+        checkAndRaiseLowStockAlert();
     }
 
     public void discontinue() {

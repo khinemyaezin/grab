@@ -3,9 +3,11 @@ package com.grab.store.inventory.internal.api.rest.service;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
+import com.grab.store.inventory.internal.api.rest.dto.response.AllocationAvailabilityResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.CheckInventoryExistenceResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
+import com.grab.store.inventory.internal.api.rest.dto.response.ReorderSuggestionResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
 import com.grab.store.inventory.internal.query.GetInventoryLocationIdQuery;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsResult;
@@ -18,16 +20,22 @@ import com.grab.store.inventory.internal.api.rest.mapper.SearchInventoryRequestM
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.query.CheckInventoryExistenceQuery;
 import com.grab.store.inventory.internal.query.CheckInventoryExistenceResult;
+import com.grab.store.inventory.internal.query.GetAllocationAvailabilityQuery;
+import com.grab.store.inventory.internal.query.GetAllocationAvailabilityResult;
 import com.grab.store.inventory.internal.query.GetInventoryQuery;
 import com.grab.store.inventory.internal.query.GetInventoryResult;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsQuery;
 import com.grab.store.inventory.internal.query.GetInventoryReservationsQuery;
+import com.grab.store.inventory.internal.query.GetReorderSuggestionResult;
+import com.grab.store.inventory.internal.query.GetReorderSuggestionsQuery;
 import com.grab.store.inventory.internal.query.SearchInventoryQuery;
 import com.grab.store.inventory.internal.query.SearchInventoryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -74,5 +82,35 @@ public class InventoryQueryService {
     public String getLocationId(String inventoryItemId) {
         GetInventoryLocationIdQuery query = new GetInventoryLocationIdQuery(idGenerator.convertIdFrom(inventoryItemId));
         return queryBus.dispatch(query);
+    }
+
+    public AllocationAvailabilityResponse getAllocationAvailability(String sku, Integer quantity) {
+        GetAllocationAvailabilityResult result = queryBus.dispatch(new GetAllocationAvailabilityQuery(sku, quantity));
+        return new AllocationAvailabilityResponse(
+                result.sku(),
+                result.availableQuantity(),
+                result.canAllocate(),
+                result.requestedQuantity()
+        );
+    }
+
+    public List<ReorderSuggestionResponse> getReorderSuggestions(String merchantId, String locationId, String sku) {
+        List<GetReorderSuggestionResult> results = queryBus.dispatch(new GetReorderSuggestionsQuery(
+                idGenerator.convertIdFrom(merchantId),
+                locationId == null || locationId.isBlank() ? null : idGenerator.convertIdFrom(locationId),
+                sku
+        ));
+        return results.stream()
+                .map(result -> new ReorderSuggestionResponse(
+                        result.inventoryItemId(),
+                        result.sku(),
+                        result.productVariantId(),
+                        result.locationId(),
+                        result.currentAvailable(),
+                        result.reorderPoint(),
+                        result.suggestedQuantity(),
+                        result.priority()
+                ))
+                .toList();
     }
 }

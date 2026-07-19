@@ -18,11 +18,13 @@ public class InventoryDomainConfig {
     public InventoryAllocationService inventoryAllocationService(
             InventoryRepository inventoryRepository,
             StockMovementRepository stockMovementRepository,
+            com.inventory.domain.repository.LocationRepository locationRepository,
             IdGenerator idGenerator
     ) {
         return new DefaultInventoryAllocationService(
                 inventoryRepository,
                 stockMovementRepository,
+                locationRepository,
                 idGenerator
         );
     }

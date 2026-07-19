@@ -717,6 +717,39 @@ class InventoryItemTest {
             List<Event> events = testItem.getEvents();
             assertThat(events).anyMatch(e -> e instanceof LowStockAlertEvent);
         }
+
+        @Test
+        void updateReorderConfig_shouldReplaceConfig() {
+            item.updateReorderConfig(new ReorderConfig(5, 15, 40, 100));
+
+            assertThat(item.getReorderConfig().safetyStock()).isEqualTo(5);
+            assertThat(item.getReorderConfig().reorderPoint()).isEqualTo(15);
+            assertThat(item.getReorderConfig().reorderQuantity()).isEqualTo(40);
+            assertThat(item.getReorderConfig().maxStock()).isEqualTo(100);
+        }
+
+        @Test
+        void announceAndReceiveInTransit_shouldMoveQtyToOnHand() {
+            item.announceInTransit(20, "PO-9", USER_ID, id("mov-announce"));
+            assertThat(item.getQuantity().inTransit()).isEqualTo(20);
+            assertThat(item.getQuantity().onHand()).isEqualTo(100);
+
+            item.receiveInTransit(15, "PO-9", USER_ID, id("mov-receive"));
+            assertThat(item.getQuantity().inTransit()).isEqualTo(5);
+            assertThat(item.getQuantity().onHand()).isEqualTo(115);
+        }
+
+        @Test
+        void receiveInTransit_shouldRejectWhenExceedsInTransit() {
+            item.announceInTransit(5, "PO-9", USER_ID, MOVEMENT_ID);
+
+            assertThatThrownBy(() -> item.receiveInTransit(6, "PO-9", USER_ID, id("mov-2")))
+                    .isInstanceOf(InventoryDomainValidationException.class)
+                    .satisfies(ex -> {
+                        InventoryDomainValidationException validationEx = (InventoryDomainValidationException) ex;
+                        assertThat(validationEx.getMessageSource()).isInstanceOf(InventoryDomainError.ReceiveExceedsInTransit.class);
+                    });
+        }
     }
 
     @Nested

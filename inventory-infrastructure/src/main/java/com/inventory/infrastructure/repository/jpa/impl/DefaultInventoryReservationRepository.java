@@ -5,12 +5,16 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.entity.InventoryReservation;
+import com.inventory.domain.enums.InventoryReservationStatus;
 import com.inventory.domain.repository.InventoryReservationRepository;
 import com.inventory.infrastructure.entity.InventoryReservationEntity;
 import com.inventory.infrastructure.mapper.jpa.InventoryReservationJpaAssembler;
 import com.inventory.infrastructure.repository.jpa.InventoryReservationJpaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -53,6 +57,26 @@ public class DefaultInventoryReservationRepository implements InventoryReservati
         log.debug("Loading inventory reservation by idempotencyKey={}", idempotencyKey);
         return executor.query("InventoryReservation", () -> jpaRepository.findByIdempotencyKey(idempotencyKey)
                 .map(mapper::toFullDomainGraph));
+    }
+
+    @Override
+    public List<InventoryReservation> findActiveByOrderId(String orderId) {
+        log.debug("Loading active inventory reservations by orderId={}", orderId);
+        return executor.query("InventoryReservation", () -> jpaRepository
+                .findByOrderIdAndStatus(orderId, InventoryReservationStatus.ACTIVE)
+                .stream()
+                .map(mapper::toFullDomainGraph)
+                .toList());
+    }
+
+    @Override
+    public List<InventoryReservation> findExpiredActive(LocalDateTime asOf, int limit) {
+        log.debug("Loading expired active inventory reservations asOf={}, limit={}", asOf, limit);
+        return executor.query("InventoryReservation", () -> jpaRepository
+                .findExpiredActive(InventoryReservationStatus.ACTIVE, asOf, PageRequest.of(0, Math.max(1, limit)))
+                .stream()
+                .map(mapper::toFullDomainGraph)
+                .toList());
     }
 
 }

@@ -6,6 +6,7 @@ import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.service.InventoryStockService;
 import com.inventory.domain.service.InventoryStockService.StockMovementResult;
 import com.grab.store.inventory.internal.command.InventoryItemResult;
+import com.grab.store.inventory.internal.command.InventoryItemResults;
 import com.grab.store.inventory.internal.command.ReceiveStockCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
@@ -51,30 +52,11 @@ public class ReceiveStockCommandHandler implements CommandHandler<ReceiveStockCo
                 command.createdBy()
         );
 
-        return mapToInventoryItemResult(result.item());
+        return InventoryItemResults.from(result.item());
     }
 
     @Override
     public Class<ReceiveStockCommand> getCommandType() {
         return ReceiveStockCommand.class;
-    }
-
-    private InventoryItemResult mapToInventoryItemResult(InventoryItem item) {
-        return new InventoryItemResult(
-                item.getId().getValue(),
-                item.getSku(),
-                item.getMerchantId() == null ? null : item.getMerchantId().getValue(),
-                item.getProductVariantId() == null ? null : item.getProductVariantId().getValue(),
-                item.getLocationId().getValue(),
-                item.getQuantity().onHand(),
-                item.getQuantity().reserved(),
-                item.getQuantity().damaged(),
-                item.getAvailableQuantity(),
-                item.getStatus().name(),
-                item.getReorderConfig().safetyStock(),
-                item.getReorderConfig().reorderPoint(),
-                item.getReorderConfig().reorderQuantity(),
-                item.getReorderConfig().maxStock()
-        );
     }
 }

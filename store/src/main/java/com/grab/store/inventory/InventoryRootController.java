@@ -1,8 +1,10 @@
 package com.grab.store.inventory;
 
 import com.grab.store.catalog.api.CatalogApiLinks;
+import com.grab.store.inventory.internal.api.rest.controller.AllocationController;
 import com.grab.store.inventory.internal.api.rest.controller.InventoryController;
 import com.grab.store.inventory.internal.api.rest.controller.LocationController;
+import com.grab.store.inventory.internal.api.rest.controller.ReorderSuggestionController;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +48,19 @@ public class InventoryRootController {
         model.add(linkTo(methodOn(InventoryController.class)
                 .getInventory(null))
                 .withRel("inventory-item"));
+
+        model.add(linkTo(methodOn(AllocationController.class)
+                .allocate(null, null))
+                .withRel("allocate-stock"));
+        model.add(linkTo(methodOn(AllocationController.class)
+                .deallocate(null, null))
+                .withRel("deallocate-stock"));
+        model.add(linkTo(methodOn(AllocationController.class)
+                .availability(null, null))
+                .withRel("allocation-availability"));
+        model.add(linkTo(methodOn(ReorderSuggestionController.class)
+                .list(null, null, null))
+                .withRel("reorder-suggestions"));
 
         model.add(CatalogApiLinks.searchProductVariants());
         return ResponseEntity.ok(model);

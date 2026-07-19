@@ -14,6 +14,18 @@ public interface InventoryStockService {
     StockMovementResult adjustStock(Id inventoryItemId, int newOnHandQuantity, AdjustmentReason reason,
                                     String notes, Id userId);
 
+    StockMovementResult markDamaged(Id inventoryItemId, int quantity, String notes, Id userId);
+
+    StockMovementResult writeOff(Id inventoryItemId, int quantity, String reason, String notes, Id userId);
+
+    StockMovementResult returnToVendor(Id inventoryItemId, int quantity, String reason, String notes, Id userId);
+
+    StockMovementResult transferOut(Id inventoryItemId, int quantity, String transferId, Id userId);
+
+    StockMovementResult announceInTransit(Id inventoryItemId, int quantity, String referenceId, Id userId);
+
+    StockMovementResult receiveInTransit(Id inventoryItemId, int quantity, String referenceId, Id userId);
+
     record StockMovementResult(InventoryItem item, StockMovement movement) {
     }
 }

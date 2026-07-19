@@ -3,9 +3,11 @@ package com.inventory.domain.service.impl;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
+import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.exception.InventoryDomainError;
 import com.inventory.domain.repository.InventoryRepository;
+import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.service.InventoryAllocationService.AllocationResult;
 import com.inventory.domain.valueobject.InventoryQuantity;
@@ -22,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultInventoryAllocationServiceTest {
@@ -33,6 +36,9 @@ class DefaultInventoryAllocationServiceTest {
     private StockMovementRepository stockMovementRepository;
 
     @Mock
+    private LocationRepository locationRepository;
+
+    @Mock
     private IdGenerator idGenerator;
 
     @Mock
@@ -42,7 +48,11 @@ class DefaultInventoryAllocationServiceTest {
 
     @BeforeEach
     void setUp() {
-        allocationService = new DefaultInventoryAllocationService(inventoryRepository, stockMovementRepository, idGenerator);
+        allocationService = new DefaultInventoryAllocationService(inventoryRepository, stockMovementRepository, locationRepository, idGenerator);
+        Location activeLocation = mock(Location.class);
+        lenient().when(activeLocation.isActive()).thenReturn(true);
+        lenient().when(locationRepository.findById(any())).thenReturn(Optional.of(activeLocation));
+        lenient().when(idGenerator.generateId()).thenAnswer(inv -> id("mov-" + System.nanoTime()));
     }
 
     @Test
@@ -364,7 +374,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void canAllocate_withSufficientStock_shouldReturnTrue() {
-        when(inventoryRepository.getTotalAvailableQuantityBySku("SKU-001")).thenReturn(100);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
         boolean result = allocationService.canAllocate("SKU-001", 50);
 
@@ -373,7 +384,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void canAllocate_withExactStock_shouldReturnTrue() {
-        when(inventoryRepository.getTotalAvailableQuantityBySku("SKU-001")).thenReturn(50);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 50, InventoryStatus.ACTIVE);
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
         boolean result = allocationService.canAllocate("SKU-001", 50);
 
@@ -382,7 +394,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void canAllocate_withInsufficientStock_shouldReturnFalse() {
-        when(inventoryRepository.getTotalAvailableQuantityBySku("SKU-001")).thenReturn(10);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 10, InventoryStatus.ACTIVE);
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
         boolean result = allocationService.canAllocate("SKU-001", 50);
 
@@ -391,7 +404,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void canAllocate_withZeroStock_shouldReturnFalse() {
-        when(inventoryRepository.getTotalAvailableQuantityBySku("SKU-001")).thenReturn(0);
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of());
 
         boolean result = allocationService.canAllocate("SKU-001", 10);
 
@@ -400,7 +413,8 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void canAllocate_withZeroQuantityRequested_shouldReturnTrue() {
-        when(inventoryRepository.getTotalAvailableQuantityBySku("SKU-001")).thenReturn(100);
+        InventoryItem item = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item));
 
         boolean result = allocationService.canAllocate("SKU-001", 0);
 
@@ -409,7 +423,9 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void getAvailableForAllocation_shouldReturnTotalAvailable() {
-        when(inventoryRepository.getTotalAvailableQuantityBySku("SKU-001")).thenReturn(150);
+        InventoryItem item1 = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem item2 = createInventoryItem("item-2", "loc-2", 50, InventoryStatus.ACTIVE);
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(item1, item2));
 
         int result = allocationService.getAvailableForAllocation("SKU-001");
 
@@ -418,7 +434,7 @@ class DefaultInventoryAllocationServiceTest {
 
     @Test
     void getAvailableForAllocation_withNoStock_shouldReturnZero() {
-        when(inventoryRepository.getTotalAvailableQuantityBySku("SKU-001")).thenReturn(0);
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of());
 
         int result = allocationService.getAvailableForAllocation("SKU-001");
 
