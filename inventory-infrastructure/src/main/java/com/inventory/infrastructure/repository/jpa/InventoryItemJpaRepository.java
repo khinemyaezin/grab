@@ -22,6 +22,8 @@ public interface InventoryItemJpaRepository extends JpaRepository<InventoryItemE
 
     List<InventoryItemEntity> findAllBySku(String sku);
 
+    List<InventoryItemEntity> findAllByProductVariantId(String productVariantId);
+
     List<InventoryItemEntity> findAllByLocationId(String locationId);
 
     List<InventoryItemEntity> findAllByStatusAndMerchantId(InventoryStatus status, String merchantId);

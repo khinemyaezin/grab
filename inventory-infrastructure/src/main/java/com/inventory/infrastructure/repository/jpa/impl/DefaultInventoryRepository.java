@@ -43,6 +43,15 @@ public class DefaultInventoryRepository implements InventoryRepository {
     }
 
     @Override
+    public List<InventoryItem> findByProductVariantId(Id productVariantId) {
+        log.debug("Loading inventory items by productVariantId={}", productVariantId.getValue());
+        return executor.query("InventoryItem", () ->
+                jpaRepository.findAllByProductVariantId(productVariantId.getValue()).stream()
+                        .map(mapper::toFullDomainGraph)
+                        .toList());
+    }
+
+    @Override
     public Optional<InventoryItem> findBySkuAndLocation(String sku, Id locationId) {
         log.debug("Loading inventory item by sku={} and locationId={}", sku, locationId.getValue());
         return executor.query("InventoryItem", () -> jpaRepository.findBySkuAndLocationId(sku, locationId.getValue())
