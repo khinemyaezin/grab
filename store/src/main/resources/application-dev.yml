@@ -51,6 +51,10 @@ inventory:
     retry-delay-ms: ${INVENTORY_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${INVENTORY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${INVENTORY_OUTBOX_RETENTION_MS:604800000}
+  reservation:
+    expiry:
+      fixed-delay-ms: ${INVENTORY_RESERVATION_EXPIRY_FIXED_DELAY_MS:60000}
+      batch-size: ${INVENTORY_RESERVATION_EXPIRY_BATCH_SIZE:100}
 
 identity:
   seed:

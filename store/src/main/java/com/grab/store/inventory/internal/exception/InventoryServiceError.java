@@ -26,7 +26,9 @@ public sealed interface InventoryServiceError extends MessageSource permits
         InventoryServiceError.AddressCountryRequired,
         InventoryServiceError.UnableToAddZone,
         InventoryServiceError.UnableToAddBin,
-        InventoryServiceError.InventoryScopeForbidden {
+        InventoryServiceError.InventoryScopeForbidden,
+        InventoryServiceError.TransferSameLocation,
+        InventoryServiceError.AllocationFailed {
 
     record LocationNotFound(String locationId) implements InventoryServiceError {
         @Override
@@ -391,6 +393,44 @@ public sealed interface InventoryServiceError extends MessageSource permits
                     "platformCode", platformCode,
                     "scopeKey", scopeKey,
                     "scopeId", scopeId
+            );
+        }
+    }
+
+    record TransferSameLocation(String locationId) implements InventoryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "inv.service.transfer.same_location";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("locationId", locationId);
+        }
+    }
+
+    record AllocationFailed(String sku, int quantity, String reasonCode) implements InventoryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "inv.service.allocation.failed";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "sku", sku,
+                    "quantity", quantity,
+                    "reasonCode", reasonCode
             );
         }
     }

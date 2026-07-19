@@ -5,9 +5,11 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.inventory.domain.aggregate.InventoryItem;
+import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.exception.InventoryDomainError;
 import com.inventory.domain.repository.InventoryRepository;
+import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.service.InventoryAllocationService;
 
@@ -22,15 +24,18 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
 
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
+    private final LocationRepository locationRepository;
     private final IdGenerator idGenerator;
 
     public DefaultInventoryAllocationService(
             InventoryRepository inventoryRepository,
             StockMovementRepository stockMovementRepository,
+            LocationRepository locationRepository,
             IdGenerator idGenerator
     ) {
         this.inventoryRepository = inventoryRepository;
         this.stockMovementRepository = stockMovementRepository;
+        this.locationRepository = locationRepository;
         this.idGenerator = idGenerator;
     }
 
@@ -114,6 +119,12 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
         }
 
         Optional<InventoryItem> inventoryItem = inventoryRepository.findBySkuAndLocation(sku, locationId);
+
+        Optional<Location> location = locationRepository.findById(locationId);
+        if (location.isEmpty() || !location.get().isActive()) {
+            log.warn("Location is missing or inactive for sku={} locationId={}", sku, locationId.getValue());
+            return AllocationResult.failure(sku, quantity, new InventoryDomainError.InventoryNotFoundAtLocation(sku, locationId.getValue()));
+        }
 
         if (inventoryItem.isPresent()) {
             InventoryItem item = inventoryItem.get();
@@ -199,7 +210,9 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
 
     @Override
     public int getAvailableForAllocation(String sku) {
-        return inventoryRepository.getTotalAvailableQuantityBySku(sku);
+        return findAvailableInventory(sku).stream()
+                .mapToInt(InventoryItem::getAvailableQuantity)
+                .sum();
     }
 
     @Override
@@ -207,6 +220,9 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
         List<InventoryItem> availableItems = inventoryRepository.findBySku(sku).stream()
                 .filter(InventoryItem::isActive)
                 .filter(item -> item.getAvailableQuantity() > 0)
+                .filter(item -> locationRepository.findById(item.getLocationId())
+                        .map(Location::isActive)
+                        .orElse(false))
                 .sorted(Comparator.comparingInt(InventoryItem::getAvailableQuantity).reversed())
                 .toList();
 

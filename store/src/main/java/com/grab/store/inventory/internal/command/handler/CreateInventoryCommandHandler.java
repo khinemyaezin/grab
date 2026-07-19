@@ -10,6 +10,7 @@ import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.valueobject.ReorderConfig;
 import com.grab.store.inventory.internal.command.CreateInventoryCommand;
 import com.grab.store.inventory.internal.command.InventoryItemResult;
+import com.grab.store.inventory.internal.command.InventoryItemResults;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
@@ -110,21 +111,6 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     }
 
     private InventoryItemResult mapToInventoryItemResult(InventoryItem item) {
-        return new InventoryItemResult(
-                item.getId().getValue(),
-                item.getSku(),
-                item.getMerchantId().getValue(),
-                item.getProductVariantId() == null ? null : item.getProductVariantId().getValue(),
-                item.getLocationId().getValue(),
-                item.getQuantity().onHand(),
-                item.getQuantity().reserved(),
-                item.getQuantity().damaged(),
-                item.getAvailableQuantity(),
-                item.getStatus().name(),
-                item.getReorderConfig().safetyStock(),
-                item.getReorderConfig().reorderPoint(),
-                item.getReorderConfig().reorderQuantity(),
-                item.getReorderConfig().maxStock()
-        );
+        return InventoryItemResults.from(item);
     }
 }

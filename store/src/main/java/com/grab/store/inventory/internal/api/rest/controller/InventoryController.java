@@ -6,11 +6,18 @@ import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssemb
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.AnnounceInTransitRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.MarkDamagedRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveInTransitRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.ReturnToVendorRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.TransferInventoryRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.UpdateReorderConfigRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.WriteOffStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.*;
 import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventoryScopeResolver;
 import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
@@ -154,6 +161,113 @@ public class InventoryController {
     ) {
         ResolvedInventoryAccess access = scopeResolver.resolve(principal);
         InventoryResponse response = inventoryCommandService.adjustStock(inventoryItemId, request, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/damage")
+    public ResponseEntity<EntityModel<InventoryResponse>> markDamaged(
+            @PathVariable String inventoryItemId,
+            @Valid @RequestBody MarkDamagedRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.markDamaged(inventoryItemId, request, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/write-off")
+    public ResponseEntity<EntityModel<InventoryResponse>> writeOff(
+            @PathVariable String inventoryItemId,
+            @Valid @RequestBody WriteOffStockRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.writeOff(inventoryItemId, request, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/return-to-vendor")
+    public ResponseEntity<EntityModel<InventoryResponse>> returnToVendor(
+            @PathVariable String inventoryItemId,
+            @Valid @RequestBody ReturnToVendorRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.returnToVendor(inventoryItemId, request, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/suspend")
+    public ResponseEntity<EntityModel<InventoryResponse>> suspend(
+            @PathVariable String inventoryItemId,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.suspend(inventoryItemId, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/activate")
+    public ResponseEntity<EntityModel<InventoryResponse>> activate(
+            @PathVariable String inventoryItemId,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.activate(inventoryItemId, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/discontinue")
+    public ResponseEntity<EntityModel<InventoryResponse>> discontinue(
+            @PathVariable String inventoryItemId,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.discontinue(inventoryItemId, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/transfer")
+    public ResponseEntity<TransferInventoryResponse> transfer(
+            @PathVariable String inventoryItemId,
+            @Valid @RequestBody TransferInventoryRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        TransferInventoryResponse response = inventoryCommandService.transfer(inventoryItemId, request, access);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{inventoryItemId}/in-transit/announce")
+    public ResponseEntity<EntityModel<InventoryResponse>> announceInTransit(
+            @PathVariable String inventoryItemId,
+            @Valid @RequestBody AnnounceInTransitRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.announceInTransit(inventoryItemId, request, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/{inventoryItemId}/in-transit/receive")
+    public ResponseEntity<EntityModel<InventoryResponse>> receiveInTransit(
+            @PathVariable String inventoryItemId,
+            @Valid @RequestBody ReceiveInTransitRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.receiveInTransit(inventoryItemId, request, access);
+        return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
+    }
+
+    @PutMapping("/{inventoryItemId}/reorder-config")
+    public ResponseEntity<EntityModel<InventoryResponse>> updateReorderConfig(
+            @PathVariable String inventoryItemId,
+            @Valid @RequestBody UpdateReorderConfigRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        ResolvedInventoryAccess access = scopeResolver.resolve(principal);
+        InventoryResponse response = inventoryCommandService.updateReorderConfig(inventoryItemId, request, access);
         return ResponseEntity.ok(inventoryModelAssembler.toModel(response));
     }
 

@@ -40,21 +40,21 @@ public class LocationModelAssembler
                     .withRel("activate-location"));
         }
 
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .listZones(response.id(), null, null))
-                .withRel("list-zones"));
-
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .searchZones(null, null, null, null))
-                .withRel("search-zones"));
-
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .getZoneById(null))
-                .withRel("zone"));
-
-        entity.add(linkTo(methodOn(ZoneController.class)
-                .createZone(response.id(), null, null))
-                .withRel("create-zone"));
+//        entity.add(linkTo(methodOn(ZoneController.class)
+//                .listZones(response.id(), null, null))
+//                .withRel("list-zones"));
+//
+//        entity.add(linkTo(methodOn(ZoneController.class)
+//                .searchZones(null, null, null, null))
+//                .withRel("search-zones"));
+//
+//        entity.add(linkTo(methodOn(ZoneController.class)
+//                .getZoneById(null))
+//                .withRel("zone"));
+//
+//        entity.add(linkTo(methodOn(ZoneController.class)
+//                .createZone(response.id(), null, null))
+//                .withRel("create-zone"));
 
 
         return entity;

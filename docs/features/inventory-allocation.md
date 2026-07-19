@@ -199,3 +199,41 @@ OrderCancelled → Deallocate stock
 OrderShipped → Finalize allocation
 OrderReturned → Release and reallocate
 ```
+
+---
+
+## Order / Checkout Integration Contract
+
+Order and checkout callers should treat inventory allocation as a two-phase hold:
+
+| Step | When | API | Effect |
+|------|------|-----|--------|
+| 1. Check | Before accepting payment / placing order | `GET /api/v1/inventory/allocations/availability?sku=&quantity=` | Soft check; does not hold stock |
+| 2. Allocate | On order place / payment authorized | `POST /api/v1/inventory/allocations` | Reserves stock across locations (or one `locationId`), creates `InventoryReservation` rows with optional `expiresAt` |
+| 3a. Ship | On fulfillment | `POST /api/v1/inventory/items/{id}/reservations/{reservationId}/ship` | Consumes reserved qty (per reservation line returned by allocate) |
+| 3b. Release | On cancel / payment failure | `POST /api/v1/inventory/allocations/deallocate` **or** per-item release | Returns reserved qty to available |
+| Expiry | Unshipped hold past `expiresAt` | Background `ReservationExpiryJob` | Marks reservation `EXPIRED` and releases stock |
+
+### Allocate request (order side)
+
+```json
+{
+  "sku": "SKU-001",
+  "quantity": 2,
+  "orderId": "ord_123",
+  "orderLineId": "line_1",
+  "locationId": null,
+  "expiresAt": "2026-07-19T15:00:00"
+}
+```
+
+- Omit `locationId` for multi-location allocation (highest available first).
+- Pass `expiresAt` for checkout holds that must auto-release if the order is abandoned.
+- Response `allocations[]` lists `reservationId` / `inventoryItemId` / `locationId` / `quantity` for later ship or release.
+
+### Rules
+
+1. **Idempotency**: callers should retry allocate carefully; prefer a stable `orderId` + `orderLineId` and deallocate before re-allocate on amendment.
+2. **Ship path**: ship each returned reservation (item-scoped), not a second allocate.
+3. **Partial deallocate**: deallocate prefers whole reservation rows for the order+sku; prefer canceling the order line entirely when possible.
+4. **Active locations only**: allocation ignores inventory at inactive locations.

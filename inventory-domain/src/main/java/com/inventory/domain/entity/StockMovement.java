@@ -94,24 +94,27 @@ public class StockMovement extends Entity<Id> {
 
     private static int calculateQuantityAfter(StockMovementType type, int before, int quantity) {
         return switch (type) {
-            case PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK, RESERVATION_RELEASE ->
+            case PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK,
+                 RESERVATION_RELEASE, IN_TRANSIT_RECEIPT ->
                     before + quantity;
             case SALE, TRANSFER_OUT, RETURN_TO_VENDOR, WRITE_OFF, RESERVATION ->
                     before - quantity;
             case CYCLE_COUNT_ADJUSTMENT, DAMAGE_ADJUSTMENT, SHRINKAGE ->
                     before + quantity;
+            case IN_TRANSIT_ANNOUNCE ->
+                    before;
         };
     }
 
     private static int calculateOnHandAfter(StockMovementType type, int before, int quantity) {
         return switch (type) {
-            case PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK ->
+            case PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK, IN_TRANSIT_RECEIPT ->
                     before + quantity;
             case SALE, TRANSFER_OUT, RETURN_TO_VENDOR, WRITE_OFF ->
                     before - quantity;
             case CYCLE_COUNT_ADJUSTMENT, DAMAGE_ADJUSTMENT, SHRINKAGE ->
                     before + quantity;
-            case RESERVATION, RESERVATION_RELEASE ->
+            case RESERVATION, RESERVATION_RELEASE, IN_TRANSIT_ANNOUNCE ->
                     before;
         };
     }
@@ -124,7 +127,8 @@ public class StockMovement extends Entity<Id> {
                     before - quantity;
             case PURCHASE_ORDER_RECEIPT, CUSTOMER_RETURN, TRANSFER_IN, INITIAL_STOCK,
                     TRANSFER_OUT, RETURN_TO_VENDOR, WRITE_OFF,
-                    CYCLE_COUNT_ADJUSTMENT, DAMAGE_ADJUSTMENT, SHRINKAGE ->
+                    CYCLE_COUNT_ADJUSTMENT, DAMAGE_ADJUSTMENT, SHRINKAGE,
+                    IN_TRANSIT_ANNOUNCE, IN_TRANSIT_RECEIPT ->
                     before;
         };
     }

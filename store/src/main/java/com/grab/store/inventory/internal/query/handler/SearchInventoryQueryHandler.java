@@ -82,6 +82,7 @@ public class SearchInventoryQueryHandler implements QueryHandler<SearchInventory
                 view.locationName(),
                 view.onHand(),
                 view.reserved(),
+                view.inTransit(),
                 view.damaged(),
                 Math.max(0, view.onHand() - view.reserved() - view.damaged()),
                 view.status().name(),

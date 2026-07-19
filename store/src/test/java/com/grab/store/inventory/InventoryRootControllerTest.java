@@ -29,6 +29,14 @@ class InventoryRootControllerTest {
                 .andExpect(jsonPath("$._links.create-inventory-item.href").exists())
                 .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
                 .andExpect(jsonPath("$._links.check-inventory-items-existence.href")
-                        .value(containsString("/api/v1/inventory/items/existence")));
+                        .value(containsString("/api/v1/inventory/items/existence")))
+                .andExpect(jsonPath("$._links.allocate-stock.href")
+                        .value(containsString("/api/v1/inventory/allocations")))
+                .andExpect(jsonPath("$._links.deallocate-stock.href")
+                        .value(containsString("/api/v1/inventory/allocations/deallocate")))
+                .andExpect(jsonPath("$._links.allocation-availability.href")
+                        .value(containsString("/api/v1/inventory/allocations/availability")))
+                .andExpect(jsonPath("$._links.reorder-suggestions.href")
+                        .value(containsString("/api/v1/inventory/reorder-suggestions")));
     }
 }
