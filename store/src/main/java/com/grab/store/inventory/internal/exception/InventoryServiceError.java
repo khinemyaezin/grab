@@ -21,6 +21,8 @@ public sealed interface InventoryServiceError extends MessageSource permits
         InventoryServiceError.LocationHasDependentInventory,
         InventoryServiceError.LocationHasDependentZones,
         InventoryServiceError.ZoneHasDependentBins,
+        InventoryServiceError.ProductVariantNotFound,
+        InventoryServiceError.ProductVariantDeleted,
         InventoryServiceError.AddressCountryRequired,
         InventoryServiceError.UnableToAddZone,
         InventoryServiceError.UnableToAddBin,
@@ -107,7 +109,7 @@ public sealed interface InventoryServiceError extends MessageSource permits
 
         @Override
         public Map<String, Object> args() {
-            return Map.of("inventoryItemId", inventoryItemId);
+            return Map.of("inventoryItemUuid", inventoryItemId);
         }
     }
 
@@ -231,7 +233,7 @@ public sealed interface InventoryServiceError extends MessageSource permits
         public Map<String, Object> args() {
             return Map.of(
                     "reservationId", reservationId,
-                    "inventoryItemId", inventoryItemId
+                    "inventoryItemUuid", inventoryItemId
             );
         }
     }
@@ -284,6 +286,40 @@ public sealed interface InventoryServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("zoneId", zoneId);
+        }
+    }
+
+    record ProductVariantNotFound(String sku) implements InventoryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "inv.service.product_variant.not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("sku", sku);
+        }
+    }
+
+    record ProductVariantDeleted(String productVariantId) implements InventoryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "inv.service.product_variant.deleted";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("productVariantId", productVariantId);
         }
     }
 

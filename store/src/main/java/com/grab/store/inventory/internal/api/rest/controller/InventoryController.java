@@ -1,10 +1,14 @@
 package com.grab.store.inventory.internal.api.rest.controller;
 
+import com.grab.store.catalog.api.CatalogApiLinks;
+import com.grab.store.inventory.internal.api.rest.assembler.CheckInventoryExistenceModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.*;
@@ -26,6 +30,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.grab.store.shared.security.SecurityPrincipal;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController
 @RequestMapping("/api/v1/inventory/items")
 @RequiredArgsConstructor
@@ -36,6 +43,7 @@ public class InventoryController {
     private final InventoryMovementModelAssembler inventoryMovementModelAssembler;
     private final InventoryModelAssembler inventoryModelAssembler;
     private final InventoryReservationModelAssembler inventoryReservationModelAssembler;
+    private final CheckInventoryExistenceModelAssembler checkInventoryExistenceModelAssembler;
     private final AuthenticatedInventoryScopeResolver scopeResolver;
 
     @PostMapping
@@ -43,10 +51,44 @@ public class InventoryController {
             @Valid @RequestBody CreateInventoryRequest request,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
         ResolvedInventoryAccess access = scopeResolver.resolve(principal);
-        InventoryResponse response = inventoryCommandService.createInventory(request, access);
+        InventoryResponse response = inventoryCommandService.createInventory(request, merchantId, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(inventoryModelAssembler.toModel(response));
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<PagedModel<EntityModel<InventoryResponse>>> searchInventoryItems(
+            @Valid @RequestBody SearchInventoryRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal,
+            @PageableDefault(size = 20) Pageable pageable,
+            PagedResourcesAssembler<InventoryResponse> pagedResourcesAssembler
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        Page<InventoryResponse> response = inventoryQueryService.searchInventoryItems(merchantId, request, pageable);
+        PagedModel<EntityModel<InventoryResponse>> pageModel = pagedResourcesAssembler.toModel(response, inventoryModelAssembler);
+        pageModel.add(linkTo(methodOn(InventoryController.class)
+                .searchInventoryItems(null, null, null, null))
+                .withRel("search-inventory-items"));
+        pageModel.add(linkTo(methodOn(InventoryController.class)
+                .createInventory(null, null))
+                .withRel("create-inventory-item"));
+        pageModel.add(linkTo(methodOn(InventoryController.class)
+                .checkExistence(null, null))
+                .withRel("check-inventory-items-existence"));
+        pageModel.add(CatalogApiLinks.searchProductVariants());
+        return ResponseEntity.ok(pageModel);
+    }
+
+    @PostMapping("/existence")
+    public ResponseEntity<EntityModel<CheckInventoryExistenceResponse>> checkExistence(
+            @Valid @RequestBody CheckInventoryExistenceRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        CheckInventoryExistenceResponse response = inventoryQueryService.checkExistence(merchantId, request);
+        return ResponseEntity.ok(checkInventoryExistenceModelAssembler.toModel(response));
     }
 
     @GetMapping("/{inventoryItemId}")

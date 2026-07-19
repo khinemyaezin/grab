@@ -6,6 +6,7 @@ import com.catalog.domain.event.ProductRestoredEvent;
 import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.event.ProductSuspendedEvent;
 import com.catalog.domain.event.ProductUpdatedEvent;
+import com.catalog.domain.event.ProductVariantAddedEvent;
 import com.catalog.domain.event.ProductVariantChangeEvent;
 import com.catalog.domain.event.ProductVariantDeletedEvent;
 import com.catalog.domain.event.ProductVariantRestoredEvent;
@@ -217,6 +218,7 @@ public class Product extends AggregateRoot<Id> {
                     "Duplicate variant with SKU: " + variant.getSku()
             );
         this.variants.add(index, variant);
+        super.addEvent(new ProductVariantAddedEvent(this.getId(), variant.getId(), variant.getSku(), this.name));
     }
 
     private boolean hasDuplicateVariant(ProductVariant candidate, int ignoredVariantIndex) {
@@ -243,7 +245,7 @@ public class Product extends AggregateRoot<Id> {
             return false;
 
         variants.set(index, newVariant);
-        super.addEvent(new ProductVariantChangeEvent(newVariant.getSku()));
+        super.addEvent(new ProductVariantChangeEvent(this.getId(), newVariant.getId(), newVariant.getSku()));
         return true;
     }
 

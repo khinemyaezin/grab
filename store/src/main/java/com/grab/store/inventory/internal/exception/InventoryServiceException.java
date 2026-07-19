@@ -44,6 +44,10 @@ public class InventoryServiceException extends DomainException {
                     "Cannot delete location with dependent zones: " + e.locationId();
             case InventoryServiceError.ZoneHasDependentBins e ->
                     "Cannot delete zone with dependent bins: " + e.zoneId();
+            case InventoryServiceError.ProductVariantNotFound e ->
+                    "Product variant not found for sku: " + e.sku();
+            case InventoryServiceError.ProductVariantDeleted e ->
+                    "Product variant is deleted: " + e.productVariantId();
             case InventoryServiceError.AddressCountryRequired ignored ->
                     "Address country is required";
             case InventoryServiceError.UnableToAddZone e ->

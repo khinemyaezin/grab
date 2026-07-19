@@ -2,13 +2,17 @@ package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.grab.store.inventory.internal.api.rest.assembler.CheckInventoryExistenceModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.response.CheckInventoryExistenceResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
@@ -17,7 +21,10 @@ import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAcces
 import com.grab.store.inventory.internal.api.rest.service.InventoryCommandService;
 import com.grab.store.inventory.internal.api.rest.service.InventoryQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
+import com.grab.store.inventory.internal.exception.InventoryServiceError;
+import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.enums.AdjustmentReason;
+import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.enums.StockMovementType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,8 +43,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -66,6 +75,9 @@ class InventoryControllerTest {
     private InventoryReservationModelAssembler inventoryReservationModelAssembler;
 
     @MockBean
+    private CheckInventoryExistenceModelAssembler checkInventoryExistenceModelAssembler;
+
+    @MockBean
     private AuthenticatedInventoryScopeResolver scopeResolver;
 
     private ObjectMapper objectMapper;
@@ -84,8 +96,8 @@ class InventoryControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
 
         sampleInventoryResponse = new InventoryResponse(
-                "inv-1", "SKU-001", "seller-1", "variant-1",
-                "loc-1", 100, 10, 0, 90,
+                "inv-1", "SKU-001", "seller-1", "variant-1", "T-Shirt",
+                "loc-1", "LOC-1", "Warehouse One", 100, 10, 0, 90,
                 "ACTIVE", 20, 30, 50, 200
         );
 
@@ -102,7 +114,7 @@ class InventoryControllerTest {
         );
 
         sampleCreateRequest = new CreateInventoryRequest(
-                "SKU-001", "seller-1", "variant-1",
+                "SKU-001",
                 "loc-1", 100, 20, 30, 50, 200
         );
 
@@ -134,7 +146,7 @@ class InventoryControllerTest {
 
     @Test
     void createInventory_shouldReturn201() throws Exception {
-        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), any(ResolvedInventoryAccess.class)))
+        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), nullable(String.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items")
@@ -150,7 +162,7 @@ class InventoryControllerTest {
     @Test
     void createInventory_withoutActorId_shouldReturn201() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn(null);
-        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), any(ResolvedInventoryAccess.class)))
+        when(inventoryCommandService.createInventory(any(CreateInventoryRequest.class), nullable(String.class), any(ResolvedInventoryAccess.class)))
                 .thenReturn(sampleInventoryResponse);
 
         mockMvc.perform(post("/api/v1/inventory/items")
@@ -168,7 +180,8 @@ class InventoryControllerTest {
         mockMvc.perform(get("/api/v1/inventory/items/inv-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("inv-1"))
-                .andExpect(jsonPath("$.sku").value("SKU-001"));
+                .andExpect(jsonPath("$.sku").value("SKU-001"))
+                .andExpect(jsonPath("$.locationName").value("Warehouse One"));
     }
 
     @Test
@@ -307,7 +320,7 @@ class InventoryControllerTest {
     @Test
     void createInventory_withInvalidRequest_shouldReturn400() throws Exception {
         CreateInventoryRequest invalidRequest = new CreateInventoryRequest(
-                "", "", null, "", -1, null, null, null, null
+                "", "", -1, null, null, null, null
         );
 
         mockMvc.perform(post("/api/v1/inventory/items")
@@ -327,5 +340,89 @@ class InventoryControllerTest {
                         .header("X-Actor-Id", "actor-1")
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void searchInventoryItems_shouldReturn200() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("seller-1");
+        Page<InventoryResponse> page = new PageImpl<>(List.of(sampleInventoryResponse));
+        when(inventoryQueryService.searchInventoryItems(eq("seller-1"), any(SearchInventoryRequest.class), any(Pageable.class)))
+                .thenReturn(page);
+
+        SearchInventoryRequest request = new SearchInventoryRequest("SKU", "loc-1", InventoryStatus.ACTIVE);
+
+        mockMvc.perform(post("/api/v1/inventory/items/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Actor-Id", "seller-1")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.inventoryResponseList").isArray())
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].id").value("inv-1"))
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationCode").value("LOC-1"))
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationName").value("Warehouse One"))
+                .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
+                .andExpect(jsonPath("$._links.create-inventory-item.href").exists())
+                .andExpect(jsonPath("$._links.check-inventory-items-existence.href")
+                        .value(containsString("/api/v1/inventory/items/existence")))
+                .andExpect(jsonPath("$._links.search-product-variants.href").value(containsString("/api/v1/catalog/products/variants/search")));
+    }
+
+    @Test
+    void searchInventoryItems_withoutSellerId_shouldReturn403() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+
+        SearchInventoryRequest request = new SearchInventoryRequest(null, null, null);
+
+        mockMvc.perform(post("/api/v1/inventory/items/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void checkExistence_shouldReturn200() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("seller-1");
+        CheckInventoryExistenceResponse response = new CheckInventoryExistenceResponse(List.of(
+                new CheckInventoryExistenceResponse.Entry("SKU-001", true, "inv-1"),
+                new CheckInventoryExistenceResponse.Entry("SKU-002", false, null)
+        ));
+        when(inventoryQueryService.checkExistence(eq("seller-1"), any(CheckInventoryExistenceRequest.class)))
+                .thenReturn(response);
+        when(checkInventoryExistenceModelAssembler.toModel(response))
+                .thenReturn(EntityModel.of(response));
+
+        CheckInventoryExistenceRequest request = new CheckInventoryExistenceRequest(
+                "loc-1",
+                List.of("SKU-001", "SKU-002")
+        );
+
+        mockMvc.perform(post("/api/v1/inventory/items/existence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$.items[0].exists").value(true))
+                .andExpect(jsonPath("$.items[0].inventoryItemId").value("inv-1"))
+                .andExpect(jsonPath("$.items[1].sku").value("SKU-002"))
+                .andExpect(jsonPath("$.items[1].exists").value(false));
+    }
+
+    @Test
+    void checkExistence_withoutSellerId_shouldReturn403() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+
+        CheckInventoryExistenceRequest request = new CheckInventoryExistenceRequest(
+                "loc-1",
+                List.of("SKU-001")
+        );
+
+        mockMvc.perform(post("/api/v1/inventory/items/existence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
     }
 }

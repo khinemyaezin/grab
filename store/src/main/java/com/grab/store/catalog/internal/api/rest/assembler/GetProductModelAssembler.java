@@ -21,7 +21,7 @@ public class GetProductModelAssembler
 
         entity.add(linkTo(methodOn(ProductController.class).getProduct(response.id())).withSelfRel());
         entity.add(linkTo(methodOn(ProductController.class).getProductBySlug(response.slug())).withRel("get-product-by-slug"));
-        entity.add(linkTo(methodOn(ProductController.class).getProducts(null, null, null)).withRel("search-products"));
+        entity.add(linkTo(methodOn(ProductController.class).searchProducts(null, null, null)).withRel("search-products"));
         entity.add(linkTo(methodOn(CategoryController.class).getCategory(response.category().id())).withRel("get-category"));
         entity.add(linkTo(methodOn(ProductController.class).updateProduct(response.id(), null)).withRel("update-product"));
         entity.add(linkTo(methodOn(ProductController.class).updateProductStatus(response.id(), null)).withRel("update-product-status"));

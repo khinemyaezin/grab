@@ -37,9 +37,11 @@ import com.inventory.infrastructure.repository.jpa.impl.DefaultStockMovementQuer
 import com.inventory.infrastructure.repository.jpa.impl.DefaultZoneQueryRepository;
 import com.inventory.infrastructure.repository.jpa.support.InventoryPersistenceExecutor;
 import com.inventory.infrastructure.entity.BinEntity;
+import com.inventory.infrastructure.entity.InventoryItemEntity;
 import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.entity.ZoneEntity;
 import com.inventory.infrastructure.specification.jpa.BinSearchSpecification;
+import com.inventory.infrastructure.specification.jpa.InventorySearchSpecification;
 import com.inventory.infrastructure.specification.jpa.LocationSearchSpecification;
 import com.inventory.infrastructure.specification.jpa.ZoneSearchSpecification;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -227,8 +229,20 @@ public class InventoryInfraConfig {
     }
 
     @Bean
-    public DefaultInventoryQueryRepository inventoryQueryRepository() {
-        return new DefaultInventoryQueryRepository();
+    public InventorySearchSpecification inventorySearchSpecification(JpaContext context) {
+        return new InventorySearchSpecification(context.getEntityManagerByManagedType(InventoryItemEntity.class));
+    }
+
+    @Bean
+    public DefaultInventoryQueryRepository inventoryQueryRepository(
+            InventorySearchSpecification inventorySearchSpecification,
+            InventoryItemJpaRepository inventoryItemJpaRepository,
+            @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
+        return new DefaultInventoryQueryRepository(
+                inventorySearchSpecification,
+                inventoryItemJpaRepository,
+                executor
+        );
     }
 
     @Bean

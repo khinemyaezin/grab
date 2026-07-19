@@ -23,6 +23,8 @@ import com.catalog.infrastructure.repository.jpa.*;
 import com.catalog.infrastructure.repository.jpa.adapter.*;
 import com.catalog.infrastructure.repository.jpa.impl.*;
 import com.catalog.infrastructure.repository.jpa.impl.VariantOptionQueryRepositoryImpl;
+import com.catalog.infrastructure.specification.jpa.ProductSearchSpecification;
+import com.catalog.infrastructure.specification.jpa.ProductVariantSearchSpecification;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
@@ -148,16 +150,33 @@ public class CatalogInfraConfig {
     }
 
     @Bean
+    public ProductSearchSpecification productSearchSpecification(JpaContext context) {
+        return new ProductSearchSpecification(
+                context.getEntityManagerByManagedType(ProductEntity.class)
+        );
+    }
+
+    @Bean
+    public ProductVariantSearchSpecification productVariantSearchSpecification(JpaContext context) {
+        return new ProductVariantSearchSpecification(
+                context.getEntityManagerByManagedType(ProductEntity.class)
+        );
+    }
+
+    @Bean
     public ProductQueryRepository productQueryRepository(
-            JpaContext context,
-            ProductSummaryMapper productSummaryMapper,
+            ProductSearchSpecification productSearchSpecification,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new ProductQueryRepositoryImpl(
-                context.getEntityManagerByManagedType(ProductEntity.class),
-                productSummaryMapper,
-                executor
-        );
+        return new ProductQueryRepositoryImpl(productSearchSpecification, executor);
+    }
+
+    @Bean
+    public ProductVariantQueryRepository productVariantQueryRepository(
+            ProductVariantSearchSpecification productVariantSearchSpecification,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new ProductVariantQueryRepositoryImpl(productVariantSearchSpecification, executor);
     }
 
     @Bean

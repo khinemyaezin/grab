@@ -35,11 +35,15 @@ public abstract class InventoryItemMapper {
 
     protected ReorderConfig mapReorderConfig(InventoryItemEntity entity) {
         if (entity == null) return null;
+        Integer maxStock = entity.getMaxStock();
+        if (maxStock != null && maxStock == 0) {
+            maxStock = null;
+        }
         return new ReorderConfig(
                 entity.getSafetyStock(),
                 entity.getReorderPoint(),
                 entity.getReorderQuantity(),
-                entity.getMaxStock()
+                maxStock
         );
 
     }

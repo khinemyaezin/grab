@@ -61,15 +61,19 @@ public record ReorderConfig(
     }
 
     public boolean wouldExceedMaxStock(int currentOnHand, int incomingQuantity) {
-        if (maxStock == null) return false;
+        if (maxStock == null) {
+            return false;
+        }
         return (currentOnHand + incomingQuantity) > maxStock;
     }
 
     public int suggestedOrderQuantity(int currentAvailable) {
-        if (!needsReorder(currentAvailable)) return 0;
-        if (maxStock != null) {
-            return Math.min(reorderQuantity, maxStock - currentAvailable);
+        if (!needsReorder(currentAvailable)) {
+            return 0;
         }
-        return reorderQuantity;
+        if (maxStock == null) {
+            return reorderQuantity;
+        }
+        return Math.max(0, Math.min(reorderQuantity, maxStock - currentAvailable));
     }
 }

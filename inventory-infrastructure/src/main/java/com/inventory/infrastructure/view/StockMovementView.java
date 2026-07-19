@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 public record StockMovementView(
         String uuid,
-        String inventoryItemId,
+        String inventoryItemUuid,
         StockMovementType type,
         int quantity,
         int quantityBefore,

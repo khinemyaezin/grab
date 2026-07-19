@@ -27,8 +27,12 @@ public class CatalogRootController {
                 .withSelfRel());
 
         model.add(linkTo(methodOn(ProductController.class)
-                .getProducts(null, null, null))
+                .searchProducts(null, null, null))
                 .withRel("search-products"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .searchProductVariants(null, null, null))
+                .withRel("search-product-variants"));
 
         model.add(linkTo(methodOn(ProductController.class)
                 .getProduct(null))

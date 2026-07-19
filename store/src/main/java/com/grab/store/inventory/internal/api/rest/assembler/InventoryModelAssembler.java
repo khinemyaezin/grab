@@ -3,9 +3,11 @@ package com.grab.store.inventory.internal.api.rest.assembler;
 import com.grab.store.inventory.internal.api.rest.controller.InventoryController;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import org.springframework.hateoas.EntityModel;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
 public class InventoryModelAssembler
@@ -13,8 +15,27 @@ public class InventoryModelAssembler
 
     @Override
     public EntityModel<InventoryResponse> toModel(InventoryResponse response) {
-        return EntityModel.of(response,
-                linkTo(methodOn(InventoryController.class).getInventory(response.id())).withSelfRel()
-        );
+        EntityModel<InventoryResponse> entity = EntityModel.of(response);
+
+        entity.add(linkTo(methodOn(InventoryController.class)
+                .getInventory(response.id()))
+                .withSelfRel());
+        entity.add(linkTo(methodOn(InventoryController.class)
+                .receiveStock(response.id(), null, null))
+                .withRel("receive-inventory-item"));
+        entity.add(linkTo(methodOn(InventoryController.class)
+                .reserveStock(response.id(), null, null, null))
+                .withRel("reserve-inventory-item"));
+        entity.add(linkTo(methodOn(InventoryController.class)
+                .adjustStock(response.id(), null, null))
+                .withRel("adjust-inventory-item"));
+        entity.add(linkTo(methodOn(InventoryController.class)
+                .getMovements(response.id(), null, null))
+                .withRel("list-inventory-item-movements"));
+        entity.add(linkTo(methodOn(InventoryController.class)
+                .getReservations(response.id(), null, null))
+                .withRel("list-inventory-item-reservations"));
+
+        return entity;
     }
 }

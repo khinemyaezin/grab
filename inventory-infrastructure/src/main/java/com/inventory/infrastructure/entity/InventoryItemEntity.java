@@ -59,7 +59,7 @@ public class InventoryItemEntity {
     private int reorderQuantity= 0;
 
     @Column(name = "max_stock")
-    private Integer maxStock= 0;
+    private Integer maxStock;
 
     @Version
     private Long version;

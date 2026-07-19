@@ -1,5 +1,7 @@
 package com.grab.store.inventory;
 
+import com.grab.store.catalog.api.CatalogApiLinks;
+import com.grab.store.inventory.internal.api.rest.controller.InventoryController;
 import com.grab.store.inventory.internal.api.rest.controller.LocationController;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
@@ -32,6 +34,20 @@ public class InventoryRootController {
                 .getLocation(null))
                 .withRel("location"));
 
+        model.add(linkTo(methodOn(InventoryController.class)
+                .searchInventoryItems(null, null, null, null))
+                .withRel("search-inventory-items"));
+        model.add(linkTo(methodOn(InventoryController.class)
+                .createInventory(null, null))
+                .withRel("create-inventory-item"));
+        model.add(linkTo(methodOn(InventoryController.class)
+                .checkExistence(null, null))
+                .withRel("check-inventory-items-existence"));
+        model.add(linkTo(methodOn(InventoryController.class)
+                .getInventory(null))
+                .withRel("inventory-item"));
+
+        model.add(CatalogApiLinks.searchProductVariants());
         return ResponseEntity.ok(model);
     }
 }

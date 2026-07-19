@@ -10,6 +10,8 @@ public record InventoryItemView(
         String merchantId,
         String productVariantId,
         String locationId,
+        String locationCode,
+        String locationName,
         int onHand,
         int reserved,
         int inTransit,

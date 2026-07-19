@@ -36,6 +36,7 @@ public class ProductController {
     private final GetProductBySlugModelAssembler getProductBySlugModelAssembler;
     private final ProductCombinationModelAssembler productCombinationModelAssembler;
     private final ProductSummaryModelAssembler productSummaryModelAssembler;
+    private final ProductVariantSummaryModelAssembler productVariantSummaryModelAssembler;
     private final UpdateProductModelAssembler updateProductModelAssembler;
     private final DeleteProductModelAssembler deleteProductModelAssembler;
     private final UpdateProductStatusModelAssembler updateProductStatusModelAssembler;
@@ -91,15 +92,42 @@ public class ProductController {
     }
 
     @PostMapping(value = "/search")
-    public ResponseEntity<PagedModel<EntityModel<ProductSummaryResponse>>> getProducts(
-            @Valid @RequestBody ProductSummaryRequest request,
+    public ResponseEntity<PagedModel<EntityModel<ProductSearchResponse>>> searchProducts(
+            @Valid @RequestBody ProductSearchRequest request,
             @PageableDefault(size = 20) Pageable pageable,
-            PagedResourcesAssembler<ProductSummaryResponse> pagedResourcesAssembler) {
+            PagedResourcesAssembler<ProductSearchResponse> pagedResourcesAssembler) {
 
-        Page<ProductSummaryResponse> response = productQueryService.getProductSummary(request, pageable);
-        PagedModel<EntityModel<ProductSummaryResponse>> pageModel = pagedResourcesAssembler.toModel(response, productSummaryModelAssembler);
+        Page<ProductSearchResponse> response = productQueryService.getProductSummary(request, pageable);
+        PagedModel<EntityModel<ProductSearchResponse>> pageModel =
+                pagedResourcesAssembler.toModel(response, productSummaryModelAssembler);
         pageModel.add(linkTo(methodOn(ProductController.class)
-                .getProducts(null, null, null))
+                .searchProducts(null, null, null))
+                .withRel("search-products"));
+        pageModel.add(linkTo(methodOn(ProductController.class)
+                .searchProductVariants(null, null, null))
+                .withRel("search-product-variants"));
+        pageModel.add(linkTo(methodOn(ProductController.class)
+                .saveProduct(null))
+                .withRel("create-product"));
+
+        return ResponseEntity.ok(pageModel);
+    }
+
+    @PostMapping(value = "/variants/search")
+    public ResponseEntity<PagedModel<EntityModel<ProductVariantSearchResponse>>> searchProductVariants(
+            @Valid @RequestBody ProductVariantSearchRequest request,
+            @PageableDefault(size = 20) Pageable pageable,
+            PagedResourcesAssembler<ProductVariantSearchResponse> pagedResourcesAssembler) {
+
+        Page<ProductVariantSearchResponse> response =
+                productQueryService.getProductVariantSummary(request, pageable);
+        PagedModel<EntityModel<ProductVariantSearchResponse>> pageModel =
+                pagedResourcesAssembler.toModel(response, productVariantSummaryModelAssembler);
+        pageModel.add(linkTo(methodOn(ProductController.class)
+                .searchProductVariants(null, null, null))
+                .withRel("search-product-variants"));
+        pageModel.add(linkTo(methodOn(ProductController.class)
+                .searchProducts(null, null, null))
                 .withRel("search-products"));
         pageModel.add(linkTo(methodOn(ProductController.class)
                 .saveProduct(null))

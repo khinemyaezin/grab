@@ -15,7 +15,9 @@ import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
-import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
+import com.inventory.infrastructure.entity.ProductVariantViewEntity;
+import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
+import com.inventory.infrastructure.view.ProductView;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,7 +30,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final LocationRepository locationRepository;
-    private final InventoryLocationAccessPolicy locationAccessPolicy;
+    private final ProductVariantViewJpaRepository productVariantViewJpaRepository;
     private final IdGenerator idGenerator;
 
     @Override
@@ -46,6 +48,8 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
             throw new InventoryServiceException(new InventoryServiceError.LocationInactive(command.locationId().getValue()));
         }
 
+        ProductView variantView = resolveActiveProductVariantBySku(command.sku());
+
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
             log.warn("Inventory already exists for sku={} at locationId={}", command.sku(), command.locationId().getValue());
             throw new InventoryServiceException(new InventoryServiceError.InventoryAlreadyExistsForSkuLocation(command.sku(), command.locationId().getValue()));
@@ -55,7 +59,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
                 idGenerator.generateId(),
                 command.sku(),
                 command.merchantId(),
-                command.productVariantId(),
+                idGenerator.convertIdFrom(variantView.getVariantUuid()),
                 command.locationId(),
                 command.initialQuantity(),
                 new ReorderConfig(
@@ -68,7 +72,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         inventoryRepository.save(item);
 
         if (command.initialQuantity() > 0) {
-            log.info("Creating initial stock movement for inventoryItemId={}, quantity={}", item.getId().getValue(), command.initialQuantity());
+            log.info("Creating initial stock movement for inventoryItemUuid={}, quantity={}", item.getId().getValue(), command.initialQuantity());
             StockMovement movement = StockMovement.create(
                     idGenerator.generateId(),
                     item.getId(),
@@ -91,6 +95,14 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     @Override
     public Class<CreateInventoryCommand> getCommandType() {
         return CreateInventoryCommand.class;
+    }
+
+    private ProductView resolveActiveProductVariantBySku(String sku) {
+        return productVariantViewJpaRepository.findBySkuAndStatus(sku, ProductVariantViewEntity.STATUS_ACTIVE)
+                .orElseThrow(() -> {
+                    log.warn("Active product variant not found in projection for sku={}", sku);
+                    return new InventoryServiceException(new InventoryServiceError.ProductVariantNotFound(sku));
+                });
     }
 
     private int valueOrZero(Integer value) {
