@@ -1,10 +1,12 @@
 package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.grab.store.catalog.api.CatalogApiLinks;
+import com.grab.store.inventory.internal.api.rest.assembler.CheckInventoryExistenceModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
@@ -41,6 +43,7 @@ public class InventoryController {
     private final InventoryMovementModelAssembler inventoryMovementModelAssembler;
     private final InventoryModelAssembler inventoryModelAssembler;
     private final InventoryReservationModelAssembler inventoryReservationModelAssembler;
+    private final CheckInventoryExistenceModelAssembler checkInventoryExistenceModelAssembler;
     private final AuthenticatedInventoryScopeResolver scopeResolver;
 
     @PostMapping
@@ -71,8 +74,21 @@ public class InventoryController {
         pageModel.add(linkTo(methodOn(InventoryController.class)
                 .createInventory(null, null))
                 .withRel("create-inventory-item"));
+        pageModel.add(linkTo(methodOn(InventoryController.class)
+                .checkExistence(null, null))
+                .withRel("check-inventory-items-existence"));
         pageModel.add(CatalogApiLinks.searchProductVariants());
         return ResponseEntity.ok(pageModel);
+    }
+
+    @PostMapping("/existence")
+    public ResponseEntity<EntityModel<CheckInventoryExistenceResponse>> checkExistence(
+            @Valid @RequestBody CheckInventoryExistenceRequest request,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        CheckInventoryExistenceResponse response = inventoryQueryService.checkExistence(merchantId, request);
+        return ResponseEntity.ok(checkInventoryExistenceModelAssembler.toModel(response));
     }
 
     @GetMapping("/{inventoryItemId}")

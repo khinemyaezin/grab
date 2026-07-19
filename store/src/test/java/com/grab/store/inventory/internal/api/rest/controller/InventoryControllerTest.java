@@ -2,14 +2,17 @@ package com.grab.store.inventory.internal.api.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.grab.store.inventory.internal.api.rest.assembler.CheckInventoryExistenceModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReceiveStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.ReserveStockRequest;
+import com.grab.store.inventory.internal.api.rest.dto.response.CheckInventoryExistenceResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
@@ -70,6 +73,9 @@ class InventoryControllerTest {
 
     @MockBean
     private InventoryReservationModelAssembler inventoryReservationModelAssembler;
+
+    @MockBean
+    private CheckInventoryExistenceModelAssembler checkInventoryExistenceModelAssembler;
 
     @MockBean
     private AuthenticatedInventoryScopeResolver scopeResolver;
@@ -357,6 +363,8 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationName").value("Warehouse One"))
                 .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
                 .andExpect(jsonPath("$._links.create-inventory-item.href").exists())
+                .andExpect(jsonPath("$._links.check-inventory-items-existence.href")
+                        .value(containsString("/api/v1/inventory/items/existence")))
                 .andExpect(jsonPath("$._links.search-product-variants.href").value(containsString("/api/v1/catalog/products/variants/search")));
     }
 
@@ -368,6 +376,51 @@ class InventoryControllerTest {
         SearchInventoryRequest request = new SearchInventoryRequest(null, null, null);
 
         mockMvc.perform(post("/api/v1/inventory/items/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void checkExistence_shouldReturn200() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenReturn("seller-1");
+        CheckInventoryExistenceResponse response = new CheckInventoryExistenceResponse(List.of(
+                new CheckInventoryExistenceResponse.Entry("SKU-001", true, "inv-1"),
+                new CheckInventoryExistenceResponse.Entry("SKU-002", false, null)
+        ));
+        when(inventoryQueryService.checkExistence(eq("seller-1"), any(CheckInventoryExistenceRequest.class)))
+                .thenReturn(response);
+        when(checkInventoryExistenceModelAssembler.toModel(response))
+                .thenReturn(EntityModel.of(response));
+
+        CheckInventoryExistenceRequest request = new CheckInventoryExistenceRequest(
+                "loc-1",
+                List.of("SKU-001", "SKU-002")
+        );
+
+        mockMvc.perform(post("/api/v1/inventory/items/existence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$.items[0].exists").value(true))
+                .andExpect(jsonPath("$.items[0].inventoryItemId").value("inv-1"))
+                .andExpect(jsonPath("$.items[1].sku").value("SKU-002"))
+                .andExpect(jsonPath("$.items[1].exists").value(false));
+    }
+
+    @Test
+    void checkExistence_withoutSellerId_shouldReturn403() throws Exception {
+        when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+
+        CheckInventoryExistenceRequest request = new CheckInventoryExistenceRequest(
+                "loc-1",
+                List.of("SKU-001")
+        );
+
+        mockMvc.perform(post("/api/v1/inventory/items/existence")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());

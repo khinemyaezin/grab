@@ -239,4 +239,38 @@ public class InventoryItemJpaRepositoryTest extends RepositoryTestConfig {
 
         assertThat(result).isFalse();
     }
+
+    @Test
+    void findAllByMerchantIdAndLocationIdAndSkuIn_returnsMatchingItems() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByMerchantIdAndLocationIdAndSkuIn(
+                "seller-1",
+                "loc-1",
+                List.of("SKU-001", "SKU-002", "SKU-MISSING")
+        );
+
+        assertThat(result).extracting(InventoryItemEntity::getSku)
+                .containsExactlyInAnyOrder("SKU-001", "SKU-002");
+    }
+
+    @Test
+    void findAllByMerchantIdAndLocationIdAndSkuIn_excludesOtherMerchant() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByMerchantIdAndLocationIdAndSkuIn(
+                "other-seller",
+                "loc-1",
+                List.of("SKU-001")
+        );
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void findAllByMerchantIdAndLocationIdAndSkuIn_excludesOtherLocation() {
+        List<InventoryItemEntity> result = inventoryItemJpaRepository.findAllByMerchantIdAndLocationIdAndSkuIn(
+                "seller-1",
+                "loc-2",
+                List.of("SKU-001")
+        );
+
+        assertThat(result).isEmpty();
+    }
 }

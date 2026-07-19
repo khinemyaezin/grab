@@ -27,6 +27,8 @@ class InventoryRootControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$._links.search-product-variants.href").value(containsString("/api/v1/catalog/products/variants/search")))
                 .andExpect(jsonPath("$._links.create-inventory-item.href").exists())
-                .andExpect(jsonPath("$._links.search-inventory-items.href").exists());
+                .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
+                .andExpect(jsonPath("$._links.check-inventory-items-existence.href")
+                        .value(containsString("/api/v1/inventory/items/existence")));
     }
 }

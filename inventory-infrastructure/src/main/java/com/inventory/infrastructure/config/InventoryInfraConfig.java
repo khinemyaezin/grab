@@ -236,8 +236,13 @@ public class InventoryInfraConfig {
     @Bean
     public DefaultInventoryQueryRepository inventoryQueryRepository(
             InventorySearchSpecification inventorySearchSpecification,
+            InventoryItemJpaRepository inventoryItemJpaRepository,
             @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
-        return new DefaultInventoryQueryRepository(inventorySearchSpecification, executor);
+        return new DefaultInventoryQueryRepository(
+                inventorySearchSpecification,
+                inventoryItemJpaRepository,
+                executor
+        );
     }
 
     @Bean

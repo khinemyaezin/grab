@@ -2,17 +2,22 @@ package com.grab.store.inventory.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.id.IdGenerator;
+import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
+import com.grab.store.inventory.internal.api.rest.dto.response.CheckInventoryExistenceResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
 import com.grab.store.inventory.internal.query.GetInventoryLocationIdQuery;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsResult;
 import com.grab.store.inventory.internal.query.GetInventoryReservationsResult;
+import com.grab.store.inventory.internal.api.rest.mapper.CheckInventoryExistenceRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryMovementsRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryReservationsRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.SearchInventoryRequestMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
+import com.grab.store.inventory.internal.query.CheckInventoryExistenceQuery;
+import com.grab.store.inventory.internal.query.CheckInventoryExistenceResult;
 import com.grab.store.inventory.internal.query.GetInventoryQuery;
 import com.grab.store.inventory.internal.query.GetInventoryResult;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsQuery;
@@ -33,6 +38,7 @@ public class InventoryQueryService {
     private final GetInventoryMovementsRequestMapper getInventoryMovementsRequestMapper;
     private final GetInventoryReservationsRequestMapper getInventoryReservationsRequestMapper;
     private final SearchInventoryRequestMapper searchInventoryRequestMapper;
+    private final CheckInventoryExistenceRequestMapper checkInventoryExistenceRequestMapper;
     private final IdGenerator idGenerator;
 
     public InventoryResponse getInventory(String inventoryItemId) {
@@ -57,6 +63,12 @@ public class InventoryQueryService {
         SearchInventoryQuery query = searchInventoryRequestMapper.toQuery(merchantId, request, pageable);
         Page<SearchInventoryResult> resultPage = queryBus.dispatch(query);
         return resultPage.map(searchInventoryRequestMapper::toResponse);
+    }
+
+    public CheckInventoryExistenceResponse checkExistence(String merchantId, CheckInventoryExistenceRequest request) {
+        CheckInventoryExistenceQuery query = checkInventoryExistenceRequestMapper.toQuery(merchantId, request);
+        CheckInventoryExistenceResult result = queryBus.dispatch(query);
+        return checkInventoryExistenceRequestMapper.toResponse(result);
     }
 
     public String getLocationId(String inventoryItemId) {
