@@ -3,6 +3,7 @@ package com.grab.store.inventory.internal.query;
 public record GetReorderSuggestionResult(
         String inventoryItemId,
         String sku,
+        String productName,
         String productVariantId,
         String locationId,
         int currentAvailable,
