@@ -17,7 +17,7 @@ public interface ProductVariantViewJpaRepository extends JpaRepository<ProductVa
 
     Optional<ProductView> findBySkuAndStatus(String sku, String status);
 
-    List<ProductView> findAllBySkuInAndStatus(Collection<String> skus, String status);
+    List<ProductView> findAllBySkuIn(Collection<String> skus);
 
     List<ProductView> findBySkuContainingIgnoreCaseAndStatus(String sku, String status);
 }
