@@ -14,6 +14,8 @@ public interface InventoryRepository {
 
     List<InventoryItem> findBySku(String sku);
 
+    List<InventoryItem> findByProductVariantId(Id productVariantId);
+
     List<InventoryItem> findOutOfStock(Id merchantId);
 
     List<InventoryItem> findLowStock(Id merchantId);
