@@ -6,6 +6,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.CheckInventoryExiste
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
+import com.grab.store.inventory.internal.api.rest.assembler.InventorySummaryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateInventoryRequest;
@@ -76,6 +77,9 @@ class InventoryControllerTest {
 
     @MockBean
     private CheckInventoryExistenceModelAssembler checkInventoryExistenceModelAssembler;
+
+    @MockBean
+    private InventorySummaryModelAssembler inventorySummaryModelAssembler;
 
     @MockBean
     private AuthenticatedInventoryScopeResolver scopeResolver;

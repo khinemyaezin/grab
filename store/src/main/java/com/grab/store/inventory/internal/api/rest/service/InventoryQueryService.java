@@ -7,6 +7,7 @@ import com.grab.store.inventory.internal.api.rest.dto.response.AllocationAvailab
 import com.grab.store.inventory.internal.api.rest.dto.response.CheckInventoryExistenceResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
+import com.grab.store.inventory.internal.api.rest.dto.response.InventorySummaryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.ReorderSuggestionResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
 import com.grab.store.inventory.internal.query.GetInventoryLocationIdQuery;
@@ -16,6 +17,7 @@ import com.grab.store.inventory.internal.api.rest.mapper.CheckInventoryExistence
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryMovementsRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryReservationsRequestMapper;
+import com.grab.store.inventory.internal.api.rest.mapper.GetInventorySummaryRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.SearchInventoryRequestMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
 import com.grab.store.inventory.internal.query.CheckInventoryExistenceQuery;
@@ -26,6 +28,8 @@ import com.grab.store.inventory.internal.query.GetInventoryQuery;
 import com.grab.store.inventory.internal.query.GetInventoryResult;
 import com.grab.store.inventory.internal.query.GetInventoryMovementsQuery;
 import com.grab.store.inventory.internal.query.GetInventoryReservationsQuery;
+import com.grab.store.inventory.internal.query.GetInventorySummaryQuery;
+import com.grab.store.inventory.internal.query.GetInventorySummaryResult;
 import com.grab.store.inventory.internal.query.GetReorderSuggestionResult;
 import com.grab.store.inventory.internal.query.GetReorderSuggestionsQuery;
 import com.grab.store.inventory.internal.query.SearchInventoryQuery;
@@ -47,6 +51,7 @@ public class InventoryQueryService {
     private final GetInventoryReservationsRequestMapper getInventoryReservationsRequestMapper;
     private final SearchInventoryRequestMapper searchInventoryRequestMapper;
     private final CheckInventoryExistenceRequestMapper checkInventoryExistenceRequestMapper;
+    private final GetInventorySummaryRequestMapper getInventorySummaryRequestMapper;
     private final IdGenerator idGenerator;
 
     public InventoryResponse getInventory(String inventoryItemId) {
@@ -94,6 +99,12 @@ public class InventoryQueryService {
         );
     }
 
+    public InventorySummaryResponse getInventorySummary(String merchantId, String locationId) {
+        GetInventorySummaryQuery query = getInventorySummaryRequestMapper.toQuery(merchantId, locationId);
+        GetInventorySummaryResult result = queryBus.dispatch(query);
+        return getInventorySummaryRequestMapper.toResponse(result);
+    }
+
     public List<ReorderSuggestionResponse> getReorderSuggestions(String merchantId, String locationId, String sku) {
         List<GetReorderSuggestionResult> results = queryBus.dispatch(new GetReorderSuggestionsQuery(
                 idGenerator.convertIdFrom(merchantId),
@@ -104,6 +115,7 @@ public class InventoryQueryService {
                 .map(result -> new ReorderSuggestionResponse(
                         result.inventoryItemId(),
                         result.sku(),
+                        result.productName(),
                         result.productVariantId(),
                         result.locationId(),
                         result.currentAvailable(),

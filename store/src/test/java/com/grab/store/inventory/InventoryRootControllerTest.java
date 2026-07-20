@@ -37,6 +37,8 @@ class InventoryRootControllerTest {
                 .andExpect(jsonPath("$._links.allocation-availability.href")
                         .value(containsString("/api/v1/inventory/allocations/availability")))
                 .andExpect(jsonPath("$._links.reorder-suggestions.href")
-                        .value(containsString("/api/v1/inventory/reorder-suggestions")));
+                        .value(containsString("/api/v1/inventory/reorder-suggestions")))
+                .andExpect(jsonPath("$._links.inventory-summary.href")
+                        .value(containsString("/api/v1/inventory/items/summary")));
     }
 }
