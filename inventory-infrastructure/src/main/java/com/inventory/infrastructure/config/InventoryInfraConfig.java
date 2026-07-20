@@ -42,6 +42,7 @@ import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.entity.ZoneEntity;
 import com.inventory.infrastructure.specification.jpa.BinSearchSpecification;
 import com.inventory.infrastructure.specification.jpa.InventorySearchSpecification;
+import com.inventory.infrastructure.specification.jpa.InventorySummarySpecification;
 import com.inventory.infrastructure.specification.jpa.LocationSearchSpecification;
 import com.inventory.infrastructure.specification.jpa.ZoneSearchSpecification;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -234,13 +235,22 @@ public class InventoryInfraConfig {
     }
 
     @Bean
+    public InventorySummarySpecification inventorySummarySpecification(JpaContext context) {
+        return new InventorySummarySpecification(context.getEntityManagerByManagedType(InventoryItemEntity.class));
+    }
+
+    @Bean
     public DefaultInventoryQueryRepository inventoryQueryRepository(
             InventorySearchSpecification inventorySearchSpecification,
+            InventorySummarySpecification inventorySummarySpecification,
             InventoryItemJpaRepository inventoryItemJpaRepository,
+            LocationJpaRepository locationJpaRepository,
             @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new DefaultInventoryQueryRepository(
                 inventorySearchSpecification,
+                inventorySummarySpecification,
                 inventoryItemJpaRepository,
+                locationJpaRepository,
                 executor
         );
     }

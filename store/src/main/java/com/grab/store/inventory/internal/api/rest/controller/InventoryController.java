@@ -5,6 +5,7 @@ import com.grab.store.inventory.internal.api.rest.assembler.CheckInventoryExiste
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryMovementModelAssembler;
 import com.grab.store.inventory.internal.api.rest.assembler.InventoryReservationModelAssembler;
+import com.grab.store.inventory.internal.api.rest.assembler.InventorySummaryModelAssembler;
 import com.grab.store.inventory.internal.api.rest.dto.request.AdjustStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.AnnounceInTransitRequest;
 import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
@@ -51,6 +52,7 @@ public class InventoryController {
     private final InventoryModelAssembler inventoryModelAssembler;
     private final InventoryReservationModelAssembler inventoryReservationModelAssembler;
     private final CheckInventoryExistenceModelAssembler checkInventoryExistenceModelAssembler;
+    private final InventorySummaryModelAssembler inventorySummaryModelAssembler;
     private final AuthenticatedInventoryScopeResolver scopeResolver;
 
     @PostMapping
@@ -63,6 +65,16 @@ public class InventoryController {
         InventoryResponse response = inventoryCommandService.createInventory(request, merchantId, access);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(inventoryModelAssembler.toModel(response));
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<EntityModel<InventorySummaryResponse>> getInventorySummary(
+            @RequestParam(required = false) String locationId,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        String merchantId = scopeResolver.resolveOwnerMerchantId(principal);
+        InventorySummaryResponse response = inventoryQueryService.getInventorySummary(merchantId, locationId);
+        return ResponseEntity.ok(inventorySummaryModelAssembler.toModel(response));
     }
 
     @PostMapping("/search")
@@ -84,6 +96,9 @@ public class InventoryController {
         pageModel.add(linkTo(methodOn(InventoryController.class)
                 .checkExistence(null, null))
                 .withRel("check-inventory-items-existence"));
+        pageModel.add(linkTo(methodOn(InventoryController.class)
+                .getInventorySummary(null, null))
+                .withRel("inventory-summary"));
         pageModel.add(CatalogApiLinks.searchProductVariants());
         return ResponseEntity.ok(pageModel);
     }

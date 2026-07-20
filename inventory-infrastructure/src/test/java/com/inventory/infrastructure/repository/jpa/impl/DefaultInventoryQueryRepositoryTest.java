@@ -3,11 +3,16 @@ package com.inventory.infrastructure.repository.jpa.impl;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.infrastructure.entity.InventoryItemEntity;
+import com.inventory.infrastructure.entity.LocationEntity;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
+import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
 import com.inventory.infrastructure.specification.jpa.InventorySearchCriteria;
 import com.inventory.infrastructure.specification.jpa.InventorySearchSpecification;
+import com.inventory.infrastructure.specification.jpa.InventorySummarySpecification;
 import com.inventory.infrastructure.view.InventoryExistenceView;
 import com.inventory.infrastructure.view.InventoryItemView;
+import com.inventory.infrastructure.view.InventorySummaryAggregationView;
+import com.inventory.infrastructure.view.InventorySummaryView;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
@@ -17,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,16 +36,26 @@ class DefaultInventoryQueryRepositoryTest {
     private static final String INVENTORY_ITEM_RESOURCE = "InventoryItem";
 
     private InventorySearchSpecification searchSpecification;
+    private InventorySummarySpecification summarySpecification;
     private InventoryItemJpaRepository jpaRepository;
+    private LocationJpaRepository locationJpaRepository;
     private PersistenceExecutor executor;
     private DefaultInventoryQueryRepository repository;
 
     @BeforeEach
     void setUp() {
         searchSpecification = mock(InventorySearchSpecification.class);
+        summarySpecification = mock(InventorySummarySpecification.class);
         jpaRepository = mock(InventoryItemJpaRepository.class);
+        locationJpaRepository = mock(LocationJpaRepository.class);
         executor = mock(PersistenceExecutor.class);
-        repository = new DefaultInventoryQueryRepository(searchSpecification, jpaRepository, executor);
+        repository = new DefaultInventoryQueryRepository(
+                searchSpecification,
+                summarySpecification,
+                jpaRepository,
+                locationJpaRepository,
+                executor
+        );
 
         when(executor.query(eq(INVENTORY_ITEM_RESOURCE), any(Supplier.class))).thenAnswer(invocation -> {
             Supplier<?> supplier = invocation.getArgument(1);
@@ -82,5 +98,43 @@ class DefaultInventoryQueryRepositoryTest {
         verify(jpaRepository).findAllByMerchantIdAndLocationIdAndSkuIn(
                 "seller-1", "loc-1", List.of("SKU-001", "SKU-002"));
         verify(executor).query(eq(INVENTORY_ITEM_RESOURCE), any(Supplier.class));
+    }
+
+    @Test
+    void summarize_withLocation_shouldResolveLocationAttributes() {
+        InventorySummaryAggregationView aggregation = new InventorySummaryAggregationView(
+                5, 3, 1, 1, 0, 4, 1, 1, 1, 1, 265, 30, 0, 0, 235
+        );
+        when(summarySpecification.aggregate("seller-1", "loc-1")).thenReturn(aggregation);
+        LocationEntity location = new LocationEntity();
+        location.setUuid("loc-1");
+        location.setCode("LOC-1");
+        location.setName("Warehouse One");
+        when(locationJpaRepository.findByUuid("loc-1")).thenReturn(Optional.of(location));
+
+        InventorySummaryView result = repository.summarize("seller-1", "loc-1");
+
+        assertThat(result.totalItems()).isEqualTo(5);
+        assertThat(result.scope().locationId()).isEqualTo("loc-1");
+        assertThat(result.scope().locationCode()).isEqualTo("LOC-1");
+        assertThat(result.scope().locationName()).isEqualTo("Warehouse One");
+        assertThat(result.health().eligibleItems()).isEqualTo(4);
+        assertThat(result.quantities().available()).isEqualTo(235);
+    }
+
+    @Test
+    void summarize_withoutLocation_shouldLeaveLocationAttributesNull() {
+        InventorySummaryAggregationView aggregation = new InventorySummaryAggregationView(
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        );
+        when(summarySpecification.aggregate("seller-1", null)).thenReturn(aggregation);
+
+        InventorySummaryView result = repository.summarize("seller-1", null);
+
+        assertThat(result.scope().merchantId()).isEqualTo("seller-1");
+        assertThat(result.scope().locationId()).isNull();
+        assertThat(result.scope().locationCode()).isNull();
+        assertThat(result.scope().locationName()).isNull();
+        verifyNoInteractions(locationJpaRepository);
     }
 }

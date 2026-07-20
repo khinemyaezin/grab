@@ -3,6 +3,7 @@ package com.inventory.infrastructure.repository.jpa;
 import com.inventory.infrastructure.specification.jpa.InventorySearchCriteria;
 import com.inventory.infrastructure.view.InventoryExistenceView;
 import com.inventory.infrastructure.view.InventoryItemView;
+import com.inventory.infrastructure.view.InventorySummaryView;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,4 +18,6 @@ public interface InventoryQueryRepository {
             String locationId,
             Collection<String> skus
     );
+
+    InventorySummaryView summarize(String merchantId, String locationId);
 }

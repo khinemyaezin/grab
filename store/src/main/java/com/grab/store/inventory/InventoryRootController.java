@@ -46,6 +46,9 @@ public class InventoryRootController {
                 .checkExistence(null, null))
                 .withRel("check-inventory-items-existence"));
         model.add(linkTo(methodOn(InventoryController.class)
+                .getInventorySummary(null, null))
+                .withRel("inventory-summary"));
+        model.add(linkTo(methodOn(InventoryController.class)
                 .getInventory(null))
                 .withRel("inventory-item"));
 
