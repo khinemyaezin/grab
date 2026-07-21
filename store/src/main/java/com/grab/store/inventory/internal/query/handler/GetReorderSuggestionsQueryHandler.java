@@ -63,7 +63,7 @@ public class GetReorderSuggestionsQueryHandler
             return Map.of();
         }
         return productVariantViewJpaRepository
-                .findAllBySkuInAndStatus(skus, ProductVariantViewEntity.STATUS_ACTIVE)
+                .findAllBySkuIn(skus)
                 .stream()
                 .collect(Collectors.toMap(
                         ProductView::getSku,
