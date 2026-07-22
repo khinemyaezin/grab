@@ -7,7 +7,7 @@ You MUST follow every rule below when generating, reviewing, or refactoring code
 ## R1. Module Structure & Dependencies
 
 - **Module layout:** `{name}-domain/` → `{name}-infrastructure/` → `store/`
-- **Dependency direction:** `framework ← domain ← infrastructure ← store`, `framework ← outbox-infrastructure ← store`, `framework ← logger-slf4j ← store`
+- **Dependency direction:** `framework ← domain ← infrastructure ← store`, `framework ← outbox-infrastructure ← store`, `framework ← workflow-infrastructure ← store`, `framework ← logger-slf4j ← store`
 - **Spring Modulith:**
   - Each bounded context has `@ApplicationModule(allowedDependencies = "shared")` marker class (e.g. `CatalogModule`, `InventoryModule`).
   - **`shared`** is declared OPEN: `@ApplicationModule(type = ApplicationModule.Type.OPEN)` on `com.grab.store.shared` (`package-info.java`).

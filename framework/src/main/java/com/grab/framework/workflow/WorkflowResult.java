@@ -6,13 +6,20 @@ public sealed interface WorkflowResult permits WorkflowResult.Success, WorkflowR
 
     String workflowName();
 
+    String workflowId();
+
     WorkflowContext context();
 
     boolean succeeded();
 
-    record Success(String workflowName, WorkflowContext context) implements WorkflowResult {
+    record Success(
+            String workflowName,
+            String workflowId,
+            WorkflowContext context
+    ) implements WorkflowResult {
         public Success {
             Objects.requireNonNull(workflowName, "workflowName");
+            Objects.requireNonNull(workflowId, "workflowId");
             Objects.requireNonNull(context, "context");
         }
 
@@ -24,6 +31,7 @@ public sealed interface WorkflowResult permits WorkflowResult.Success, WorkflowR
 
     record Failed(
             String workflowName,
+            String workflowId,
             WorkflowContext context,
             String failedStep,
             Throwable cause,
@@ -31,6 +39,7 @@ public sealed interface WorkflowResult permits WorkflowResult.Success, WorkflowR
     ) implements WorkflowResult {
         public Failed {
             Objects.requireNonNull(workflowName, "workflowName");
+            Objects.requireNonNull(workflowId, "workflowId");
             Objects.requireNonNull(context, "context");
             Objects.requireNonNull(failedStep, "failedStep");
             Objects.requireNonNull(cause, "cause");
@@ -42,17 +51,18 @@ public sealed interface WorkflowResult permits WorkflowResult.Success, WorkflowR
         }
     }
 
-    static Success success(String workflowName, WorkflowContext context) {
-        return new Success(workflowName, context);
+    static Success success(String workflowName, String workflowId, WorkflowContext context) {
+        return new Success(workflowName, workflowId, context);
     }
 
     static Failed failed(
             String workflowName,
+            String workflowId,
             WorkflowContext context,
             String failedStep,
             Throwable cause,
             boolean compensationCompleted
     ) {
-        return new Failed(workflowName, context, failedStep, cause, compensationCompleted);
+        return new Failed(workflowName, workflowId, context, failedStep, cause, compensationCompleted);
     }
 }

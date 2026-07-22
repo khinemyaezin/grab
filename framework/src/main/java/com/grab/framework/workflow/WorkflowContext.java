@@ -45,4 +45,10 @@ public final class WorkflowContext {
     public Map<String, Object> attributes() {
         return Collections.unmodifiableMap(attributes);
     }
+
+    public void replaceAttributes(Map<String, Object> values) {
+        Objects.requireNonNull(values, "values");
+        attributes.clear();
+        attributes.putAll(values);
+    }
 }

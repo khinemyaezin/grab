@@ -1,353 +1,219 @@
-# ADR-006: Orchestrated Workflow
-
-## Status
-Proposed (July 21, 2026)
-
-## Context
-
-The platform is a Spring Modulith with module-scoped persistence:
-
-- each bounded context owns its own `DataSource`, `EntityManagerFactory`, and
-  `PlatformTransactionManager`
-- writes go through CQRS command handlers with `@{Module}Transactional`
-- cross-module side effects use the module-scoped transactional outbox
-  (ADR-002) and event listeners that dispatch further commands via `CommandBus`
-
-That design is correct for:
-
-- single-module mutations (for example `CreateEntityCommand`)
-- eventual consistency between modules (for example module A events
-  projecting into module B's view)
-
-It does not solve a different class of problem: **one user action that must
-write in more than one module before the HTTP response returns**.
-
-Example:
-
-- create an entity in Module A
-- then create dependent entities in Module B
-
-There is no shared transaction across Module A and Module B. If step 2 fails
-after step 1 committed, the system can leave inconsistent state unless the
-application owns an explicit undo plan.
-
-Frontend orchestration of multiple APIs is possible, but:
-
-- compensation rules leak into clients
-- partial failure handling is inconsistent
-- HATEOAS discovery alone does not define transactional intent across modules
-
-The repository needs a first-class application pattern for this case without
-abandoning Modulith boundaries, CQRS, policies, or the outbox.
+# Choreography and Orchestration Architecture
 
 ---
 
-## Decision
+## 1. The Problem
 
-Adopt an **orchestrated workflow** (also called an in-request workflow) for
-cross-module write use cases that must complete as one user-facing operation.
+**What's not working?**  
+In our Spring Modulith platform, cross-module business operations requiring multiple writes were previously coordinated using in-request workflows that directly injected foreign module step beans (`WorkflowStep`). This pattern violated bounded context encapsulation, leaked module `internal` packages across domain boundaries, tightly coupled modules, and prevented clean extraction to independent microservices.
 
-### 1. Pattern
-
-Use the **Workflow pattern in orchestration style**:
-
-- one application orchestrator owns step order
-- each step performs one module write by dispatching a command through
-  `CommandBus` (or a read through `QueryBus` when needed)
-- each completed step may register a **compensating command**
-- if a later step fails, the runner executes compensations in reverse order
-
-This is not choreography. Outbox listeners remain the choreography mechanism
-for background sync and cascading reactions (ADR-002). Workflow and outbox
-complement each other; workflow does not replace outbox.
-
-### 2. Adoption levels
-
-| Level | Name | Behavior | When |
-|---|---|---|---|
-| L1 | In-request workflow | Steps run inside one HTTP request; compensate on failure before response | Default starting point |
-| L2 | Durable workflow | Persist workflow instance state; resume after crash | Only when long-running or crash-resume is required |
-
-This ADR accepts **L1** now. L2 is deferred until a concrete use case needs it
-(for example checkout with external payment waits).
-
-### 3. When to use a workflow
-
-Use a workflow when **all** of the following are true:
-
-- one user action requires writes in two or more modules
-- the client should receive success only if the whole sequence completed (or a
-  documented partial policy with compensations applied)
-- a single local module transaction cannot cover the work
-
-Do **not** use a workflow when:
-
-- the mutation stays inside one module (keep a normal command handler)
-- the reaction is asynchronous eventual consistency (keep outbox + listener)
-- the UI can accept two independent APIs with no server-side undo contract
-
-### 4. Foundation placement
-
-Shared workflow contracts live in `framework`:
-
-```
-framework/src/main/java/com/grab/framework/workflow/
-  WorkflowContext
-  WorkflowStep
-  WorkflowDefinition
-  WorkflowRunner
-  WorkflowResult
-```
-
-Application workflow definitions and steps live under `store` composition root,
-preferably:
-
-```
-store/src/main/java/com/grab/store/shared/workflow/
-```
-
-or a dedicated workflows package that remains outside any single bounded
-context's `internal/` domain ownership.
-
-Workflows are application orchestration. They are not domain aggregates and must
-not live in `*-domain` modules.
-
-### 5. Hard rules (must)
-
-1. Workflow steps dispatch work only through `CommandBus` / `QueryBus`.
-2. Workflow steps and runners must not inject or call repositories.
-3. Workflow steps must not call other command/query handlers directly.
-4. Business invariants stay in aggregates and policies; the workflow only sequences
-   already-valid commands.
-5. One step should target one module write boundary.
-6. There is no shared transaction spanning modules; each handler keeps its own
-   `@{Module}Transactional` boundary.
-7. Compensations are also commands (or explicit no-ops), not ad-hoc repository
-   deletes from the workflow.
-8. Steps should be idempotent where retries are expected.
-9. Existing single-module endpoints remain valid and are not required to route
-   through a workflow.
-
-### 6. API shape
-
-- Keep single-module endpoints for single-module mutations.
-- Add a workflow entry endpoint for the workflow, for example
-  `POST /api/v1/workflows/complex-operation`.
-- Expose discovery links (Tier-2 root and/or a workflows resource) so clients
-  can find related operations.
-
-Controllers stay thin: validate HTTP input, resolve security scope, call a
-workflow application service, return DTO + HATEOAS links.
-
-### 7. Relationship to existing architecture rules
-
-| Concern | Owner after this ADR |
-|---|---|
-| Single-module write | Command handler + module TX |
-| Cross-module async reaction | Outbox event + listener + `CommandBus` |
-| Cross-module sync user action | Orchestrated workflow + compensating commands |
-| Business rules | Aggregates / domain or application policies |
-| Cross-module navigation | `{Owner}ApiLinks` / named `::api` interfaces |
+**What's at stake?**  
+Without a clean separation of module boundaries and coordination patterns, cross-module operations cause domain logic fragmentation, fragile transaction management across independent `DataSource` boundaries, and unpredictable failure cascades. Continuing to couple bounded context internals increases architectural complexity and blocks future service decomposition.
 
 ---
 
-## Visual Overview
+## 2. What We Decided
 
-### Workflow vs outbox
+**The core approach:**  
+Adopt two complementary cross-module coordination patterns chosen strictly by use-case requirements: **Process Manager** (ports + persistent process store for sequence and compensation ownership) and **Event Choreography** (transactional outbox events for independent reactions).
+
+**Key changes:**
+- **Decouple Module Internals via Ports:** Replace foreign step bean injections with dedicated Process Manager orchestration. Process Managers communicate with bounded contexts exclusively through coarse-grained capability interfaces (ports) located in `store/shared/process/`.
+- **Module Adapters:** Introduce port adapters in `store/{module}/internal/process/adapter/` that translate port interface invocations into module-private `CommandBus` dispatches.
+- **Durable Workflow Store:** Introduce `workflow-infrastructure` for durable `WorkflowStore` persistence, wired by the `store/workflows` Modulith module. Resume-from-checkpoint is supported for `RUNNING` / `WAITING_EXTERNAL` (ADR-007).
+- **Event Choreography for Decoupled Reactions:** Use module-scoped Transactional Outbox (ADR-002) integration events for event-driven reactions where no single central process owner is required.
+
+**What stays the same:**
+- **Single-Module Mutations:** Single-module write operations remain strictly within local CQRS command handlers and module-scoped database transactions (`@{Module}Transactional`).
+- **Domain Invariants:** Aggregate invariants and domain validation rules stay inside their respective bounded contexts; Process Managers and event listeners only sequence work.
+- **Outbox Infrastructure:** The module-scoped Transactional Outbox (ADR-002) continues to be the foundation for publishing domain and integration events.
+
+---
+
+## 2.1. Visual Overview
+
+> *Diagrams illustrating the domain bounded contexts, context map, aggregate state lifecycle, and component interactions.*
+
+### Bounded Contexts & Context Map
+
+```mermaid
+flowchart TD
+  subgraph Workflows_BC ["Workflows Bounded Context"]
+    PM["Process Manager (Orchestrator)"]
+    PS[("Workflow Store Persistence")]
+    PM --> PS
+  end
+
+  subgraph Workflow_Infra ["workflow-infrastructure"]
+    JpaStore["JpaWorkflowStore"]
+  end
+
+  PS -.-> JpaStore
+
+  subgraph Shared_Contracts ["Shared Process Contracts (store/shared/process)"]
+    PortA["Module A Port Interface"]
+    PortB["Module B Port Interface"]
+  end
+
+  subgraph ModuleA_BC ["Module A Bounded Context"]
+    AdapterA["Module A Port Adapter"]
+    CmdA["Internal CommandBus & Handlers"]
+    AggA["Domain Aggregate A"]
+    AdapterA --> CmdA --> AggA
+  end
+
+  subgraph ModuleB_BC ["Module B Bounded Context"]
+    AdapterB["Module B Port Adapter"]
+    CmdB["Internal CommandBus & Handlers"]
+    AggB["Domain Aggregate B"]
+    AdapterB --> CmdB --> AggB
+  end
+
+  PM --> PortA
+  PM --> PortB
+  AdapterA -.->|implements| PortA
+  AdapterB -.->|implements| PortB
+```
+
+### High-Level Flow / Pattern Comparison
 
 ```mermaid
 flowchart LR
-  subgraph Request["In-request path"]
-    API["Workflow API"]
-    Runner["WorkflowRunner"]
-    CB["CommandBus"]
-    API --> Runner --> CB
+  subgraph PM_Pattern ["Process Manager Pattern (Centralized Sequence & Compensation)"]
+    PM["ProcessManager"]
+    A1["Module A Port"]
+    B1["Module B Port"]
+    PM -->|"1. Execution Request"| A1
+    A1 -->|"2. Step Completion / Status"| PM
+    PM -->|"3. Execution Request"| B1
+    B1 -->|"4. Step Completion / Status"| PM
   end
 
-  subgraph Modules["Module transactions"]
-    ModA["Module A handler TX"]
-    ModB["Module B handler TX"]
+  subgraph Choreo_Pattern ["Choreography Pattern (Decoupled Reactive Listeners)"]
+    A2["Module A"]
+    E["Transactional Outbox / Event Bus"]
+    B2["Module B Event Listener"]
+    C2["Module C Event Listener"]
+    A2 -->|"1. Commit Aggregate + Outbox Event"| E
+    E -->|"2. Event Reaction (Local Command)"| B2
+    E -->|"3. Event Reaction (Local Command)"| C2
   end
-
-  subgraph Async["Async path - unchanged"]
-    Outbox["Module outbox"]
-    Listener["Event listener"]
-    Outbox --> Listener --> CB
-  end
-
-  CB --> ModA
-  CB --> ModB
-  ModA --> Outbox
-  ModB --> Outbox
 ```
 
-### Example Workflow happy path
+### Process Manager Aggregate / Lifecycle State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> RUNNING: Process Initiated
+  RUNNING --> WAITING_STEP1: Dispatch Step 1 (Async) / Checkpoint
+  WAITING_STEP1 --> WAITING_STEP2: Step 1 Event Received / Checkpoint
+  WAITING_STEP2 --> COMPLETED: Step 2 Event Received / Checkpoint
+  
+  RUNNING --> COMPENSATING: Step Execution Error
+  WAITING_STEP1 --> COMPENSATING: Step 1 Failed or Timed Out
+  WAITING_STEP2 --> COMPENSATING: Step 2 Failed or Timed Out
+
+  COMPENSATING --> COMPENSATED: Reverse Rollback Completed
+  COMPENSATING --> FAILED: Compensation Rollback Failed
+
+  COMPLETED --> [*]
+  COMPENSATED --> [*]
+  FAILED --> [*]
+```
+
+### Process Manager Sequence - Synchronous Port Execution
 
 ```mermaid
 sequenceDiagram
   participant Client
-  participant API as Workflow controller
-  participant Runner as WorkflowRunner
-  participant Bus as CommandBus
-  participant ModA as Module A handler
-  participant ModB as Module B handler
+  participant API as Workflows API
+  participant PM as ProcessManager
+  participant Store as WorkflowStore
+  participant A as ModuleAPort
+  participant B as ModuleBPort
 
-  Client->>API: POST complex-operation
-  API->>Runner: run(ComplexOperation)
-  Runner->>Bus: CommandA
-  Bus->>ModA: handle + commit
-  ModA-->>Runner: entityId
-  Runner->>Bus: CommandB
-  Bus->>ModB: handle + commit
-  Runner-->>API: WorkflowResult success
-  API-->>Client: 201 + ids + links
+  Client->>API: POST /api/v1/workflows/start
+  API->>PM: start(context)
+  PM->>Store: Persist Status: RUNNING
+  PM->>A: executeStep1(context)
+  A-->>PM: Step 1 Result DTO
+  PM->>Store: Checkpoint: STEP1_COMPLETED
+  PM->>B: executeStep2(result1)
+  B-->>PM: Step 2 Result DTO
+  PM->>Store: Persist Status: COMPLETED
+  PM-->>API: Process Finished
+  API-->>Client: 201 Created + Result DTO
 ```
 
-### Failure with compensation
+### Process Manager Sequence - Asynchronous Event/Outbox Messaging
 
 ```mermaid
 sequenceDiagram
-  participant Runner as WorkflowRunner
-  participant Bus as CommandBus
+  participant Client
+  participant PM as ProcessManager
+  participant Store as WorkflowStore
+  participant OB as Transactional Outbox
+  participant A as Module A Handler
+  participant B as Module B Handler
 
-  Runner->>Bus: CommandA
-  Note over Runner: Step 1 committed
-  Runner->>Bus: CommandB
-  Note over Runner: Step 2 fails
-  Runner->>Bus: CompensatingCommandA
-  Runner-->>Runner: WorkflowResult failed after compensation
+  Client->>PM: POST /api/v1/workflows/start-async
+  PM->>Store: Persist Status: WAITING_STEP1
+  PM->>OB: Publish Step1 Command Message
+  PM-->>Client: 202 Accepted (processId)
+
+  OB->>A: Deliver Command Message
+  A->>OB: Commit Action & Publish Step1Completed Event
+  OB->>PM: Handle Step1Completed Event
+  PM->>Store: Checkpoint & Status: WAITING_STEP2
+  PM->>OB: Publish Step2 Command Message
+
+  OB->>B: Deliver Command Message
+  B->>OB: Commit Action & Publish Step2Completed Event
+  OB->>PM: Handle Step2Completed Event
+  PM->>Store: COMPLETED
+
+  Client->>PM: GET /api/v1/workflows/{processId}
+  PM-->>Client: 200 OK (COMPLETED + Result payload)
 ```
 
 ---
 
-## Alternatives Considered
+## 3. Why This Approach
 
-### Option A: Client-orchestrated multi-API calls
-
-The client UI calls Module A create, then Module B create.
-
-#### Advantages
-
-- no new framework types
-- each endpoint stays simple
-
-#### Disadvantages
-
-- compensation and partial-failure policy live in every client
-- inconsistent behavior across web/mobile
-- harder to enforce idempotency and audit as one business operation
-
-#### Assessment
-
-Acceptable for loosely related actions. Rejected as the primary approach for
-operations that the product treats as one complex creation.
-
-### Option B: Shared database transaction across modules
-
-One `@Transactional` spanning multiple persistence units.
-
-#### Advantages
-
-- automatic rollback semantics
-
-#### Disadvantages
-
-- conflicts with module-scoped datasources and transaction managers
-- blocks future extraction of modules to separate databases
-- weakens Modulith persistence ownership
-
-#### Assessment
-
-Rejected. Workflow exists because cross-module atomic TX is intentionally avoided.
-
-### Option C: Choreography-only (events for the whole flow)
-
-Create entity, emit events, listeners create dependent entities automatically.
-
-#### Advantages
-
-- reuses outbox
-- loose coupling
-
-#### Disadvantages
-
-- poor fit for request/response UX that needs immediate success/failure
-- harder to present a single error to the caller
-- compensation becomes distributed and opaque
-
-#### Assessment
-
-Keep for projections and cascades. Rejected as the only mechanism for
-synchronous multi-module user actions.
-
-### Option D: External workflow engine (Temporal, Camunda, Conductor)
-
-#### Advantages
-
-- durable execution, timers, versioning, operator tooling
-
-#### Disadvantages
-
-- operational and cognitive cost too high for current needs
-- duplicates capabilities already provided by in-process `CommandBus`
-
-#### Assessment
-
-Deferred. Reconsider only for L2 durable long-running processes.
-
-### Option E: Orchestrated in-request workflow on CommandBus
-
-#### Advantages
-
-- matches multi-datasource reality
-- keeps module handlers and policies as the write engines
-- clear compensate story
-- small framework surface
-- aligns with workflow ideas without copying external engines into the stack
-
-#### Disadvantages
-
-- process crash after a committed step and before compensation can leave
-  temporary inconsistency until retry/ops handling (L1 limitation)
-- requires compensating commands for each forward write
-
-#### Assessment
-
-Accepted for L1.
+**Primary reasons:**
+1. **Strict Bounded Context Decoupling:** Process Managers operate against shared port interfaces (`store/shared/process/`), preventing modules from importing each other's `internal` domain packages. Adapters map port invocations to private `CommandBus` dispatches.
+2. **Clear Use-Case Selection Criteria:** Provides explicit architectural guidance for choosing between Process Manager (when a single orchestrator must own the sequence, compensation order, and status) vs Event Choreography (when modules react independently to facts with eventual consistency).
+3. **Resilience & Flexible Transports:** The persistent `WorkflowStore` records checkpoints; `DefaultWorkflowRunner` can resume `RUNNING` / `WAITING_EXTERNAL` instances from the next incomplete step (ADR-007). Synchronous in-request orchestration with compensate-on-failure remains the default path.
 
 ---
 
-## Consequences
+## 4. Trade-offs
 
-### Positive
-
-- clear rule for when to add orchestration versus a single command versus
-  outbox choreography
-- cross-module user actions get explicit compensation without shared TX
-- existing CQRS, Modulith, and outbox decisions remain intact
-- clients can discover a single workflow entry instead of inventing multi-call
-  scripts
-
-### Negative / accepted trade-offs
-
-- L1 does not guarantee resume-after-crash; operators or idempotent retry must
-  cover rare mid-workflow process death
-- each new workflow needs real compensating commands, not only happy-path commands
-- more application types to learn (`WorkflowRunner`, steps, definitions)
-
-### Follow-up work
-
-1. ~~Implement `framework` workflow kit (`WorkflowContext`, `WorkflowStep`, `WorkflowRunner`, tests).~~ Done.
-2. Add missing compensating commands where required by new workflows.
-3. Implement the first concrete workflow, service, mapper, and API.
-4. Add discovery links for the workflow entry.
-5. Document workflow versus single-command versus outbox choice in feature specs.
-6. Revisit L2 durable workflow only when a long-running process requires it.
+| Pros | Cons |
+|-------|-------|
+| **Encapsulated Bounded Contexts:** Modules expose coarse capability ports without leaking aggregate structures or internal CQRS command implementations. | **Workflow Store Management:** Requires maintaining dedicated workflow persistence tables, correlation IDs, and checkpoint logic in `workflow-infrastructure`. |
+| **Seamless Microservice Migration:** Port interfaces can easily transition from local Spring bean calls to HTTP/gRPC clients or broker queues without refactoring Process Manager logic. | **Distributed Rollback Complexity:** Choreography requires distributed compensating event logic across listeners, making unified process tracking more complex. |
+| **Dual Transport Support:** Cleanly handles synchronous immediate response requests as well as long-running asynchronous execution flows. | **Eventual Consistency Latency:** Asynchronous outbox messaging introduces eventual consistency delays between step execution events. |
 
 ---
 
-## Notes
+## 5. What Needs to Change
 
-- The workflow sequences commands; it does not become the home of business rules.
-- Naming in code may use `workflow`; the architectural pattern is
-  orchestrated workflow either way.
+**New components/modules to build:**
+- `workflow-infrastructure/`: Durable `JpaWorkflowStore` persistence for workflow execution state.
+- `store/workflows/`: Modulith module wiring datasource/Flyway and workflow runner beans; later orchestration entry points.
+- `store/shared/process/`: Define shared port interfaces, capability contracts, execution status enums, and handoff DTOs (Process Manager pattern ports).
+- `framework/workflow/`: Core workflow abstractions — context, definition, step, result, `WorkflowStore`, and checkpointing `WorkflowRunner`.
+
+**Changes to existing systems:**
+- `store/{module}/internal/process/adapter/`: Implement module-specific port adapters that implement shared interfaces from `store/shared/process/` and delegate to local `CommandBus` instances.
+- **Deprecate Direct Step Injections:** Remove all cross-module foreign step bean imports (`::workflow`) across bounded context boundaries.
+- **Outbox Event Integration:** Standardize module integration events published through the Transactional Outbox (ADR-002) for event-driven Choreography flows.
+
+---
+
+## 6. Implementation Plan
+
+- **Phase 1:** Establish core workflow framework in `framework/workflow/` (checkpointing `WorkflowRunner` + `WorkflowStore` port), durable persistence in `workflow-infrastructure/`, and Modulith wiring in `store/workflows/` with a dedicated `workflows` database. *(Landed: `com.grab.framework.workflow.*`, `workflow-infrastructure` `JpaWorkflowStore`, Flyway `workflow_instance`, `workflows.datasource` — ensure `MODULE_DATABASES` includes `workflows`. Legacy non-durable runner removed.)*
+- **Phase 2:** Introduce shared port contracts in `store/shared/process/`, build module port adapters (`store/{module}/internal/process/adapter/`), and migrate multi-step write flows (e.g. CreateSellableItem) to workflow orchestration or Event Choreography.
+- **Phase 3:** Remove deprecated cross-module step bean imports, audit bounded contexts for strict `internal` encapsulation, and establish standard use-case pattern selection guidelines for new features.
