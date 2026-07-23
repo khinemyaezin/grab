@@ -24,6 +24,8 @@ COPY identity-infrastructure/pom.xml identity-infrastructure/
 COPY merchant-domain/pom.xml merchant-domain/
 COPY merchant-infrastructure/pom.xml merchant-infrastructure/
 
+COPY workflow-infrastructure/pom.xml workflow-infrastructure/
+
 COPY logger-slf4j/pom.xml logger-slf4j/
 COPY store/pom.xml store/
 
@@ -44,6 +46,8 @@ COPY identity-infrastructure/src identity-infrastructure/src
 
 COPY merchant-domain/src merchant-domain/src
 COPY merchant-infrastructure/src merchant-infrastructure/src
+
+COPY workflow-infrastructure/src workflow-infrastructure/src
 
 COPY logger-slf4j/src logger-slf4j/src
 COPY store/src store/src

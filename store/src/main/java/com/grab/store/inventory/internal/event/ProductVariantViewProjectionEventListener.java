@@ -6,20 +6,27 @@ import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantRestoredIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantUpdatedIntegrationEvent;
+import com.grab.store.workflows.events.ProductVariantViewProjectedEvent;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.inventory.infrastructure.entity.ProductVariantViewEntity;
 import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.time.Instant;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductVariantViewProjectionEventListener {
 
+    private static final int EVENT_VERSION = 1;
+
     private final ProductVariantViewJpaRepository productVariantViewRepository;
+    private final ApplicationEventPublisher events;
 
     @EventListener
     @InventoryTransactional
@@ -34,6 +41,14 @@ public class ProductVariantViewProjectionEventListener {
         view.setProductName(event.productName());
         view.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
         productVariantViewRepository.save(view);
+
+        events.publishEvent(new ProductVariantViewProjectedEvent(
+                event.productId(),
+                event.variantId(),
+                event.sku(),
+                Instant.now(),
+                EVENT_VERSION
+        ));
     }
 
     @EventListener

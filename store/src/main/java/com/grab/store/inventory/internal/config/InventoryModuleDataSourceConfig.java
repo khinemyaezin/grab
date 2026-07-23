@@ -1,16 +1,5 @@
 package com.grab.store.inventory.internal.config;
 
-import com.grab.framework.id.IdGenerator;
-import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.domain.repository.StockMovementRepository;
-import com.inventory.domain.service.InventoryAllocationService;
-import com.inventory.domain.service.ReorderService;
-import com.inventory.domain.service.impl.DefaultInventoryAllocationService;
-import com.inventory.domain.service.impl.DefaultReorderService;
-import com.inventory.infrastructure.mapper.jpa.InventoryItemEntityMapper;
-import com.inventory.infrastructure.mapper.jpa.InventoryItemMapper;
-import com.inventory.infrastructure.mapper.jpa.InventoryJpaAssembler;
-import com.inventory.infrastructure.mapper.jpa.impl.InventoryJpaAssemblerImpl;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
