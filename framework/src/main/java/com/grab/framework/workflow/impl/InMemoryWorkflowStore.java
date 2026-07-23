@@ -1,8 +1,10 @@
 package com.grab.framework.workflow.impl;
 
 import com.grab.framework.workflow.WorkflowInstance;
+import com.grab.framework.workflow.WorkflowStatus;
 import com.grab.framework.workflow.WorkflowStore;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,6 +37,16 @@ public final class InMemoryWorkflowStore implements WorkflowStore {
             return Optional.empty();
         }
         return findById(workflowId);
+    }
+
+    @Override
+    public List<WorkflowInstance> findByWorkflowNameAndStatus(String workflowName, WorkflowStatus status) {
+        Objects.requireNonNull(workflowName, "workflowName");
+        Objects.requireNonNull(status, "status");
+        return byId.values().stream()
+                .filter(instance -> instance.workflowName().equals(workflowName))
+                .filter(instance -> instance.status() == status)
+                .toList();
     }
 
     private static String idempotencyIndexKey(String workflowName, String idempotencyKey) {

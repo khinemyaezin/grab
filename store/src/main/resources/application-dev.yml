@@ -93,6 +93,8 @@ merchant:
     retention-ms: ${MERCHANT_OUTBOX_RETENTION_MS:604800000}
 
 workflows:
+  seed:
+    enabled: ${WORKFLOW_SEED_ENABLED:true}
   datasource:
     url: ${WORKFLOWS_DATASOURCE_URL:jdbc:postgresql://localhost:5432/workflows}
     username: ${WORKFLOWS_DATASOURCE_USERNAME:admin}

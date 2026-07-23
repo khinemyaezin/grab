@@ -28,4 +28,18 @@ public final class SharedErrors {
                 "Unexpected internal error."
         );
     }
+
+    public static SharedException workflowScopeForbidden(String platformCode, String scopeKey, String scopeId) {
+        return new SharedException(
+                new SharedError.WorkflowScopeForbidden(platformCode, scopeKey, scopeId),
+                "A Seller Portal merchant account scope is required for workflows."
+        );
+    }
+
+    public static SharedException workflowNotFound(String workflowId) {
+        return new SharedException(
+                new SharedError.WorkflowNotFound(workflowId),
+                "Workflow not found."
+        );
+    }
 }

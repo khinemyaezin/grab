@@ -3,6 +3,7 @@ package com.grab.store.workflows.internal.config;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -50,24 +51,14 @@ public class WorkflowsModuleDataSourceConfig {
         return workflowsDataSourceProperties.initializeDataSourceBuilder().build();
     }
 
-    @Bean(name = "workflowsFlyway", initMethod = "migrate")
-    public Flyway workflowsFlyway(@Qualifier("workflowsDataSource") DataSource dataSource) {
-        return Flyway.configure()
-                .dataSource(dataSource)
-                .locations("classpath:db/migration/workflows")
-                .baselineOnMigrate(true)
-                .load();
-    }
-
     @Bean("workflowsEntityManagerFactory")
-    @DependsOn("workflowsFlyway")
     public LocalContainerEntityManagerFactoryBean workflowsEntityManagerFactory(
             @Qualifier("workflowsDataSource") DataSource workflowsDataSource
     ) {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setJpaVendorAdapter(vendorAdapter);
-        factory.setPackagesToScan("com.grab.workflow.infrastructure.entity");
+        factory.setPackagesToScan("com.grab.workflow.infrastructure");
         factory.setDataSource(workflowsDataSource);
         factory.setPersistenceUnitName("workflows");
         factory.setJpaPropertyMap(hibernateProperties());
@@ -88,5 +79,15 @@ public class WorkflowsModuleDataSourceConfig {
         properties.put("hibernate.show_sql", environment.getProperty("workflows.jpa.hibernate.show_sql", "false"));
         properties.put("hibernate.format_sql", environment.getProperty("workflows.jpa.hibernate.format_sql", "false"));
         return properties;
+    }
+
+    @Bean(name = "workflowsFlyway", initMethod = "migrate")
+    @ConditionalOnProperty(prefix = "workflows.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
+    public Flyway workflowsFlyway(@Qualifier("workflowsDataSource") DataSource dataSource) {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration/workflows")
+                .baselineOnMigrate(true)
+                .load();
     }
 }

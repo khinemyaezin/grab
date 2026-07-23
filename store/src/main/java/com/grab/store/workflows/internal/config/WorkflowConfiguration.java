@@ -1,4 +1,4 @@
-package com.grab.store.workflows.config;
+package com.grab.store.workflows.internal.config;
 
 import com.grab.framework.workflow.WorkflowRunner;
 import com.grab.framework.workflow.WorkflowStore;

@@ -1,4 +1,4 @@
-package com.grab.workflow.infrastructure.config;
+package com.grab.store.workflows.internal.config;
 
 import org.springframework.transaction.annotation.Transactional;
 
