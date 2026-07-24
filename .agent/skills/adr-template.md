@@ -281,3 +281,14 @@ sequenceDiagram
 - Platform BRD: `docs/Commerce_Platform.md`
 
 Do not link to non-existent paths such as `docs/BRD/`, `ADR_SKILLS.md`, or `PRD_SKILLS.md`.
+
+**Rollback strategy:**  
+[How do we revert this safely if something goes wrong?]
+
+---
+
+## 7. Related Documents
+
+- [Link to PRD / BRD]
+- [Link to related ADR]
+- [Link to technical specifications]

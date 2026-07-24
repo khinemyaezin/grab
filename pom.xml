@@ -23,6 +23,8 @@
         <module>identity-infrastructure</module>
         <module>merchant-domain</module>
         <module>merchant-infrastructure</module>
+        <module>pricing-domain</module>
+        <module>pricing-infrastructure</module>
         <module>store</module>
     </modules>
 
@@ -147,8 +149,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>21</source> <!-- depending on your project -->
-                    <target>21</target> <!-- depending on your project -->
+                    <source>21</source> 
+                    <target>21</target> 
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
