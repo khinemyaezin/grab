@@ -111,6 +111,21 @@ pricing:
     retry-delay-ms: ${PRICING_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${PRICING_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${PRICING_OUTBOX_RETENTION_MS:604800000}
+workflows:
+  seed:
+    enabled: ${WORKFLOW_SEED_ENABLED:true}
+  datasource:
+    url: ${WORKFLOWS_DATASOURCE_URL:jdbc:postgresql://localhost:5432/workflows}
+    username: ${WORKFLOWS_DATASOURCE_USERNAME:admin}
+    password: ${WORKFLOWS_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${WORKFLOWS_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${WORKFLOWS_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${WORKFLOWS_JPA_DDL_AUTO:validate}
+      show_sql: ${WORKFLOWS_JPA_SHOW_SQL:false}
+      format_sql: ${WORKFLOWS_JPA_FORMAT_SQL:false}
 
 security:
   enabled: ${API_SECURITY:true}
