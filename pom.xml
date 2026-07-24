@@ -22,6 +22,8 @@
         <module>identity-infrastructure</module>
         <module>merchant-domain</module>
         <module>merchant-infrastructure</module>
+        <module>pricing-domain</module>
+        <module>pricing-infrastructure</module>
         <module>store</module>
     </modules>
 

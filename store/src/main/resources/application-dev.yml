@@ -92,6 +92,26 @@ merchant:
     claim-timeout-ms: ${MERCHANT_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${MERCHANT_OUTBOX_RETENTION_MS:604800000}
 
+pricing:
+  enabled: ${PRICING_ENABLED:true}
+  datasource:
+    url: ${PRICING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/pricing}
+    username: ${PRICING_DATASOURCE_USERNAME:admin}
+    password: ${PRICING_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${PRICING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${PRICING_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${PRICING_JPA_DDL_AUTO:validate}
+  outbox:
+    fixed-delay-ms: ${PRICING_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${PRICING_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${PRICING_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${PRICING_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${PRICING_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${PRICING_OUTBOX_RETENTION_MS:604800000}
+
 security:
   enabled: ${API_SECURITY:true}
   local-jwt:

@@ -1,0 +1,10 @@
+package com.grab.store.pricing.internal.command;
+
+import com.grab.framework.cqrs.command.Command;
+import com.grab.framework.id.Id;
+
+public record RemovePriceFromPriceSetCommand(
+        Id priceSetId,
+        Id priceId
+) implements Command<PriceSetResult> {
+}

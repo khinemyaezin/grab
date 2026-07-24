@@ -18,6 +18,7 @@
         <inventory-infrastructure.version>0.0.1</inventory-infrastructure.version>
         <identity-infrastructure.version>0.0.1</identity-infrastructure.version>
         <merchant-infrastructure.version>0.0.1</merchant-infrastructure.version>
+        <pricing-infrastructure.version>0.0.1</pricing-infrastructure.version>
     </properties>
 
     <dependencies>
@@ -95,6 +96,11 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>merchant-infrastructure</artifactId>
             <version>${merchant-infrastructure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>pricing-infrastructure</artifactId>
+            <version>${pricing-infrastructure.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
