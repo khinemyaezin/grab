@@ -102,6 +102,9 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>pricing-infrastructure</artifactId>
             <version>${pricing-infrastructure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>workflow-infrastructure</artifactId>
             <version>${workflow-infrastructure.version}</version>
         </dependency>
@@ -172,8 +175,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>21</source> <!-- depending on your project -->
-                    <target>21</target> <!-- depending on your project -->
+                    <source>21</source> 
+                    <target>21</target> 
                     <compilerArgs>
                         <compilerArg>
                             -Amapstruct.defaultComponentModel=spring
