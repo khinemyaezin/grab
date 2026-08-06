@@ -25,6 +25,9 @@ public abstract class CreateSellableProductRequestMapper {
         List<CreateSellableProductContext.InventoryLine> inventoryLines = request.inventoryLines().stream()
                 .map(this::toContextInventoryLine)
                 .toList();
+        List<CreateSellableProductContext.PricingLine> pricingLines = request.pricingLines().stream()
+                .map(this::toContextPricingLine)
+                .toList();
         return CreateSellableProductContext.createContext(
                 merchantId,
                 createdBy,
@@ -32,16 +35,27 @@ public abstract class CreateSellableProductRequestMapper {
                 scopeId,
                 product,
                 variantTypes,
-                inventoryLines
+                inventoryLines,
+                pricingLines
         );
     }
 
     public CreateSellableProductResponse toResponse(WorkflowInstance instance, CreateSellableProductContext context) {
+        List<CreateSellableProductResponse.PricePair> pricePairs = context == null
+                ? List.of()
+                : context.pricePairs().stream()
+                .map(pair -> new CreateSellableProductResponse.PricePair(
+                        pair.variantId(),
+                        pair.sku(),
+                        pair.priceSetId()
+                ))
+                .toList();
         return new CreateSellableProductResponse(
                 instance.id(),
                 instance.status().name(),
                 instance.currentStep().orElse(null),
                 context == null ? null : context.productId(),
+                pricePairs,
                 context == null ? List.of() : context.inventoryItemIds(),
                 instance.errorMessage().orElse(null)
         );
@@ -52,4 +66,6 @@ public abstract class CreateSellableProductRequestMapper {
     protected abstract CreateSellableProductContext.VariantType toContextVariantType(CreateSellableProductRequest.VariantType variantType);
 
     protected abstract CreateSellableProductContext.InventoryLine toContextInventoryLine(CreateSellableProductRequest.InventoryLine inventoryLine);
+
+    protected abstract CreateSellableProductContext.PricingLine toContextPricingLine(CreateSellableProductRequest.PricingLine pricingLine);
 }

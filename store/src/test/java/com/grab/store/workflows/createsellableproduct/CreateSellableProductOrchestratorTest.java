@@ -11,9 +11,12 @@ import com.grab.store.workflows.events.InventoryItemCreatedEvent;
 import com.grab.store.workflows.events.ProductVariantViewProjectedEvent;
 import com.grab.store.workflows.events.RequestCreateInventoryItemEvent;
 import com.grab.store.workflows.events.RequestCreateProductSetEvent;
+import com.grab.store.workflows.events.RequestCreateVariantPriceEvent;
+import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;
 import com.grab.store.workflows.events.SellableProductProductCreatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
+import com.grab.store.workflows.events.VariantPriceCreatedEvent;
 import com.grab.store.workflows.internal.createsellableproduct.CreateSellableProductContext;
 import com.grab.store.workflows.internal.createsellableproduct.CreateSellableProductOrchestrator;
 import com.grab.store.workflows.internal.createsellableproduct.CreateSellableProductWorkflowNames;
@@ -21,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,13 +79,19 @@ class CreateSellableProductOrchestratorTest {
     }
 
     @Test
-    void happyPath_shouldCompleteAfterProjectionAndInventory() {
+    void happyPath_shouldCompleteAfterProjectionPricingAndInventory() {
         CreateSellableProductContext context = sampleContext();
         WorkflowInstance started = orchestrator.start(context, null);
         published.clear();
 
         orchestrator.onProductCreated(new SellableProductProductCreatedEvent(
-                started.id(), "product-1", List.of("SKU-1"), Instant.now(), 1));
+                started.id(),
+                "product-1",
+                List.of("SKU-1"),
+                List.of(new SellableProductProductCreatedEvent.VariantRef("variant-1", "SKU-1")),
+                Instant.now(),
+                1
+        ));
 
         WorkflowInstance afterProduct = workflowStore.findById(started.id()).orElseThrow();
         assertThat(afterProduct.currentStep()).contains(CreateSellableProductWorkflowNames.STEP_ENSURE_PRODUCT_VIEW);
@@ -91,13 +101,28 @@ class CreateSellableProductOrchestratorTest {
                 "product-1", "variant-1", "SKU-1", Instant.now(), 1));
 
         assertThat(published).hasSize(1);
+        assertThat(published.getFirst()).isInstanceOf(RequestCreateVariantPriceEvent.class);
+        RequestCreateVariantPriceEvent priceRequest = (RequestCreateVariantPriceEvent) published.getFirst();
+        assertThat(priceRequest.sku()).isEqualTo("SKU-1");
+        assertThat(priceRequest.variantId()).isEqualTo("variant-1");
+        assertThat(priceRequest.currencyCode()).isEqualTo("USD");
+        assertThat(priceRequest.amount()).isEqualByComparingTo("19.99");
+
+        WorkflowInstance afterProjection = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(afterProjection.currentStep()).contains(CreateSellableProductWorkflowNames.STEP_CREATE_VARIANT_PRICES);
+
+        published.clear();
+        orchestrator.onVariantPriceCreated(new VariantPriceCreatedEvent(
+                started.id(), "variant-1", "SKU-1", "price-set-1", Instant.now(), 1));
+
+        assertThat(published).hasSize(1);
         assertThat(published.getFirst()).isInstanceOf(RequestCreateInventoryItemEvent.class);
         RequestCreateInventoryItemEvent inventoryRequest = (RequestCreateInventoryItemEvent) published.getFirst();
         assertThat(inventoryRequest.sku()).isEqualTo("SKU-1");
         assertThat(inventoryRequest.locationId()).isEqualTo("loc-1");
 
-        WorkflowInstance afterProjection = workflowStore.findById(started.id()).orElseThrow();
-        assertThat(afterProjection.currentStep()).contains(CreateSellableProductWorkflowNames.STEP_CREATE_INVENTORY_ITEM);
+        WorkflowInstance afterPricing = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(afterPricing.currentStep()).contains(CreateSellableProductWorkflowNames.STEP_CREATE_INVENTORY_ITEM);
 
         orchestrator.onInventoryItemCreated(new InventoryItemCreatedEvent(
                 started.id(), "inv-1", "SKU-1", "loc-1", Instant.now(), 1));
@@ -106,15 +131,28 @@ class CreateSellableProductOrchestratorTest {
         assertThat(completed.status()).isEqualTo(WorkflowStatus.COMPLETED);
         CreateSellableProductContext finalContext = orchestrator.readContext(completed).orElseThrow();
         assertThat(finalContext.productId()).isEqualTo("product-1");
+        assertThat(finalContext.pricePairs()).containsExactly(
+                new CreateSellableProductContext.PricePair("variant-1", "SKU-1", "price-set-1")
+        );
         assertThat(finalContext.inventoryItemIds()).containsExactly("inv-1");
     }
 
     @Test
-    void onStepFailed_afterProduct_shouldCompensateWithDeleteProduct() {
+    void onStepFailed_afterPrices_shouldCompensatePriceSetsAndProduct() {
         CreateSellableProductContext context = sampleContext();
         WorkflowInstance started = orchestrator.start(context, null);
         orchestrator.onProductCreated(new SellableProductProductCreatedEvent(
-                started.id(), "product-1", List.of("SKU-1"), Instant.now(), 1));
+                started.id(),
+                "product-1",
+                List.of("SKU-1"),
+                List.of(new SellableProductProductCreatedEvent.VariantRef("variant-1", "SKU-1")),
+                Instant.now(),
+                1
+        ));
+        orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
+                "product-1", "variant-1", "SKU-1", Instant.now(), 1));
+        orchestrator.onVariantPriceCreated(new VariantPriceCreatedEvent(
+                started.id(), "variant-1", "SKU-1", "price-set-1", Instant.now(), 1));
         published.clear();
 
         orchestrator.onStepFailed(new SellableProductStepFailedEvent(
@@ -127,11 +165,16 @@ class CreateSellableProductOrchestratorTest {
 
         WorkflowInstance compensated = workflowStore.findById(started.id()).orElseThrow();
         assertThat(compensated.status()).isEqualTo(WorkflowStatus.COMPENSATED);
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOf(RequestDeleteProductCompensationEvent.class);
-        RequestDeleteProductCompensationEvent compensation = (RequestDeleteProductCompensationEvent) published.getFirst();
-        assertThat(compensation.productId()).isEqualTo("product-1");
-        assertThat(compensation.merchantId()).isEqualTo("merchant-1");
+        assertThat(published).hasSize(2);
+        assertThat(published.get(0)).isInstanceOf(RequestDeletePriceSetCompensationEvent.class);
+        RequestDeletePriceSetCompensationEvent priceCompensation =
+                (RequestDeletePriceSetCompensationEvent) published.get(0);
+        assertThat(priceCompensation.priceSetId()).isEqualTo("price-set-1");
+        assertThat(published.get(1)).isInstanceOf(RequestDeleteProductCompensationEvent.class);
+        RequestDeleteProductCompensationEvent productCompensation =
+                (RequestDeleteProductCompensationEvent) published.get(1);
+        assertThat(productCompensation.productId()).isEqualTo("product-1");
+        assertThat(productCompensation.merchantId()).isEqualTo("merchant-1");
     }
 
     private static CreateSellableProductContext sampleContext() {
@@ -150,6 +193,15 @@ class CreateSellableProductOrchestratorTest {
                 List.of(),
                 List.of(new CreateSellableProductContext.InventoryLine(
                         "SKU-1", "loc-1", 10, 1, 2, 5, 100
+                )),
+                List.of(new CreateSellableProductContext.PricingLine(
+                        "SKU-1",
+                        "Base",
+                        "USD",
+                        new BigDecimal("19.99"),
+                        null,
+                        null,
+                        List.of()
                 ))
         );
     }

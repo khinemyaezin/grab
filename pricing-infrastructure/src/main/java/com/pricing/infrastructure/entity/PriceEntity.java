@@ -16,8 +16,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -63,5 +63,5 @@ public class PriceEntity {
     private Instant updatedAt;
 
     @OneToMany(mappedBy = "price", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PriceRuleEntity> rules = new ArrayList<>();
+    private Set<PriceRuleEntity> rules = new LinkedHashSet<>();
 }

@@ -7,6 +7,7 @@ import com.grab.store.pricing.internal.config.PricingTransactional;
 import com.grab.store.pricing.internal.exception.PricingServiceError;
 import com.grab.store.pricing.internal.exception.PricingServiceException;
 import com.pricing.domain.repository.PriceSetRepository;
+import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 public class DeletePriceSetCommandHandler implements CommandHandler<DeletePriceSetCommand, Void> {
 
     private final PriceSetRepository priceSetRepository;
+    private final VariantPriceSetLinkRepository variantPriceSetLinkRepository;
 
     @Override
     @PricingTransactional
@@ -25,6 +27,7 @@ public class DeletePriceSetCommandHandler implements CommandHandler<DeletePriceS
                         new PricingServiceError.PriceSetNotFound(command.priceSetId().getValue()),
                         "Price set not found"
                 ));
+        variantPriceSetLinkRepository.deleteByPriceSetId(command.priceSetId().getValue());
         priceSetRepository.delete(command.priceSetId());
         return null;
     }

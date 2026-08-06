@@ -38,7 +38,10 @@ class CreateSellableProductCatalogEventListenerTest {
             public <R> R dispatch(Command<R> command) {
                 dispatched.add(command);
                 if (command instanceof CreateProductSetCommand) {
-                    return (R) new CreateProductSetResult("product-1");
+                    return (R) new CreateProductSetResult(
+                            "product-1",
+                            List.of(new CreateProductSetResult.VariantRef("variant-1", "SKU-1"))
+                    );
                 }
                 return null;
             }
@@ -84,6 +87,9 @@ class CreateSellableProductCatalogEventListenerTest {
             assertThat(created.workflowId()).isEqualTo("wf-1");
             assertThat(created.productId()).isEqualTo("product-1");
             assertThat(created.skus()).containsExactly("SKU-1");
+            assertThat(created.variants()).containsExactly(
+                    new SellableProductProductCreatedEvent.VariantRef("variant-1", "SKU-1")
+            );
         });
     }
 

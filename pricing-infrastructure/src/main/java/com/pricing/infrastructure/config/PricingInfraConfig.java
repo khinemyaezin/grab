@@ -21,10 +21,15 @@ import com.pricing.infrastructure.repository.jpa.PriceListJpaRepository;
 import com.pricing.infrastructure.repository.jpa.PricePreferenceJpaRepository;
 import com.pricing.infrastructure.repository.jpa.PriceQueryRepository;
 import com.pricing.infrastructure.repository.jpa.PriceSetJpaRepository;
+import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkJpaRepository;
+import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkQueryRepository;
+import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkRepository;
 import com.pricing.infrastructure.repository.jpa.impl.DefaultPriceListRepository;
 import com.pricing.infrastructure.repository.jpa.impl.DefaultPricePreferenceRepository;
 import com.pricing.infrastructure.repository.jpa.impl.DefaultPriceQueryRepository;
 import com.pricing.infrastructure.repository.jpa.impl.DefaultPriceSetRepository;
+import com.pricing.infrastructure.repository.jpa.impl.DefaultVariantPriceSetLinkQueryRepository;
+import com.pricing.infrastructure.repository.jpa.impl.DefaultVariantPriceSetLinkRepository;
 import com.pricing.infrastructure.repository.jpa.impl.PricingPersistenceExecutor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -140,5 +145,21 @@ public class PricingInfraConfig {
             @Qualifier("pricingPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new DefaultPriceQueryRepository(prices, preferences, idMapper, objectMapper, executor);
+    }
+
+    @Bean
+    VariantPriceSetLinkQueryRepository variantPriceSetLinkQueryRepository(
+            VariantPriceSetLinkJpaRepository links,
+            @Qualifier("pricingPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultVariantPriceSetLinkQueryRepository(links, executor);
+    }
+
+    @Bean
+    VariantPriceSetLinkRepository variantPriceSetLinkWriteRepository(
+            VariantPriceSetLinkJpaRepository links,
+            @Qualifier("pricingPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultVariantPriceSetLinkRepository(links, executor);
     }
 }

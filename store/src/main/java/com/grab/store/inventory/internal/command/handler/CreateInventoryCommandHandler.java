@@ -56,6 +56,11 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
             throw new InventoryServiceException(new InventoryServiceError.InventoryAlreadyExistsForSkuLocation(command.sku(), command.locationId().getValue()));
         }
 
+        int safetyStock = valueOrZero(command.safetyStock());
+        int recorderPoint = valueOrZero(command.reorderPoint());
+        recorderPoint = recorderPoint == 0 && safetyStock > 0 ? safetyStock : recorderPoint;
+        int recorderQuantity = valueOrZero(command.reorderQuantity());
+
         InventoryItem item = InventoryItem.create(
                 idGenerator.generateId(),
                 command.sku(),
@@ -64,9 +69,9 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
                 command.locationId(),
                 command.initialQuantity(),
                 new ReorderConfig(
-                        valueOrZero(command.safetyStock()),
-                        valueOrZero(command.reorderPoint()),
-                        valueOrZero(command.reorderQuantity()),
+                        safetyStock,
+                        recorderPoint,
+                        recorderQuantity,
                         command.maxStock()
                 )
         );

@@ -17,9 +17,12 @@ import com.grab.store.workflows.events.InventoryItemCreatedEvent;
 import com.grab.store.workflows.events.ProductVariantViewProjectedEvent;
 import com.grab.store.workflows.events.RequestCreateInventoryItemEvent;
 import com.grab.store.workflows.events.RequestCreateProductSetEvent;
+import com.grab.store.workflows.events.RequestCreateVariantPriceEvent;
+import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;
 import com.grab.store.workflows.events.SellableProductProductCreatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
+import com.grab.store.workflows.events.VariantPriceCreatedEvent;
 import com.grab.store.workflows.internal.config.WorkflowsReadTransactional;
 import com.grab.store.workflows.internal.config.WorkflowsTransactional;
 import org.springframework.context.ApplicationEventPublisher;
@@ -113,7 +116,13 @@ public class CreateSellableProductOrchestrator {
         }
 
         CreateSellableProductContext context = readContext(instance.contextJson().orElseThrow());
-        CreateSellableProductContext updated = context.withProductCreated(event.productId(), event.skus());
+        List<CreateSellableProductContext.VariantRef> variantRefs = event.variants().stream()
+                .map(variant -> new CreateSellableProductContext.VariantRef(variant.variantId(), variant.sku()))
+                .toList();
+        List<String> skus = event.skus().isEmpty()
+                ? variantRefs.stream().map(CreateSellableProductContext.VariantRef::sku).toList()
+                : event.skus();
+        CreateSellableProductContext updated = context.withProductCreated(event.productId(), skus, variantRefs);
         String contextJson = writeContext(updated);
         String checkpointJson = appendCheckpoint(
                 instance,
@@ -168,34 +177,115 @@ public class CreateSellableProductOrchestrator {
                     contextJson
             );
             instance.markWaitingExternal(
-                    CreateSellableProductWorkflowNames.STEP_CREATE_INVENTORY_ITEM,
+                    CreateSellableProductWorkflowNames.STEP_CREATE_VARIANT_PRICES,
                     contextJson,
                     checkpointJson
             );
             workflowStore.save(instance);
 
             Instant now = Instant.now();
-            for (CreateSellableProductContext.InventoryLine line : updated.inventoryLines()) {
-                events.publishEvent(new RequestCreateInventoryItemEvent(
+            for (CreateSellableProductContext.VariantRef variantRef : updated.variantRefs()) {
+                CreateSellableProductContext.PricingLine pricingLine = updated.pricingLineForSku(variantRef.sku());
+                if (pricingLine == null) {
+                    events.publishEvent(new SellableProductStepFailedEvent(
+                            instance.id(),
+                            CreateSellableProductWorkflowNames.STEP_CREATE_VARIANT_PRICES,
+                            "Missing pricing line for sku=" + variantRef.sku(),
+                            now,
+                            EVENT_VERSION
+                    ));
+                    return;
+                }
+                events.publishEvent(new RequestCreateVariantPriceEvent(
                         instance.id(),
-                        line.sku(),
+                        variantRef.variantId(),
+                        variantRef.sku(),
+                        updated.productId(),
                         updated.merchantId(),
-                        line.locationId(),
-                        line.initialQuantity(),
-                        line.safetyStock(),
-                        line.reorderPoint(),
-                        line.reorderQuantity(),
-                        line.maxStock(),
-                        updated.createdBy(),
-                        updated.scopeKey(),
-                        updated.scopeId(),
+                        pricingLine.title(),
+                        pricingLine.currencyCode(),
+                        pricingLine.amount(),
+                        pricingLine.minQuantity(),
+                        pricingLine.maxQuantity(),
+                        pricingLine.rules().stream()
+                                .map(rule -> new RequestCreateVariantPriceEvent.PriceRule(
+                                        rule.attribute(),
+                                        rule.value(),
+                                        rule.operator(),
+                                        rule.priority()
+                                ))
+                                .toList(),
                         now,
                         EVENT_VERSION
                 ));
             }
-            log.info("All projections ready for workflowId={}, requesting inventory creates", instance.id());
+            log.info("All projections ready for workflowId={}, requesting variant prices", instance.id());
             return;
         }
+    }
+
+    @WorkflowsTransactional
+    public void onVariantPriceCreated(VariantPriceCreatedEvent event) {
+        WorkflowInstance instance = workflowStore.findById(event.workflowId()).orElse(null);
+        if (instance == null || instance.status() != WorkflowStatus.WAITING_EXTERNAL) {
+            return;
+        }
+        if (!CreateSellableProductWorkflowNames.STEP_CREATE_VARIANT_PRICES.equals(instance.currentStep().orElse(null))) {
+            return;
+        }
+
+        CreateSellableProductContext context = readContext(instance.contextJson().orElseThrow());
+        CreateSellableProductContext.PricePair pricePair = new CreateSellableProductContext.PricePair(
+                event.variantId(),
+                event.sku(),
+                event.priceSetId()
+        );
+        CreateSellableProductContext updated = context.withPricePair(pricePair);
+        Instant now = Instant.now();
+        String contextJson = writeContext(updated);
+
+        if (!updated.allPricesCreated()) {
+            instance.markWaitingExternal(
+                    CreateSellableProductWorkflowNames.STEP_CREATE_VARIANT_PRICES,
+                    contextJson,
+                    instance.checkpointJson().orElse(null)
+            );
+            workflowStore.save(instance);
+            return;
+        }
+
+        String checkpointJson = appendCheckpoint(
+                instance,
+                CreateSellableProductWorkflowNames.STEP_CREATE_VARIANT_PRICES,
+                updated.pricePairs(),
+                contextJson
+        );
+        instance.markWaitingExternal(
+                CreateSellableProductWorkflowNames.STEP_CREATE_INVENTORY_ITEM,
+                contextJson,
+                checkpointJson
+        );
+        workflowStore.save(instance);
+
+        for (CreateSellableProductContext.InventoryLine line : updated.inventoryLines()) {
+            events.publishEvent(new RequestCreateInventoryItemEvent(
+                    instance.id(),
+                    line.sku(),
+                    updated.merchantId(),
+                    line.locationId(),
+                    line.initialQuantity(),
+                    line.safetyStock(),
+                    line.reorderPoint(),
+                    line.reorderQuantity(),
+                    line.maxStock(),
+                    updated.createdBy(),
+                    updated.scopeKey(),
+                    updated.scopeId(),
+                    now,
+                    EVENT_VERSION
+            ));
+        }
+        log.info("All variant prices ready for workflowId={}, requesting inventory creates", instance.id());
     }
 
     @WorkflowsTransactional
@@ -252,20 +342,33 @@ public class CreateSellableProductOrchestrator {
         instance.beginCompensation(event.step(), event.message());
         workflowStore.save(instance);
 
-        if (context != null && context.productId() != null) {
-            events.publishEvent(new RequestDeleteProductCompensationEvent(
-                    instance.id(),
-                    context.merchantId(),
-                    context.productId(),
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-            String contextJson = writeContext(context);
-            String checkpointJson = instance.checkpointJson().orElse(payloadCodec.writeCheckpoints(instance.checkpoints()));
-            instance.markCompensated(contextJson, checkpointJson);
-            workflowStore.save(instance);
-            log.info("Compensated create-sellable-product workflowId={} after step={}", event.workflowId(), event.step());
-            return;
+        Instant now = Instant.now();
+        if (context != null) {
+            for (CreateSellableProductContext.PricePair pricePair : context.pricePairs()) {
+                events.publishEvent(new RequestDeletePriceSetCompensationEvent(
+                        instance.id(),
+                        pricePair.priceSetId(),
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            if (context.productId() != null) {
+                events.publishEvent(new RequestDeleteProductCompensationEvent(
+                        instance.id(),
+                        context.merchantId(),
+                        context.productId(),
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            if (context.productId() != null || !context.pricePairs().isEmpty()) {
+                String contextJson = writeContext(context);
+                String checkpointJson = instance.checkpointJson().orElse(payloadCodec.writeCheckpoints(instance.checkpoints()));
+                instance.markCompensated(contextJson, checkpointJson);
+                workflowStore.save(instance);
+                log.info("Compensated create-sellable-product workflowId={} after step={}", event.workflowId(), event.step());
+                return;
+            }
         }
 
         String contextJson = instance.contextJson().orElse("{}");

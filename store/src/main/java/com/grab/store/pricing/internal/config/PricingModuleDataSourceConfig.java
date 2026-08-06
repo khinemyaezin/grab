@@ -63,7 +63,9 @@ public class PricingModuleDataSourceConfig {
         factory.setJpaPropertyMap(Map.of(
                 "hibernate.dialect", environment.getProperty(
                         "pricing.jpa.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect"),
-                "hibernate.hbm2ddl.auto", environment.getProperty("pricing.jpa.hibernate.hbm2ddl.auto", "validate")
+                "hibernate.hbm2ddl.auto", environment.getProperty("pricing.jpa.hibernate.hbm2ddl.auto", "validate"),
+                "hibernate.show_sql", environment.getProperty("pricing.jpa.hibernate.show_sql", "false"),
+                "hibernate.format_sql", environment.getProperty("pricing.jpa.hibernate.format_sql", "false")
         ));
         return factory;
     }

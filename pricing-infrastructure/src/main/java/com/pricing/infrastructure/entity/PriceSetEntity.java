@@ -14,8 +14,8 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -40,5 +40,5 @@ public class PriceSetEntity {
 
     @OneToMany(mappedBy = "priceSet", cascade = CascadeType.ALL, orphanRemoval = true)
     @SQLRestriction("price_list_id IS NULL")
-    private List<PriceEntity> prices = new ArrayList<>();
+    private Set<PriceEntity> prices = new LinkedHashSet<>();
 }

@@ -17,8 +17,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -65,8 +65,8 @@ public class PriceListEntity {
     private long version;
 
     @OneToMany(mappedBy = "priceList", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PriceListRuleEntity> rules = new ArrayList<>();
+    private Set<PriceListRuleEntity> rules = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "priceList", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PriceEntity> prices = new ArrayList<>();
+    private Set<PriceEntity> prices = new LinkedHashSet<>();
 }

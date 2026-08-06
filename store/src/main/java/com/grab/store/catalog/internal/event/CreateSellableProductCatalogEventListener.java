@@ -38,11 +38,21 @@ public class CreateSellableProductCatalogEventListener {
         try {
             CreateProductSetCommand command = toCommand(event);
             CreateProductSetResult result = commandBus.dispatch(command);
-            List<String> skus = extractSkus(event);
+            List<SellableProductProductCreatedEvent.VariantRef> variants = result.variants().stream()
+                    .map(variant -> new SellableProductProductCreatedEvent.VariantRef(
+                            variant.variantId(),
+                            variant.sku()
+                    ))
+                    .toList();
+            List<String> skus = variants.stream()
+                    .map(SellableProductProductCreatedEvent.VariantRef::sku)
+                    .filter(sku -> sku != null && !sku.isBlank())
+                    .toList();
             events.publishEvent(new SellableProductProductCreatedEvent(
                     event.workflowId(),
                     result.productId(),
                     skus,
+                    variants,
                     Instant.now(),
                     EVENT_VERSION
             ));
@@ -122,13 +132,4 @@ public class CreateSellableProductCatalogEventListener {
         );
     }
 
-    private static List<String> extractSkus(RequestCreateProductSetEvent event) {
-        if (event.product() == null || event.product().variants() == null) {
-            return List.of();
-        }
-        return event.product().variants().stream()
-                .map(RequestCreateProductSetEvent.Variant::sku)
-                .filter(sku -> sku != null && !sku.isBlank())
-                .toList();
-    }
 }

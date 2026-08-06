@@ -60,13 +60,20 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
 
         Product product = createProductDraft(command.merchantId(), command.product());
         List<ProductVariant> variants = buildVariants(command.product().name(), command.product().variants(), command.variantTypes());
+        validateSkuAvailability(command.merchantId(), variants);
         addVariants(product, variants);
 
         productRepository.save(product);
 
         log.info("Product saved successfully with {} variants", product.getVariants().size());
 
-        return new CreateProductSetResult(product.getId().getValue());
+        List<CreateProductSetResult.VariantRef> variantRefs = product.getVariants().stream()
+                .map(variant -> new CreateProductSetResult.VariantRef(
+                        variant.getId().getValue(),
+                        variant.getSku()
+                ))
+                .toList();
+        return new CreateProductSetResult(product.getId().getValue(), variantRefs);
     }
 
     @Override
@@ -237,6 +244,16 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
     private void addVariants(Product product, List<ProductVariant> variants) {
         for (ProductVariant variant : variants) {
             product.addVariant(variant);
+        }
+    }
+
+    private void validateSkuAvailability(Id merchantId, List<ProductVariant> variants) {
+        for (ProductVariant variant : variants) {
+            if (productRepository.isSkuTaken(merchantId, variant.getSku(), null)) {
+                throw new CatalogServiceException(
+                        new CatalogServiceError.SkuAlreadyExists(variant.getSku())
+                );
+            }
         }
     }
 }

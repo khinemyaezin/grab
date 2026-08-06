@@ -69,12 +69,11 @@ persistence.
 - Merchant onboarding (Merchant)
 - Users, roles, sessions (Identity)
 - Cart, order, payment, or a full tax engine
-- The durable `variantId` ↔ `priceSetId` link in Phase 1 (caller or future Catalog/link table)
+- The durable `variantId` ↔ `priceSetId` link (Pricing link table / read model)
 
 **Primary use cases:**
 - After a Catalog product/variant is created, create a `PriceSet`, add base
-  prices, and pair `variantId → priceSetId` in the application (or later via
-  remote link).
+  prices, and persist `variantId → priceSetId` in the Pricing link table.
 - Attach SALE/OVERRIDE campaigns to existing price sets without mutating base
   prices.
 - Storefront/checkout calls `calculatePrices` with `priceSetIds` and context to
@@ -96,7 +95,7 @@ persistence.
 | Original price | result of `CalculatePricesPolicy` | Non-sale reference for strikethrough display |
 | SALE | `PriceListType.SALE` | Discount: `min(sale, base)` |
 | OVERRIDE | `PriceListType.OVERRIDE` | Replaces base regardless of amount |
-| Catalog variant | foreign `variantId` | Owned by Catalog; paired by id outside Pricing in Phase 1 |
+| Catalog variant | foreign `variantId` | Owned by Catalog; paired via Pricing link table |
 
 #### Context Map
 
@@ -131,11 +130,11 @@ flowchart TD
         Variant["ProductVariant"]
     end
 
-    subgraph AppPairing ["Application / future link"]
+    subgraph AppPairing ["Pricing link table (read model)"]
         Link["variantId to priceSetId"]
     end
 
-    Variant -.->|"Phase 1 pairing"| Link
+    Variant -.->|"variant_price_set_links"| Link
     Link -.->|"priceSetId"| PriceSet
 ```
 
@@ -269,7 +268,7 @@ classDiagram
 | `PriceList` | `PriceListRule` | owns / contains | Campaign-wide eligibility |
 | `PriceList` | `Price` (campaign) | owns / contains | Campaign price also stores `priceSetId` |
 | Campaign `Price` | `PriceSet` | references-by-id | Same BC; no object navigation into the other root |
-| Catalog `ProductVariant` | `PriceSet` | cross-BC by id | Pairing outside Pricing in Phase 1; Pricing never loads variants |
+| Catalog `ProductVariant` | `PriceSet` | cross-BC by id | Pricing link table owns durable pairing; Pricing never loads variants |
 
 #### Why Each Property Exists
 
@@ -404,20 +403,20 @@ sequenceDiagram
     S-->>C: PriceSetResponse
 ```
 
-**Calculate (after Catalog pairing)**
+**Calculate (variant → price set → amount)**
 
 ```mermaid
 sequenceDiagram
     participant Storefront
-    participant App as App pairing
+    participant PC as Pricing link API
     participant C as PriceSetController
     participant S as CalculatePricesQueryService
     participant H as CalculatePricesQueryHandler
     participant Q as PriceQueryRepository
     participant P as CalculatePricesPolicy
 
-    Storefront->>App: Need price for variantId
-    App->>App: Resolve priceSetId
+    Storefront->>PC: GET /variant-price-links?variantIds=...
+    PC-->>Storefront: priceSetIds
     Storefront->>C: POST /price-sets/calculate
     C->>S: CalculatePricesRequest
     S->>H: CalculatePricesQuery
@@ -435,14 +434,15 @@ sequenceDiagram
 - `PricePreferenceCreated` / `PricePreferenceUpdated` — preference changes
 
 **Consumes:**
-- None in Phase 1 (no Catalog variant-deleted cascade yet)
+- `workflows::events` — `RequestCreateVariantPriceEvent` for sellable-product saga pricing steps
 
 **Named interfaces / API links:**
 - Exposes: Tier-2 `GET /api/v1/pricing` and Tier-1 `get-pricing-root`;
   `GET /api/v1/pricing/attribute-keys` (`list-pricing-attribute-keys`) publishes
-  well-known context/preference keys from `PricingAttributeKeys`; no
-  `pricing::api` / `pricing::events` named interfaces until a consumer needs them
-- Depends on: `shared` only (`PricingModule.allowedDependencies`)
+  well-known context/preference keys from `PricingAttributeKeys`;
+  `pricing::api` (`PricingApiLinks`) publishes cross-module discovery links:
+  `list-variant-price-links`, `calculate-prices`
+- Depends on: `shared`, `workflows::events` (`PricingModule.allowedDependencies`)
 
 ---
 
@@ -459,7 +459,7 @@ sequenceDiagram
 
 | Pros | Cons |
 |------|------|
-| Clear ownership of price calculation | Callers must manage `priceSetId` until remote links exist |
+| Clear ownership of price calculation | Optional Phase 2b: catalog delete events to prune stale links |
 | Contextual rules without hardcoded foreign keys | Attribute key naming must stay consistent (`region_id`, …) |
 | Campaigns compose without mutating base prices | Equal-specificity SALE vs OVERRIDE ranks by lowest amount |
 | Feature flag and own DB support safe rollout | Extra database to operate |
@@ -477,15 +477,15 @@ sequenceDiagram
 **Changes to existing systems:**
 - Root and `store` POMs depend on pricing
 - `application-dev.yml` gains `pricing.*`
-- No Catalog schema change in Phase 1; pairing is application-owned until Phase 2 link
+- No Catalog schema change; pairing lives in Pricing link table
 
 ---
 
 ## 6. Implementation Plan
 
 - **Phase 1:** Aggregates, CRUD, calculate, Flyway, outbox, domain tests, API discovery (delivered).
-- **Phase 2:** Durable `variantId` ↔ `priceSetId` (Catalog column or Pricing link table); seller “save product” workflow.
-- **Phase 3:** Checkout integration, optional `pricing::api` / events consumers, caching.
+- **Phase 2:** Durable `variantId` ↔ `priceSetId` via Pricing link table; sellable-product workflow integration; `pricing::api` facade (delivered).
+- **Phase 3:** Checkout integration, optional `pricing::events` consumers, caching.
 
 **Rollback strategy:**  
 Set `pricing.enabled=false` to stop beans and APIs. Pricing data stays in the pricing DB and can be dropped independently of Catalog.

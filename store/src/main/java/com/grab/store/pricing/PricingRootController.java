@@ -1,5 +1,6 @@
 package com.grab.store.pricing;
 
+import com.grab.store.pricing.api.PricingApiLinks;
 import com.grab.store.pricing.internal.api.rest.controller.PriceListController;
 import com.grab.store.pricing.internal.api.rest.controller.PricePreferenceController;
 import com.grab.store.pricing.internal.api.rest.controller.PriceSetController;
@@ -25,7 +26,7 @@ public class PricingRootController {
         RepresentationModel<?> model = new RepresentationModel<>();
         model.add(linkTo(methodOn(PricingRootController.class).root()).withSelfRel());
         model.add(linkTo(methodOn(PriceSetController.class).createPriceSet()).withRel("create-price-set"));
-        model.add(linkTo(methodOn(PriceSetController.class).calculatePrices(null)).withRel("calculate-prices"));
+        model.add(PricingApiLinks.calculatePrices());
         model.add(linkTo(methodOn(PriceListController.class).listPriceLists()).withRel("list-price-lists"));
         model.add(linkTo(methodOn(PriceListController.class).createPriceList(null)).withRel("create-price-list"));
         model.add(linkTo(methodOn(PricePreferenceController.class).listPreferences())
@@ -34,6 +35,7 @@ public class PricingRootController {
                 .withRel("create-price-preference"));
         model.add(linkTo(methodOn(PricingAttributeKeysController.class).listAttributeKeys())
                 .withRel("list-pricing-attribute-keys"));
+        model.add(PricingApiLinks.listVariantPriceLinks());
         return ResponseEntity.ok(model);
     }
 }
