@@ -17,6 +17,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.CreateProductSetCommand;
 import com.grab.store.catalog.internal.command.CreateProductSetResult;
+import com.grab.framework.exception.ErrorCategory;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
 import com.grab.store.catalog.internal.util.UniqueSlugResolver;
@@ -36,6 +37,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -108,6 +111,7 @@ class CreateProductSetCommandHandlerTest {
                 List.of(new VariantOptionSelection(redOptionId, colorTypeId))
         ));
         when(matrixKeyGenerator.generateKey(List.of(redVariation))).thenReturn(RED_MATRIX_KEY);
+        when(productRepository.isSkuTaken(eq(categoryId), eq("SKU-RED-001"), isNull())).thenReturn(false);
 
         CreateProductSetResult result = handler.handle(command);
 
@@ -115,6 +119,7 @@ class CreateProductSetCommandHandlerTest {
         Product savedProduct = productCaptor.getValue();
 
         assertThat(result.productId()).isEqualTo(PRODUCT_ID);
+        assertThat(result.variants()).containsExactly(new CreateProductSetResult.VariantRef(VARIANT_ID, "SKU-RED-001"));
         assertThat(savedProduct.getId()).isEqualTo(productId);
         assertThat(savedProduct.getSlug()).isEqualTo("product-with-variants");
         assertThat(savedProduct.getVariants()).hasSize(1);
@@ -170,6 +175,7 @@ class CreateProductSetCommandHandlerTest {
         when(idGenerator.generateId()).thenReturn(productId, generatedVariantId);
         when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
         when(skuGenerator.generate(any())).thenReturn("SMP");
+        when(productRepository.isSkuTaken(eq(categoryId), eq("SMP"), isNull())).thenReturn(false);
 
         CreateProductSetResult result = handler.handle(command);
 
@@ -177,6 +183,7 @@ class CreateProductSetCommandHandlerTest {
         Product savedProduct = productCaptor.getValue();
 
         assertThat(result.productId()).isEqualTo(PRODUCT_ID);
+        assertThat(result.variants()).containsExactly(new CreateProductSetResult.VariantRef(VARIANT_ID, "SMP"));
         assertThat(savedProduct.getVariants()).hasSize(1);
         assertThat(savedProduct.getVariants().getFirst().getId()).isEqualTo(generatedVariantId);
         assertThat(savedProduct.getVariants().getFirst().getSku()).isEqualTo("SMP");
@@ -230,5 +237,51 @@ class CreateProductSetCommandHandlerTest {
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogDomainValidationException.class);
+    }
+
+    @Test
+    void handle_skuAlreadyTakenForMerchant_throwsConflict() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Id colorTypeId = new CommonId(COLOR_TYPE_ID);
+        Id redOptionId = new CommonId(RED_OPTION_ID);
+        ProductVariation redVariation = new ProductVariation(redOptionId, colorTypeId);
+
+        CreateProductSetCommand command = new CreateProductSetCommand(
+                categoryId,
+                new CreateProductSetCommand.Product(
+                        "Product with Variants",
+                        categoryId,
+                        null,
+                        null,
+                        List.of(new CreateProductSetCommand.Variant(
+                                "SKU-RED-001",
+                                List.of(new CreateProductSetCommand.Variation(redOptionId, colorTypeId))
+                        ))
+                ),
+                List.of(new CreateProductSetCommand.VariantType(
+                        COLOR_TYPE_ID,
+                        List.of(new CreateProductSetCommand.VariantOption(RED_OPTION_ID))
+                ))
+        );
+
+        when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
+        when(uniqueSlugResolver.resolve(categoryId, null, "Product with Variants", null)).thenReturn("product-with-variants");
+        when(idGenerator.generateId()).thenReturn(productId, variantId);
+        when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
+        when(matrixCombinationService.generateMatrixCombination(anyList())).thenReturn(List.of(
+                List.of(new VariantOptionSelection(redOptionId, colorTypeId))
+        ));
+        when(matrixKeyGenerator.generateKey(List.of(redVariation))).thenReturn(RED_MATRIX_KEY);
+        when(productRepository.isSkuTaken(eq(categoryId), eq("SKU-RED-001"), isNull())).thenReturn(true);
+
+        assertThatThrownBy(() -> handler.handle(command))
+                .isInstanceOf(CatalogServiceException.class)
+                .satisfies(exception -> {
+                    CatalogServiceException typed = (CatalogServiceException) exception;
+                    assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.variant.sku_already_exists");
+                    assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.CONFLICT);
+                });
     }
 }

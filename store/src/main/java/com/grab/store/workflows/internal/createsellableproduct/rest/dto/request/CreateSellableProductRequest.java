@@ -6,12 +6,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public record CreateSellableProductRequest(
         @Valid @NotNull Product product,
         @Valid List<VariantType> variantTypes,
         @Valid @NotEmpty List<InventoryLine> inventoryLines,
+        @Valid @NotEmpty List<PricingLine> pricingLines,
         String idempotencyKey
 ) {
 
@@ -55,6 +57,25 @@ public record CreateSellableProductRequest(
             Integer reorderPoint,
             Integer reorderQuantity,
             Integer maxStock
+    ) {
+    }
+
+    public record PricingLine(
+            @NotBlank String sku,
+            String title,
+            @NotBlank String currencyCode,
+            @NotNull BigDecimal amount,
+            Integer minQuantity,
+            Integer maxQuantity,
+            @Valid List<PriceRule> rules
+    ) {
+    }
+
+    public record PriceRule(
+            @NotBlank String attribute,
+            @NotBlank String value,
+            String operator,
+            Integer priority
     ) {
     }
 }

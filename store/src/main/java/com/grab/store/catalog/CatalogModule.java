@@ -2,6 +2,6 @@ package com.grab.store.catalog;
 
 import org.springframework.modulith.ApplicationModule;
 
-@ApplicationModule(allowedDependencies = {"shared", "workflows::events"})
+@ApplicationModule(allowedDependencies = {"shared", "workflows::events", "workflows::api"})
 public class CatalogModule {
 }

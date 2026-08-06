@@ -7,7 +7,11 @@ public record CreateSellableProductResponse(
         String status,
         String currentStep,
         String productId,
+        List<PricePair> pricePairs,
         List<String> inventoryItemIds,
         String errorMessage
 ) {
+
+    public record PricePair(String variantId, String sku, String priceSetId) {
+    }
 }

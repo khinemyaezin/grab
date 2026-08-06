@@ -4,6 +4,7 @@ import com.grab.store.catalog.internal.api.rest.controller.CategoryController;
 import com.grab.store.catalog.internal.api.rest.controller.ProductController;
 import com.grab.store.catalog.internal.api.rest.controller.VariantOptionController;
 import com.grab.store.catalog.internal.api.rest.controller.VariantTypeController;
+import com.grab.store.workflows.api.WorkflowApiLinks;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +57,8 @@ public class CatalogRootController {
         model.add(linkTo(methodOn(VariantOptionController.class)
                 .getVariantOptionsByName(null, null))
                 .withRel("search-variant-options"));
+
+        model.add(WorkflowApiLinks.createSellableProductLink());
 
         return ResponseEntity.ok(model);
     }
