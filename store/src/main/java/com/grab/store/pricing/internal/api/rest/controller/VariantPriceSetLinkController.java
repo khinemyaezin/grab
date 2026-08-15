@@ -35,8 +35,6 @@ public class VariantPriceSetLinkController {
                 .map(modelAssembler::toModel)
                 .toList();
         CollectionModel<EntityModel<VariantPriceSetLinkResponse>> collection = CollectionModel.of(models);
-        collection.add(linkTo(methodOn(VariantPriceSetLinkController.class).list(null))
-                .withRel("list-variant-price-links"));
         return ResponseEntity.ok(collection);
     }
 }

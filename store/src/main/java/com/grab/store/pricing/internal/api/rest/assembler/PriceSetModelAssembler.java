@@ -1,6 +1,7 @@
 package com.grab.store.pricing.internal.api.rest.assembler;
 
 import com.grab.store.pricing.internal.api.rest.controller.PriceSetController;
+import com.grab.store.pricing.internal.api.rest.dto.response.PriceResponse;
 import com.grab.store.pricing.internal.api.rest.dto.response.PriceSetResponse;
 import com.grab.store.pricing.internal.config.PricingEnabled;
 import org.springframework.hateoas.EntityModel;
@@ -23,6 +24,14 @@ public class PriceSetModelAssembler
         model.add(linkTo(methodOn(PriceSetController.class).addPrice(id, null)).withRel("add-price-set-price"));
         model.add(linkTo(methodOn(PriceSetController.class).deletePriceSet(id)).withRel("delete-price-set"));
         model.add(linkTo(methodOn(PriceSetController.class).calculatePrices(null)).withRel("calculate-prices"));
+
+        if (response.prices() != null) {
+            model.add(linkTo(methodOn(PriceSetController.class).updatePrice(id, null, null))
+                    .withRel("update-price"));
+            model.add(linkTo(methodOn(PriceSetController.class).removePrice(id, null))
+                    .withRel("remove-price"));
+        }
+
         return model;
     }
 }
