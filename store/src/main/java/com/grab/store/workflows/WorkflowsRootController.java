@@ -1,6 +1,7 @@
 package com.grab.store.workflows;
 
 import com.grab.store.workflows.internal.createsellableproduct.rest.controller.CreateSellableProductController;
+import com.grab.store.workflows.internal.updatesellableproduct.rest.controller.UpdateSellableProductController;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,10 @@ public class WorkflowsRootController {
                 .withRel("create-sellable-product"));
         model.add(linkTo(methodOn(CreateSellableProductController.class).get(null, null))
                 .withRel("get-create-sellable-product"));
+        model.add(linkTo(methodOn(UpdateSellableProductController.class).start(null, null))
+                .withRel("update-sellable-product"));
+        model.add(linkTo(methodOn(UpdateSellableProductController.class).get(null, null))
+                .withRel("get-update-sellable-product"));
         return ResponseEntity.ok(model);
     }
 }

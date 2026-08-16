@@ -59,6 +59,7 @@ public class CatalogRootController {
                 .withRel("search-variant-options"));
 
         model.add(WorkflowApiLinks.createSellableProductLink());
+        model.add(WorkflowApiLinks.updateSellableProductLink());
 
         return ResponseEntity.ok(model);
     }
