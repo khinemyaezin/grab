@@ -1,6 +1,7 @@
 package com.grab.store.workflows.internal.updatesellableproduct.rest.mapper;
 
 import com.grab.framework.workflow.WorkflowInstance;
+import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellableProductContext;
 import com.grab.store.workflows.internal.updatesellableproduct.rest.dto.request.UpdateSellableProductRequest;
 import com.grab.store.workflows.internal.updatesellableproduct.rest.dto.response.UpdateSellableProductResponse;
@@ -67,4 +68,16 @@ public abstract class UpdateSellableProductRequestMapper {
     protected abstract UpdateSellableProductContext.PricingLine toContextPricingLine(
             UpdateSellableProductRequest.PricingLine pricingLine
     );
+
+    protected abstract InventorySyncPayload.CreateStock toCreateStock(UpdateSellableProductRequest.CreateStock create);
+
+    protected abstract InventorySyncPayload.AdjustStock toAdjustStock(UpdateSellableProductRequest.AdjustStock adjust);
+
+    protected abstract InventorySyncPayload.DamageStock toDamageStock(UpdateSellableProductRequest.DamageStock damage);
+
+    protected abstract InventorySyncPayload.WriteOffStock toWriteOffStock(
+            UpdateSellableProductRequest.WriteOffStock writeOff
+    );
+
+    protected abstract InventorySyncPayload.Reorder toReorder(UpdateSellableProductRequest.Reorder reorder);
 }

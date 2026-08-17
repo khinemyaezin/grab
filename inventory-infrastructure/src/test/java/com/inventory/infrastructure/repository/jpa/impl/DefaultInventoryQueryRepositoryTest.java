@@ -66,7 +66,7 @@ class DefaultInventoryQueryRepositoryTest {
     @Test
     void search_withCriteria_shouldDelegateToSpecification() {
         Pageable pageable = PageRequest.of(0, 10);
-        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU", "loc-1", InventoryStatus.ACTIVE);
+        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU", "loc-1", InventoryStatus.ACTIVE, null);
         InventoryItemView view = new InventoryItemView(
                 "uuid-inv-1", "SKU-001", "seller-1", "variant-1", "loc-1", "LOC-1", "Warehouse One",
                 100, 10, 0, 0, 20, 30, 50, 200,

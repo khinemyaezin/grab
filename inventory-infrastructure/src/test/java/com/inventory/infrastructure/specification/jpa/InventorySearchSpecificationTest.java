@@ -60,7 +60,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_withEmptyCriteria_returnsAllItems() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria(null, null, null, null);
+        InventorySearchCriteria criteria = new InventorySearchCriteria(null, null, null, null, null);
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(4);
@@ -69,7 +69,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_withMerchantId_returnsMatchingItems() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", null, null, null);
+        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", null, null, null, null);
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(3);
@@ -79,7 +79,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_withSku_returnsMatchingItems() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria(null, "sku-001", null, null);
+        InventorySearchCriteria criteria = new InventorySearchCriteria(null, "sku-001", null, null, null);
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(2);
@@ -89,7 +89,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_withLocationId_returnsMatchingItems() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria(null, null, "loc-1", null);
+        InventorySearchCriteria criteria = new InventorySearchCriteria(null, null, "loc-1", null, null);
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(2);
@@ -103,7 +103,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_withStatus_returnsMatchingItems() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria(null, null, null, InventoryStatus.DISCONTINUED);
+        InventorySearchCriteria criteria = new InventorySearchCriteria(null, null, null, InventoryStatus.DISCONTINUED, null);
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
@@ -112,7 +112,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_withCombinedFilters_returnsMatchingItems() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU", "loc-1", InventoryStatus.ACTIVE);
+        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU", "loc-1", InventoryStatus.ACTIVE, null);
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
@@ -124,7 +124,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_includesLocationCodeAndName() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU-002", null, null);
+        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", "SKU-002", null, null, null);
         Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
 
         assertThat(result.getContent()).hasSize(1);
@@ -136,7 +136,7 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
 
     @Test
     void search_withPagination_respectsPageAndSize() {
-        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", null, null, null);
+        InventorySearchCriteria criteria = new InventorySearchCriteria("seller-1", null, null, null, null);
         Page<InventoryItemView> page0 = specification.search(criteria, PageRequest.of(0, 2, Sort.by(Sort.Direction.ASC, "sku")));
         Page<InventoryItemView> page1 = specification.search(criteria, PageRequest.of(1, 2, Sort.by(Sort.Direction.ASC, "sku")));
 
@@ -144,6 +144,40 @@ public class InventorySearchSpecificationTest extends RepositoryTestConfig {
         assertThat(page0.getContent()).extracting(InventoryItemView::sku).containsExactly("SKU-001", "SKU-002");
         assertThat(page1.getContent()).hasSize(1);
         assertThat(page1.getContent()).extracting(InventoryItemView::sku).containsExactly("SKU-003");
+    }
+
+    @Test
+    void search_withVariantId_returnsMatchingItems() {
+        InventorySearchCriteria criteria = new InventorySearchCriteria(
+                null, null, null, null, "variant-SKU-001");
+        Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent()).extracting(InventoryItemView::productVariantId)
+                .containsOnly("variant-SKU-001");
+        assertThat(result.getContent()).extracting(InventoryItemView::sku)
+                .containsOnly("SKU-001");
+    }
+
+    @Test
+    void search_withVariantIdAndMerchantId_excludesOtherMerchant() {
+        InventorySearchCriteria criteria = new InventorySearchCriteria(
+                "seller-1", null, null, null, "variant-SKU-001");
+        Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).uuid()).isEqualTo("uuid-inv-1");
+        assertThat(result.getContent().get(0).merchantId()).isEqualTo("seller-1");
+    }
+
+    @Test
+    void search_withSku_whenVariantIdNull_stillUsesLikeMatch() {
+        InventorySearchCriteria criteria = new InventorySearchCriteria(
+                "seller-1", "SKU-00", null, null, null);
+        Page<InventoryItemView> result = specification.search(criteria, PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).extracting(InventoryItemView::sku)
+                .containsExactlyInAnyOrder("SKU-001", "SKU-002", "SKU-003");
     }
 
     private static LocationEntity location(String uuid, String code, String name, String merchantId) {

@@ -1,5 +1,8 @@
 package com.grab.store.workflows.internal.updatesellableproduct;
 
+import com.grab.store.workflows.events.InventorySyncOp;
+import com.grab.store.workflows.events.InventorySyncPayload;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -244,11 +247,12 @@ public record UpdateSellableProductContext(
             String sku,
             String locationId,
             String inventoryItemId,
-            int onHandQuantity,
-            Integer safetyStock,
-            Integer reorderPoint,
-            Integer reorderQuantity,
-            Integer maxStock
+            InventorySyncOp op,
+            InventorySyncPayload.CreateStock create,
+            InventorySyncPayload.AdjustStock adjust,
+            InventorySyncPayload.DamageStock damage,
+            InventorySyncPayload.WriteOffStock writeOff,
+            InventorySyncPayload.Reorder reorder
     ) {
     }
 

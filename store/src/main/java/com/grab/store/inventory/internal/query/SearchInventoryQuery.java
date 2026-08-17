@@ -12,6 +12,7 @@ public record SearchInventoryQuery(
         String sku,
         Id locationId,
         InventoryStatus status,
+        String variantId,
         Pageable pageable
 ) implements Query<Page<SearchInventoryResult>>, PageableQueryRequest {
 }

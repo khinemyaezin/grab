@@ -8,6 +8,8 @@ import com.grab.framework.workflow.WorkflowStatus;
 import com.grab.framework.workflow.impl.InMemoryWorkflowStore;
 import com.grab.framework.workflow.support.WorkflowPayloadCodec;
 import com.grab.store.workflows.events.InventoryItemSyncedEvent;
+import com.grab.store.workflows.events.InventorySyncOp;
+import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.events.ProductVariantViewProjectedEvent;
 import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
@@ -19,6 +21,7 @@ import com.grab.store.workflows.events.VariantPriceSyncedEvent;
 import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellableProductContext;
 import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellableProductOrchestrator;
 import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellableProductWorkflowNames;
+import com.inventory.domain.enums.AdjustmentReason;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -114,6 +117,8 @@ class UpdateSellableProductOrchestratorTest {
         RequestSyncInventoryItemEvent inventoryRequest = (RequestSyncInventoryItemEvent) published.getFirst();
         assertThat(inventoryRequest.sku()).isEqualTo("SKU-1");
         assertThat(inventoryRequest.inventoryItemId()).isEqualTo("inv-1");
+        assertThat(inventoryRequest.op()).isEqualTo(InventorySyncOp.ADJUST);
+        assertThat(inventoryRequest.adjust().newOnHandQuantity()).isEqualTo(8);
 
         WorkflowInstance afterPricing = workflowStore.findById(started.id()).orElseThrow();
         assertThat(afterPricing.currentStep()).contains(UpdateSellableProductWorkflowNames.STEP_SYNC_INVENTORY_ITEM);
@@ -253,7 +258,15 @@ class UpdateSellableProductOrchestratorTest {
                 "product-1",
                 sampleProduct(),
                 List.of(new UpdateSellableProductContext.InventoryLine(
-                        "SKU-1", "loc-1", "inv-1", 10, 1, 2, 5, 100
+                        "SKU-1",
+                        "loc-1",
+                        "inv-1",
+                        InventorySyncOp.ADJUST,
+                        null,
+                        new InventorySyncPayload.AdjustStock(8, AdjustmentReason.CYCLE_COUNT),
+                        null,
+                        null,
+                        null
                 )),
                 List.of(new UpdateSellableProductContext.PricingLine(
                         "SKU-1",
