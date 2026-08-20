@@ -6,6 +6,7 @@ public record SearchInventoryResult(
         Id id,
         String sku,
         Id merchantId,
+        String productVariantId,
         String productName,
         Id locationId,
         String locationCode,

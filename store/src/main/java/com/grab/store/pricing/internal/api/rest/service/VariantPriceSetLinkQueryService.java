@@ -3,6 +3,7 @@ package com.grab.store.pricing.internal.api.rest.service;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.logger.Logger;
+import com.grab.store.pricing.internal.api.rest.dto.request.ListVariantPriceSetLinksRequest;
 import com.grab.store.pricing.internal.api.rest.dto.response.VariantPriceSetLinkResponse;
 import com.grab.store.pricing.internal.api.rest.mapper.ListVariantPriceSetLinksRequestMapper;
 import com.grab.store.pricing.internal.config.PricingEnabled;
@@ -21,6 +22,15 @@ public class VariantPriceSetLinkQueryService {
 
     private final QueryBus queryBus;
     private final ListVariantPriceSetLinksRequestMapper listVariantPriceSetLinksRequestMapper;
+
+    public List<VariantPriceSetLinkResponse> findByVariantIds(ListVariantPriceSetLinksRequest request) {
+        List<String> variantIds = request != null && request.variantIds() != null ? request.variantIds() : List.of();
+        log.info("Listing variant price set links for {} variant(s)", variantIds.size());
+        List<VariantPriceSetLinkResult> results = queryBus.dispatch(
+                listVariantPriceSetLinksRequestMapper.toQuery(request)
+        );
+        return listVariantPriceSetLinksRequestMapper.toResponseList(results);
+    }
 
     public List<VariantPriceSetLinkResponse> findByVariantIds(Collection<String> variantIds) {
         log.info("Listing variant price set links for {} variant(s)", variantIds.size());

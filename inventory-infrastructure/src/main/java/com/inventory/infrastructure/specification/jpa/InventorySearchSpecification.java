@@ -98,6 +98,9 @@ public class InventorySearchSpecification {
         if (criteria.status() != null) {
             predicates.add(cb.equal(root.get(InventoryItemEntity_.STATUS), criteria.status()));
         }
+        if (StringUtils.hasText(criteria.variantId())) {
+            predicates.add(cb.equal(root.get(InventoryItemEntity_.PRODUCT_VARIANT_ID), criteria.variantId()));
+        }
 
         return predicates;
     }

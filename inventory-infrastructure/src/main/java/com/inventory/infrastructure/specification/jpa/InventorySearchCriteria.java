@@ -6,6 +6,7 @@ public record InventorySearchCriteria(
         String merchantId,
         String sku,
         String locationId,
-        InventoryStatus status
+        InventoryStatus status,
+        String variantId
 ) {
 }

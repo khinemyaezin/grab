@@ -353,7 +353,7 @@ class InventoryControllerTest {
         when(inventoryQueryService.searchInventoryItems(eq("seller-1"), any(SearchInventoryRequest.class), any(Pageable.class)))
                 .thenReturn(page);
 
-        SearchInventoryRequest request = new SearchInventoryRequest("SKU", "loc-1", InventoryStatus.ACTIVE);
+        SearchInventoryRequest request = new SearchInventoryRequest("SKU", "loc-1", InventoryStatus.ACTIVE, null);
 
         mockMvc.perform(post("/api/v1/inventory/items/search")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -363,6 +363,7 @@ class InventoryControllerTest {
                 .andExpect(jsonPath("$._embedded.inventoryResponseList").isArray())
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].id").value("inv-1"))
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].sku").value("SKU-001"))
+                .andExpect(jsonPath("$._embedded.inventoryResponseList[0].productVariantId").value("variant-1"))
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationCode").value("LOC-1"))
                 .andExpect(jsonPath("$._embedded.inventoryResponseList[0].locationName").value("Warehouse One"))
                 .andExpect(jsonPath("$._links.search-inventory-items.href").exists())
@@ -377,7 +378,7 @@ class InventoryControllerTest {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
                 new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
 
-        SearchInventoryRequest request = new SearchInventoryRequest(null, null, null);
+        SearchInventoryRequest request = new SearchInventoryRequest(null, null, null, null);
 
         mockMvc.perform(post("/api/v1/inventory/items/search")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -38,7 +38,8 @@ public class SearchInventoryQueryHandler implements QueryHandler<SearchInventory
                 query.merchantId().getValue(),
                 query.sku(),
                 locationId != null ? locationId.getValue() : null,
-                query.status()
+                query.status(),
+                query.variantId()
         );
         Page<InventoryItemView> viewPage = inventoryQueryRepository.search(criteria, query.pageable());
         Map<String, String> productNamesBySku = resolveProductNames(viewPage.getContent());
@@ -76,6 +77,7 @@ public class SearchInventoryQueryHandler implements QueryHandler<SearchInventory
                 idGenerator.convertIdFrom(view.uuid()),
                 view.sku(),
                 idGenerator.convertIdFrom(view.merchantId()),
+                view.productVariantId(),
                 productName,
                 idGenerator.convertIdFrom(view.locationId()),
                 view.locationCode(),

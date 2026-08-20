@@ -5,6 +5,7 @@ import com.inventory.domain.enums.InventoryStatus;
 public record SearchInventoryRequest(
         String sku,
         String locationId,
-        InventoryStatus status
+        InventoryStatus status,
+        String variantId
 ) {
 }
