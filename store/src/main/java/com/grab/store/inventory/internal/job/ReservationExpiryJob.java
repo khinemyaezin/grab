@@ -4,18 +4,20 @@ import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.inventory.internal.command.ExpireExpiredReservationsCommand;
 import com.grab.store.inventory.internal.command.ExpireExpiredReservationsResult;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ReservationExpiryJob {
+
+    private static final Logger log = Loggers.getLogger(ReservationExpiryJob.class);
 
     private final CommandBus commandBus;
     private final IdGenerator idGenerator;

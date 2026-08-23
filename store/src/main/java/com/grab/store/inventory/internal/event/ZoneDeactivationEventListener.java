@@ -5,17 +5,19 @@ import com.inventory.domain.aggregate.Bin;
 import com.inventory.domain.event.ZoneDeactivatedEvent;
 import com.inventory.domain.repository.BinRepository;
 import com.grab.store.inventory.internal.command.DeactivateBinCommand;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.context.event.EventListener;
 
 import java.util.List;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ZoneDeactivationEventListener {
+
+    private static final Logger log = Loggers.getLogger(ZoneDeactivationEventListener.class);
 
     private final BinRepository binRepository;
     private final CommandBus commandBus;

@@ -5,18 +5,20 @@ import com.inventory.domain.aggregate.Zone;
 import com.inventory.domain.event.LocationDeactivatedEvent;
 import com.inventory.domain.repository.ZoneRepository;
 import com.grab.store.inventory.internal.command.DeactivateZoneCommand;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.store.shared.security.PlatformScopes;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.context.event.EventListener;
 
 import java.util.List;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class LocationDeactivationEventListener {
+
+    private static final Logger log = Loggers.getLogger(LocationDeactivationEventListener.class);
 
     private final ZoneRepository zoneRepository;
     private final CommandBus commandBus;

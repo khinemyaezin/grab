@@ -13,15 +13,17 @@ import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateBinCommandHandler implements CommandHandler<CreateBinCommand, BinResult> {
+
+    private static final Logger log = Loggers.getLogger(CreateBinCommandHandler.class);
 
     private final ZoneRepository zoneRepository;
     private final BinRepository binRepository;

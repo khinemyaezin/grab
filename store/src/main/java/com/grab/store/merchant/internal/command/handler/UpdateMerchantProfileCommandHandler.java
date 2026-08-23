@@ -15,7 +15,6 @@ import com.merchant.domain.exception.MerchantDomainException;
 import com.merchant.domain.repository.MerchantAccountRepository;
 import com.merchant.domain.valueobject.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

@@ -10,15 +10,17 @@ import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DeactivateLocationCommandHandler implements CommandHandler<DeactivateLocationCommand, LocationResult> {
+
+    private static final Logger log = Loggers.getLogger(DeactivateLocationCommandHandler.class);
 
     private final LocationRepository locationRepository;
     private final InventoryLocationAccessPolicy locationAccessPolicy;
