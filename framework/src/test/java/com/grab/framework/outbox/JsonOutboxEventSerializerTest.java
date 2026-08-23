@@ -28,6 +28,24 @@ class JsonOutboxEventSerializerTest {
     }
 
     @Test
+    void serialize_thenMergeTraceId_keepsJsonContentType() {
+        TestEvent event = new TestEvent(new CommonId("event-1"), "created", LocalDateTime.of(2026, 3, 5, 18, 0));
+
+        SerializedEvent serialized = serializer.serialize(event);
+        String mergedHeaders = OutboxEventHeaders.mergeTraceId(serialized.headers(), "trace-123");
+        SerializedEvent withTrace = new SerializedEvent(
+                serialized.eventType(),
+                serialized.payload(),
+                serialized.eventVersion(),
+                mergedHeaders
+        );
+
+        assertTrue(mergedHeaders.contains("\"contentType\":\"application/json\""));
+        assertTrue(mergedHeaders.contains("\"traceId\":\"trace-123\""));
+        assertEquals(event, serializer.deserialize(withTrace));
+    }
+
+    @Test
     void deserialize_readsJsonPayload() {
         TestEvent event = new TestEvent(new CommonId("event-1"), "updated", LocalDateTime.of(2026, 3, 5, 18, 5));
         SerializedEvent serialized = serializer.serialize(event);

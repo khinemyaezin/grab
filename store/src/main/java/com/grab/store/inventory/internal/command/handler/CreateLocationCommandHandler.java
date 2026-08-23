@@ -10,14 +10,16 @@ import com.grab.store.inventory.internal.command.LocationResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateLocationCommandHandler implements CommandHandler<CreateLocationCommand, LocationResult> {
+
+    private static final Logger log = Loggers.getLogger(CreateLocationCommandHandler.class);
 
     private final LocationRepository locationRepository;
     private final IdGenerator idGenerator;

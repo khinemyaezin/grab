@@ -18,6 +18,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class JsonOutboxEventSerializer implements OutboxEventSerializer {
@@ -46,7 +47,7 @@ public class JsonOutboxEventSerializer implements OutboxEventSerializer {
                     event.getClass().getName(),
                     objectMapper.writeValueAsString(event),
                     EVENT_VERSION,
-                    objectMapper.writeValueAsString(Map.of(CONTENT_TYPE_KEY, JSON_CONTENT_TYPE))
+                    objectMapper.writeValueAsString(jsonHeaders())
             );
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to serialize outbox event " + event.getClass().getName(), exception);
@@ -71,6 +72,12 @@ public class JsonOutboxEventSerializer implements OutboxEventSerializer {
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to deserialize outbox event " + serializedEvent.eventType(), exception);
         }
+    }
+
+    private static Map<String, String> jsonHeaders() {
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put(CONTENT_TYPE_KEY, JSON_CONTENT_TYPE);
+        return headers;
     }
 
     private boolean isJsonPayload(String headers) {

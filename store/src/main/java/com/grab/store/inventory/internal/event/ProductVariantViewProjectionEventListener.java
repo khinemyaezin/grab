@@ -10,18 +10,20 @@ import com.grab.store.workflows.events.ProductVariantViewProjectedEvent;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.inventory.infrastructure.entity.ProductVariantViewEntity;
 import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductVariantViewProjectionEventListener {
+
+    private static final Logger log = Loggers.getLogger(ProductVariantViewProjectionEventListener.class);
 
     private static final int EVENT_VERSION = 1;
 

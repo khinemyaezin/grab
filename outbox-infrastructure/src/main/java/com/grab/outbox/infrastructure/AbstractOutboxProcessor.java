@@ -1,9 +1,11 @@
 package com.grab.outbox.infrastructure;
 
 import com.grab.framework.domain.Event;
+import com.grab.framework.logger.slf4j.TraceContext;
 import com.grab.framework.outbox.ClaimedOutboxEvent;
 import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.OutboxEventDispatcher;
+import com.grab.framework.outbox.OutboxEventHeaders;
 import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.outbox.SerializedEvent;
@@ -104,7 +106,11 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
                                 event.getEventVersion(),
                                 event.getHeaders()
                         ));
-                        dispatcher.dispatch(payload);
+                        String traceId = OutboxEventHeaders.extractTraceId(event.getHeaders());
+                        if (traceId == null || traceId.isBlank()) {
+                            traceId = TraceContext.generate();
+                        }
+                        TraceContext.run(traceId, () -> dispatcher.dispatch(payload));
                         event.markPublished(LocalDateTime.now());
                     } catch (RuntimeException exception) {
                         event.markFailed(LocalDateTime.now(), abbreviate(exception), retryDelay);
