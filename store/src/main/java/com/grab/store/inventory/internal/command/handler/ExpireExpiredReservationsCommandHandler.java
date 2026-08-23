@@ -11,17 +11,19 @@ import com.inventory.domain.repository.StockMovementRepository;
 import com.grab.store.inventory.internal.command.ExpireExpiredReservationsCommand;
 import com.grab.store.inventory.internal.command.ExpireExpiredReservationsResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ExpireExpiredReservationsCommandHandler
         implements CommandHandler<ExpireExpiredReservationsCommand, ExpireExpiredReservationsResult> {
+
+    private static final Logger log = Loggers.getLogger(ExpireExpiredReservationsCommandHandler.class);
 
     private final InventoryReservationRepository inventoryReservationRepository;
     private final InventoryRepository inventoryRepository;

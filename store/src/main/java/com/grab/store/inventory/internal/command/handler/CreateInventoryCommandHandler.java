@@ -16,17 +16,19 @@ import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.repository.LocationRepository;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.inventory.infrastructure.entity.ProductVariantViewEntity;
 import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
 import com.inventory.infrastructure.view.ProductView;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateInventoryCommandHandler implements CommandHandler<CreateInventoryCommand, InventoryItemResult> {
+
+    private static final Logger log = Loggers.getLogger(CreateInventoryCommandHandler.class);
 
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;

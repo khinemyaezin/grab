@@ -12,15 +12,17 @@ import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.aggregate.Zone;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.ZoneRepository;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ActivateBinCommandHandler implements CommandHandler<ActivateBinCommand, BinResult> {
+
+    private static final Logger log = Loggers.getLogger(ActivateBinCommandHandler.class);
 
     private final BinRepository binRepository;
     private final ZoneRepository zoneRepository;

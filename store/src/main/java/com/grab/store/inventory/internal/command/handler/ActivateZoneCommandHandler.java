@@ -10,15 +10,17 @@ import com.grab.store.inventory.internal.command.ZoneResult;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ActivateZoneCommandHandler implements CommandHandler<ActivateZoneCommand, ZoneResult> {
+
+    private static final Logger log = Loggers.getLogger(ActivateZoneCommandHandler.class);
 
     private final ZoneRepository zoneRepository;
     private final LocationRepository locationRepository;
