@@ -17,8 +17,9 @@ Add sibling workflow `update-sellable-product` as a Process Manager (ADR-006 / A
 
 - Client `POST /api/v1/workflows/update-sellable-product` with `productId` plus a full snapshot (product + `variantSync`, pricing lines, inventory lines) and optional `idempotencyKey`. Returns `202` + workflow id. Read composition stays on the client (no BFF GET).
 - Orchestrator communicates only via `workflows::events`. Modules dispatch local commands from listeners.
-- Reuse `UpdateProductCommand`, `UpdatePriceOnPriceSetCommand` / `CreateVariantPriceAssignmentCommand`, `AdjustStockCommand` + `UpdateReorderConfigCommand` / `CreateInventoryCommand`.
-- Line routing: IDs present → update; IDs absent → create. Do not create a new price assignment for an existing variant.
+- Reuse `UpdateProductCommand`, `UpdatePriceOnPriceSetCommand` / `CreateVariantPriceAssignmentCommand`, and inventory commands selected by inventory line `op`: `CreateInventoryCommand`, `AdjustStockCommand`, `MarkDamagedCommand`, `WriteOffStockCommand`, `UpdateReorderConfigCommand`.
+- Pricing line routing: `priceSetId`+`priceId` present → update; absent → create. Do not create a new price assignment for an existing variant.
+- Inventory line routing is explicit via `op` (`CREATE`, `ADJUST`, `DAMAGE`, `WRITE_OFF`, `REORDER`). Omit lines with no inventory intent. At most one stock operation per `inventoryItemId` per request. Optional `reorder` may ride on `ADJUST` / `DAMAGE` / `WRITE_OFF`.
 - Skip `ensure-product-view` when no SKUs were added (`ProductVariantViewProjectedEvent` fires only on variant add).
 - Skip price or inventory steps when those lists are empty.
 - Compensation deletes **only price sets created in this run**. In-place catalog/price/stock updates are left as-is. New inventory items are not rolled back (same as create). The product is never deleted.
@@ -27,13 +28,13 @@ Add sibling workflow `update-sellable-product` as a Process Manager (ADR-006 / A
 
 ## Context shape (input vs progress)
 
-**Input (start):** `merchantId`, `createdBy`, `scopeKey`, `scopeId`, `productId`, product metadata + `variantSync` (includes `matrixKey`), `pricingLines` (optional `priceSetId`/`priceId`), `inventoryLines` (optional `inventoryItemId`).
+**Input (start):** `merchantId`, `createdBy`, `scopeKey`, `scopeId`, `productId`, product metadata + `variantSync` (includes `matrixKey`), `pricingLines` (optional `priceSetId`/`priceId`), `inventoryLines` (`op` + nested `create` / `adjust` / `damage` / `writeOff` / `reorder`; `inventoryItemId` required except `CREATE`).
 
 **Progress:** `variantRefs`, `addedSkus`, `projectedSkus`, `pricePairs`, `createdPriceSetIds`, `inventoryItemIds`, `createdInventoryItemIds`.
 
 ## Consequences
 
 - Edit save is one tracked run with HATEOAS rel `update-sellable-product` (never `edit-*`).
-- Failure after in-place catalog/price/stock updates does not restore the previous snapshot.
-- Location moves on existing inventory items are out of scope; existing items ignore `locationId` and only adjust quantity + reorder config.
+- Failure after in-place catalog/price/stock updates does not restore the previous snapshot. Damage, write-off, and adjust are not compensated; `idempotencyKey` is the duplicate-POST guard (those movements are not naturally idempotent if the listener re-ran the command).
+- Location moves on existing inventory items are out of scope; existing items ignore `locationId`.
 - Descriptions, media, and status stay on existing catalog endpoints.

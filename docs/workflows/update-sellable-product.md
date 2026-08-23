@@ -30,7 +30,7 @@ Catalog · Pricing · Inventory
 | 1 | `update-product` | Catalog | Update product metadata + variant matrix | `start()` | `SellableProductProductUpdatedEvent` | `productId`, `addedSkus`, `variantRefs` |
 | 2 | `ensure-product-view` | Inventory (projection) | Wait until every **added** SKU is projected | step 1 done and `addedSkus` non-empty | `allAddedSkusProjected()` | `projectedSkus` |
 | 3 | `sync-variant-prices` | Pricing | Update existing prices or create assignments for new variants | step 2 done (or skipped) and pricing lines present | `allPricesSynced()` | `pricePairs`, `createdPriceSetIds` |
-| 4 | `sync-inventory-item` | Inventory | Adjust+reorder existing items or create items for new SKUs | step 3 done (or skipped) and inventory lines present | `allInventoryItemsSynced()` → `COMPLETED` | `inventoryItemIds`, `createdInventoryItemIds` |
+| 4 | `sync-inventory-item` | Inventory | Create, adjust, damage, write-off, or reorder per inventory line `op` | step 3 done (or skipped) and inventory lines present | `allInventoryItemsSynced()` → `COMPLETED` | `inventoryItemIds`, `createdInventoryItemIds` |
 
 **Fan-out / fan-in notes:**  
 - Step 1 publishes **one** `RequestUpdateProductSetEvent`.
@@ -60,7 +60,7 @@ Catalog · Pricing · Inventory
 |-------|---------------------|-------------|----------------------|------------|
 | `RequestUpdateProductSetEvent` | `update-product` | Catalog `UpdateSellableProductCatalogEventListener` | `UpdateProductCommand` | `workflowId`, `merchantId`, `productId`, metadata, `variantSync` |
 | `RequestSyncVariantPriceEvent` | `sync-variant-prices` | Pricing `UpdateSellableProductPricingEventListener` | `UpdatePriceOnPriceSetCommand` if `priceSetId`+`priceId` present, else `CreateVariantPriceAssignmentCommand` | `workflowId`, `variantId`, `sku`, `productId`, optional price ids, price fields |
-| `RequestSyncInventoryItemEvent` | `sync-inventory-item` | Inventory `UpdateSellableProductInventoryEventListener` | `AdjustStockCommand` + `UpdateReorderConfigCommand` if `inventoryItemId` present, else `CreateInventoryCommand` | `workflowId`, `sku`, `locationId`, optional `inventoryItemId`, stock fields |
+| `RequestSyncInventoryItemEvent` | `sync-inventory-item` | Inventory `UpdateSellableProductInventoryEventListener` | `op`: `CREATE` → `CreateInventoryCommand`; `ADJUST` → `AdjustStockCommand`; `DAMAGE` → `MarkDamagedCommand`; `WRITE_OFF` → `WriteOffStockCommand`; `REORDER` → `UpdateReorderConfigCommand`. Optional `reorder` after a stock op also dispatches `UpdateReorderConfigCommand`. | `workflowId`, `sku`, `locationId`, `op`, nested payload, optional `inventoryItemId` |
 
 ### 2.2 Completion events (Module → Orchestrator)
 
@@ -69,7 +69,7 @@ Catalog · Pricing · Inventory
 | `SellableProductProductUpdatedEvent` | `UpdateProductCommand` success | `onProductUpdated` | `update-product` → `ensure-product-view` or skip to prices/inventory/complete |
 | `ProductVariantViewProjectedEvent` | Inventory projects a newly added SKU | `onProductViewProjected` | fan-in on `ensure-product-view`; when `allAddedSkusProjected()` → prices (or skip) |
 | `VariantPriceSyncedEvent` | update or create price success | `onVariantPriceSynced` | fan-in on `sync-variant-prices`; when `allPricesSynced()` → inventory (or complete) |
-| `InventoryItemSyncedEvent` | adjust/reorder or create success | `onInventoryItemSynced` | fan-in on `sync-inventory-item`; when `allInventoryItemsSynced()` → `COMPLETED` |
+| `InventoryItemSyncedEvent` | create / adjust / damage / write-off / reorder success | `onInventoryItemSynced` | fan-in on `sync-inventory-item`; when `allInventoryItemsSynced()` → `COMPLETED` |
 
 ### 2.3 Failure event
 
@@ -91,7 +91,7 @@ Catalog · Pricing · Inventory
 **Not compensated (document why):**  
 - Catalog product / in-place variant sync — deleting the product would destroy merchant data; in-place updates are left as-is.
 - In-place price updates — previous amount is not snapshotted.
-- Inventory items (new or adjusted) — same as create; no inventory compensation today.
+- Inventory items (new, adjusted, damaged, or written off) — same as create; no inventory compensation today. `idempotencyKey` is the duplicate-POST guard; damage/write-off are not naturally idempotent if the listener re-ran the command.
 - Product-variant view projections — read models; not rolled back.
 - Removed variants — catalog `FULL_SYNC` already removed them; inventory and pricing cascade via `ProductVariantDeletedIntegrationEvent` choreography, not this saga.
 
@@ -191,10 +191,10 @@ THEN:    checkpoint(sync-variant-prices, pricePairs)
 
 ```
 ENTER:  prices ready (or skipped) and inventoryLines non-empty
-PUBLISH: RequestSyncInventoryItemEvent (count: per inventoryLines)
+PUBLISH: RequestSyncInventoryItemEvent (count: per inventoryLines; each line carries op + nested payload)
 WAIT:    WAITING_EXTERNAL, currentStep=sync-inventory-item
 ON:      InventoryItemSyncedEvent
-UPDATE:  inventoryItemIds; createdInventoryItemIds when created=true
+UPDATE:  inventoryItemIds; createdInventoryItemIds when created=true (op=CREATE)
 GATE:    allInventoryItemsSynced()
 THEN:    checkpoint(sync-inventory-item, inventoryItemIds) → markCompleted
 ```
@@ -230,7 +230,8 @@ sequenceDiagram
 - Ignore completion events unless `status == WAITING_EXTERNAL`, `currentStep` matches, and `workflowName == update-sellable-product`.
 - Ignore failure if already terminal or `COMPENSATING`, or if `workflowName` is not this workflow.
 - Idempotent start: same `idempotencyKey` returns existing instance.
-- Routing: IDs present on a line → update command; IDs absent → create command.
+- Pricing routing: IDs present on a line → update command; IDs absent → create command.
+- Inventory routing: `op` is explicit (`CREATE` / `ADJUST` / `DAMAGE` / `WRITE_OFF` / `REORDER`). Omit lines with no inventory intent. At most one stock operation per `inventoryItemId` per request.
 
 ---
 
