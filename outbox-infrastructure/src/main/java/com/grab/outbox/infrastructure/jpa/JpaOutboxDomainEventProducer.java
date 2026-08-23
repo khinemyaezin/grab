@@ -2,8 +2,11 @@ package com.grab.outbox.infrastructure.jpa;
 
 import com.grab.framework.domain.Event;
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.logger.slf4j.TraceContext;
 import com.grab.framework.outbox.OutboxEntry;
+import com.grab.framework.outbox.OutboxEventHeaders;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.SerializedEvent;
 import com.grab.outbox.infrastructure.OutboxRowFactory;
 import com.grab.outbox.infrastructure.OutboxStore;
 
@@ -34,8 +37,21 @@ public class JpaOutboxDomainEventProducer<T extends OutboxEntry<?>> implements D
 
         LocalDateTime now = LocalDateTime.now();
         List<T> outboxEvents = events.stream()
-                .map(event -> rowFactory.create(aggregateType, aggregateId, serializer.serialize(event), now))
+                .map(event -> rowFactory.create(aggregateType, aggregateId, stampTraceId(serializer.serialize(event)), now))
                 .toList();
         outboxStore.saveAll(outboxEvents);
+    }
+
+    private static SerializedEvent stampTraceId(SerializedEvent serialized) {
+        String traceId = TraceContext.current();
+        if (traceId == null || traceId.isBlank()) {
+            return serialized;
+        }
+        return new SerializedEvent(
+                serialized.eventType(),
+                serialized.payload(),
+                serialized.eventVersion(),
+                OutboxEventHeaders.mergeTraceId(serialized.headers(), traceId)
+        );
     }
 }
