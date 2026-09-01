@@ -7,6 +7,11 @@
         <version>0.0.1</version>
     </parent>
     <artifactId>identity-infrastructure</artifactId>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>

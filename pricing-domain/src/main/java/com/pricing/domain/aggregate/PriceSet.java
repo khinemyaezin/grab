@@ -7,6 +7,7 @@ import com.pricing.domain.event.PriceSetCreatedEvent;
 import com.pricing.domain.event.PriceSetUpdatedEvent;
 import com.pricing.domain.exception.PricingDomainError;
 import com.pricing.domain.exception.PricingDomainException;
+import com.pricing.domain.valueobject.CurrencyCode;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -86,6 +87,51 @@ public class PriceSet extends AggregateRoot<Id> {
 
     public Optional<Price> findPrice(Id priceId) {
         return prices.stream().filter(price -> price.getId().equals(priceId)).findFirst();
+    }
+
+    public Optional<Price> findMatchingBasePrice(
+            CurrencyCode currencyCode,
+            Integer minQuantity,
+            Integer maxQuantity
+    ) {
+        Objects.requireNonNull(currencyCode, "currencyCode is required");
+        return prices.stream()
+                .filter(Price::isBasePrice)
+                .filter(price -> price.getCurrencyCode().equals(currencyCode))
+                .filter(price -> Objects.equals(price.getMinQuantity(), minQuantity))
+                .filter(price -> Objects.equals(price.getMaxQuantity(), maxQuantity))
+                .findFirst();
+    }
+
+    public Price applyBasePrice(Price candidate, Instant now) {
+        Objects.requireNonNull(candidate, "price is required");
+        Objects.requireNonNull(now, "now is required");
+        if (!candidate.getPriceSetId().equals(getId()) || !candidate.isBasePrice()) {
+            throw new PricingDomainException(
+                    new PricingDomainError.InvalidField("price"),
+                    "price must belong to this price set as a base price"
+            );
+        }
+        Optional<Price> matching = findMatchingBasePrice(
+                candidate.getCurrencyCode(),
+                candidate.getMinQuantity(),
+                candidate.getMaxQuantity()
+        );
+        if (matching.isEmpty()) {
+            addPrice(candidate, now);
+            return candidate;
+        }
+        Price existing = matching.get();
+        existing.replaceDetails(
+                candidate.getTitle(),
+                candidate.getCurrencyCode(),
+                candidate.getAmount(),
+                candidate.getMinQuantity(),
+                candidate.getMaxQuantity()
+        );
+        existing.replaceRules(candidate.getRules());
+        touch(now);
+        return existing;
     }
 
     private int indexOfPrice(Id priceId) {
