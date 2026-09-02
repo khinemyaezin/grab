@@ -133,17 +133,23 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                         : variantSync.intent();
 
         switch (intent) {
-            case COLLAPSE_TO_STANDALONE -> syncProductVariants(product, List.of(createStandaloneVariant(command)));
-            case FULL_SYNC -> handleFullSync(product, variantSync);
+            case COLLAPSE_TO_STANDALONE -> syncProductVariants(product, List.of(resolveStandaloneVariant(product, command)));
+            case FULL_SYNC -> handleFullSync(product, command);
         }
 
     }
 
-    private void handleFullSync(Product product, UpdateProductCommand.VariantSync variantSync) {
+    private void handleFullSync(Product product, UpdateProductCommand command) {
+        UpdateProductCommand.VariantSync variantSync = command.variantSync();
         if (variantSync.overrides() == null || variantSync.overrides().isEmpty()) {
             throw new CatalogServiceException(
                     new CatalogServiceError.EmptyVariantOverrides(UpdateProductCommand.VariantSyncIntent.FULL_SYNC.name())
             );
+        }
+
+        if (isStandaloneFullSync(variantSync)) {
+            syncProductVariants(product, List.of(resolveStandaloneVariant(product, command)));
+            return;
         }
 
         List<VariantTypeSelection> variantTypes = resolveVariantTypes(variantSync);
@@ -269,10 +275,73 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                 .toList();
     }
 
+    private boolean isStandaloneFullSync(UpdateProductCommand.VariantSync variantSync) {
+        return hasOnlyStandaloneTypes(variantSync.variantTypes())
+                && variantSync.overrides().stream().allMatch(this::isStandaloneOverride);
+    }
+
+    private boolean hasOnlyStandaloneTypes(List<UpdateProductCommand.VariantType> variantTypes) {
+        if (variantTypes == null || variantTypes.isEmpty()) {
+            return true;
+        }
+        return variantTypes.stream().allMatch(type ->
+                type.typeId() != null
+                        && StandaloneVariationFactory.isStandAloneVariation(type.typeId().getValue()));
+    }
+
+    private boolean isStandaloneOverride(UpdateProductCommand.Variant override) {
+        if (override.variations() == null || override.variations().isEmpty()) {
+            return true;
+        }
+        return override.variations().stream().allMatch(this::isStandaloneCommandVariation);
+    }
+
+    private boolean isStandaloneCommandVariation(UpdateProductCommand.Variation variation) {
+        if (variation == null || variation.typeId() == null || variation.optionId() == null) {
+            return false;
+        }
+        return StandaloneVariationFactory.isStandAloneVariation(variation.typeId().getValue())
+                && StandaloneVariationFactory.isStandAloneVariation(variation.optionId().getValue());
+    }
+
+    private ProductVariant resolveStandaloneVariant(Product product, UpdateProductCommand command) {
+        Optional<ProductVariant> existingStandalone = findExistingStandaloneVariant(product);
+        if (existingStandalone.isPresent()) {
+            ProductVariant existing = existingStandalone.get();
+            UpdateProductCommand.Variant override = firstOverride(command);
+            String sku = override != null && StringUtils.hasText(override.sku())
+                    ? override.sku()
+                    : existing.getSku();
+            return ProductVariant.create(
+                    existing.getId(),
+                    sku,
+                    new ArrayList<>(existing.getVariations())
+            );
+        }
+        return createStandaloneVariant(command);
+    }
+
+    private Optional<ProductVariant> findExistingStandaloneVariant(Product product) {
+        return product.getVariants().stream()
+                .filter(this::isStandaloneProductVariant)
+                .findFirst();
+    }
+
+    private boolean isStandaloneProductVariant(ProductVariant variant) {
+        return variant.getVariations() != null
+                && !variant.getVariations().isEmpty()
+                && variant.getVariations().stream().allMatch(StandaloneVariationFactory::isStandAloneVariation);
+    }
+
+    private UpdateProductCommand.Variant firstOverride(UpdateProductCommand command) {
+        if (command.variantSync() == null || command.variantSync().overrides() == null) {
+            return null;
+        }
+        return command.variantSync().overrides().stream().findFirst().orElse(null);
+    }
+
     private ProductVariant createStandaloneVariant(UpdateProductCommand command) {
-        UpdateProductCommand.Variant variant = command.variantSync().overrides().stream()
-                .findFirst()
-                .orElse(null);
+        UpdateProductCommand.Variant variant = firstOverride(command);
         List<ProductVariation> variations = StandaloneVariationFactory.create(idGenerator);
         String sku = variant != null
                 && StringUtils.hasText(variant.sku())
@@ -316,6 +385,12 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     }
 
     private void updateVariant(Product product, ProductVariant existing, ProductVariant target) {
+        if (Objects.equals(existing.getId(), target.getId())
+                && existing.getSku() != null
+                && existing.getSku().equalsIgnoreCase(target.getSku())
+                && existing.getVariations().equals(target.getVariations())) {
+            return;
+        }
         boolean updated = product.updateVariant(existing, target);
         if (!updated) {
             throw new CatalogServiceException(
