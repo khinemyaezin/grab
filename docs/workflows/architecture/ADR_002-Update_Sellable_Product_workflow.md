@@ -17,8 +17,8 @@ Add sibling workflow `update-sellable-product` as a Process Manager (ADR-006 / A
 
 - Client `POST /api/v1/workflows/update-sellable-product` with `productId` plus a full snapshot (product + `variantSync`, pricing lines, inventory lines) and optional `idempotencyKey`. Returns `202` + workflow id. Read composition stays on the client (no BFF GET).
 - Orchestrator communicates only via `workflows::events`. Modules dispatch local commands from listeners.
-- Reuse `UpdateProductCommand`, `UpdatePriceOnPriceSetCommand` / `CreateVariantPriceAssignmentCommand`, and inventory commands selected by inventory line `op`: `CreateInventoryCommand`, `AdjustStockCommand`, `MarkDamagedCommand`, `WriteOffStockCommand`, `UpdateReorderConfigCommand`.
-- Pricing line routing: `priceSetId`+`priceId` present → update; absent → create. Do not create a new price assignment for an existing variant.
+- Reuse `UpdateProductCommand`, `UpdateVariantPriceCommand`, and inventory commands selected by inventory line `op`: `CreateInventoryCommand`, `AdjustStockCommand`, `MarkDamagedCommand`, `WriteOffStockCommand`, `UpdateReorderConfigCommand`.
+- Pricing lines carry `sku`, optional `variantId`, and money fields — not `priceSetId`/`priceId`. After catalog update, the orchestrator assigns `variantId` onto each pricing line by matching `SellableProductProductUpdatedEvent.variants` on sku (catalog is the authority, including new SKUs). Pricing then dispatches `UpdateVariantPriceCommand` (upsert by variant id).
 - Inventory line routing is explicit via `op` (`CREATE`, `ADJUST`, `DAMAGE`, `WRITE_OFF`, `REORDER`). Omit lines with no inventory intent. At most one stock operation per `inventoryItemId` per request. Optional `reorder` may ride on `ADJUST` / `DAMAGE` / `WRITE_OFF`.
 - Skip `ensure-product-view` when no SKUs were added (`ProductVariantViewProjectedEvent` fires only on variant add).
 - Skip price or inventory steps when those lists are empty.
@@ -28,7 +28,7 @@ Add sibling workflow `update-sellable-product` as a Process Manager (ADR-006 / A
 
 ## Context shape (input vs progress)
 
-**Input (start):** `merchantId`, `createdBy`, `scopeKey`, `scopeId`, `productId`, product metadata + `variantSync` (includes `matrixKey`), `pricingLines` (optional `priceSetId`/`priceId`), `inventoryLines` (`op` + nested `create` / `adjust` / `damage` / `writeOff` / `reorder`; `inventoryItemId` required except `CREATE`).
+**Input (start):** `merchantId`, `createdBy`, `scopeKey`, `scopeId`, `productId`, product metadata + `variantSync` (includes `matrixKey`), `pricingLines` (`sku`, optional `variantId`, money fields), `inventoryLines` (`op` + nested `create` / `adjust` / `damage` / `writeOff` / `reorder`; `inventoryItemId` required except `CREATE`).
 
 **Progress:** `variantRefs`, `addedSkus`, `projectedSkus`, `pricePairs`, `createdPriceSetIds`, `inventoryItemIds`, `createdInventoryItemIds`.
 

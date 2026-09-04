@@ -102,8 +102,7 @@ class UpdateSellableProductOrchestratorTest {
         RequestSyncVariantPriceEvent priceRequest = (RequestSyncVariantPriceEvent) published.getFirst();
         assertThat(priceRequest.sku()).isEqualTo("SKU-1");
         assertThat(priceRequest.variantId()).isEqualTo("variant-1");
-        assertThat(priceRequest.priceSetId()).isEqualTo("price-set-1");
-        assertThat(priceRequest.priceId()).isEqualTo("price-1");
+        assertThat(priceRequest.amount()).isEqualByComparingTo("19.99");
 
         WorkflowInstance afterProduct = workflowStore.findById(started.id()).orElseThrow();
         assertThat(afterProduct.currentStep()).contains(UpdateSellableProductWorkflowNames.STEP_SYNC_VARIANT_PRICES);
@@ -162,8 +161,60 @@ class UpdateSellableProductOrchestratorTest {
 
         assertThat(published).hasSize(1);
         assertThat(published.getFirst()).isInstanceOf(RequestSyncVariantPriceEvent.class);
+        RequestSyncVariantPriceEvent priceRequest = (RequestSyncVariantPriceEvent) published.getFirst();
+        assertThat(priceRequest.sku()).isEqualTo("SKU-1");
+        assertThat(priceRequest.variantId()).isEqualTo("variant-1");
         WorkflowInstance afterProjection = workflowStore.findById(started.id()).orElseThrow();
         assertThat(afterProjection.currentStep()).contains(UpdateSellableProductWorkflowNames.STEP_SYNC_VARIANT_PRICES);
+    }
+
+    @Test
+    void onProductUpdated_whenNewSkuPricingLine_shouldEmitMergedVariantId() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                sampleProduct(),
+                List.of(),
+                List.of(new UpdateSellableProductContext.PricingLine(
+                        "SKU-2",
+                        null,
+                        "Base",
+                        "USD",
+                        new BigDecimal("29.99"),
+                        null,
+                        null,
+                        List.of()
+                ))
+        );
+        WorkflowInstance started = orchestrator.start(context, null);
+        published.clear();
+
+        orchestrator.onProductUpdated(new SellableProductProductUpdatedEvent(
+                started.id(),
+                "product-1",
+                List.of("SKU-1", "SKU-2"),
+                List.of(
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"),
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-2", "SKU-2")
+                ),
+                List.of("SKU-2"),
+                Instant.now(),
+                1
+        ));
+        published.clear();
+
+        orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
+                "product-1", "variant-2", "SKU-2", Instant.now(), 1));
+
+        assertThat(published).hasSize(1);
+        assertThat(published.getFirst()).isInstanceOfSatisfying(RequestSyncVariantPriceEvent.class, priceRequest -> {
+            assertThat(priceRequest.sku()).isEqualTo("SKU-2");
+            assertThat(priceRequest.variantId()).isEqualTo("variant-2");
+            assertThat(priceRequest.amount()).isEqualByComparingTo("29.99");
+        });
     }
 
     @Test
@@ -270,8 +321,7 @@ class UpdateSellableProductOrchestratorTest {
                 )),
                 List.of(new UpdateSellableProductContext.PricingLine(
                         "SKU-1",
-                        "price-set-1",
-                        "price-1",
+                        null,
                         "Base",
                         "USD",
                         new BigDecimal("19.99"),

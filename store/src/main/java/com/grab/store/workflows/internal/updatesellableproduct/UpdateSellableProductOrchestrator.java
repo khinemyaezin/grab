@@ -325,8 +325,8 @@ public class UpdateSellableProductOrchestrator {
 
         Instant now = Instant.now();
         for (UpdateSellableProductContext.PricingLine pricingLine : context.pricingLines()) {
-            UpdateSellableProductContext.VariantRef variantRef = context.variantRefForSku(pricingLine.sku());
-            if (variantRef == null) {
+            String variantId = resolvedVariantId(context, pricingLine);
+            if (variantId == null) {
                 events.publishEvent(new SellableProductStepFailedEvent(
                         instance.id(),
                         UpdateSellableProductWorkflowNames.STEP_SYNC_VARIANT_PRICES,
@@ -338,12 +338,10 @@ public class UpdateSellableProductOrchestrator {
             }
             events.publishEvent(new RequestSyncVariantPriceEvent(
                     instance.id(),
-                    variantRef.variantId(),
-                    variantRef.sku(),
+                    variantId,
+                    pricingLine.sku(),
                     context.productId(),
                     context.merchantId(),
-                    pricingLine.priceSetId(),
-                    pricingLine.priceId(),
                     pricingLine.title(),
                     pricingLine.currencyCode(),
                     pricingLine.amount(),
@@ -405,6 +403,20 @@ public class UpdateSellableProductOrchestrator {
                     EVENT_VERSION
             ));
         }
+    }
+
+    private String resolvedVariantId(
+            UpdateSellableProductContext context,
+            UpdateSellableProductContext.PricingLine pricingLine
+    ) {
+        if (pricingLine.variantId() != null && !pricingLine.variantId().isBlank()) {
+            return pricingLine.variantId();
+        }
+        UpdateSellableProductContext.VariantRef variantRef = context.variantRefForSku(pricingLine.sku());
+        if (variantRef == null) {
+            return null;
+        }
+        return variantRef.variantId();
     }
 
     private boolean isWaitingOn(WorkflowInstance instance, String step) {

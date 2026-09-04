@@ -156,6 +156,35 @@ class UpdateSellableProductRequestContractTest {
                 .anyMatch(path -> path.contains("inventoryItemId"));
     }
 
+    @Test
+    void deserialize_pricingLine_shouldAcceptSkuAndOptionalVariantId() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" },
+                  "pricingLines": [
+                    {
+                      "sku": "SKU-NEW",
+                      "currencyCode": "USD",
+                      "amount": 19.99
+                    },
+                    {
+                      "sku": "SKU-1",
+                      "variantId": "variant-1",
+                      "title": "Base",
+                      "currencyCode": "USD",
+                      "amount": 12.50
+                    }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.pricingLines().getFirst().sku()).isEqualTo("SKU-NEW");
+        assertThat(request.pricingLines().getFirst().variantId()).isNull();
+        assertThat(request.pricingLines().get(1).variantId()).isEqualTo("variant-1");
+    }
+
     private Set<String> propertyPaths(Set<ConstraintViolation<UpdateSellableProductRequest>> violations) {
         return violations.stream()
                 .map(violation -> violation.getPropertyPath().toString())

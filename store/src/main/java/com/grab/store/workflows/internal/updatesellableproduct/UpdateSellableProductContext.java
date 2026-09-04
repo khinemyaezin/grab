@@ -73,6 +73,7 @@ public record UpdateSellableProductContext(
             List<VariantRef> newVariantRefs,
             List<String> newAddedSkus
     ) {
+        List<PricingLine> assignedPricingLines = assignVariantIds(newVariantRefs);
         return new UpdateSellableProductContext(
                 merchantId,
                 createdBy,
@@ -81,7 +82,7 @@ public record UpdateSellableProductContext(
                 newProductId,
                 product,
                 inventoryLines,
-                pricingLines,
+                assignedPricingLines,
                 newVariantRefs,
                 newAddedSkus,
                 projectedSkus,
@@ -192,6 +193,26 @@ public record UpdateSellableProductContext(
                 .orElse(null);
     }
 
+    private List<PricingLine> assignVariantIds(List<VariantRef> refs) {
+        if (refs == null || refs.isEmpty()) {
+            return pricingLines;
+        }
+        return pricingLines.stream()
+                .map(line -> assignVariantId(line, refs))
+                .toList();
+    }
+
+    private PricingLine assignVariantId(PricingLine line, List<VariantRef> refs) {
+        VariantRef match = refs.stream()
+                .filter(ref -> ref.sku().equals(line.sku()))
+                .findFirst()
+                .orElse(null);
+        if (match == null) {
+            return line;
+        }
+        return line.withVariantId(match.variantId());
+    }
+
     public record Product(
             String name,
             String categoryId,
@@ -258,8 +279,7 @@ public record UpdateSellableProductContext(
 
     public record PricingLine(
             String sku,
-            String priceSetId,
-            String priceId,
+            String variantId,
             String title,
             String currencyCode,
             BigDecimal amount,
@@ -269,6 +289,19 @@ public record UpdateSellableProductContext(
     ) {
         public PricingLine {
             rules = rules == null ? List.of() : List.copyOf(rules);
+        }
+
+        public PricingLine withVariantId(String assignedVariantId) {
+            return new PricingLine(
+                    sku,
+                    assignedVariantId,
+                    title,
+                    currencyCode,
+                    amount,
+                    minQuantity,
+                    maxQuantity,
+                    rules
+            );
         }
     }
 

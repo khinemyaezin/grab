@@ -16,7 +16,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <inventory-domain.version>0.0.1</inventory-domain.version>
         <outbox-infrastructure.version>0.0.1</outbox-infrastructure.version>
     </properties>

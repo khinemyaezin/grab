@@ -12,7 +12,9 @@ import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.pricing.domain.repository.PriceListRepository;
 import com.pricing.domain.repository.PricePreferenceRepository;
 import com.pricing.domain.repository.PriceSetRepository;
+import com.pricing.infrastructure.mapper.jpa.VariantPriceSetLinkJpaAssembler;
 import com.pricing.infrastructure.mapper.jpa.impl.PricingJpaAssembler;
+import com.pricing.infrastructure.mapper.jpa.impl.VariantPriceSetLinkJpaAssemblerImpl;
 import com.pricing.infrastructure.outbox.PricingOutboxEvent;
 import com.pricing.infrastructure.outbox.PricingOutboxEventProcessor;
 import com.pricing.infrastructure.outbox.PricingOutboxEventProducer;
@@ -155,11 +157,18 @@ public class PricingInfraConfig {
         return new DefaultVariantPriceSetLinkQueryRepository(links, executor);
     }
 
+
+    @Bean
+    VariantPriceSetLinkJpaAssembler variantPriceSetLinkJpaAssembler() {
+        return new VariantPriceSetLinkJpaAssemblerImpl();
+    }
+
     @Bean
     VariantPriceSetLinkRepository variantPriceSetLinkWriteRepository(
             VariantPriceSetLinkJpaRepository links,
+            VariantPriceSetLinkJpaAssembler assembler,
             @Qualifier("pricingPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new DefaultVariantPriceSetLinkRepository(links, executor);
+        return new DefaultVariantPriceSetLinkRepository(links, assembler, executor);
     }
 }

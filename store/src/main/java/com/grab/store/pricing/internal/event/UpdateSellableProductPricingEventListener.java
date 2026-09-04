@@ -1,14 +1,11 @@
 package com.grab.store.pricing.internal.event;
 
 import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentCommand;
-import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentResult;
 import com.grab.store.pricing.internal.command.PriceRuleInput;
-import com.grab.store.pricing.internal.command.PriceSetResult;
-import com.grab.store.pricing.internal.command.UpdatePriceOnPriceSetCommand;
+import com.grab.store.pricing.internal.command.UpdateVariantPriceCommand;
+import com.grab.store.pricing.internal.command.UpdateVariantPriceResult;
 import com.grab.store.pricing.internal.config.PricingEnabled;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
@@ -31,7 +28,6 @@ public class UpdateSellableProductPricingEventListener {
     private static final String STEP_SYNC_VARIANT_PRICES = "sync-variant-prices";
 
     private final CommandBus commandBus;
-    private final IdGenerator idGenerator;
     private final ApplicationEventPublisher events;
 
     @EventListener
@@ -51,45 +47,26 @@ public class UpdateSellableProductPricingEventListener {
                             rule.priority()
                     ))
                     .toList();
-            boolean created = !hasIds(event.priceSetId(), event.priceId());
-            String priceSetId;
-            if (created) {
-                CreateVariantPriceAssignmentResult result = commandBus.dispatch(
-                        new CreateVariantPriceAssignmentCommand(
-                                event.variantId(),
-                                event.productId(),
-                                event.sku(),
-                                event.merchantId(),
-                                event.title(),
-                                event.currencyCode(),
-                                event.amount(),
-                                event.minQuantity(),
-                                event.maxQuantity(),
-                                rules
-                        )
-                );
-                priceSetId = result.priceSetId();
-            } else {
-                PriceSetResult result = commandBus.dispatch(
-                        new UpdatePriceOnPriceSetCommand(
-                                idGenerator.convertIdFrom(event.priceSetId()),
-                                idGenerator.convertIdFrom(event.priceId()),
-                                event.title(),
-                                event.currencyCode(),
-                                event.amount(),
-                                event.minQuantity(),
-                                event.maxQuantity(),
-                                rules
-                        )
-                );
-                priceSetId = result.id();
-            }
+            UpdateVariantPriceResult result = commandBus.dispatch(
+                    new UpdateVariantPriceCommand(
+                            event.variantId(),
+                            event.productId(),
+                            event.sku(),
+                            event.merchantId(),
+                            event.title(),
+                            event.currencyCode(),
+                            event.amount(),
+                            event.minQuantity(),
+                            event.maxQuantity(),
+                            rules
+                    )
+            );
             events.publishEvent(new VariantPriceSyncedEvent(
                     event.workflowId(),
                     event.variantId(),
                     event.sku(),
-                    priceSetId,
-                    created,
+                    result.priceSetId(),
+                    result.priceSetCreated(),
                     Instant.now(),
                     EVENT_VERSION
             ));
@@ -108,9 +85,5 @@ public class UpdateSellableProductPricingEventListener {
                     EVENT_VERSION
             ));
         }
-    }
-
-    private boolean hasIds(String priceSetId, String priceId) {
-        return priceSetId != null && !priceSetId.isBlank() && priceId != null && !priceId.isBlank();
     }
 }
