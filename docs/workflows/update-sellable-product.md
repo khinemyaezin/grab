@@ -29,7 +29,7 @@ Catalog · Pricing · Inventory
 |---|---------------------------|----------|--------------------|------------|-----------|-------------------|
 | 1 | `update-product` | Catalog | Update product metadata + variant matrix | `start()` | `SellableProductProductUpdatedEvent` | `productId`, `addedSkus`, `variantRefs` |
 | 2 | `ensure-product-view` | Inventory (projection) | Wait until every **added** SKU is projected | step 1 done and `addedSkus` non-empty | `allAddedSkusProjected()` | `projectedSkus` |
-| 3 | `sync-variant-prices` | Pricing | Update existing prices or create assignments for new variants | step 2 done (or skipped) and pricing lines present | `allPricesSynced()` | `pricePairs`, `createdPriceSetIds` |
+| 3 | `sync-variant-prices` | Pricing | Upsert variant prices via `UpdateVariantPriceCommand` | step 2 done (or skipped) and pricing lines present | `allPricesSynced()` | `pricePairs`, `createdPriceSetIds` |
 | 4 | `sync-inventory-item` | Inventory | Create, adjust, damage, write-off, or reorder per inventory line `op` | step 3 done (or skipped) and inventory lines present | `allInventoryItemsSynced()` → `COMPLETED` | `inventoryItemIds`, `createdInventoryItemIds` |
 
 **Fan-out / fan-in notes:**  
@@ -59,7 +59,7 @@ Catalog · Pricing · Inventory
 | Event | Published from step | Consumed by | Maps to local command | Key fields |
 |-------|---------------------|-------------|----------------------|------------|
 | `RequestUpdateProductSetEvent` | `update-product` | Catalog `UpdateSellableProductCatalogEventListener` | `UpdateProductCommand` | `workflowId`, `merchantId`, `productId`, metadata, `variantSync` |
-| `RequestSyncVariantPriceEvent` | `sync-variant-prices` | Pricing `UpdateSellableProductPricingEventListener` | `UpdatePriceOnPriceSetCommand` if `priceSetId`+`priceId` present, else `CreateVariantPriceAssignmentCommand` | `workflowId`, `variantId`, `sku`, `productId`, optional price ids, price fields |
+| `RequestSyncVariantPriceEvent` | `sync-variant-prices` | Pricing `UpdateSellableProductPricingEventListener` | `UpdateVariantPriceCommand` | `workflowId`, `variantId` (merged from catalog event by sku), `sku`, `productId`, price fields |
 | `RequestSyncInventoryItemEvent` | `sync-inventory-item` | Inventory `UpdateSellableProductInventoryEventListener` | `op`: `CREATE` → `CreateInventoryCommand`; `ADJUST` → `AdjustStockCommand`; `DAMAGE` → `MarkDamagedCommand`; `WRITE_OFF` → `WriteOffStockCommand`; `REORDER` → `UpdateReorderConfigCommand`. Optional `reorder` after a stock op also dispatches `UpdateReorderConfigCommand`. | `workflowId`, `sku`, `locationId`, `op`, nested payload, optional `inventoryItemId` |
 
 ### 2.2 Completion events (Module → Orchestrator)
@@ -153,7 +153,7 @@ ENTER:  start()
 PUBLISH: RequestUpdateProductSetEvent (count: 1)
 WAIT:    WAITING_EXTERNAL, currentStep=update-product
 ON:      SellableProductProductUpdatedEvent
-UPDATE:  productId, variantRefs, addedSkus
+UPDATE:  productId, variantRefs, addedSkus, pricingLines.variantId (by sku)
 GATE:    (none)
 THEN:    checkpoint(update-product, productId)
          → if addedSkus empty: advanceAfterProductViewReady()
@@ -177,7 +177,7 @@ THEN:    checkpoint(ensure-product-view, projectedSkus)
 
 ```
 ENTER:  product view ready (or skipped) and pricingLines non-empty
-PUBLISH: RequestSyncVariantPriceEvent (count: per pricingLines)
+PUBLISH: RequestSyncVariantPriceEvent (count: per pricingLines; variantId already merged)
 WAIT:    WAITING_EXTERNAL, currentStep=sync-variant-prices
 ON:      VariantPriceSyncedEvent
 UPDATE:  pricePairs; createdPriceSetIds when created=true
@@ -230,7 +230,7 @@ sequenceDiagram
 - Ignore completion events unless `status == WAITING_EXTERNAL`, `currentStep` matches, and `workflowName == update-sellable-product`.
 - Ignore failure if already terminal or `COMPENSATING`, or if `workflowName` is not this workflow.
 - Idempotent start: same `idempotencyKey` returns existing instance.
-- Pricing routing: IDs present on a line → update command; IDs absent → create command.
+- Pricing routing: merge catalog `variantId` onto each pricing line by sku, then `UpdateVariantPriceCommand`.
 - Inventory routing: `op` is explicit (`CREATE` / `ADJUST` / `DAMAGE` / `WRITE_OFF` / `REORDER`). Omit lines with no inventory intent. At most one stock operation per `inventoryItemId` per request.
 
 ---
@@ -243,7 +243,8 @@ sequenceDiagram
 |-------|--------|---------|
 | `merchantId`, `createdBy`, `scopeKey`, `scopeId` | start | step requests / compensation |
 | `productId`, `product`, `inventoryLines`, `pricingLines` | start | update-product / pricing / inventory requests |
-| `variantRefs` | `update-product` completion | price fan-out (sku → variantId) |
+| `pricingLines.variantId` | `update-product` completion (sku match on catalog variants) | price fan-out |
+| `variantRefs` | `update-product` completion | fallback sku → variantId |
 | `addedSkus` | `update-product` completion | `allAddedSkusProjected()` gate / skip projection |
 | `projectedSkus` | projection events | `allAddedSkusProjected()` gate |
 | `pricePairs` | price completion events | response / `allPricesSynced()` |

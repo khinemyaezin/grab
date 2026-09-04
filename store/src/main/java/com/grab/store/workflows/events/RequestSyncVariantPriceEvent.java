@@ -12,8 +12,6 @@ public record RequestSyncVariantPriceEvent(
         String sku,
         String productId,
         String merchantId,
-        String priceSetId,
-        String priceId,
         String title,
         String currencyCode,
         BigDecimal amount,

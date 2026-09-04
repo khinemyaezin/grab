@@ -112,8 +112,7 @@ public record UpdateSellableProductRequest(
 
     public record PricingLine(
             @NotBlank String sku,
-            String priceSetId,
-            String priceId,
+            String variantId,
             String title,
             @NotBlank String currencyCode,
             @NotNull BigDecimal amount,

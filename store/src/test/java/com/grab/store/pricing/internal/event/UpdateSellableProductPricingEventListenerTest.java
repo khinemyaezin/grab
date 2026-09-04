@@ -2,13 +2,8 @@ package com.grab.store.pricing.internal.event;
 
 import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.framework.id.Id;
-import com.grab.framework.id.IdGenerator;
-import com.grab.framework.id.impl.CommonId;
-import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentCommand;
-import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentResult;
-import com.grab.store.pricing.internal.command.PriceSetResult;
-import com.grab.store.pricing.internal.command.UpdatePriceOnPriceSetCommand;
+import com.grab.store.pricing.internal.command.UpdateVariantPriceCommand;
+import com.grab.store.pricing.internal.command.UpdateVariantPriceResult;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.grab.store.workflows.events.VariantPriceSyncedEvent;
@@ -37,24 +32,28 @@ class UpdateSellableProductPricingEventListenerTest {
             @SuppressWarnings("unchecked")
             public <R> R dispatch(Command<R> command) {
                 dispatched.add(command);
-                if (command instanceof CreateVariantPriceAssignmentCommand) {
-                    return (R) new CreateVariantPriceAssignmentResult("price-set-new");
-                }
-                if (command instanceof UpdatePriceOnPriceSetCommand) {
-                    return (R) new PriceSetResult("price-set-1", List.of());
+                if (command instanceof UpdateVariantPriceCommand update) {
+                    boolean created = "variant-new".equals(update.variantId());
+                    String priceSetId = created ? "price-set-new" : "price-set-1";
+                    return (R) new UpdateVariantPriceResult(priceSetId, "price-1", created);
                 }
                 return null;
             }
         };
-        listener = new UpdateSellableProductPricingEventListener(commandBus, idGenerator(), published::add);
+        listener = new UpdateSellableProductPricingEventListener(commandBus, published::add);
     }
 
     @Test
-    void onRequestSyncVariantPrice_whenIdsPresent_shouldUpdateExistingPrice() {
-        listener.onRequestSyncVariantPrice(syncEvent("price-set-1", "price-1"));
+    void onRequestSyncVariantPrice_shouldDispatchUpdateVariantPriceCommand() {
+        listener.onRequestSyncVariantPrice(syncEvent("variant-1", "SKU-1"));
 
         assertThat(dispatched).hasSize(1);
-        assertThat(dispatched.getFirst()).isInstanceOf(UpdatePriceOnPriceSetCommand.class);
+        assertThat(dispatched.getFirst()).isInstanceOfSatisfying(UpdateVariantPriceCommand.class, command -> {
+            assertThat(command.variantId()).isEqualTo("variant-1");
+            assertThat(command.sku()).isEqualTo("SKU-1");
+            assertThat(command.productId()).isEqualTo("product-1");
+            assertThat(command.amount()).isEqualByComparingTo("19.99");
+        });
         assertThat(published).hasSize(1);
         assertThat(published.getFirst()).isInstanceOfSatisfying(VariantPriceSyncedEvent.class, synced -> {
             assertThat(synced.workflowId()).isEqualTo("wf-1");
@@ -64,12 +63,10 @@ class UpdateSellableProductPricingEventListenerTest {
     }
 
     @Test
-    void onRequestSyncVariantPrice_whenIdsAbsent_shouldCreateAssignment() {
-        listener.onRequestSyncVariantPrice(syncEvent(null, null));
+    void onRequestSyncVariantPrice_whenPriceSetCreated_shouldPublishCreatedTrue() {
+        listener.onRequestSyncVariantPrice(syncEvent("variant-new", "SKU-NEW"));
 
-        assertThat(dispatched).hasSize(1);
-        assertThat(dispatched.getFirst()).isInstanceOf(CreateVariantPriceAssignmentCommand.class);
-        assertThat(published).hasSize(1);
+        assertThat(dispatched.getFirst()).isInstanceOf(UpdateVariantPriceCommand.class);
         assertThat(published.getFirst()).isInstanceOfSatisfying(VariantPriceSyncedEvent.class, synced -> {
             assertThat(synced.priceSetId()).isEqualTo("price-set-new");
             assertThat(synced.created()).isTrue();
@@ -84,9 +81,9 @@ class UpdateSellableProductPricingEventListenerTest {
                 throw new IllegalStateException("pricing boom");
             }
         };
-        listener = new UpdateSellableProductPricingEventListener(failingBus, idGenerator(), published::add);
+        listener = new UpdateSellableProductPricingEventListener(failingBus, published::add);
 
-        listener.onRequestSyncVariantPrice(syncEvent("price-set-1", "price-1"));
+        listener.onRequestSyncVariantPrice(syncEvent("variant-1", "SKU-1"));
 
         assertThat(published).hasSize(1);
         assertThat(published.getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
@@ -95,15 +92,13 @@ class UpdateSellableProductPricingEventListenerTest {
         });
     }
 
-    private RequestSyncVariantPriceEvent syncEvent(String priceSetId, String priceId) {
+    private RequestSyncVariantPriceEvent syncEvent(String variantId, String sku) {
         return new RequestSyncVariantPriceEvent(
                 "wf-1",
-                "variant-1",
-                "SKU-1",
+                variantId,
+                sku,
                 "product-1",
                 "merchant-1",
-                priceSetId,
-                priceId,
                 "Base",
                 "USD",
                 new BigDecimal("19.99"),
@@ -113,19 +108,5 @@ class UpdateSellableProductPricingEventListenerTest {
                 Instant.now(),
                 1
         );
-    }
-
-    private IdGenerator idGenerator() {
-        return new IdGenerator() {
-            @Override
-            public Id generateId() {
-                return new CommonId("new");
-            }
-
-            @Override
-            public Id convertIdFrom(String id) {
-                return new CommonId(id);
-            }
-        };
     }
 }
