@@ -136,6 +136,40 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
         assertEquals(2, page.getTotalPages());
     }
 
+    @Test
+    void search_shouldSortByUpdatedAtDescByDefault() {
+        ProductEntity p1 = new ProductEntity();
+        p1.setUuid(UUID.randomUUID().toString());
+        p1.setName("Oldest Product");
+        p1.setCategoryId("cat-sort");
+        p1.setMerchantId("merchant-sort");
+        p1.setCreatedAt(java.time.Instant.parse("2026-01-01T10:00:00Z"));
+        p1.setUpdatedAt(java.time.Instant.parse("2026-01-01T10:00:00Z"));
+        entityManager.persist(p1);
+
+        ProductEntity p2 = new ProductEntity();
+        p2.setUuid(UUID.randomUUID().toString());
+        p2.setName("Newest Product");
+        p2.setCategoryId("cat-sort");
+        p2.setMerchantId("merchant-sort");
+        p2.setCreatedAt(java.time.Instant.parse("2026-01-01T10:00:00Z"));
+        p2.setUpdatedAt(java.time.Instant.parse("2026-01-02T10:00:00Z"));
+        entityManager.persist(p2);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .merchantId("merchant-sort")
+                .build();
+
+        Page<ProductView> page = specification.search(criteria, PageRequest.of(0, 10));
+
+        assertEquals(2, page.getTotalElements());
+        assertEquals("Newest Product", page.getContent().get(0).name());
+        assertEquals("Oldest Product", page.getContent().get(1).name());
+    }
+
     private void persistProduct(String name, String categoryId, VariantData... variants) {
         ProductEntity product = new ProductEntity();
         product.setUuid(UUID.randomUUID().toString());

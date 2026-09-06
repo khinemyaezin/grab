@@ -10,12 +10,14 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Order;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -49,7 +51,17 @@ public class ProductSearchSpecification {
                 product.get(ProductEntity_.CATEGORY_ENTITY)
         ));
         dataQuery.where(toPredicates(cb, dataQuery, product, criteria).toArray(new Predicate[0]));
-        dataQuery.orderBy(cb.asc(product.get(ProductEntity_.ID)));
+        if (pageable.getSort() != null && pageable.getSort().isSorted()) {
+            List<Order> orders = new ArrayList<>();
+            for (Sort.Order order : pageable.getSort()) {
+                orders.add(order.isAscending()
+                        ? cb.asc(product.get(order.getProperty()))
+                        : cb.desc(product.get(order.getProperty())));
+            }
+            dataQuery.orderBy(orders);
+        } else {
+            dataQuery.orderBy(cb.desc(product.get(ProductEntity_.UPDATED_AT)));
+        }
 
         TypedQuery<ProductView> typedQuery = entityManager.createQuery(dataQuery);
         typedQuery.setFirstResult((int) pageable.getOffset());
