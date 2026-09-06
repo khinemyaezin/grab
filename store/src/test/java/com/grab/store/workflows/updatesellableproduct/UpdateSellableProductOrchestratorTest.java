@@ -22,6 +22,7 @@ import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellablePro
 import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellableProductOrchestrator;
 import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellableProductWorkflowNames;
 import com.inventory.domain.enums.AdjustmentReason;
+import com.grab.store.shared.sse.WorkflowTerminalUiEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -244,11 +245,15 @@ class UpdateSellableProductOrchestratorTest {
 
         WorkflowInstance compensated = workflowStore.findById(started.id()).orElseThrow();
         assertThat(compensated.status()).isEqualTo(WorkflowStatus.COMPENSATED);
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOf(RequestDeletePriceSetCompensationEvent.class);
+        assertThat(published).hasSize(2);
+        assertThat(published.get(0)).isInstanceOf(RequestDeletePriceSetCompensationEvent.class);
         RequestDeletePriceSetCompensationEvent priceCompensation =
-                (RequestDeletePriceSetCompensationEvent) published.getFirst();
+                (RequestDeletePriceSetCompensationEvent) published.get(0);
         assertThat(priceCompensation.priceSetId()).isEqualTo("price-set-new");
+        assertThat(published.get(1)).isInstanceOf(WorkflowTerminalUiEvent.class);
+        WorkflowTerminalUiEvent terminal = (WorkflowTerminalUiEvent) published.get(1);
+        assertThat(terminal.status()).isEqualTo("COMPENSATED");
+        assertThat(terminal.errorMessage()).isEqualTo("inventory failed");
     }
 
     @Test
@@ -267,7 +272,11 @@ class UpdateSellableProductOrchestratorTest {
 
         WorkflowInstance failed = workflowStore.findById(started.id()).orElseThrow();
         assertThat(failed.status()).isEqualTo(WorkflowStatus.FAILED);
-        assertThat(published).isEmpty();
+        assertThat(published).hasSize(1);
+        assertThat(published.getFirst()).isInstanceOf(WorkflowTerminalUiEvent.class);
+        WorkflowTerminalUiEvent terminal = (WorkflowTerminalUiEvent) published.getFirst();
+        assertThat(terminal.status()).isEqualTo("FAILED");
+        assertThat(terminal.errorMessage()).isEqualTo("catalog failed");
     }
 
     @Test
@@ -297,7 +306,10 @@ class UpdateSellableProductOrchestratorTest {
 
         WorkflowInstance completed = workflowStore.findById(started.id()).orElseThrow();
         assertThat(completed.status()).isEqualTo(WorkflowStatus.COMPLETED);
-        assertThat(published).isEmpty();
+        assertThat(published).hasSize(1);
+        assertThat(published.getFirst()).isInstanceOf(WorkflowTerminalUiEvent.class);
+        WorkflowTerminalUiEvent terminal = (WorkflowTerminalUiEvent) published.getFirst();
+        assertThat(terminal.status()).isEqualTo("COMPLETED");
     }
 
     private static UpdateSellableProductContext sampleContext() {

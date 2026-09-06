@@ -1,0 +1,9 @@
+spring:
+  mvc:
+    async:
+      request-timeout: 360000
+  task:
+    scheduling:
+      pool:
+        size: 5
+      thread-name-prefix: store-scheduled-
