@@ -19,6 +19,9 @@ public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex) throws IOException {
+        if (response.isCommitted()) {
+            return;
+        }
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied");
         problem.setTitle("Forbidden");
         problem.setProperty("code", "idt.service.auth.access_denied");

@@ -20,6 +20,7 @@ import com.grab.store.workflows.events.VariantPriceCreatedEvent;
 import com.grab.store.workflows.internal.createsellableproduct.CreateSellableProductContext;
 import com.grab.store.workflows.internal.createsellableproduct.CreateSellableProductOrchestrator;
 import com.grab.store.workflows.internal.createsellableproduct.CreateSellableProductWorkflowNames;
+import com.grab.store.shared.sse.WorkflowTerminalUiEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -135,6 +136,7 @@ class CreateSellableProductOrchestratorTest {
                 new CreateSellableProductContext.PricePair("variant-1", "SKU-1", "price-set-1")
         );
         assertThat(finalContext.inventoryItemIds()).containsExactly("inv-1");
+        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal && "COMPLETED".equals(terminal.status()));
     }
 
     @Test
@@ -165,7 +167,7 @@ class CreateSellableProductOrchestratorTest {
 
         WorkflowInstance compensated = workflowStore.findById(started.id()).orElseThrow();
         assertThat(compensated.status()).isEqualTo(WorkflowStatus.COMPENSATED);
-        assertThat(published).hasSize(2);
+        assertThat(published).hasSize(3);
         assertThat(published.get(0)).isInstanceOf(RequestDeletePriceSetCompensationEvent.class);
         RequestDeletePriceSetCompensationEvent priceCompensation =
                 (RequestDeletePriceSetCompensationEvent) published.get(0);
@@ -175,6 +177,10 @@ class CreateSellableProductOrchestratorTest {
                 (RequestDeleteProductCompensationEvent) published.get(1);
         assertThat(productCompensation.productId()).isEqualTo("product-1");
         assertThat(productCompensation.merchantId()).isEqualTo("merchant-1");
+        assertThat(published.get(2)).isInstanceOf(WorkflowTerminalUiEvent.class);
+        WorkflowTerminalUiEvent terminal = (WorkflowTerminalUiEvent) published.get(2);
+        assertThat(terminal.status()).isEqualTo("COMPENSATED");
+        assertThat(terminal.errorMessage()).isEqualTo("inventory failed");
     }
 
     private static CreateSellableProductContext sampleContext() {

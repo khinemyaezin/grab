@@ -25,6 +25,7 @@ import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.grab.store.workflows.events.VariantPriceCreatedEvent;
 import com.grab.store.workflows.internal.config.WorkflowsReadTransactional;
 import com.grab.store.workflows.internal.config.WorkflowsTransactional;
+import com.grab.store.shared.sse.WorkflowTerminalUiEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -320,6 +321,7 @@ public class CreateSellableProductOrchestrator {
         );
         instance.markCompleted(contextJson, checkpointJson);
         workflowStore.save(instance);
+        publishTerminalUi(instance, updated, null);
         log.info("Completed create-sellable-product workflowId={}", event.workflowId());
     }
 
@@ -366,6 +368,7 @@ public class CreateSellableProductOrchestrator {
                 String checkpointJson = instance.checkpointJson().orElse(payloadCodec.writeCheckpoints(instance.checkpoints()));
                 instance.markCompensated(contextJson, checkpointJson);
                 workflowStore.save(instance);
+                publishTerminalUi(instance, context, event.message());
                 log.info("Compensated create-sellable-product workflowId={} after step={}", event.workflowId(), event.step());
                 return;
             }
@@ -375,8 +378,28 @@ public class CreateSellableProductOrchestrator {
         String checkpointJson = instance.checkpointJson().orElse(payloadCodec.writeCheckpoints(List.of()));
         instance.markFailed(event.step(), event.message(), contextJson, checkpointJson);
         workflowStore.save(instance);
+        publishTerminalUi(instance, context, event.message());
         log.warn("Failed create-sellable-product workflowId={} step={} message={}",
                 event.workflowId(), event.step(), event.message());
+    }
+
+    private void publishTerminalUi(
+            WorkflowInstance instance,
+            CreateSellableProductContext context,
+            String errorMessage
+    ) {
+        if (context == null || context.createdBy() == null || context.createdBy().isBlank()) {
+            return;
+        }
+        events.publishEvent(new WorkflowTerminalUiEvent(
+                context.createdBy(),
+                context.scopeId(),
+                instance.id(),
+                CreateSellableProductWorkflowNames.WORKFLOW_NAME,
+                instance.status().name(),
+                context.productId(),
+                errorMessage
+        ));
     }
 
     private String appendCheckpoint(

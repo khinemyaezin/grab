@@ -19,6 +19,9 @@ public class ProblemDetailAuthEntryPoint implements AuthenticationEntryPoint {
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException ex) throws IOException {
+        if (response.isCommitted()) {
+            return;
+        }
         com.grab.framework.exception.MessageSource errorSource = ex instanceof IdentityAuthenticationException identity
             ? identity.getMessageSource() 
             : new IdentitySecurityError.MissingToken();

@@ -24,6 +24,7 @@ import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.grab.store.workflows.events.VariantPriceSyncedEvent;
 import com.grab.store.workflows.internal.config.WorkflowsReadTransactional;
 import com.grab.store.workflows.internal.config.WorkflowsTransactional;
+import com.grab.store.shared.sse.WorkflowTerminalUiEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -251,7 +252,7 @@ public class UpdateSellableProductOrchestrator {
         );
         instance.markCompleted(contextJson, checkpointJson);
         workflowStore.save(instance);
-        //publishTerminalUi(instance, updated);
+        publishTerminalUi(instance, updated, null);
         log.info("Completed update-sellable-product workflowId={}", event.workflowId());
     }
 
@@ -291,7 +292,7 @@ public class UpdateSellableProductOrchestrator {
             String checkpointJson = instance.checkpointJson().orElse(payloadCodec.writeCheckpoints(instance.checkpoints()));
             instance.markCompensated(contextJson, checkpointJson);
             workflowStore.save(instance);
-            //publishTerminalUi(instance, context);
+            publishTerminalUi(instance, context, event.message());
             log.info("Compensated update-sellable-product workflowId={} after step={}", event.workflowId(), event.step());
             return;
         }
@@ -300,7 +301,7 @@ public class UpdateSellableProductOrchestrator {
         String checkpointJson = instance.checkpointJson().orElse(payloadCodec.writeCheckpoints(List.of()));
         instance.markFailed(event.step(), event.message(), contextJson, checkpointJson);
         workflowStore.save(instance);
-        //publishTerminalUi(instance, context);
+        publishTerminalUi(instance, context, event.message());
         log.warn("Failed update-sellable-product workflowId={} step={} message={}",
                 event.workflowId(), event.step(), event.message());
     }
@@ -370,7 +371,7 @@ public class UpdateSellableProductOrchestrator {
         if (context.inventoryLines().isEmpty()) {
             instance.markCompleted(contextJson, checkpointJson);
             workflowStore.save(instance);
-            //publishTerminalUi(instance, context);
+            publishTerminalUi(instance, context, null);
             log.info("Completed update-sellable-product workflowId={} with no inventory lines", instance.id());
             return;
         }
@@ -512,5 +513,24 @@ public class UpdateSellableProductOrchestrator {
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to deserialize update-sellable-product context", exception);
         }
+    }
+
+    private void publishTerminalUi(
+            WorkflowInstance instance,
+            UpdateSellableProductContext context,
+            String errorMessage
+    ) {
+        if (context == null || context.createdBy() == null || context.createdBy().isBlank()) {
+            return;
+        }
+        events.publishEvent(new WorkflowTerminalUiEvent(
+                context.createdBy(),
+                context.scopeId(),
+                instance.id(),
+                UpdateSellableProductWorkflowNames.WORKFLOW_NAME,
+                instance.status().name(),
+                context.productId(),
+                errorMessage
+        ));
     }
 }
