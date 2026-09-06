@@ -82,7 +82,7 @@ class CreateSellableProductOrchestratorTest {
     @Test
     void happyPath_shouldCompleteAfterProjectionPricingAndInventory() {
         CreateSellableProductContext context = sampleContext();
-        WorkflowInstance started = orchestrator.start(context, null);
+        WorkflowInstance started = orchestrator.start(context, "idem-create-1");
         published.clear();
 
         orchestrator.onProductCreated(new SellableProductProductCreatedEvent(
@@ -136,7 +136,9 @@ class CreateSellableProductOrchestratorTest {
                 new CreateSellableProductContext.PricePair("variant-1", "SKU-1", "price-set-1")
         );
         assertThat(finalContext.inventoryItemIds()).containsExactly("inv-1");
-        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal && "COMPLETED".equals(terminal.status()));
+        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal
+                && "COMPLETED".equals(terminal.status())
+                && "idem-create-1".equals(terminal.idempotencyKey()));
     }
 
     @Test
@@ -181,6 +183,7 @@ class CreateSellableProductOrchestratorTest {
         WorkflowTerminalUiEvent terminal = (WorkflowTerminalUiEvent) published.get(2);
         assertThat(terminal.status()).isEqualTo("COMPENSATED");
         assertThat(terminal.errorMessage()).isEqualTo("inventory failed");
+        assertThat(terminal.idempotencyKey()).isNull();
     }
 
     private static CreateSellableProductContext sampleContext() {

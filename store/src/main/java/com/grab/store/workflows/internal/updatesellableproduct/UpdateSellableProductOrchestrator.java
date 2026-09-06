@@ -529,7 +529,7 @@ public class UpdateSellableProductOrchestrator {
                 instance.id(),
                 UpdateSellableProductWorkflowNames.WORKFLOW_NAME,
                 instance.status().name(),
-                context.productId(),
+                instance.idempotencyKey().orElse(null),
                 errorMessage
         ));
     }

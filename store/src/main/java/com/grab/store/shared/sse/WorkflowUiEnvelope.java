@@ -5,7 +5,7 @@ public record WorkflowUiEnvelope(
         String workflowId,
         String workflowName,
         String status,
-        String productId,
+        String idempotencyKey,
         String errorMessage
 ) {
 }

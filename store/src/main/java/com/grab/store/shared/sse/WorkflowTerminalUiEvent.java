@@ -6,7 +6,7 @@ public record WorkflowTerminalUiEvent(
         String workflowId,
         String workflowName,
         String status,
-        String productId,
+        String idempotencyKey,
         String errorMessage
 ) {
 
@@ -20,7 +20,7 @@ public record WorkflowTerminalUiEvent(
                 workflowId,
                 workflowName,
                 status,
-                productId,
+                idempotencyKey,
                 errorMessage
         );
     }

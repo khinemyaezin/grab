@@ -291,7 +291,7 @@ class UpdateSellableProductOrchestratorTest {
                 List.of(),
                 List.of()
         );
-        WorkflowInstance started = orchestrator.start(context, null);
+        WorkflowInstance started = orchestrator.start(context, "idem-update-1");
         published.clear();
 
         orchestrator.onProductUpdated(new SellableProductProductUpdatedEvent(
@@ -310,6 +310,7 @@ class UpdateSellableProductOrchestratorTest {
         assertThat(published.getFirst()).isInstanceOf(WorkflowTerminalUiEvent.class);
         WorkflowTerminalUiEvent terminal = (WorkflowTerminalUiEvent) published.getFirst();
         assertThat(terminal.status()).isEqualTo("COMPLETED");
+        assertThat(terminal.idempotencyKey()).isEqualTo("idem-update-1");
     }
 
     private static UpdateSellableProductContext sampleContext() {

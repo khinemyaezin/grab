@@ -397,7 +397,7 @@ public class CreateSellableProductOrchestrator {
                 instance.id(),
                 CreateSellableProductWorkflowNames.WORKFLOW_NAME,
                 instance.status().name(),
-                context.productId(),
+                instance.idempotencyKey().orElse(null),
                 errorMessage
         ));
     }
