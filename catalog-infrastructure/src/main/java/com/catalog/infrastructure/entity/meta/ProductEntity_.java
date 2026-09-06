@@ -9,6 +9,8 @@ import jakarta.persistence.metamodel.SetAttribute;
 import jakarta.persistence.metamodel.SingularAttribute;
 import jakarta.persistence.metamodel.StaticMetamodel;
 
+import java.time.Instant;
+
 @StaticMetamodel(ProductEntity.class)
 public class ProductEntity_ {
     public static volatile SingularAttribute<ProductEntity, Long> id;
@@ -23,6 +25,8 @@ public class ProductEntity_ {
     public static volatile SingularAttribute<ProductEntity, String> status;
     public static volatile SingularAttribute<ProductEntity, String> slug;
     public static volatile SingularAttribute<ProductEntity, Boolean> featured;
+    public static volatile SingularAttribute<ProductEntity, Instant> createdAt;
+    public static volatile SingularAttribute<ProductEntity, Instant> updatedAt;
 
     public static final String ID = "id";
     public static final String UUID = "uuid";
@@ -35,4 +39,6 @@ public class ProductEntity_ {
     public static final String PRODUCT_VARIANT_ENTITIES = "productVariants";
     public static final String STATUS = "status";
     public static final String SLUG = "slug";
+    public static final String CREATED_AT = "createdAt";
+    public static final String UPDATED_AT = "updatedAt";
 }
