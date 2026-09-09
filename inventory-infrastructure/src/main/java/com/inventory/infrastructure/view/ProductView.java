@@ -10,4 +10,6 @@ public interface ProductView {
     String getProductName();
 
     String getStatus();
+
+    boolean isManageInventory();
 }

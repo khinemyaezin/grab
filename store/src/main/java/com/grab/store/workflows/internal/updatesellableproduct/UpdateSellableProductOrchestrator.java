@@ -458,7 +458,8 @@ public class UpdateSellableProductOrchestrator {
                                             variation.typeId(),
                                             variation.optionId()
                                     ))
-                                    .toList()
+                                    .toList(),
+                            variant.manageInventory()
                     ))
                     .toList();
             List<RequestUpdateProductSetEvent.VariantType> variantTypes = variantSync.variantTypes().stream()

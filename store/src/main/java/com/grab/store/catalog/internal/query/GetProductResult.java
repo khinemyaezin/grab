@@ -23,7 +23,8 @@ public record GetProductResult(
             String sku,
             String status,
             String matrixKey,
-            List<Variation> variations
+            List<Variation> variations,
+            boolean manageInventory
     ) {}
 
     public record Variation(

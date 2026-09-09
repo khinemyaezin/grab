@@ -101,7 +101,8 @@ public class UpdateSellableProductCatalogEventListener {
                                         idGenerator.convertIdFrom(variation.typeId()),
                                         idGenerator.convertIdFrom(variation.optionId())
                                 ))
-                                .toList()
+                                .toList(),
+                        variant.manageInventory()
                 ))
                 .toList();
         List<UpdateProductCommand.VariantType> variantTypes = variantSync.variantTypes().stream()

@@ -42,8 +42,13 @@ public record CreateProductSetCommand(
 
     public record Variant(
             String sku,
-            List<Variation> variations
-    ) {}
+            List<Variation> variations,
+            Boolean manageInventory
+    ) {
+        public Variant(String sku, List<Variation> variations) {
+            this(sku, variations, null);
+        }
+    }
 
     public record Variation(
             Id optionId,

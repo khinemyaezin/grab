@@ -130,7 +130,8 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                     variant.getSku(),
                     variant.getStatus().name(),
                     matrixKey,
-                    variations
+                    variations,
+                    variant.isManageInventory()
             );
         }).toList();
     }

@@ -41,6 +41,7 @@ public class ProductVariantViewProjectionEventListener {
         view.setProductUuid(event.productId());
         view.setSku(event.sku());
         view.setProductName(event.productName());
+        view.setManageInventory(event.manageInventory());
         view.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
         productVariantViewRepository.save(view);
 
@@ -67,6 +68,7 @@ public class ProductVariantViewProjectionEventListener {
                 });
         view.setProductUuid(event.productId());
         view.setSku(event.sku());
+        view.setManageInventory(event.manageInventory());
         productVariantViewRepository.save(view);
     }
 

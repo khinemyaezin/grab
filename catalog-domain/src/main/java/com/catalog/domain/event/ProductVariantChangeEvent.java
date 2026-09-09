@@ -6,7 +6,8 @@ import com.grab.framework.id.Id;
 public record ProductVariantChangeEvent(
         Id productId,
         Id variantId,
-        String sku
+        String sku,
+        boolean manageInventory
 ) implements Event {
 
 }

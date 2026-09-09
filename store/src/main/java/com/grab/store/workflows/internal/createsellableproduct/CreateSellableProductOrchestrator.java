@@ -261,6 +261,13 @@ public class CreateSellableProductOrchestrator {
                 updated.pricePairs(),
                 contextJson
         );
+        if (updated.inventoryLines().isEmpty()) {
+            instance.markCompleted(contextJson, checkpointJson);
+            workflowStore.save(instance);
+            publishTerminalUi(instance, updated, null);
+            log.info("Completed create-sellable-product workflowId={} with no inventory lines", instance.id());
+            return;
+        }
         instance.markWaitingExternal(
                 CreateSellableProductWorkflowNames.STEP_CREATE_INVENTORY_ITEM,
                 contextJson,
@@ -425,7 +432,8 @@ public class CreateSellableProductOrchestrator {
                                         variation.optionId(),
                                         variation.typeId()
                                 ))
-                                .toList()
+                                .toList(),
+                        variant.manageInventory()
                 ))
                 .toList();
         List<RequestCreateProductSetEvent.VariantType> variantTypes = context.variantTypes().stream()

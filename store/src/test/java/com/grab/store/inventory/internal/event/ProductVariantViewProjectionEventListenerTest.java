@@ -44,13 +44,14 @@ class ProductVariantViewProjectionEventListenerTest {
     @Test
     void onVariantAdded_shouldInsertNewViewRow() {
         listener.onVariantAdded(new ProductVariantAddedIntegrationEvent(
-                "product-1", "variant-1", "SKU001", "T-Shirt", Instant.now(), 1));
+                "product-1", "variant-1", "SKU001", "T-Shirt", true, Instant.now(), 1));
 
         ProductVariantViewEntity saved = repository.findByVariantUuid("variant-1").orElseThrow();
         assertThat(saved.getVariantUuid()).isEqualTo("variant-1");
         assertThat(saved.getProductUuid()).isEqualTo("product-1");
         assertThat(saved.getSku()).isEqualTo("SKU001");
         assertThat(saved.getProductName()).isEqualTo("T-Shirt");
+        assertThat(saved.isManageInventory()).isTrue();
         assertThat(saved.getStatus()).isEqualTo(ProductVariantViewEntity.STATUS_ACTIVE);
         assertThat(published).hasSize(1);
         assertThat(published.getFirst()).isInstanceOf(ProductVariantViewProjectedEvent.class);
@@ -66,7 +67,7 @@ class ProductVariantViewProjectionEventListenerTest {
         repository.save(existing);
 
         listener.onVariantAdded(new ProductVariantAddedIntegrationEvent(
-                "product-1", "variant-1", "SKU001", "T-Shirt", Instant.now(), 1));
+                "product-1", "variant-1", "SKU001", "T-Shirt", true, Instant.now(), 1));
 
         ProductVariantViewEntity saved = repository.findByVariantUuid("variant-1").orElseThrow();
         assertThat(saved.getSku()).isEqualTo("SKU001");
@@ -83,9 +84,11 @@ class ProductVariantViewProjectionEventListenerTest {
         repository.save(existing);
 
         listener.onVariantUpdated(new ProductVariantUpdatedIntegrationEvent(
-                "product-1", "variant-1", "SKU002", Instant.now(), 1));
+                "product-1", "variant-1", "SKU002", false, Instant.now(), 1));
 
-        assertThat(repository.findByVariantUuid("variant-1").orElseThrow().getSku()).isEqualTo("SKU002");
+        ProductVariantViewEntity saved = repository.findByVariantUuid("variant-1").orElseThrow();
+        assertThat(saved.getSku()).isEqualTo("SKU002");
+        assertThat(saved.isManageInventory()).isFalse();
     }
 
     @Test

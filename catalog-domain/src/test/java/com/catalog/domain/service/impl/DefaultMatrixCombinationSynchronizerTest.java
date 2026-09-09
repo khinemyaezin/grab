@@ -78,7 +78,7 @@ class DefaultMatrixCombinationSynchronizerTest {
     }
 
     protected static ProductVariant variant(ProductVariation... variations) {
-        return new ProductVariant(null, null, ProductVariantStatus.ACTIVE, List.of(variations));
+        return new ProductVariant(null, null, ProductVariantStatus.ACTIVE, List.of(variations), true);
     }
 
     protected static ProductVariation variation(Id optionId, Id typeId) {

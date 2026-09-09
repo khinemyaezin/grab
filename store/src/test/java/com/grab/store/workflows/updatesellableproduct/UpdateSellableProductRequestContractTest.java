@@ -185,6 +185,36 @@ class UpdateSellableProductRequestContractTest {
         assertThat(request.pricingLines().get(1).variantId()).isEqualTo("variant-1");
     }
 
+    @Test
+    void createLine_forUntrackedOverride_shouldFail() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variantSync": {
+                      "intent": "FULL_SYNC",
+                      "overrides": [
+                        { "sku": "SKU-NEW", "matrixKey": "", "variations": [], "manageInventory": false }
+                      ]
+                    }
+                  },
+                  "inventoryLines": [
+                    {
+                      "sku": "SKU-NEW",
+                      "locationId": "loc-1",
+                      "op": "CREATE",
+                      "create": { "initialQuantity": 10 }
+                    }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request)))
+                .anyMatch(path -> path.contains("inventoryLines") && path.contains("sku"));
+    }
+
     private Set<String> propertyPaths(Set<ConstraintViolation<UpdateSellableProductRequest>> violations) {
         return violations.stream()
                 .map(violation -> violation.getPropertyPath().toString())

@@ -13,6 +13,8 @@ import com.grab.store.inventory.internal.command.AllocateStockResult.AllocationL
 import com.grab.store.inventory.internal.config.InventoryTransactional;
 import com.grab.store.inventory.internal.exception.InventoryServiceError;
 import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.infrastructure.entity.ProductVariantViewEntity;
+import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -25,11 +27,25 @@ public class AllocateStockCommandHandler implements CommandHandler<AllocateStock
 
     private final InventoryAllocationService inventoryAllocationService;
     private final InventoryReservationRepository inventoryReservationRepository;
+    private final ProductVariantViewJpaRepository productVariantViewJpaRepository;
     private final IdGenerator idGenerator;
 
     @Override
     @InventoryTransactional
     public AllocateStockResult handle(AllocateStockCommand command) {
+        if (isUntracked(command.sku())) {
+            return new AllocateStockResult(
+                    true,
+                    command.sku(),
+                    command.quantity(),
+                    command.quantity(),
+                    command.orderId(),
+                    List.of(),
+                    null,
+                    null
+            );
+        }
+
         AllocationResult result;
         if (command.locationId() != null) {
             result = inventoryAllocationService.allocateStockFromLocation(
@@ -95,5 +111,11 @@ public class AllocateStockCommandHandler implements CommandHandler<AllocateStock
     @Override
     public Class<AllocateStockCommand> getCommandType() {
         return AllocateStockCommand.class;
+    }
+
+    private boolean isUntracked(String sku) {
+        return productVariantViewJpaRepository.findBySkuAndStatus(sku, ProductVariantViewEntity.STATUS_ACTIVE)
+                .map(view -> !view.isManageInventory())
+                .orElse(false);
     }
 }

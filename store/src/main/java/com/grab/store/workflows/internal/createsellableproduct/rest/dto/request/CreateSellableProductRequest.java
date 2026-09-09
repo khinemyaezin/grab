@@ -9,10 +9,11 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.List;
 
+@ValidInventoryTracking
 public record CreateSellableProductRequest(
         @Valid @NotNull Product product,
         @Valid List<VariantType> variantTypes,
-        @Valid @NotEmpty List<InventoryLine> inventoryLines,
+        @Valid List<InventoryLine> inventoryLines,
         @Valid @NotEmpty List<PricingLine> pricingLines,
         String idempotencyKey
 ) {
@@ -39,8 +40,12 @@ public record CreateSellableProductRequest(
 
     public record Variant(
             @NotBlank String sku,
-            @Valid List<Variation> variations
+            @Valid List<Variation> variations,
+            Boolean manageInventory
     ) {
+        public Variant(String sku, List<Variation> variations) {
+            this(sku, variations, null);
+        }
     }
 
     public record Variation(

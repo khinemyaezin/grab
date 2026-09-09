@@ -7,7 +7,8 @@ public record ProductVariantAddedEvent(
         Id productId,
         Id variantId,
         String sku,
-        String productName
+        String productName,
+        boolean manageInventory
 ) implements Event {
 
 }

@@ -35,7 +35,8 @@ class ProductVariantEventsTest {
                 new CommonId("product-1"),
                 new CommonId("v1"),
                 "SKU001",
-                "T-Shirt"
+                "T-Shirt",
+                false
         ));
     }
 
@@ -49,14 +50,15 @@ class ProductVariantEventsTest {
 
         var updated = new ProductVariant(new CommonId("v1"), "SKU002", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color"))
-        ));
+        ), true);
         boolean ok = product.updateVariant(variant, updated);
 
         assertThat(ok).isTrue();
         assertThat(product.pullEvents()).containsExactly(new ProductVariantChangeEvent(
                 new CommonId("product-1"),
                 new CommonId("v1"),
-                "SKU002"
+                "SKU002",
+                true
         ));
     }
 }

@@ -13,5 +13,6 @@ import org.mapstruct.MappingTarget;
 public interface ProductVariantEntityMapper {
     @Mapping(ignore = true, target = ProductEntity_.ID)
     @Mapping(source = "id", target = ProductVariantEntity_.UUID)
+    @Mapping(source = "manageInventory", target = ProductVariantEntity_.MANAGE_INVENTORY)
     void toEntity(ProductVariant source, @MappingTarget ProductVariantEntity destination);
 }

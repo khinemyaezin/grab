@@ -219,7 +219,8 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
             return ProductVariant.create(
                     existingVariant.getId(),
                     overrideVariant.sku(),
-                    new ArrayList<>(existingVariant.getVariations())
+                    new ArrayList<>(existingVariant.getVariations()),
+                    Boolean.TRUE.equals(overrideVariant.manageInventory())
             );
         }
 
@@ -239,7 +240,8 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return ProductVariant.create(
                 variantId,
                 sku,
-                variations
+                variations,
+                Boolean.TRUE.equals(overrideVariant.manageInventory())
         );
     }
 
@@ -315,7 +317,8 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
             return ProductVariant.create(
                     existing.getId(),
                     sku,
-                    new ArrayList<>(existing.getVariations())
+                    new ArrayList<>(existing.getVariations()),
+                    Boolean.TRUE.equals(override == null ? null : override.manageInventory())
             );
         }
         return createStandaloneVariant(command);
@@ -351,7 +354,8 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return ProductVariant.create(
                 idGenerator.generateId(),
                 sku,
-                variations
+                variations,
+                Boolean.TRUE.equals(variant == null ? null : variant.manageInventory())
         );
     }
 
@@ -385,12 +389,6 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
     }
 
     private void updateVariant(Product product, ProductVariant existing, ProductVariant target) {
-        if (Objects.equals(existing.getId(), target.getId())
-                && existing.getSku() != null
-                && existing.getSku().equalsIgnoreCase(target.getSku())
-                && existing.getVariations().equals(target.getVariations())) {
-            return;
-        }
         boolean updated = product.updateVariant(existing, target);
         if (!updated) {
             throw new CatalogServiceException(

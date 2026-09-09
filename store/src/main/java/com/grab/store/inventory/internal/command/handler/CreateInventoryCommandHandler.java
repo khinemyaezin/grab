@@ -52,6 +52,10 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
         }
 
         ProductView variantView = resolveActiveProductVariantBySku(command.sku());
+        if (!variantView.isManageInventory()) {
+            log.warn("Inventory is not managed for sku={}", command.sku());
+            throw new InventoryServiceException(new InventoryServiceError.InventoryNotManaged(command.sku()));
+        }
 
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
             log.warn("Inventory already exists for sku={} at locationId={}", command.sku(), command.locationId().getValue());

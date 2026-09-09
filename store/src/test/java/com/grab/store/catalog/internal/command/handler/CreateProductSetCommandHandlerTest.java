@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.event.ProductVariantAddedEvent;
 import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.service.SkuGenerator;
 import com.catalog.domain.service.MatrixCombinationService;
@@ -127,6 +128,7 @@ class CreateProductSetCommandHandlerTest {
         assertThat(savedProduct.getVariants().getFirst().getSku()).isEqualTo("SKU-RED-001");
         assertThat(savedProduct.getVariants().getFirst().getStatus()).isEqualTo(ProductVariantStatus.ACTIVE);
         assertThat(savedProduct.getVariants().getFirst().getVariations()).containsExactly(redVariation);
+        assertThat(savedProduct.getVariants().getFirst().isManageInventory()).isFalse();
     }
 
     @Test
@@ -194,6 +196,41 @@ class CreateProductSetCommandHandlerTest {
                 .isEqualTo(StandaloneVariationFactory.OPTION_ID);
         assertThat(savedProduct.getVariants().getFirst().getStatus()).isEqualTo(ProductVariantStatus.ACTIVE);
         verifyNoInteractions(matrixCombinationService, matrixCombinationSynchronizer, matrixKeyGenerator);
+    }
+
+    @Test
+    void handle_standaloneOverride_persistsManageInventoryFalse() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        Id generatedVariantId = new CommonId(VARIANT_ID);
+
+        CreateProductSetCommand command = new CreateProductSetCommand(
+                categoryId,
+                new CreateProductSetCommand.Product(
+                        "Digital Product",
+                        categoryId,
+                        null,
+                        null,
+                        List.of(new CreateProductSetCommand.Variant("SKU-DIGITAL", List.of(), false))
+                ),
+                List.of()
+        );
+
+        when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
+        when(uniqueSlugResolver.resolve(categoryId, null, "Digital Product", null)).thenReturn("digital-product");
+        when(idGenerator.generateId()).thenReturn(productId, generatedVariantId);
+        when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
+        when(productRepository.isSkuTaken(eq(categoryId), eq("SKU-DIGITAL"), isNull())).thenReturn(false);
+
+        handler.handle(command);
+
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(productCaptor.getValue().getVariants().getFirst().isManageInventory()).isFalse();
+        assertThat(productCaptor.getValue().pullEvents())
+                .filteredOn(event -> event instanceof ProductVariantAddedEvent)
+                .first()
+                .extracting(event -> ((ProductVariantAddedEvent) event).manageInventory())
+                .isEqualTo(false);
     }
 
     @Test
