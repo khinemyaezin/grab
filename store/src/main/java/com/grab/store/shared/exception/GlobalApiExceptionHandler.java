@@ -7,6 +7,7 @@ import com.grab.framework.exception.MessageSource;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import java.time.Instant;
 import java.util.List;
@@ -86,6 +88,25 @@ public class GlobalApiExceptionHandler {
                 "unknown"
         );
         return handleDomainException(SharedErrors.malformedJson(reason), request);
+    }
+
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ProblemDetail handleAsyncTimeout(
+            AsyncRequestTimeoutException exception,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        if (response.isCommitted()) {
+            log.warn("Async request timed out after the response was committed: {}", request.getRequestURI());
+            return null;
+        }
+        log.warn("Async request timed out: {}", request.getRequestURI());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Request timed out");
+        problem.setTitle("Service Unavailable");
+        problem.setProperty("path", request.getRequestURI());
+        problem.setProperty("timestamp", Instant.now().toString());
+        problem.setProperty("retryable", true);
+        return problem;
     }
 
     @ExceptionHandler(Exception.class)

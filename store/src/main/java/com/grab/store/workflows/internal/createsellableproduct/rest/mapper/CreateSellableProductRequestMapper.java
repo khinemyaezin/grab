@@ -22,10 +22,14 @@ public abstract class CreateSellableProductRequestMapper {
         List<CreateSellableProductContext.VariantType> variantTypes = request.variantTypes() == null
                 ? List.of()
                 : request.variantTypes().stream().map(this::toContextVariantType).toList();
-        List<CreateSellableProductContext.InventoryLine> inventoryLines = request.inventoryLines().stream()
+        List<CreateSellableProductContext.InventoryLine> inventoryLines = request.inventoryLines() == null
+                ? List.of()
+                : request.inventoryLines().stream()
                 .map(this::toContextInventoryLine)
                 .toList();
-        List<CreateSellableProductContext.PricingLine> pricingLines = request.pricingLines().stream()
+        List<CreateSellableProductContext.PricingLine> pricingLines = request.pricingLines() == null
+                ? List.of()
+                : request.pricingLines().stream()
                 .map(this::toContextPricingLine)
                 .toList();
         return CreateSellableProductContext.createContext(

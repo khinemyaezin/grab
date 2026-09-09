@@ -143,7 +143,8 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
                     variant.getId().getValue(),
                     variant.getSku(),
                     variant.getStatus().name(),
-                    variations
+                    variations,
+                    variant.isManageInventory()
             );
             result.add(resultVariant);
         }

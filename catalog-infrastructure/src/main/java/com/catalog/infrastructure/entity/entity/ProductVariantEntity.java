@@ -29,6 +29,10 @@ public class ProductVariantEntity {
     private String status;
 
     @Setter
+    @Column(name = "manage_inventory", nullable = false)
+    private boolean manageInventory = false;
+
+    @Setter
     @ManyToOne
     @JoinColumn(name = "product_id")
     private ProductEntity product;

@@ -42,8 +42,11 @@ public class ProductVariantViewEntity {
     @Column(name = "product_name")
     private String productName;
 
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private String status;
+
+    @Column(name = "manage_inventory", nullable = false)
+    private boolean manageInventory = false;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

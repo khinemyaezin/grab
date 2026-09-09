@@ -21,7 +21,7 @@ class WorkflowTerminalUiEventListenerTest {
                 "wf-1",
                 "create-sellable-product",
                 "COMPLETED",
-                "product-1",
+                "idem-1",
                 null
         ));
 
@@ -30,6 +30,8 @@ class WorkflowTerminalUiEventListenerTest {
         assertThat(hub.json).contains("\"workflowId\":\"wf-1\"");
         assertThat(hub.json).contains("\"status\":\"COMPLETED\"");
         assertThat(hub.json).contains("\"producerId\":\"backend\"");
+        assertThat(hub.json).contains("\"idempotencyKey\":\"idem-1\"");
+        assertThat(hub.json).doesNotContain("productId");
     }
 
     private static final class RecordingSseHub extends SseHub {

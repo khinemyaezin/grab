@@ -236,10 +236,15 @@ public record UpdateSellableProductContext(
     public record Variant(
             String sku,
             String matrixKey,
-            List<Variation> variations
+            List<Variation> variations,
+            Boolean manageInventory
     ) {
         public Variant {
             variations = variations == null ? List.of() : List.copyOf(variations);
+        }
+
+        public Variant(String sku, String matrixKey, List<Variation> variations) {
+            this(sku, matrixKey, variations, null);
         }
     }
 

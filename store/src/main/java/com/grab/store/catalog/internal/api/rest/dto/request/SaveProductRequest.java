@@ -42,8 +42,13 @@ public record SaveProductRequest(
 
     public record Variant(
             @NotBlank String sku,
-            @Valid List<Variation> variations
-    ) {}
+            @Valid List<Variation> variations,
+            Boolean manageInventory
+    ) {
+        public Variant(String sku, List<Variation> variations) {
+            this(sku, variations, null);
+        }
+    }
 
     public record Variation(
             @NotBlank String optionId,

@@ -30,13 +30,14 @@ class CatalogIntegrationEventPublisherTest {
     @Test
     void handleProductVariantAdded_shouldPublishIntegrationEvent() {
         publisher.handleProductVariantAdded(new ProductVariantAddedEvent(
-                new CommonId("product-1"), new CommonId("variant-1"), "SKU001", "T-Shirt"));
+                new CommonId("product-1"), new CommonId("variant-1"), "SKU001", "T-Shirt", true));
 
         assertThat(published.get()).isInstanceOfSatisfying(ProductVariantAddedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantId()).isEqualTo("variant-1");
             assertThat(event.sku()).isEqualTo("SKU001");
             assertThat(event.productName()).isEqualTo("T-Shirt");
+            assertThat(event.manageInventory()).isTrue();
             assertThat(event.occurredAt()).isNotNull();
             assertThat(event.version()).isEqualTo(1);
         });
@@ -45,12 +46,13 @@ class CatalogIntegrationEventPublisherTest {
     @Test
     void handleProductVariantChanged_shouldPublishIntegrationEvent() {
         publisher.handleProductVariantChanged(new ProductVariantChangeEvent(
-                new CommonId("product-1"), new CommonId("variant-1"), "SKU002"));
+                new CommonId("product-1"), new CommonId("variant-1"), "SKU002", false));
 
         assertThat(published.get()).isInstanceOfSatisfying(ProductVariantUpdatedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantId()).isEqualTo("variant-1");
             assertThat(event.sku()).isEqualTo("SKU002");
+            assertThat(event.manageInventory()).isFalse();
         });
     }
 

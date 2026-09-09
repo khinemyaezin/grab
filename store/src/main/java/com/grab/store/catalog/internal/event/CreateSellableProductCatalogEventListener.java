@@ -104,7 +104,8 @@ public class CreateSellableProductCatalogEventListener {
                                         idGenerator.convertIdFrom(variation.optionId()),
                                         idGenerator.convertIdFrom(variation.typeId())
                                 ))
-                                .toList()
+                                .toList(),
+                        variant.manageInventory()
                 ))
                 .toList();
         List<CreateProductSetCommand.VariantType> variantTypes = event.variantTypes() == null

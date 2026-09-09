@@ -17,5 +17,6 @@ public abstract class ProductVariantMapper {
     @Mapping(source = "entity.sku" , target="sku")
     @Mapping(source = "variations" , target="variations")
     @Mapping(source = "entity.status" , target="status")
+    @Mapping(source = "entity.manageInventory", target = "manageInventory")
     public abstract ProductVariant toDomain(ProductVariantEntity entity, List<ProductVariation> variations) ;
 }

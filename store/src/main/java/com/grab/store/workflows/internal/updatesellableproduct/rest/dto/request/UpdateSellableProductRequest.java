@@ -38,8 +38,12 @@ public record UpdateSellableProductRequest(
     public record Variant(
             @NotBlank String sku,
             String matrixKey,
-            @Valid List<Variation> variations
+            @Valid List<Variation> variations,
+            Boolean manageInventory
     ) {
+        public Variant(String sku, String matrixKey, List<Variation> variations) {
+            this(sku, matrixKey, variations, null);
+        }
     }
 
     public record Variation(

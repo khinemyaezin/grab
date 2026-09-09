@@ -458,7 +458,8 @@ public class UpdateSellableProductOrchestrator {
                                             variation.typeId(),
                                             variation.optionId()
                                     ))
-                                    .toList()
+                                    .toList(),
+                            variant.manageInventory()
                     ))
                     .toList();
             List<RequestUpdateProductSetEvent.VariantType> variantTypes = variantSync.variantTypes().stream()
@@ -529,7 +530,7 @@ public class UpdateSellableProductOrchestrator {
                 instance.id(),
                 UpdateSellableProductWorkflowNames.WORKFLOW_NAME,
                 instance.status().name(),
-                context.productId(),
+                instance.idempotencyKey().orElse(null),
                 errorMessage
         ));
     }

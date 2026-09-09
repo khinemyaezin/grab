@@ -217,7 +217,8 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
         return ProductVariant.create(
                 variantId,
                 sku,
-                variations
+                variations,
+                Boolean.TRUE.equals(inputVariant.manageInventory())
         );
     }
 
@@ -233,7 +234,8 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
         return ProductVariant.create(
                 idGenerator.generateId(),
                 sku,
-                variations
+                variations,
+                Boolean.TRUE.equals(variant == null ? null : variant.manageInventory())
         );
     }
 

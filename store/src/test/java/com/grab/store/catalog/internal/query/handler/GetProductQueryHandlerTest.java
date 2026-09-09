@@ -83,7 +83,8 @@ class GetProductQueryHandlerTest {
                                         variantId,
                                         "STANDALONE",
                                         ProductVariantStatus.ACTIVE,
-                                        standAloneVariation
+                                        standAloneVariation,
+                                        true
                                 )
                         )
                 )));
@@ -128,7 +129,8 @@ class GetProductQueryHandlerTest {
                                         variantId,
                                         "CUSTOM_VARIATION",
                                         ProductVariantStatus.ACTIVE,
-                                        customVariation
+                                        customVariation,
+                                        true
                                 )
                         )
                 )));

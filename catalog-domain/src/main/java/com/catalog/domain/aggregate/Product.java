@@ -218,7 +218,13 @@ public class Product extends AggregateRoot<Id> {
                     "Duplicate variant with SKU: " + variant.getSku()
             );
         this.variants.add(index, variant);
-        super.addEvent(new ProductVariantAddedEvent(this.getId(), variant.getId(), variant.getSku(), this.name));
+        super.addEvent(new ProductVariantAddedEvent(
+                this.getId(),
+                variant.getId(),
+                variant.getSku(),
+                this.name,
+                variant.isManageInventory()
+        ));
     }
 
     private boolean hasDuplicateVariant(ProductVariant candidate, int ignoredVariantIndex) {
@@ -245,7 +251,12 @@ public class Product extends AggregateRoot<Id> {
             return false;
 
         variants.set(index, newVariant);
-        super.addEvent(new ProductVariantChangeEvent(this.getId(), newVariant.getId(), newVariant.getSku()));
+        super.addEvent(new ProductVariantChangeEvent(
+                this.getId(),
+                newVariant.getId(),
+                newVariant.getSku(),
+                newVariant.isManageInventory()
+        ));
         return true;
     }
 

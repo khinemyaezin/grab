@@ -1,0 +1,2 @@
+ALTER TABLE product_variant
+    ADD COLUMN IF NOT EXISTS manage_inventory BOOLEAN NOT NULL DEFAULT FALSE;

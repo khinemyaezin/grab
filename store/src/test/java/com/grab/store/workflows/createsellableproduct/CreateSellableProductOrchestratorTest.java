@@ -82,7 +82,7 @@ class CreateSellableProductOrchestratorTest {
     @Test
     void happyPath_shouldCompleteAfterProjectionPricingAndInventory() {
         CreateSellableProductContext context = sampleContext();
-        WorkflowInstance started = orchestrator.start(context, null);
+        WorkflowInstance started = orchestrator.start(context, "idem-create-1");
         published.clear();
 
         orchestrator.onProductCreated(new SellableProductProductCreatedEvent(
@@ -136,7 +136,9 @@ class CreateSellableProductOrchestratorTest {
                 new CreateSellableProductContext.PricePair("variant-1", "SKU-1", "price-set-1")
         );
         assertThat(finalContext.inventoryItemIds()).containsExactly("inv-1");
-        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal && "COMPLETED".equals(terminal.status()));
+        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal
+                && "COMPLETED".equals(terminal.status())
+                && "idem-create-1".equals(terminal.idempotencyKey()));
     }
 
     @Test
@@ -181,6 +183,57 @@ class CreateSellableProductOrchestratorTest {
         WorkflowTerminalUiEvent terminal = (WorkflowTerminalUiEvent) published.get(2);
         assertThat(terminal.status()).isEqualTo("COMPENSATED");
         assertThat(terminal.errorMessage()).isEqualTo("inventory failed");
+        assertThat(terminal.idempotencyKey()).isNull();
+    }
+
+    @Test
+    void untrackedProduct_shouldCompleteWithoutInventoryCreate() {
+        CreateSellableProductContext context = CreateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                new CreateSellableProductContext.Product(
+                        "Shirt",
+                        "cat-1",
+                        "NEW",
+                        "shirt",
+                        List.of(new CreateSellableProductContext.Variant("SKU-1", List.of(), false))
+                ),
+                List.of(),
+                List.of(),
+                List.of(new CreateSellableProductContext.PricingLine(
+                        "SKU-1",
+                        "Base",
+                        "USD",
+                        new BigDecimal("19.99"),
+                        null,
+                        null,
+                        List.of()
+                ))
+        );
+        WorkflowInstance started = orchestrator.start(context, "idem-untracked");
+        published.clear();
+
+        orchestrator.onProductCreated(new SellableProductProductCreatedEvent(
+                started.id(),
+                "product-1",
+                List.of("SKU-1"),
+                List.of(new SellableProductProductCreatedEvent.VariantRef("variant-1", "SKU-1")),
+                Instant.now(),
+                1
+        ));
+        orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
+                "product-1", "variant-1", "SKU-1", Instant.now(), 1));
+        published.clear();
+        orchestrator.onVariantPriceCreated(new VariantPriceCreatedEvent(
+                started.id(), "variant-1", "SKU-1", "price-set-1", Instant.now(), 1));
+
+        assertThat(published).noneMatch(RequestCreateInventoryItemEvent.class::isInstance);
+        WorkflowInstance completed = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(completed.status()).isEqualTo(WorkflowStatus.COMPLETED);
+        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal
+                && "COMPLETED".equals(terminal.status()));
     }
 
     private static CreateSellableProductContext sampleContext() {

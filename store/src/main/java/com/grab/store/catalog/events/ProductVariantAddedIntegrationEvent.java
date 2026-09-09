@@ -9,6 +9,7 @@ public record ProductVariantAddedIntegrationEvent(
         String variantId,
         String sku,
         String productName,
+        boolean manageInventory,
         Instant occurredAt,
         int version
 ) implements Event {

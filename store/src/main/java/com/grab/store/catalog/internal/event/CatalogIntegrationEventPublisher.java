@@ -35,6 +35,7 @@ public class CatalogIntegrationEventPublisher {
                 valueOf(event.variantId()),
                 event.sku(),
                 event.productName(),
+                event.manageInventory(),
                 Instant.now(),
                 EVENT_VERSION
         ));
@@ -46,6 +47,7 @@ public class CatalogIntegrationEventPublisher {
                 valueOf(event.productId()),
                 valueOf(event.variantId()),
                 event.sku(),
+                event.manageInventory(),
                 Instant.now(),
                 EVENT_VERSION
         ));

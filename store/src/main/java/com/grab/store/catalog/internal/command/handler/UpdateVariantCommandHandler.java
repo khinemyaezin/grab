@@ -57,7 +57,8 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
                 existing.getId(),
                 command.sku(),
                 existing.isActive() ? ProductVariantStatus.ACTIVE : ProductVariantStatus.DELETED,
-                existing.getVariations().stream().toList()
+                existing.getVariations().stream().toList(),
+                existing.isManageInventory()
         );
 
         boolean ok = product.updateVariant(existing, updated);

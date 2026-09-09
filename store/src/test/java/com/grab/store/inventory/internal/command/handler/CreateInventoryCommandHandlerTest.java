@@ -76,6 +76,7 @@ class CreateInventoryCommandHandlerTest {
     private ProductView variantView() {
         ProductView view = mock(ProductView.class);
         when(view.getVariantUuid()).thenReturn("variant-1");
+        when(view.isManageInventory()).thenReturn(true);
         return view;
     }
 
@@ -118,6 +119,21 @@ class CreateInventoryCommandHandlerTest {
         assertThatThrownBy(() -> handler.handle(command()))
                 .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Product variant not found for sku: SKU001");
+
+        verify(inventoryRepository, never()).save(any());
+    }
+
+    @Test
+    void handle_shouldReject_whenProductVariantDoesNotManageInventory() {
+        stubActiveLocation();
+        ProductView variant = mock(ProductView.class);
+        when(variant.isManageInventory()).thenReturn(false);
+        when(productVariantViewJpaRepository.findBySkuAndStatus("SKU001", ProductVariantViewEntity.STATUS_ACTIVE))
+                .thenReturn(Optional.of(variant));
+
+        assertThatThrownBy(() -> handler.handle(command()))
+                .isInstanceOf(InventoryServiceException.class)
+                .hasMessageContaining("Inventory is not managed for sku: SKU001");
 
         verify(inventoryRepository, never()).save(any());
     }

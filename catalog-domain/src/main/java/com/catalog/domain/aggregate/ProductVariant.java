@@ -16,17 +16,29 @@ import java.util.*;
 public class ProductVariant extends Entity<Id> {
     private final String sku;
     private final Set<ProductVariation> variations ;
+    private final boolean manageInventory;
     private ProductVariantStatus status;
 
-    public ProductVariant(Id id, String sku, ProductVariantStatus status, List<ProductVariation> variations) {
+    public ProductVariant(
+            Id id,
+            String sku,
+            ProductVariantStatus status,
+            List<ProductVariation> variations,
+            boolean manageInventory
+    ) {
         super(id);
         this.sku = sku;
         this.status = status;
         this.variations = new LinkedHashSet<>(variations);
+        this.manageInventory = manageInventory;
     }
 
-    public static ProductVariant create(Id id, String sku,  List<ProductVariation> variations) {
-        return new ProductVariant(id, sku, ProductVariantStatus.ACTIVE, variations);
+    public static ProductVariant create(Id id, String sku, List<ProductVariation> variations) {
+        return create(id, sku, variations, false);
+    }
+
+    public static ProductVariant create(Id id, String sku, List<ProductVariation> variations, boolean manageInventory) {
+        return new ProductVariant(id, sku, ProductVariantStatus.ACTIVE, variations, manageInventory);
     }
 
     public void markAsDeleted() {

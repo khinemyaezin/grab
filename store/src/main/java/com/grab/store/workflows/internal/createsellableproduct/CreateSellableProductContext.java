@@ -193,10 +193,15 @@ public record CreateSellableProductContext(
 
     public record Variant(
             String sku,
-            List<Variation> variations
+            List<Variation> variations,
+            Boolean manageInventory
     ) {
         public Variant {
             variations = variations == null ? List.of() : List.copyOf(variations);
+        }
+
+        public Variant(String sku, List<Variation> variations) {
+            this(sku, variations, null);
         }
     }
 

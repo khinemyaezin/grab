@@ -70,9 +70,14 @@ public class ApiSecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(deniedHandler))
                 .authorizeHttpRequests(auth -> {
-                    moduleConfigurers.forEach(configurer -> configurer.configure(auth));
+                    // Tomcat async error handling includes /error (INCLUDE), not only ASYNC/ERROR.
+                    auth.dispatcherTypeMatchers(
+                            DispatcherType.ASYNC,
+                            DispatcherType.ERROR,
+                            DispatcherType.INCLUDE,
+                            DispatcherType.FORWARD).permitAll();
 
-                    auth.dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll();
+                    moduleConfigurers.forEach(configurer -> configurer.configure(auth));
 
                     auth.requestMatchers(HttpMethod.GET,
                             "/swagger-ui/**",

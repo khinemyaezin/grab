@@ -48,7 +48,7 @@ public class SseHub {
         };
         subscribers.computeIfAbsent(key, ignored -> new CopyOnWriteArrayList<>()).add(emitter);
         emitter.onCompletion(() -> unregister(key, emitter));
-        emitter.onTimeout(() -> unregister(key, emitter));
+        emitter.onTimeout(() -> completeQuietly(emitter));
         emitter.onError(error -> unregister(key, emitter));
         return emitter;
     }

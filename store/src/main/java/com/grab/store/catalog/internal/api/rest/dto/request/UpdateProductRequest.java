@@ -26,8 +26,13 @@ public record UpdateProductRequest(
     public record Variant(
             String sku,
             String matrixKey,
-            List<Variation> variations
-    ) {}
+            List<Variation> variations,
+            Boolean manageInventory
+    ) {
+        public Variant(String sku, String matrixKey, List<Variation> variations) {
+            this(sku, matrixKey, variations, null);
+        }
+    }
 
     public record Variation(
             String typeId,

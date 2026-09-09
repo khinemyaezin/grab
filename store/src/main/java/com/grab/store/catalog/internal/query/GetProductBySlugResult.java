@@ -31,7 +31,8 @@ public record GetProductBySlugResult(
             String id,
             String sku,
             String status,
-            List<Variation> variations
+            List<Variation> variations,
+            boolean manageInventory
     ) {}
 
     public record Variation(
