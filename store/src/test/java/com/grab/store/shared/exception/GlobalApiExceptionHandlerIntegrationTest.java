@@ -81,6 +81,13 @@ class GlobalApiExceptionHandlerIntegrationTest {
     }
 
     @Test
+    void asyncRequestNotUsable_doesNotWriteProblemDetail() throws Exception {
+        mockMvc.perform(get("/test/errors/async-not-usable"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(""));
+    }
+
+    @Test
     void inventoryInfrastructureInternal_returnsRetryableWithRetryAfter() throws Exception {
         mockMvc.perform(get("/test/errors/infra-internal"))
                 .andExpect(status().isInternalServerError())

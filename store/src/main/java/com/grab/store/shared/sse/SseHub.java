@@ -70,7 +70,6 @@ public class SseHub {
                 }
             } catch (IOException | IllegalStateException exception) {
                 log.debug("Dropping SSE subscriber after publish failure");
-                completeQuietly(emitter);
                 unregister(key, emitter);
             }
         }
@@ -84,7 +83,6 @@ public class SseHub {
                         emitter.send(SseEmitter.event().comment("ping"));
                     }
                 } catch (IOException | IllegalStateException exception) {
-                    completeQuietly(emitter);
                     unregister(key, emitter);
                 }
             }
@@ -94,6 +92,10 @@ public class SseHub {
     int subscriberCount(String key) {
         List<SseEmitter> emitters = subscribers.get(key);
         return emitters == null ? 0 : emitters.size();
+    }
+
+    void addSubscriber(String key, SseEmitter emitter) {
+        subscribers.computeIfAbsent(key, ignored -> new CopyOnWriteArrayList<>()).add(emitter);
     }
 
     private void unregister(String key, SseEmitter emitter) {

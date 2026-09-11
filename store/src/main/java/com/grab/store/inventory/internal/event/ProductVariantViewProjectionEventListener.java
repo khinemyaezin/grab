@@ -70,6 +70,14 @@ public class ProductVariantViewProjectionEventListener {
         view.setSku(event.sku());
         view.setManageInventory(event.manageInventory());
         productVariantViewRepository.save(view);
+
+        events.publishEvent(new ProductVariantViewProjectedEvent(
+                event.productId(),
+                event.variantId(),
+                event.sku(),
+                Instant.now(),
+                EVENT_VERSION
+        ));
     }
 
     @EventListener

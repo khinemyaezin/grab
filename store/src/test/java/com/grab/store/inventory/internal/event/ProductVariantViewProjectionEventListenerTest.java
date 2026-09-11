@@ -89,6 +89,12 @@ class ProductVariantViewProjectionEventListenerTest {
         ProductVariantViewEntity saved = repository.findByVariantUuid("variant-1").orElseThrow();
         assertThat(saved.getSku()).isEqualTo("SKU002");
         assertThat(saved.isManageInventory()).isFalse();
+        assertThat(published).hasSize(1);
+        assertThat(published.getFirst()).isInstanceOfSatisfying(ProductVariantViewProjectedEvent.class, event -> {
+            assertThat(event.productId()).isEqualTo("product-1");
+            assertThat(event.variantId()).isEqualTo("variant-1");
+            assertThat(event.sku()).isEqualTo("SKU002");
+        });
     }
 
     @Test

@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 @RestController
 @Validated
@@ -40,6 +41,11 @@ class ExceptionTestController {
     @GetMapping("/test/errors/unexpected")
     void unexpected() {
         throw new RuntimeException("boom");
+    }
+
+    @GetMapping("/test/errors/async-not-usable")
+    void asyncNotUsable() throws AsyncRequestNotUsableException {
+        throw new AsyncRequestNotUsableException("Response not usable after response errors.");
     }
 
     @PostMapping("/test/errors/validation")

@@ -83,7 +83,7 @@ class UpdateSellableProductOrchestratorTest {
     }
 
     @Test
-    void happyPath_whenNoAddedSkus_shouldSkipProjectionAndComplete() {
+    void happyPath_whenLeaveAsIs_shouldSkipProjectionAndComplete() {
         UpdateSellableProductContext context = sampleContext();
         WorkflowInstance started = orchestrator.start(context, null);
         published.clear();
@@ -93,7 +93,6 @@ class UpdateSellableProductOrchestratorTest {
                 "product-1",
                 List.of("SKU-1"),
                 List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1")),
-                List.of(),
                 Instant.now(),
                 1
         ));
@@ -135,8 +134,8 @@ class UpdateSellableProductOrchestratorTest {
     }
 
     @Test
-    void happyPath_whenAddedSkus_shouldWaitForProjection() {
-        UpdateSellableProductContext context = sampleContext();
+    void happyPath_whenFullSync_shouldWaitForEveryVariantRef() {
+        UpdateSellableProductContext context = sampleContext(fullSyncProduct());
         WorkflowInstance started = orchestrator.start(context, null);
         published.clear();
 
@@ -148,7 +147,6 @@ class UpdateSellableProductOrchestratorTest {
                         new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"),
                         new SellableProductProductUpdatedEvent.VariantRef("variant-2", "SKU-2")
                 ),
-                List.of("SKU-2"),
                 Instant.now(),
                 1
         ));
@@ -156,6 +154,12 @@ class UpdateSellableProductOrchestratorTest {
         WorkflowInstance afterProduct = workflowStore.findById(started.id()).orElseThrow();
         assertThat(afterProduct.currentStep()).contains(UpdateSellableProductWorkflowNames.STEP_ENSURE_PRODUCT_VIEW);
         assertThat(published).isEmpty();
+
+        orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
+                "product-1", "variant-1", "SKU-1", Instant.now(), 1));
+        assertThat(published).isEmpty();
+        assertThat(workflowStore.findById(started.id()).orElseThrow().currentStep())
+                .contains(UpdateSellableProductWorkflowNames.STEP_ENSURE_PRODUCT_VIEW);
 
         orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
                 "product-1", "variant-2", "SKU-2", Instant.now(), 1));
@@ -170,6 +174,84 @@ class UpdateSellableProductOrchestratorTest {
     }
 
     @Test
+    void happyPath_whenFullSyncCreateOnExistingSku_shouldWaitBeforeInventory() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                fullSyncProduct(),
+                List.of(new UpdateSellableProductContext.InventoryLine(
+                        "SKU-1",
+                        "loc-1",
+                        null,
+                        InventorySyncOp.CREATE,
+                        new InventorySyncPayload.CreateStock(10, 0, 0, 0, null),
+                        null,
+                        null,
+                        null,
+                        null
+                )),
+                List.of()
+        );
+        WorkflowInstance started = orchestrator.start(context, null);
+        published.clear();
+
+        orchestrator.onProductUpdated(new SellableProductProductUpdatedEvent(
+                started.id(),
+                "product-1",
+                List.of("SKU-1"),
+                List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1")),
+                Instant.now(),
+                1
+        ));
+
+        assertThat(published).isEmpty();
+        assertThat(workflowStore.findById(started.id()).orElseThrow().currentStep())
+                .contains(UpdateSellableProductWorkflowNames.STEP_ENSURE_PRODUCT_VIEW);
+
+        orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
+                "product-1", "variant-1", "SKU-1", Instant.now(), 1));
+
+        assertThat(published).hasSize(1);
+        assertThat(published.getFirst()).isInstanceOfSatisfying(RequestSyncInventoryItemEvent.class, inventoryRequest -> {
+            assertThat(inventoryRequest.sku()).isEqualTo("SKU-1");
+            assertThat(inventoryRequest.op()).isEqualTo(InventorySyncOp.CREATE);
+        });
+    }
+
+    @Test
+    void happyPath_whenCollapse_shouldWaitForVariantRefs() {
+        UpdateSellableProductContext.Product product = new UpdateSellableProductContext.Product(
+                "Shirt",
+                "cat-1",
+                "NEW",
+                "shirt",
+                new UpdateSellableProductContext.VariantSync(
+                        "COLLAPSE_TO_STANDALONE",
+                        List.of(new UpdateSellableProductContext.Variant("SKU-1", "", List.of())),
+                        List.of()
+                )
+        );
+        WorkflowInstance started = orchestrator.start(sampleContext(product), null);
+        published.clear();
+
+        orchestrator.onProductUpdated(new SellableProductProductUpdatedEvent(
+                started.id(),
+                "product-1",
+                List.of("SKU-1"),
+                List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1")),
+                Instant.now(),
+                1
+        ));
+
+        assertThat(published).isEmpty();
+        assertThat(workflowStore.findById(started.id()).orElseThrow().currentStep())
+                .contains(UpdateSellableProductWorkflowNames.STEP_ENSURE_PRODUCT_VIEW);
+    }
+
+    @Test
     void onProductUpdated_whenNewSkuPricingLine_shouldEmitMergedVariantId() {
         UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
                 "merchant-1",
@@ -177,7 +259,7 @@ class UpdateSellableProductOrchestratorTest {
                 "MERCHANT_ACCOUNT",
                 "merchant-1",
                 "product-1",
-                sampleProduct(),
+                fullSyncProduct(),
                 List.of(),
                 List.of(new UpdateSellableProductContext.PricingLine(
                         "SKU-2",
@@ -201,12 +283,14 @@ class UpdateSellableProductOrchestratorTest {
                         new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"),
                         new SellableProductProductUpdatedEvent.VariantRef("variant-2", "SKU-2")
                 ),
-                List.of("SKU-2"),
                 Instant.now(),
                 1
         ));
         published.clear();
 
+        orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
+                "product-1", "variant-1", "SKU-1", Instant.now(), 1));
+        assertThat(published).isEmpty();
         orchestrator.onProductViewProjected(new ProductVariantViewProjectedEvent(
                 "product-1", "variant-2", "SKU-2", Instant.now(), 1));
 
@@ -227,7 +311,6 @@ class UpdateSellableProductOrchestratorTest {
                 "product-1",
                 List.of("SKU-1"),
                 List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1")),
-                List.of(),
                 Instant.now(),
                 1
         ));
@@ -299,7 +382,6 @@ class UpdateSellableProductOrchestratorTest {
                 "product-1",
                 List.of("SKU-1"),
                 List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1")),
-                List.of(),
                 Instant.now(),
                 1
         ));
@@ -314,13 +396,17 @@ class UpdateSellableProductOrchestratorTest {
     }
 
     private static UpdateSellableProductContext sampleContext() {
+        return sampleContext(sampleProduct());
+    }
+
+    private static UpdateSellableProductContext sampleContext(UpdateSellableProductContext.Product product) {
         return UpdateSellableProductContext.createContext(
                 "merchant-1",
                 "actor-1",
                 "MERCHANT_ACCOUNT",
                 "merchant-1",
                 "product-1",
-                sampleProduct(),
+                product,
                 List.of(new UpdateSellableProductContext.InventoryLine(
                         "SKU-1",
                         "loc-1",
@@ -353,6 +439,20 @@ class UpdateSellableProductOrchestratorTest {
                 "shirt",
                 new UpdateSellableProductContext.VariantSync(
                         "LEAVE_AS_IS",
+                        List.of(new UpdateSellableProductContext.Variant("SKU-1", "", List.of())),
+                        List.of()
+                )
+        );
+    }
+
+    private static UpdateSellableProductContext.Product fullSyncProduct() {
+        return new UpdateSellableProductContext.Product(
+                "Shirt",
+                "cat-1",
+                "NEW",
+                "shirt",
+                new UpdateSellableProductContext.VariantSync(
+                        "FULL_SYNC",
                         List.of(new UpdateSellableProductContext.Variant("SKU-1", "", List.of())),
                         List.of()
                 )

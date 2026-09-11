@@ -19,8 +19,7 @@ public record UpdateSellableProductContext(
         List<InventoryLine> inventoryLines,
         List<PricingLine> pricingLines,
         List<VariantRef> variantRefs,
-        List<String> addedSkus,
-        Set<String> projectedSkus,
+        Set<String> projectedVariantIds,
         List<PricePair> pricePairs,
         List<String> createdPriceSetIds,
         List<String> inventoryItemIds,
@@ -31,8 +30,7 @@ public record UpdateSellableProductContext(
         inventoryLines = inventoryLines == null ? List.of() : List.copyOf(inventoryLines);
         pricingLines = pricingLines == null ? List.of() : List.copyOf(pricingLines);
         variantRefs = variantRefs == null ? List.of() : List.copyOf(variantRefs);
-        addedSkus = addedSkus == null ? List.of() : List.copyOf(addedSkus);
-        projectedSkus = projectedSkus == null ? Set.of() : Set.copyOf(projectedSkus);
+        projectedVariantIds = projectedVariantIds == null ? Set.of() : Set.copyOf(projectedVariantIds);
         pricePairs = pricePairs == null ? List.of() : List.copyOf(pricePairs);
         createdPriceSetIds = createdPriceSetIds == null ? List.of() : List.copyOf(createdPriceSetIds);
         inventoryItemIds = inventoryItemIds == null ? List.of() : List.copyOf(inventoryItemIds);
@@ -59,7 +57,6 @@ public record UpdateSellableProductContext(
                 inventoryLines,
                 pricingLines,
                 List.of(),
-                List.of(),
                 Set.of(),
                 List.of(),
                 List.of(),
@@ -70,8 +67,7 @@ public record UpdateSellableProductContext(
 
     public UpdateSellableProductContext withProductUpdated(
             String newProductId,
-            List<VariantRef> newVariantRefs,
-            List<String> newAddedSkus
+            List<VariantRef> newVariantRefs
     ) {
         List<PricingLine> assignedPricingLines = assignVariantIds(newVariantRefs);
         return new UpdateSellableProductContext(
@@ -84,8 +80,7 @@ public record UpdateSellableProductContext(
                 inventoryLines,
                 assignedPricingLines,
                 newVariantRefs,
-                newAddedSkus,
-                projectedSkus,
+                projectedVariantIds,
                 pricePairs,
                 createdPriceSetIds,
                 inventoryItemIds,
@@ -93,9 +88,9 @@ public record UpdateSellableProductContext(
         );
     }
 
-    public UpdateSellableProductContext withProjectedSku(String sku) {
-        Set<String> nextProjected = new LinkedHashSet<>(projectedSkus);
-        nextProjected.add(sku);
+    public UpdateSellableProductContext withProjectedVariant(String variantId) {
+        Set<String> nextProjected = new LinkedHashSet<>(projectedVariantIds);
+        nextProjected.add(variantId);
         return new UpdateSellableProductContext(
                 merchantId,
                 createdBy,
@@ -106,7 +101,6 @@ public record UpdateSellableProductContext(
                 inventoryLines,
                 pricingLines,
                 variantRefs,
-                addedSkus,
                 nextProjected,
                 pricePairs,
                 createdPriceSetIds,
@@ -132,8 +126,7 @@ public record UpdateSellableProductContext(
                 inventoryLines,
                 pricingLines,
                 variantRefs,
-                addedSkus,
-                projectedSkus,
+                projectedVariantIds,
                 nextPairs,
                 nextCreated,
                 inventoryItemIds,
@@ -158,8 +151,7 @@ public record UpdateSellableProductContext(
                 inventoryLines,
                 pricingLines,
                 variantRefs,
-                addedSkus,
-                projectedSkus,
+                projectedVariantIds,
                 pricePairs,
                 createdPriceSetIds,
                 nextIds,
@@ -167,8 +159,23 @@ public record UpdateSellableProductContext(
         );
     }
 
-    public boolean allAddedSkusProjected() {
-        return !addedSkus.isEmpty() && projectedSkus.containsAll(addedSkus);
+    public boolean allVariantRefsProjected() {
+        if (variantRefs.isEmpty()) {
+            return false;
+        }
+        return variantRefs.stream()
+                .map(VariantRef::variantId)
+                .allMatch(projectedVariantIds::contains);
+    }
+
+    public boolean matchesProjectedVariant(String variantId, String sku) {
+        if (variantId != null && !variantId.isBlank()) {
+            return variantRefs.stream().anyMatch(ref -> variantId.equals(ref.variantId()));
+        }
+        if (sku == null || sku.isBlank()) {
+            return false;
+        }
+        return variantRefs.stream().anyMatch(ref -> sku.equals(ref.sku()));
     }
 
     public boolean allPricesSynced() {
