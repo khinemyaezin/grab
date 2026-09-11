@@ -51,7 +51,6 @@ public class UpdateSellableProductCatalogEventListener {
                     result.productId(),
                     skus,
                     variants,
-                    result.addedSkus(),
                     Instant.now(),
                     EVENT_VERSION
             ));

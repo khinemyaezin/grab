@@ -25,14 +25,15 @@ class UpdateSellableProductContextTest {
 
         UpdateSellableProductContext updated = context.withProductUpdated(
                 "product-1",
-                List.of(new UpdateSellableProductContext.VariantRef("variant-new", "SKU-NEW")),
-                List.of("SKU-NEW")
+                List.of(new UpdateSellableProductContext.VariantRef("variant-new", "SKU-NEW"))
         );
 
         assertThat(updated.pricingLines()).hasSize(1);
         assertThat(updated.pricingLines().getFirst().sku()).isEqualTo("SKU-NEW");
         assertThat(updated.pricingLines().getFirst().variantId()).isEqualTo("variant-new");
-        assertThat(updated.addedSkus()).containsExactly("SKU-NEW");
+        assertThat(updated.variantRefs()).containsExactly(
+                new UpdateSellableProductContext.VariantRef("variant-new", "SKU-NEW")
+        );
     }
 
     @Test
@@ -50,8 +51,7 @@ class UpdateSellableProductContextTest {
 
         UpdateSellableProductContext updated = context.withProductUpdated(
                 "product-1",
-                List.of(new UpdateSellableProductContext.VariantRef("variant-1", "SKU-1")),
-                List.of()
+                List.of(new UpdateSellableProductContext.VariantRef("variant-1", "SKU-1"))
         );
 
         assertThat(updated.pricingLines().getFirst().variantId()).isEqualTo("variant-1");
@@ -72,12 +72,39 @@ class UpdateSellableProductContextTest {
 
         UpdateSellableProductContext updated = context.withProductUpdated(
                 "product-1",
-                List.of(new UpdateSellableProductContext.VariantRef("variant-2", "SKU-2")),
-                List.of("SKU-2")
+                List.of(new UpdateSellableProductContext.VariantRef("variant-2", "SKU-2"))
         );
 
         assertThat(updated.pricingLines().getFirst().variantId()).isNull();
         assertThat(updated.pricingLines().getFirst().sku()).isEqualTo("SKU-1");
+    }
+
+    @Test
+    void allVariantRefsProjected_shouldRequireEveryVariantId() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                product(),
+                List.of(),
+                List.of()
+        ).withProductUpdated(
+                "product-1",
+                List.of(
+                        new UpdateSellableProductContext.VariantRef("variant-1", "SKU-1"),
+                        new UpdateSellableProductContext.VariantRef("variant-2", "SKU-2")
+                )
+        );
+
+        assertThat(context.allVariantRefsProjected()).isFalse();
+        assertThat(context.matchesProjectedVariant("variant-1", "SKU-1")).isTrue();
+        assertThat(context.matchesProjectedVariant("variant-other", "SKU-1")).isFalse();
+
+        UpdateSellableProductContext one = context.withProjectedVariant("variant-1");
+        assertThat(one.allVariantRefsProjected()).isFalse();
+        assertThat(one.withProjectedVariant("variant-2").allVariantRefsProjected()).isTrue();
     }
 
     private static UpdateSellableProductContext.Product product() {

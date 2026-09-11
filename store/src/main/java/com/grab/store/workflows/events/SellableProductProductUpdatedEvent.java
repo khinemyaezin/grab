@@ -10,7 +10,6 @@ public record SellableProductProductUpdatedEvent(
         String productId,
         List<String> skus,
         List<VariantRef> variants,
-        List<String> addedSkus,
         Instant occurredAt,
         int version
 ) implements Event {
@@ -18,7 +17,6 @@ public record SellableProductProductUpdatedEvent(
     public SellableProductProductUpdatedEvent {
         skus = skus == null ? List.of() : List.copyOf(skus);
         variants = variants == null ? List.of() : List.copyOf(variants);
-        addedSkus = addedSkus == null ? List.of() : List.copyOf(addedSkus);
     }
 
     public record VariantRef(String variantId, String sku) {

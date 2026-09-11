@@ -196,7 +196,6 @@ class UpdateProductCommandHandlerTest {
         assertThat(savedVariant.getId()).isEqualTo(variantId);
         assertThat(savedVariant.getSku()).isEqualTo(STANDALONE_SKU);
         assertThat(result.variants()).containsExactly(new UpdateProductResult.VariantRef(VARIANT_ID, STANDALONE_SKU));
-        assertThat(result.addedSkus()).isEmpty();
         verifyNoInteractions(matrixCombinationService, matrixCombinationSynchronizer, matrixKeyGenerator);
     }
 
@@ -223,7 +222,6 @@ class UpdateProductCommandHandlerTest {
         assertThat(savedVariant.getId()).isEqualTo(variantId);
         assertThat(savedVariant.getSku()).isEqualTo(UPDATED_SKU);
         assertThat(result.variants()).containsExactly(new UpdateProductResult.VariantRef(VARIANT_ID, UPDATED_SKU));
-        assertThat(result.addedSkus()).isEmpty();
         verifyNoInteractions(matrixCombinationService, matrixCombinationSynchronizer, matrixKeyGenerator);
     }
 
@@ -261,7 +259,6 @@ class UpdateProductCommandHandlerTest {
 
         assertThat(savedVariant.getId()).isEqualTo(variantId);
         assertThat(savedVariant.getSku()).isEqualTo(STANDALONE_SKU);
-        assertThat(result.addedSkus()).isEmpty();
         verifyNoInteractions(matrixCombinationService, matrixCombinationSynchronizer, matrixKeyGenerator);
     }
 

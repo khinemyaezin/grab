@@ -44,8 +44,7 @@ class UpdateSellableProductCatalogEventListenerTest {
                             "shirt",
                             List.of(),
                             List.of(),
-                            List.of(new UpdateProductResult.VariantRef("variant-1", "SKU-1")),
-                            List.of("SKU-2")
+                            List.of(new UpdateProductResult.VariantRef("variant-1", "SKU-1"))
                     );
                 }
                 return null;
@@ -65,7 +64,6 @@ class UpdateSellableProductCatalogEventListenerTest {
             assertThat(updated.workflowId()).isEqualTo("wf-1");
             assertThat(updated.productId()).isEqualTo("product-1");
             assertThat(updated.skus()).containsExactly("SKU-1");
-            assertThat(updated.addedSkus()).containsExactly("SKU-2");
             assertThat(updated.variants()).containsExactly(
                     new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1")
             );

@@ -11,7 +11,6 @@ import com.catalog.domain.service.dto.VariantOptionSelection;
 import com.catalog.domain.service.dto.VariantTypeSelection;
 import com.catalog.domain.valueobject.*;
 import com.grab.framework.cqrs.command.CommandHandler;
-import com.grab.framework.domain.Entity;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
@@ -58,10 +57,6 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         Product product = findProductOrElseThrow(command.productId(), command.merchantId());
         Category category = findCategoryOrElseThrow(command.categoryId());
 
-        Set<Id> existingVariantIds = product.getVariants().stream()
-                .map(Entity::getId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-
         ProductMetadata next = getProductMetadata(command, product, category);
 
         product.updateMetadata(next);
@@ -77,11 +72,6 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                         variant.getSku()
                 ))
                 .toList();
-        List<String> addedSkus = product.getVariants().stream()
-                .filter(variant -> !existingVariantIds.contains(variant.getId()))
-                .map(ProductVariant::getSku)
-                .filter(sku -> sku != null && !sku.isBlank())
-                .toList();
 
         return new UpdateProductResult(
                 product.getId().getValue(),
@@ -92,8 +82,7 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                 product.getSlug(),
                 mapPayloadDescriptions(product.getDescriptions()),
                 mapPayloadMedias(product.getMedias()),
-                variants,
-                addedSkus
+                variants
         );
     }
 

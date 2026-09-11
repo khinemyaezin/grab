@@ -22,6 +22,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import java.time.Instant;
@@ -107,6 +108,11 @@ public class GlobalApiExceptionHandler {
         problem.setProperty("timestamp", Instant.now().toString());
         problem.setProperty("retryable", true);
         return problem;
+    }
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleAsyncRequestNotUsable(AsyncRequestNotUsableException exception) {
+        log.debug("Async request no longer usable: {}", exception.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

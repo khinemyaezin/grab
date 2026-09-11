@@ -118,8 +118,7 @@ public class UpdateSellableProductOrchestrator {
                 .toList();
         UpdateSellableProductContext updated = context.withProductUpdated(
                 event.productId(),
-                variantRefs,
-                event.addedSkus()
+                variantRefs
         );
         String contextJson = writeContext(updated);
         String checkpointJson = appendCheckpoint(
@@ -129,7 +128,7 @@ public class UpdateSellableProductOrchestrator {
                 contextJson
         );
 
-        if (updated.addedSkus().isEmpty()) {
+        if (shouldSkipProductView(updated)) {
             advanceAfterProductViewReady(instance, updated, contextJson, checkpointJson);
             return;
         }
@@ -140,8 +139,8 @@ public class UpdateSellableProductOrchestrator {
                 checkpointJson
         );
         workflowStore.save(instance);
-        log.info("Product updated for workflowId={}, productId={}, waiting on {} added SKUs",
-                event.workflowId(), event.productId(), updated.addedSkus().size());
+        log.info("Product updated for workflowId={}, productId={}, waiting on {} variant views",
+                event.workflowId(), event.productId(), updated.variantRefs().size());
     }
 
     @WorkflowsTransactional
@@ -158,14 +157,22 @@ public class UpdateSellableProductOrchestrator {
             if (context.productId() == null || !context.productId().equals(event.productId())) {
                 continue;
             }
-            if (!context.addedSkus().contains(event.sku())) {
+            if (!context.matchesProjectedVariant(event.variantId(), event.sku())) {
                 continue;
             }
 
-            UpdateSellableProductContext updated = context.withProjectedSku(event.sku());
+            String projectedVariantId = event.variantId();
+            if (projectedVariantId == null || projectedVariantId.isBlank()) {
+                UpdateSellableProductContext.VariantRef skuMatch = context.variantRefForSku(event.sku());
+                if (skuMatch == null) {
+                    continue;
+                }
+                projectedVariantId = skuMatch.variantId();
+            }
+            UpdateSellableProductContext updated = context.withProjectedVariant(projectedVariantId);
             String contextJson = writeContext(updated);
 
-            if (!updated.allAddedSkusProjected()) {
+            if (!updated.allVariantRefsProjected()) {
                 instance.markWaitingExternal(
                         UpdateSellableProductWorkflowNames.STEP_ENSURE_PRODUCT_VIEW,
                         contextJson,
@@ -178,11 +185,11 @@ public class UpdateSellableProductOrchestrator {
             String checkpointJson = appendCheckpoint(
                     instance,
                     UpdateSellableProductWorkflowNames.STEP_ENSURE_PRODUCT_VIEW,
-                    updated.projectedSkus(),
+                    updated.projectedVariantIds(),
                     contextJson
             );
             advanceAfterProductViewReady(instance, updated, contextJson, checkpointJson);
-            log.info("All added SKU projections ready for workflowId={}", instance.id());
+            log.info("All variant views ready for workflowId={}", instance.id());
             return;
         }
     }
@@ -404,6 +411,16 @@ public class UpdateSellableProductOrchestrator {
                     EVENT_VERSION
             ));
         }
+    }
+
+    private boolean shouldSkipProductView(UpdateSellableProductContext context) {
+        if (context.variantRefs().isEmpty()) {
+            return true;
+        }
+        String intent = context.product() == null || context.product().variantSync() == null
+                ? null
+                : context.product().variantSync().intent();
+        return parseIntent(intent) == RequestUpdateProductSetEvent.VariantSyncIntent.LEAVE_AS_IS;
     }
 
     private String resolvedVariantId(
