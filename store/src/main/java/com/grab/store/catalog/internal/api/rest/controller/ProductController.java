@@ -44,6 +44,7 @@ public class ProductController {
     private final DeleteVariantModelAssembler deleteVariantModelAssembler;
     private final RestoreVariantModelAssembler restoreVariantModelAssembler;
     private final SyncVariantsModelAssembler syncVariantsModelAssembler;
+    private final GetVariantModelAssembler getVariantModelAssembler;
 
     @GetMapping(value = "/{productId}")
     public ResponseEntity<EntityModel<GetProductResponse>> getProduct(@PathVariable String productId) {
@@ -76,9 +77,17 @@ public class ProductController {
                 linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product")));
     }
 
-    @PutMapping(value = "/{productId}/variants/{sku}")
+    @GetMapping(value = "/{productId}/variants/{variantId}")
+    public ResponseEntity<EntityModel<GetVariantResponse>> getVariant(
+            @PathVariable String productId,
+            @PathVariable String variantId) {
+        GetVariantResponse response = productQueryService.getVariant(productId, variantId);
+        return ResponseEntity.ok(getVariantModelAssembler.toModel(response));
+    }
+
+    @PutMapping(value = "/{productId}/variants/{variantId}")
     public ResponseEntity<EntityModel<UpdateVariantResponse>> updateVariant(@PathVariable String productId,
-                                                                            @PathVariable("sku") String variantId,
+                                                                            @PathVariable String variantId,
                                                                             @Valid @RequestBody UpdateVariantRequest request) {
         UpdateVariantResponse response = variantCommandService.updateVariant(productId, variantId, request);
         return ResponseEntity.ok(updateVariantModelAssembler.toModel(response));
@@ -174,18 +183,18 @@ public class ProductController {
         return ResponseEntity.ok(updateProductStatusModelAssembler.toModel(response));
     }
 
-    @DeleteMapping(value = "/{productId}/variants/{sku}")
+    @DeleteMapping(value = "/{productId}/variants/{variantId}")
     public ResponseEntity<EntityModel<DeleteVariantResponse>> deleteVariant(
             @PathVariable String productId,
-            @PathVariable("sku") String variantId) {
+            @PathVariable String variantId) {
         DeleteVariantResponse response = variantCommandService.deleteVariant(productId, variantId);
         return ResponseEntity.ok(deleteVariantModelAssembler.toModel(response));
     }
 
-    @PostMapping(value = "/{productId}/variants/{sku}/restore")
+    @PostMapping(value = "/{productId}/variants/{variantId}/restore")
     public ResponseEntity<EntityModel<RestoreVariantResponse>> restoreVariant(
             @PathVariable String productId,
-            @PathVariable("sku") String variantId) {
+            @PathVariable String variantId) {
         RestoreVariantResponse response = variantCommandService.restoreVariant(productId, variantId);
         return ResponseEntity.ok(restoreVariantModelAssembler.toModel(response));
     }

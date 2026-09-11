@@ -20,7 +20,10 @@ public class ProductVariantSummaryModelAssembler
 
         entity.add(linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product"));
         entity.add(linkTo(methodOn(ProductController.class)
-                .updateVariant(response.productId(), response.sku(), null))
+                .getVariant(response.productId(), response.variantId()))
+                .withRel("get-variant"));
+        entity.add(linkTo(methodOn(ProductController.class)
+                .updateVariant(response.productId(), response.variantId(), null))
                 .withRel("update-variant"));
 
         try {

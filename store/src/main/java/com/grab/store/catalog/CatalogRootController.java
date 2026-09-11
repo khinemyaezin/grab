@@ -39,6 +39,9 @@ public class CatalogRootController {
                 .getProduct(null))
                 .withRel("get-product"));
 
+        model.add(linkTo(methodOn(ProductController.class)
+                .getVariant(null, null))
+                .withRel("get-variant"));
 
         model.add(linkTo(methodOn(ProductController.class)
                 .saveProduct(null))
@@ -60,6 +63,7 @@ public class CatalogRootController {
 
         model.add(WorkflowApiLinks.createSellableProductLink());
         model.add(WorkflowApiLinks.updateSellableProductLink());
+        model.add(WorkflowApiLinks.updateProductVariantLink());
 
         return ResponseEntity.ok(model);
     }
