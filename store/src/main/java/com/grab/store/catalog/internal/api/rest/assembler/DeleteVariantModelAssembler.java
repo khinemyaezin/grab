@@ -15,6 +15,8 @@ public class DeleteVariantModelAssembler implements RepresentationModelAssembler
     @Override
     public EntityModel<DeleteVariantResponse> toModel(DeleteVariantResponse response) {
         return EntityModel.of(response,
+                linkTo(methodOn(ProductController.class)
+                        .getVariant(response.productId(), response.variantId())).withRel("get-variant"),
                 linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product"),
                 linkTo(methodOn(ProductController.class).searchProducts(null, null, null)).withRel("search-products")
         );

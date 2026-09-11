@@ -27,6 +27,7 @@ public class ProductQueryService {
     private final ProductSummaryDtoMapper productSummaryDtoMapper;
     private final ProductVariantSummaryDtoMapper productVariantSummaryDtoMapper;
     private final ProductAuditDtoMapper productAuditDtoMapper;
+    private final GetVariantDtoMapper getVariantDtoMapper;
     private final AuthenticatedCatalogMerchantResolver merchantResolver;
 
     public GetProductResponse getProduct(String productId) {
@@ -36,6 +37,15 @@ public class ProductQueryService {
         GetProductQuery query = new GetProductQuery(merchantId, productId);
         GetProductResult result = queryBus.dispatch(query);
         return getProductDtoMapper.toResponse(result);
+    }
+
+    public GetVariantResponse getVariant(String productId, String variantId) {
+        log.info("Getting variant: {} for product: {}", variantId, productId);
+
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        GetVariantQuery query = getVariantDtoMapper.toQuery(merchantId, productId, variantId);
+        GetVariantResult result = queryBus.dispatch(query);
+        return getVariantDtoMapper.toResponse(result);
     }
 
     public VariationMatrixResponse getMatrixCombination(VariationMatrixRequest request) {
