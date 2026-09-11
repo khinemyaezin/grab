@@ -18,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+@Deprecated(since = "workflow-engine", forRemoval = true)
 public final class DefaultWorkflowRunner implements WorkflowRunner {
 
     private static final Set<WorkflowStatus> RESUMABLE = Set.of(

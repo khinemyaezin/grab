@@ -46,6 +46,7 @@ class WorkflowInstanceMapperTest {
         assertEquals(WorkflowStatus.RUNNING, restored.status());
         assertEquals("create-product-set", restored.currentStep().orElseThrow());
         assertEquals("idem-1", restored.idempotencyKey().orElseThrow());
+        assertEquals(0L, restored.version());
         assertEquals(1, restored.checkpoints().size());
         assertEquals("create-product-set", restored.checkpoints().getFirst().stepName());
         assertEquals("ps-1", restored.checkpoints().getFirst().output());

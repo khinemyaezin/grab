@@ -24,7 +24,7 @@ Publish a **terminal-only** UI envelope after the workflows transaction commits.
 
 **Key changes:**
 
-- `CreateSellableProductOrchestrator` publishes `WorkflowTerminalUiEvent` after `markCompleted` / `markFailed` / `markCompensated` and `workflowStore.save`.
+- `WorkflowTerminalLifecycleListener` publishes `WorkflowTerminalUiEvent` when the engine reaches `COMPLETED` / `FAILED` / `COMPENSATED`.
 - `WorkflowTerminalUiEventListener` is `@TransactionalEventListener(AFTER_COMMIT)` and calls `SseHub.publish(subscriberKey, "workflow", json)`.
 - Subscriber key is `platformUserId` + optional `scopeId` from workflow context (`createdBy`, `scopeId`).
 - Envelope is small: `producerId`, `workflowId`, `workflowName`, `status`, `productId`, `errorMessage`. REST `GET /{workflowId}` remains the source of truth.

@@ -28,10 +28,14 @@ public abstract class WorkflowInstanceMapper {
     @Mapping(target = "errorMessage", expression = "java(instance.errorMessage().orElse(null))")
     @Mapping(target = "createdAt", expression = "java(instance.createdAt())")
     @Mapping(target = "updatedAt", expression = "java(instance.updatedAt())")
+    // Hibernate owns the version column. Copying the domain value onto a managed entity would
+    // either be ignored or overwrite the loaded version and defeat the optimistic lock.
+    @Mapping(target = "version", ignore = true)
     public abstract void toEntity(WorkflowInstance instance, @MappingTarget WorkflowInstanceEntity entity);
 
     public WorkflowInstance toDomain(WorkflowInstanceEntity entity) {
         List<WorkflowCheckpoint> checkpoints = payloadCodec.readCheckpoints(entity.getCheckpointJson());
+        long version = entity.getVersion() == null ? 0L : entity.getVersion();
         return WorkflowInstance.restore(
                 entity.getId(),
                 entity.getWorkflowName(),
@@ -44,7 +48,8 @@ public abstract class WorkflowInstanceMapper {
                 entity.getErrorMessage(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
-                checkpoints
+                checkpoints,
+                version
         );
     }
 }
