@@ -1,6 +1,8 @@
 package com.grab.store.catalog.internal.event;
 
+import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
@@ -8,12 +10,12 @@ import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.command.CreateProductSetCommand;
 import com.grab.store.catalog.internal.command.CreateProductSetResult;
 import com.grab.store.catalog.internal.command.DeleteProductCommand;
+import com.grab.store.workflows.events.ProductDeletedEvent;
 import com.grab.store.workflows.events.RequestCreateProductSetEvent;
 import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;
 import com.grab.store.workflows.events.SellableProductProductCreatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -30,42 +32,29 @@ public class CreateSellableProductCatalogEventListener {
 
     private final CommandBus commandBus;
     private final IdGenerator idGenerator;
-    private final ApplicationEventPublisher events;
+    private final CatalogWorkflowStepRunner signalEmitter;
 
     @EventListener
     public void onRequestCreateProductSet(RequestCreateProductSetEvent event) {
         log.info("Handling RequestCreateProductSetEvent workflowId={}", event.workflowId());
-        try {
-            CreateProductSetCommand command = toCommand(event);
-            CreateProductSetResult result = commandBus.dispatch(command);
-            List<SellableProductProductCreatedEvent.VariantRef> variants = result.variants().stream()
-                    .map(variant -> new SellableProductProductCreatedEvent.VariantRef(
-                            variant.variantId(),
-                            variant.sku()
-                    ))
-                    .toList();
-            List<String> skus = variants.stream()
-                    .map(SellableProductProductCreatedEvent.VariantRef::sku)
-                    .filter(sku -> sku != null && !sku.isBlank())
-                    .toList();
-            events.publishEvent(new SellableProductProductCreatedEvent(
-                    event.workflowId(),
-                    result.productId(),
-                    skus,
-                    variants,
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        } catch (RuntimeException exception) {
-            log.warn("Create product set failed for workflowId={}: {}", event.workflowId(), exception.getMessage());
-            events.publishEvent(new SellableProductStepFailedEvent(
-                    event.workflowId(),
-                    STEP_CREATE_PRODUCT,
-                    exception.getMessage(),
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        }
+        signalEmitter.runStep(
+                event.workflowId(),
+                () -> createProductSet(event),
+                exception -> {
+                    log.warn(
+                            "Create product set failed for workflowId={}: {}",
+                            event.workflowId(),
+                            exception.getMessage()
+                    );
+                    return List.of(new SellableProductStepFailedEvent(
+                            event.workflowId(),
+                            STEP_CREATE_PRODUCT,
+                            exception.getMessage(),
+                            Instant.now(),
+                            EVENT_VERSION
+                    ));
+                }
+        );
     }
 
     @EventListener
@@ -75,18 +64,53 @@ public class CreateSellableProductCatalogEventListener {
                 event.workflowId(),
                 event.productId()
         );
-        try {
-            Id merchantId = idGenerator.convertIdFrom(event.merchantId());
-            Id productId = idGenerator.convertIdFrom(event.productId());
-            commandBus.dispatch(new DeleteProductCommand(merchantId, productId));
-        } catch (RuntimeException exception) {
-            log.warn(
-                    "Compensation delete product failed workflowId={} productId={}: {}",
-                    event.workflowId(),
-                    event.productId(),
-                    exception.getMessage()
-            );
-        }
+        signalEmitter.runStep(
+                event.workflowId(),
+                () -> deleteProduct(event),
+                exception -> {
+                    log.warn(
+                            "Compensation delete product failed workflowId={} productId={}: {}",
+                            event.workflowId(),
+                            event.productId(),
+                            exception.getMessage()
+                    );
+                    return List.of();
+                }
+        );
+    }
+
+    private List<Event> createProductSet(RequestCreateProductSetEvent event) {
+        CreateProductSetResult result = commandBus.dispatch(toCommand(event));
+        List<SellableProductProductCreatedEvent.VariantRef> variants = result.variants().stream()
+                .map(variant -> new SellableProductProductCreatedEvent.VariantRef(
+                        variant.variantId(),
+                        variant.sku()
+                ))
+                .toList();
+        List<String> skus = variants.stream()
+                .map(SellableProductProductCreatedEvent.VariantRef::sku)
+                .filter(sku -> sku != null && !sku.isBlank())
+                .toList();
+        return List.of(new SellableProductProductCreatedEvent(
+                event.workflowId(),
+                result.productId(),
+                skus,
+                variants,
+                Instant.now(),
+                EVENT_VERSION
+        ));
+    }
+
+    private List<Event> deleteProduct(RequestDeleteProductCompensationEvent event) {
+        Id merchantId = idGenerator.convertIdFrom(event.merchantId());
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        commandBus.dispatch(new DeleteProductCommand(merchantId, productId));
+        return List.of(new ProductDeletedEvent(
+                event.workflowId(),
+                event.productId(),
+                Instant.now(),
+                EVENT_VERSION
+        ));
     }
 
     private CreateProductSetCommand toCommand(RequestCreateProductSetEvent event) {
@@ -132,5 +156,4 @@ public class CreateSellableProductCatalogEventListener {
                 variantTypes
         );
     }
-
 }

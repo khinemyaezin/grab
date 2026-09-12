@@ -1,6 +1,7 @@
 package com.grab.store.inventory.internal.event;
 
 import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.domain.Event;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -9,15 +10,16 @@ import com.grab.store.inventory.internal.command.InventoryItemResult;
 import com.grab.store.workflows.events.InventoryItemCreatedEvent;
 import com.grab.store.workflows.events.RequestCreateInventoryItemEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
+import com.inventory.infrastructure.workflow.InventoryWorkflowStepRunner;
+import lombok.AllArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 
 @Component
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class CreateSellableProductInventoryEventListener {
 
     private static final Logger log = Loggers.getLogger(CreateSellableProductInventoryEventListener.class);
@@ -26,7 +28,7 @@ public class CreateSellableProductInventoryEventListener {
 
     private final CommandBus commandBus;
     private final IdGenerator idGenerator;
-    private final ApplicationEventPublisher events;
+    private final InventoryWorkflowStepRunner signalEmitter;
 
     @EventListener
     public void onRequestCreateInventoryItem(RequestCreateInventoryItemEvent event) {
@@ -36,43 +38,50 @@ public class CreateSellableProductInventoryEventListener {
                 event.sku(),
                 event.locationId()
         );
-        try {
-            CreateInventoryCommand command = new CreateInventoryCommand(
-                    event.sku(),
-                    idGenerator.convertIdFrom(event.merchantId()),
-                    idGenerator.convertIdFrom(event.locationId()),
-                    event.initialQuantity(),
-                    event.safetyStock(),
-                    event.reorderPoint(),
-                    event.reorderQuantity(),
-                    event.maxStock(),
-                    idGenerator.convertIdFrom(event.createdBy()),
-                    event.scopeKey(),
-                    event.scopeId()
-            );
-            InventoryItemResult result = commandBus.dispatch(command);
-            events.publishEvent(new InventoryItemCreatedEvent(
-                    event.workflowId(),
-                    result.id(),
-                    result.sku(),
-                    result.locationId(),
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        } catch (RuntimeException exception) {
-            log.warn(
-                    "Create inventory failed for workflowId={} sku={}: {}",
-                    event.workflowId(),
-                    event.sku(),
-                    exception.getMessage()
-            );
-            events.publishEvent(new SellableProductStepFailedEvent(
-                    event.workflowId(),
-                    STEP_CREATE_INVENTORY_ITEM,
-                    exception.getMessage(),
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        }
+        signalEmitter.runStep(
+                event.workflowId(),
+                () -> createInventoryItem(event),
+                exception -> {
+                    log.warn(
+                            "Create inventory failed for workflowId={} sku={}: {}",
+                            event.workflowId(),
+                            event.sku(),
+                            exception.getMessage()
+                    );
+                    return List.of(new SellableProductStepFailedEvent(
+                            event.workflowId(),
+                            STEP_CREATE_INVENTORY_ITEM,
+                            exception.getMessage(),
+                            Instant.now(),
+                            EVENT_VERSION
+                    ));
+                }
+        );
+    }
+
+    private List<Event> createInventoryItem(RequestCreateInventoryItemEvent event) {
+        CreateInventoryCommand command = new CreateInventoryCommand(
+                event.sku(),
+                event.variantId(),
+                idGenerator.convertIdFrom(event.merchantId()),
+                idGenerator.convertIdFrom(event.locationId()),
+                event.initialQuantity(),
+                event.safetyStock(),
+                event.reorderPoint(),
+                event.reorderQuantity(),
+                event.maxStock(),
+                idGenerator.convertIdFrom(event.createdBy()),
+                event.scopeKey(),
+                event.scopeId()
+        );
+        InventoryItemResult result = commandBus.dispatch(command);
+        return List.of(new InventoryItemCreatedEvent(
+                event.workflowId(),
+                result.id(),
+                result.sku(),
+                result.locationId(),
+                Instant.now(),
+                EVENT_VERSION
+        ));
     }
 }

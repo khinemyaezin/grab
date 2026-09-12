@@ -25,6 +25,7 @@ import com.catalog.infrastructure.repository.jpa.impl.*;
 import com.catalog.infrastructure.repository.jpa.impl.VariantOptionQueryRepositoryImpl;
 import com.catalog.infrastructure.specification.jpa.ProductSearchSpecification;
 import com.catalog.infrastructure.specification.jpa.ProductVariantSearchSpecification;
+import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
@@ -105,6 +106,14 @@ public class CatalogInfraConfig {
                 Duration.ofMillis(claimTimeoutMs),
                 Duration.ofMillis(retentionMs)
         );
+    }
+
+    @Bean
+    public CatalogWorkflowStepRunner catalogWorkflowSignalEmitter(
+            @Qualifier("catalogDomainEventProducer") DomainEventProducer producer,
+            @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager
+    ) {
+        return new CatalogWorkflowStepRunner(producer, transactionManager);
     }
 
     @Bean

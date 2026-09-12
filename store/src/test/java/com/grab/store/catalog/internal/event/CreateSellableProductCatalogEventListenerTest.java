@@ -5,16 +5,18 @@ import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
+import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
 import com.grab.store.catalog.internal.command.CreateProductSetCommand;
 import com.grab.store.catalog.internal.command.CreateProductSetResult;
 import com.grab.store.catalog.internal.command.DeleteProductCommand;
+import com.grab.store.shared.workflow.FakeModuleOutbox;
+import com.grab.store.workflows.events.ProductDeletedEvent;
 import com.grab.store.workflows.events.RequestCreateProductSetEvent;
 import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;
 import com.grab.store.workflows.events.SellableProductProductCreatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,13 +27,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CreateSellableProductCatalogEventListenerTest {
 
     private List<Command<?>> dispatched;
-    private List<Object> published;
+    private FakeModuleOutbox outbox;
     private CreateSellableProductCatalogEventListener listener;
 
     @BeforeEach
     void setUp() {
         dispatched = new ArrayList<>();
-        published = new ArrayList<>();
+        outbox = new FakeModuleOutbox();
         CommandBus commandBus = new CommandBus() {
             @Override
             @SuppressWarnings("unchecked")
@@ -57,8 +59,11 @@ class CreateSellableProductCatalogEventListenerTest {
                 return new CommonId(id);
             }
         };
-        ApplicationEventPublisher events = published::add;
-        listener = new CreateSellableProductCatalogEventListener(commandBus, idGenerator, events);
+        listener = new CreateSellableProductCatalogEventListener(
+                commandBus,
+                idGenerator,
+                new CatalogWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
     }
 
     @Test
@@ -82,8 +87,8 @@ class CreateSellableProductCatalogEventListenerTest {
 
         assertThat(dispatched).hasSize(1);
         assertThat(dispatched.getFirst()).isInstanceOf(CreateProductSetCommand.class);
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(SellableProductProductCreatedEvent.class, created -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductProductCreatedEvent.class, created -> {
             assertThat(created.workflowId()).isEqualTo("wf-1");
             assertThat(created.productId()).isEqualTo("product-1");
             assertThat(created.skus()).containsExactly("SKU-1");
@@ -94,7 +99,7 @@ class CreateSellableProductCatalogEventListenerTest {
     }
 
     @Test
-    void onRequestCreateProductSet_whenCommandFails_shouldPublishStepFailed() {
+    void onRequestCreateProductSet_whenCommandFails_shouldCommitStepFailedOutsideTheRolledBackStep() {
         CommandBus failingBus = new CommandBus() {
             @Override
             public <R> R dispatch(Command<R> command) {
@@ -114,7 +119,7 @@ class CreateSellableProductCatalogEventListenerTest {
                         return new CommonId(id);
                     }
                 },
-                published::add
+                new CatalogWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
         );
 
         listener.onRequestCreateProductSet(new RequestCreateProductSetEvent(
@@ -126,8 +131,8 @@ class CreateSellableProductCatalogEventListenerTest {
                 1
         ));
 
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
             assertThat(failed.workflowId()).isEqualTo("wf-1");
             assertThat(failed.step()).isEqualTo("create-product");
             assertThat(failed.message()).isEqualTo("boom");
@@ -141,5 +146,37 @@ class CreateSellableProductCatalogEventListenerTest {
 
         assertThat(dispatched).hasSize(1);
         assertThat(dispatched.getFirst()).isInstanceOf(DeleteProductCommand.class);
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOf(ProductDeletedEvent.class);
+    }
+
+    @Test
+    void onRequestDeleteProductCompensation_whenDeleteFails_shouldNotAcknowledge() {
+        CommandBus failingBus = new CommandBus() {
+            @Override
+            public <R> R dispatch(Command<R> command) {
+                throw new IllegalStateException("delete boom");
+            }
+        };
+        listener = new CreateSellableProductCatalogEventListener(
+                failingBus,
+                new IdGenerator() {
+                    @Override
+                    public Id generateId() {
+                        return new CommonId("new");
+                    }
+
+                    @Override
+                    public Id convertIdFrom(String id) {
+                        return new CommonId(id);
+                    }
+                },
+                new CatalogWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
+
+        listener.onRequestDeleteProductCompensation(new RequestDeleteProductCompensationEvent(
+                "wf-1", "merchant-1", "product-1", Instant.now(), 1));
+
+        assertThat(outbox.committed()).isEmpty();
     }
 }

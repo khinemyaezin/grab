@@ -35,6 +35,8 @@ catalog:
     retention-ms: ${CATALOG_OUTBOX_RETENTION_MS:604800000}
 
 inventory:
+  seed:
+    enabled: ${INVENTORY_SEED_ENABLED:true}
   datasource:
     url: ${INVENTORY_DATASOURCE_URL:jdbc:postgresql://localhost:5432/inventory}
     username: ${INVENTORY_DATASOURCE_USERNAME:admin}
@@ -73,7 +75,14 @@ identity:
     hibernate:
       dialect: ${IDENTITY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
-      auto: ${IDENTITY_JPA_DDL_AUTO:update}
+        auto: ${IDENTITY_JPA_DDL_AUTO:update}
+  outbox:
+    fixed-delay-ms: ${IDENTITY_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${IDENTITY_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${IDENTITY_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${IDENTITY_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${IDENTITY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${IDENTITY_OUTBOX_RETENTION_MS:604800000}
 
 merchant:
   enabled: ${MERCHANT_ENABLED:true}
@@ -107,6 +116,8 @@ pricing:
       dialect: ${PRICING_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
         auto: ${PRICING_JPA_DDL_AUTO:validate}
+      show_sql: ${PRICING_JPA_SHOW_SQL:false}
+      format_sql: ${PRICING_JPA_FORMAT_SQL:false}
   outbox:
     fixed-delay-ms: ${PRICING_OUTBOX_FIXED_DELAY_MS:5000}
     cleanup-fixed-delay-ms: ${PRICING_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
@@ -129,6 +140,15 @@ workflows:
         auto: ${WORKFLOWS_JPA_DDL_AUTO:validate}
       show_sql: ${WORKFLOWS_JPA_SHOW_SQL:false}
       format_sql: ${WORKFLOWS_JPA_FORMAT_SQL:false}
+  sweeper:
+    fixed-delay-ms: ${WORKFLOWS_SWEEPER_FIXED_DELAY_MS:30000}
+  outbox:
+    fixed-delay-ms: ${WORKFLOWS_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${WORKFLOWS_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${WORKFLOWS_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${WORKFLOWS_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${WORKFLOWS_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${WORKFLOWS_OUTBOX_RETENTION_MS:604800000}
 
 security:
   enabled: ${API_SECURITY:true}
@@ -138,6 +158,7 @@ security:
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
     refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P7D}
   api:
+    cors: ${SECURITY_API_CORS:${SECURITY_API_CORES:*}}
     cores: ${SECURITY_API_CORES:* }
     cookie:
       secure: ${SECURITY_API_COOKIE_SECURE:false}

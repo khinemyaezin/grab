@@ -54,6 +54,7 @@ class CreateInventoryCommandHandlerTest {
     private CreateInventoryCommand command() {
         return new CreateInventoryCommand(
                 "SKU001",
+                null,
                 new CommonId("merchant-1"),
                 new CommonId("location-1"),
                 0,
@@ -136,5 +137,34 @@ class CreateInventoryCommandHandlerTest {
                 .hasMessageContaining("Inventory is not managed for sku: SKU001");
 
         verify(inventoryRepository, never()).save(any());
+    }
+
+    @Test
+    void handle_shouldCreateInventoryWithoutProjection_whenVariantIdProvided() {
+        stubActiveLocation();
+        when(inventoryRepository.existsBySkuAndLocation(anyString(), any())).thenReturn(false);
+        when(idGenerator.generateId()).thenReturn(new CommonId("inventory-1"));
+        when(idGenerator.convertIdFrom("variant-from-saga")).thenReturn(new CommonId("variant-from-saga"));
+
+        CreateInventoryCommand command = new CreateInventoryCommand(
+                "SKU001",
+                "variant-from-saga",
+                new CommonId("merchant-1"),
+                new CommonId("location-1"),
+                0,
+                null,
+                null,
+                null,
+                null,
+                new CommonId("user-1"),
+                "merchant",
+                "merchant-1"
+        );
+
+        InventoryItemResult result = handler.handle(command);
+
+        assertThat(result.productVariantId()).isEqualTo("variant-from-saga");
+        verify(productVariantViewJpaRepository, never()).findBySkuAndStatus(anyString(), anyString());
+        verify(inventoryRepository).save(any());
     }
 }

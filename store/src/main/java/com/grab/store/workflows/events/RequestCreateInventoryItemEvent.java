@@ -7,6 +7,7 @@ import java.time.Instant;
 public record RequestCreateInventoryItemEvent(
         String workflowId,
         String sku,
+        String variantId,
         String merchantId,
         String locationId,
         int initialQuantity,

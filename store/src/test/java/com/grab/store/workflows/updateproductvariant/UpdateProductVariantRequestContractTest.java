@@ -2,7 +2,7 @@ package com.grab.store.workflows.updateproductvariant;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.grab.store.workflows.internal.updateproductvariant.rest.dto.request.UpdateProductVariantRequest;
+import com.grab.store.workflows.internal.workflows.updateproductvariant.rest.dto.request.UpdateProductVariantRequest;
 import com.inventory.domain.enums.AdjustmentReason;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;

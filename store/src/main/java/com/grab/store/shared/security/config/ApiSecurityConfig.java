@@ -50,7 +50,7 @@ public class ApiSecurityConfig {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             List<ModuleSecurityConfigurer> moduleConfigurers,
-            @Value("${security.api.core:*}") List<String> allowedOrigins,
+            @Value("${security.api.cors:${security.api.cores:${security.api.core:*}}}") List<String> allowedOrigins,
             ObjectProvider<PlatformIdentityResolver> resolvers,
             AccessTokenAuthenticator authenticator,
             AuthCookieHelper authCookieHelper

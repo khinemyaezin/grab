@@ -1,6 +1,6 @@
 package com.grab.store.workflows.updatesellableproduct;
 
-import com.grab.store.workflows.internal.updatesellableproduct.UpdateSellableProductContext;
+import com.grab.store.workflows.internal.workflows.updatesellableproduct.UpdateSellableProductContext;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

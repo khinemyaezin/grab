@@ -2,7 +2,7 @@ package com.grab.store.workflows.createsellableproduct;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.grab.store.workflows.internal.createsellableproduct.rest.dto.request.CreateSellableProductRequest;
+import com.grab.store.workflows.internal.workflows.createsellableproduct.rest.dto.request.CreateSellableProductRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -99,6 +99,24 @@ class CreateSellableProductRequestContractTest {
 
         assertThat(request.product().variants().getFirst().manageInventory()).isNull();
         assertThat(propertyPaths(validator.validate(request))).contains("inventoryLines");
+    }
+
+    @Test
+    void variantWithoutPricingLine_shouldFail() throws Exception {
+        CreateSellableProductRequest request = json.readValue("""
+                {
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variants": [{ "sku": "SKU-1", "variations": [], "manageInventory": false }]
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-OTHER", "currencyCode": "USD", "amount": 19.99 }
+                  ]
+                }
+                """, CreateSellableProductRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request))).isNotEmpty();
     }
 
     private Set<String> propertyPaths(Set<ConstraintViolation<CreateSellableProductRequest>> violations) {

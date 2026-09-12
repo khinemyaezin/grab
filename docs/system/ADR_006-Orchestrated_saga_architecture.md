@@ -15,13 +15,13 @@ Without a clean separation of module boundaries and coordination patterns, cross
 ## 2. What We Decided
 
 **The core approach:**  
-Adopt two complementary cross-module coordination patterns chosen strictly by use-case requirements: **Process Manager** (ports + persistent process store for sequence and compensation ownership) and **Event Choreography** (transactional outbox events for independent reactions).
+Adopt two complementary cross-module coordination patterns chosen strictly by use-case requirements: **Process Manager** (declarative `ProcessDefinition` executed by `EventDrivenWorkflowEngine`, durable process store, confirmed compensation) and **Event Choreography** (transactional outbox events for independent reactions).
 
 **Key changes:**
-- **Decouple Module Internals via Ports:** Replace foreign step bean injections with dedicated Process Manager orchestration. Process Managers communicate with bounded contexts exclusively through coarse-grained capability interfaces (ports) located in `store/shared/process/`.
-- **Module Adapters:** Introduce port adapters in `store/{module}/internal/process/adapter/` that translate port interface invocations into module-private `CommandBus` dispatches.
-- **Durable Workflow Store:** Introduce `workflow-infrastructure` for durable `WorkflowStore` persistence, wired by the `store/workflows` Modulith module. Resume-from-checkpoint is supported for `RUNNING` / `WAITING_EXTERNAL` (ADR-007).
-- **Event Choreography for Decoupled Reactions:** Use module-scoped Transactional Outbox (ADR-002) integration events for event-driven reactions where no single central process owner is required.
+- **Decouple Module Internals via Events:** Process Managers communicate with bounded contexts exclusively through `com.grab.store.workflows.events`. The engine never injects another BC.
+- **Durable Workflow Engine:** `EventDrivenWorkflowEngine` persists `WorkflowInstance` (optimistic `version`), correlations, and signal dedup. Request/compensation events go through `workflow_outbox_events`; completions go through each module's outbox.
+- **Resume and Timeout:** `WorkflowSweeper` resumes or fails `WAITING_EXTERNAL` / `COMPENSATING` instances past per-step timeout (ADR-007).
+- **Event Choreography for Decoupled Reactions:** Use module-scoped Transactional Outbox (ADR-002) for reactions where no single central process owner is required.
 
 **What stays the same:**
 - **Single-Module Mutations:** Single-module write operations remain strictly within local CQRS command handlers and module-scoped database transactions (`@{Module}Transactional`).
@@ -181,9 +181,9 @@ sequenceDiagram
 ## 3. Why This Approach
 
 **Primary reasons:**
-1. **Strict Bounded Context Decoupling:** Process Managers operate against shared port interfaces (`store/shared/process/`), preventing modules from importing each other's `internal` domain packages. Adapters map port invocations to private `CommandBus` dispatches.
+1. **Strict Bounded Context Decoupling:** Process Managers communicate only through `workflows::events`. The engine never injects another BC; modules map request events to private `CommandBus` dispatches.
 2. **Clear Use-Case Selection Criteria:** Provides explicit architectural guidance for choosing between Process Manager (when a single orchestrator must own the sequence, compensation order, and status) vs Event Choreography (when modules react independently to facts with eventual consistency).
-3. **Resilience & Flexible Transports:** The persistent `WorkflowStore` records checkpoints; `DefaultWorkflowRunner` can resume `RUNNING` / `WAITING_EXTERNAL` instances from the next incomplete step (ADR-007). Synchronous in-request orchestration with compensate-on-failure remains the default path.
+3. **Resilience:** The persistent `WorkflowStore` records checkpoints, correlations, and signal dedup. `WorkflowSweeper` resumes or fails `WAITING_EXTERNAL` / `COMPENSATING` instances past per-step timeout (ADR-007). Compensation stays `COMPENSATING` until ack events satisfy `isCompensated`.
 
 ---
 
@@ -200,20 +200,18 @@ sequenceDiagram
 ## 5. What Needs to Change
 
 **New components/modules to build:**
-- `workflow-infrastructure/`: Durable `JpaWorkflowStore` persistence for workflow execution state.
-- `store/workflows/`: Modulith module wiring datasource/Flyway and workflow runner beans; later orchestration entry points.
-- `store/shared/process/`: Define shared port interfaces, capability contracts, execution status enums, and handoff DTOs (Process Manager pattern ports).
-- `framework/workflow/`: Core workflow abstractions — context, definition, step, result, `WorkflowStore`, and checkpointing `WorkflowRunner`.
+- `workflow-infrastructure/`: Durable `JpaWorkflowStore` (`workflow_instance` + `version`, `workflow_correlation`, `workflow_signal_log`, `workflow_outbox_events`).
+- `store/workflows/`: Modulith module wiring datasource/Flyway, `EventDrivenWorkflowEngine`, `WorkflowSignalInbox`, `WorkflowSweeper`.
+- `framework/workflow/`: `WorkflowEngine`, `ProcessDefinition`, `StepDefinition`, instance model, `WorkflowStore`. `DefaultWorkflowRunner` / `WorkflowRunner` are deprecated and not wired.
 
 **Changes to existing systems:**
-- `store/{module}/internal/process/adapter/`: Implement module-specific port adapters that implement shared interfaces from `store/shared/process/` and delegate to local `CommandBus` instances.
 - **Deprecate Direct Step Injections:** Remove all cross-module foreign step bean imports (`::workflow`) across bounded context boundaries.
-- **Outbox Event Integration:** Standardize module integration events published through the Transactional Outbox (ADR-002) for event-driven Choreography flows.
+- **Outbox Event Integration:** Engine → module via `workflow_outbox_events`; module → engine via each module's Transactional Outbox (ADR-002).
 
 ---
 
 ## 6. Implementation Plan
 
-- **Phase 1:** Establish core workflow framework in `framework/workflow/` (checkpointing `WorkflowRunner` + `WorkflowStore` port), durable persistence in `workflow-infrastructure/`, and Modulith wiring in `store/workflows/` with a dedicated `workflows` database. *(Landed: `com.grab.framework.workflow.*`, `workflow-infrastructure` `JpaWorkflowStore`, Flyway `workflow_instance`, `workflows.datasource` — ensure `MODULE_DATABASES` includes `workflows`. Legacy non-durable runner removed.)*
-- **Phase 2:** Introduce shared port contracts in `store/shared/process/`, build module port adapters (`store/{module}/internal/process/adapter/`), and migrate multi-step write flows (e.g. CreateSellableItem) to workflow orchestration or Event Choreography.
-- **Phase 3:** Remove deprecated cross-module step bean imports, audit bounded contexts for strict `internal` encapsulation, and establish standard use-case pattern selection guidelines for new features.
+- **Phase 1:** Establish core workflow framework in `framework/workflow/` (checkpointing store + instance model), durable persistence in `workflow-infrastructure/`, and Modulith wiring in `store/workflows/` with a dedicated `workflows` database. *(Landed.)*
+- **Phase 2:** Production process managers use `EventDrivenWorkflowEngine` + `ProcessDefinition` (reference: create-sellable-product). Shared capability ports in `store/shared/process/` remain optional for sync in-process steps; they are not required for the event-driven engine.
+- **Phase 3:** Migrate remaining hand-written orchestrators (update-sellable-product, update-product-variant) onto the engine; keep CQRS for single-BC writes.
