@@ -28,6 +28,8 @@ public final class WorkflowInstance {
     private final Instant createdAt;
     @Getter
     private Instant updatedAt;
+    @Getter
+    private long version;
     private final List<WorkflowCheckpoint> checkpoints = new ArrayList<>();
 
     private WorkflowInstance(
@@ -42,7 +44,8 @@ public final class WorkflowInstance {
             String errorMessage,
             Instant createdAt,
             Instant updatedAt,
-            List<WorkflowCheckpoint> checkpoints
+            List<WorkflowCheckpoint> checkpoints,
+            long version
     ) {
         this.id = Objects.requireNonNull(id, "id");
         this.workflowName = Objects.requireNonNull(workflowName, "workflowName");
@@ -55,6 +58,7 @@ public final class WorkflowInstance {
         this.errorMessage = errorMessage;
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
+        this.version = version;
         if (checkpoints != null) {
             this.checkpoints.addAll(checkpoints);
         }
@@ -79,7 +83,8 @@ public final class WorkflowInstance {
                 null,
                 now,
                 now,
-                List.of()
+                List.of(),
+                0L
         );
     }
 
@@ -97,6 +102,38 @@ public final class WorkflowInstance {
             Instant updatedAt,
             List<WorkflowCheckpoint> checkpoints
     ) {
+        return restore(
+                id,
+                workflowName,
+                correlationId,
+                idempotencyKey,
+                status,
+                currentStep,
+                contextJson,
+                checkpointJson,
+                errorMessage,
+                createdAt,
+                updatedAt,
+                checkpoints,
+                0L
+        );
+    }
+
+    public static WorkflowInstance restore(
+            String id,
+            String workflowName,
+            String correlationId,
+            String idempotencyKey,
+            WorkflowStatus status,
+            String currentStep,
+            String contextJson,
+            String checkpointJson,
+            String errorMessage,
+            Instant createdAt,
+            Instant updatedAt,
+            List<WorkflowCheckpoint> checkpoints,
+            long version
+    ) {
         return new WorkflowInstance(
                 id,
                 workflowName,
@@ -109,8 +146,17 @@ public final class WorkflowInstance {
                 errorMessage,
                 createdAt,
                 updatedAt,
-                checkpoints
+                checkpoints,
+                version
         );
+    }
+
+    public void assignVersion(long version) {
+        this.version = version;
+    }
+
+    public long version() {
+        return version;
     }
 
     public void recordCheckpoint(String stepName, Object output, String contextJson, String checkpointJson) {
@@ -155,6 +201,12 @@ public final class WorkflowInstance {
     public void markWaitingExternal(String currentStep, String contextJson, String checkpointJson) {
         this.status = WorkflowStatus.WAITING_EXTERNAL;
         this.currentStep = currentStep;
+        this.contextJson = contextJson;
+        this.checkpointJson = checkpointJson;
+        touch();
+    }
+
+    public void updatePayload(String contextJson, String checkpointJson) {
         this.contextJson = contextJson;
         this.checkpointJson = checkpointJson;
         touch();

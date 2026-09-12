@@ -2,6 +2,7 @@ package com.grab.framework.workflow.support;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -48,6 +49,27 @@ public final class WorkflowPayloadCodec {
             context.replaceAttributes(attributes);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to deserialize workflow context", exception);
+        }
+    }
+
+    public String writeTyped(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Failed to serialize workflow payload", exception);
+        }
+    }
+
+    public <T> T readTyped(String json, Class<T> type) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readerFor(type)
+                    .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                    .readValue(json);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Failed to deserialize workflow payload", exception);
         }
     }
 
