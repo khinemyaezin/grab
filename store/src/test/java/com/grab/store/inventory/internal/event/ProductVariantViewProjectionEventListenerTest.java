@@ -38,7 +38,10 @@ class ProductVariantViewProjectionEventListenerTest {
     void setUp() {
         repository = new InMemoryProductVariantViewJpaRepository();
         published = new ArrayList<>();
-        listener = new ProductVariantViewProjectionEventListener(repository, published::add);
+        listener = new ProductVariantViewProjectionEventListener(
+                repository,
+                (type, id, events) -> published.addAll(events)
+        );
     }
 
     @Test

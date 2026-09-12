@@ -1,6 +1,6 @@
 package com.grab.store.workflows.updateproductvariant;
 
-import com.grab.store.workflows.internal.updateproductvariant.UpdateProductVariantContext;
+import com.grab.store.workflows.internal.workflows.updateproductvariant.UpdateProductVariantContext;
 import com.inventory.domain.enums.AdjustmentReason;
 import org.junit.jupiter.api.Test;
 

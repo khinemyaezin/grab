@@ -3,47 +3,47 @@
 | Field | Value |
 |-------|-------|
 | Workflow name | `create-sellable-product` |
-| Package | `store/.../workflows/internal/createsellableproduct/` |
-| Orchestrator | `CreateSellableProductOrchestrator` |
-| Pattern | Process Manager (`WAITING_EXTERNAL` + completion events) |
+| Package | `store/.../workflows/internal/workflows/createsellableproduct/` |
+| Orchestrator | `CreateSellableProductDefinition` + `EventDrivenWorkflowEngine` |
+| Pattern | Process Manager (`WAITING_EXTERNAL` + engine `onSignal`) |
 | Idempotent start | Yes (`idempotencyKey`) |
 | Client API | `POST/GET /api/v1/workflows/create-sellable-product` |
 
 **Intent (one sentence):**  
-Create a merchant sellable product end-to-end: catalog product + variants, wait for inventory product-variant view projection, assign variant prices, then create inventory items.
+Create a merchant sellable product end-to-end: catalog product + variants, assign variant prices, then create inventory items for tracked SKUs.
 
 **Participating BCs:**  
 Catalog · Pricing · Inventory
 
 **Related docs:**  
 - ADR: `docs/workflows/architecture/ADR_001-Create_Sellable_Product_workflow.md`
-- Source: `store/src/main/java/com/grab/store/workflows/internal/createsellableproduct/`
+- Source: `store/src/main/java/com/grab/store/workflows/internal/workflows/createsellableproduct/`
+
+This workflow does **not** wait on inventory's product-variant view. Catalog completion already returns `variantId`; inventory create on this path uses that id. `ProductVariantViewProjectedEvent` remains inventory choreography (and update-sellable-product until that migrates).
 
 ---
 
 ## 1. Step Sequence
 
-> Ordered list only. Later steps must not start until earlier steps have checkpointed (or their fan-in rule is true).
+> Ordered list only. Later steps must not start until earlier steps have checkpointed (or `isComplete` was already true and the step was skipped).
 
 | # | Step name (`currentStep`) | Owner BC | What the step does | Enter when | Done when | Checkpoint output |
 |---|---------------------------|----------|--------------------|------------|-----------|-------------------|
 | 1 | `create-product` | Catalog | Create product set (product + variants) | `start()` | `SellableProductProductCreatedEvent` | `productId` |
-| 2 | `ensure-product-view` | Inventory (projection) | Wait until every expected SKU is projected into product-variant view | step 1 done | `allSkusProjected()` | `projectedSkus` |
-| 3 | `create-variant-prices` | Pricing | Create price set + variant link per variant | step 2 done | `allPricesCreated()` | `pricePairs` |
-| 4 | `create-inventory-item` | Inventory | Create inventory item per inventory line | step 3 done | `allInventoryItemsCreated()` → `COMPLETED` | `inventoryItemIds` |
+| 2 | `create-variant-prices` | Pricing | Create price set + variant link per variant | step 1 done | `allPricesCreated()` | `pricePairs` |
+| 3 | `create-inventory-item` | Inventory | Create inventory item per inventory line | step 2 done | `allInventoryItemsCreated()` → `COMPLETED` | `inventoryItemIds` |
 
 **Fan-out / fan-in notes:**  
 - Step 1 publishes **one** `RequestCreateProductSetEvent`.
-- Step 2 does **not** publish a request; it waits on `ProductVariantViewProjectedEvent` (one event per SKU) until `allSkusProjected()`.
-- Step 3 fans out **one** `RequestCreateVariantPriceEvent` per `variantRefs` entry; advances when `allPricesCreated()`.
-- Step 4 fans out **one** `RequestCreateInventoryItemEvent` per `inventoryLines` entry; completes when `allInventoryItemsCreated()`.
+- Step 2 fans out **one** `RequestCreateVariantPriceEvent` per `variantRefs` entry; advances when every `variantRef.variantId` has a `pricePair`.
+- Step 3 fans out **one** `RequestCreateInventoryItemEvent` per `inventoryLines` entry (includes `variantId`); skipped when `inventoryLines` is empty; completes when every line `(sku, locationId)` has an item.
 
 **Statuses used:**
 
 | Status | When |
 |--------|------|
 | `WAITING_EXTERNAL` | Parked on a step until completion event(s) |
-| `COMPLETED` | Last step fan-in satisfied |
+| `COMPLETED` | Last step fan-in satisfied (or last remaining step skipped) |
 | `COMPENSATING` | Failure received; compensation requests publishing |
 | `COMPENSATED` | Rollback requests issued (product and/or price sets present) |
 | `FAILED` | Failure with nothing meaningful to compensate |
@@ -52,7 +52,7 @@ Catalog · Pricing · Inventory
 
 ## 2. Event Catalog
 
-> All events live under `com.grab.store.workflows.events` unless noted. Include `workflowId`, `occurredAt`, `version` on every event (projection completion omits `workflowId` and is matched by `productId` + `sku`).
+> All events live under `com.grab.store.workflows.events` unless noted. Include `workflowId`, `occurredAt`, `version` on every event. Events the engine consumes implement `WorkflowSignalEvent`.
 
 ### 2.1 Request events (Orchestrator → Module)
 
@@ -60,39 +60,42 @@ Catalog · Pricing · Inventory
 |-------|---------------------|-------------|----------------------|------------|
 | `RequestCreateProductSetEvent` | `create-product` | Catalog `CreateSellableProductCatalogEventListener` | `CreateProductSetCommand` | `workflowId`, `merchantId`, `product`, `variantTypes` |
 | `RequestCreateVariantPriceEvent` | `create-variant-prices` | Pricing `CreateSellableProductPricingEventListener` | `CreateVariantPriceAssignmentCommand` | `workflowId`, `variantId`, `sku`, `productId`, `merchantId`, price fields, `rules` |
-| `RequestCreateInventoryItemEvent` | `create-inventory-item` | Inventory `CreateSellableProductInventoryEventListener` | `CreateInventoryCommand` | `workflowId`, `sku`, `merchantId`, `locationId`, stock fields, `createdBy`, `scopeKey`, `scopeId` |
+| `RequestCreateInventoryItemEvent` | `create-inventory-item` | Inventory `CreateSellableProductInventoryEventListener` | `CreateInventoryCommand` | `workflowId`, `sku`, `variantId`, `merchantId`, `locationId`, stock fields, `createdBy`, `scopeKey`, `scopeId` |
 
 ### 2.2 Completion events (Module → Orchestrator)
 
 | Event | Produced after | Orchestrator handler | Advances / progresses |
 |-------|----------------|----------------------|------------------------|
-| `SellableProductProductCreatedEvent` | `CreateProductSetCommand` success | `onProductCreated` | `create-product` → `ensure-product-view` |
-| `ProductVariantViewProjectedEvent` | Inventory projects product-variant view | `onProductViewProjected` | fan-in on `ensure-product-view`; when `allSkusProjected()` → `create-variant-prices` |
-| `VariantPriceCreatedEvent` | `CreateVariantPriceAssignmentCommand` success | `onVariantPriceCreated` | fan-in on `create-variant-prices`; when `allPricesCreated()` → `create-inventory-item` |
-| `InventoryItemCreatedEvent` | `CreateInventoryCommand` success | `onInventoryItemCreated` | fan-in on `create-inventory-item`; when `allInventoryItemsCreated()` → `COMPLETED` |
+| `SellableProductProductCreatedEvent` | `CreateProductSetCommand` success | engine `onSignal` | `create-product` → `create-variant-prices` |
+| `VariantPriceCreatedEvent` | `CreateVariantPriceAssignmentCommand` success | engine `onSignal` | fan-in on `create-variant-prices`; when `allPricesCreated()` → `create-inventory-item` (or `COMPLETED` if no inventory lines) |
+| `InventoryItemCreatedEvent` | `CreateInventoryCommand` success | engine `onSignal` | fan-in on `create-inventory-item`; when `allInventoryItemsCreated()` → `COMPLETED` |
 
 ### 2.3 Failure event
 
 | Event | Published by | When | Orchestrator handler |
 |-------|--------------|------|----------------------|
-| `SellableProductStepFailedEvent` | Catalog / Pricing / Inventory listeners, or orchestrator (missing pricing line) | Command/validation failure | `onStepFailed` → compensate |
+| `SellableProductStepFailedEvent` | Catalog / Pricing / Inventory listeners, or engine (`onEnter` throw) | Command/validation failure | failure signal → compensate |
 
 **Failure payload:** `workflowId`, `step`, `message`, `occurredAt`, `version`
 
-### 2.4 Compensation events (Orchestrator → Module)
+API rejects start when a variant SKU has no pricing line (`@ValidPricingCoverage`).
 
-| Event | Order | Consumed by | Maps to | Condition |
-|-------|-------|-------------|---------|-----------|
-| `RequestDeletePriceSetCompensationEvent` | 1 | Pricing `CreateSellableProductPricingEventListener` | `DeletePriceSetCommand` | each `pricePairs[].priceSetId` present |
-| `RequestDeleteProductCompensationEvent` | 2 | Catalog `CreateSellableProductCatalogEventListener` | `DeleteProductCommand` | `productId` present |
+### 2.4 Compensation events (Engine → Module)
+
+| Event | Order | Consumed by | Maps to | Ack |
+|-------|-------|-------------|---------|-----|
+| `RequestDeletePriceSetCompensationEvent` | 1 | Pricing `CreateSellableProductPricingEventListener` | `DeletePriceSetCommand` | `PriceSetDeletedEvent` |
+| `RequestDeleteProductCompensationEvent` | 2 | Catalog `CreateSellableProductCatalogEventListener` | `DeleteProductCommand` | `ProductDeletedEvent` |
 
 **Compensation order (required):**  
 1. Delete price sets (all pairs in context)  
 2. Delete catalog product  
 
+Stay `COMPENSATING` until those acks satisfy `isCompensated`.
+
 **Not compensated (document why):**  
-- Inventory items — no compensation delete today; inventory creates are last and are left as-is if a later failure is not modeled, or if failure happens before inventory then nothing to undo there.
-- Product-variant view projections — read models; not rolled back.
+- Inventory items — explicit policy: no compensation delete. `CreateInventoryItemStep.isCompensated` is always true.
+- Product-variant view projections — inventory read models; not a saga step.
 
 ---
 
@@ -102,36 +105,34 @@ Catalog · Pricing · Inventory
 sequenceDiagram
     participant Client
     participant API as CreateSellableProductController
-    participant O as CreateSellableProductOrchestrator
+    participant E as WorkflowEngine
     participant WS as WorkflowStore
     participant Cat as Catalog listener
-    participant InvProj as Inventory projection
     participant Price as Pricing listener
     participant Inv as Inventory listener
 
     Client->>API: POST start (+ optional idempotencyKey)
-    API->>O: start(context, key)
-    O->>WS: save WAITING_EXTERNAL / create-product
-    O->>Cat: RequestCreateProductSetEvent
+    API->>E: start(definition, context, key)
+    E->>WS: save WAITING_EXTERNAL / create-product
+    E->>Cat: RequestCreateProductSetEvent
     API-->>Client: 202 + workflowId
 
     Cat->>Cat: CommandBus -> CreateProductSetCommand
-    Cat-->>O: SellableProductProductCreatedEvent
-    O->>WS: checkpoint create-product, WAITING_EXTERNAL / ensure-product-view
+    Cat-->>E: SellableProductProductCreatedEvent
+    E->>WS: checkpoint create-product, WAITING_EXTERNAL / create-variant-prices
+    E->>Price: RequestCreateVariantPriceEvent (per variant)
 
-    InvProj-->>O: ProductVariantViewProjectedEvent (per SKU)
-    Note over O: when allSkusProjected()
-    O->>WS: checkpoint ensure-product-view, WAITING_EXTERNAL / create-variant-prices
-    O->>Price: RequestCreateVariantPriceEvent (per variant)
-
-    Price-->>O: VariantPriceCreatedEvent (per variant)
-    Note over O: when allPricesCreated()
-    O->>WS: checkpoint create-variant-prices, WAITING_EXTERNAL / create-inventory-item
-    O->>Inv: RequestCreateInventoryItemEvent (per inventory line)
-
-    Inv-->>O: InventoryItemCreatedEvent (per line)
-    Note over O: when allInventoryItemsCreated()
-    O->>WS: markCompleted
+    Price-->>E: VariantPriceCreatedEvent (per variant)
+    Note over E: when allPricesCreated
+    alt inventoryLines present
+        E->>WS: checkpoint create-variant-prices, WAITING_EXTERNAL / create-inventory-item
+        E->>Inv: RequestCreateInventoryItemEvent (sku, variantId, location)
+        Inv-->>E: InventoryItemCreatedEvent (per line)
+        Note over E: when allInventoryItemsCreated
+        E->>WS: markCompleted
+    else untracked
+        E->>WS: markCompleted
+    end
 ```
 
 ### 3.1 Per-step detail
@@ -143,48 +144,34 @@ ENTER:  start()
 PUBLISH: RequestCreateProductSetEvent (count: 1)
 WAIT:    WAITING_EXTERNAL, currentStep=create-product
 ON:      SellableProductProductCreatedEvent
-UPDATE:  productId, expectedSkus, variantRefs
-GATE:    (none)
-THEN:    checkpoint(create-product, productId) → markWaitingExternal(ensure-product-view)
-```
-
-#### Step `ensure-product-view`
-
-```
-ENTER:  create-product checkpointed
-PUBLISH: (none — waits on projection)
-WAIT:    WAITING_EXTERNAL, currentStep=ensure-product-view
-ON:      ProductVariantViewProjectedEvent (matched by productId + sku ∈ expectedSkus)
-UPDATE:  projectedSkus
-GATE:    allSkusProjected()
-THEN:    checkpoint(ensure-product-view, projectedSkus)
-         → markWaitingExternal(create-variant-prices)
+UPDATE:  productId, variantRefs
+GATE:    productId != null
+THEN:    checkpoint(create-product, productId) → markWaitingExternal(create-variant-prices)
          → publish RequestCreateVariantPriceEvent per variantRef
-         (or SellableProductStepFailedEvent if pricingLineForSku missing)
 ```
 
 #### Step `create-variant-prices`
 
 ```
-ENTER:  ensure-product-view fan-in satisfied + price requests published
+ENTER:  create-product checkpointed
 PUBLISH: RequestCreateVariantPriceEvent (count: per variantRefs)
 WAIT:    WAITING_EXTERNAL, currentStep=create-variant-prices
 ON:      VariantPriceCreatedEvent
 UPDATE:  pricePairs (variantId, sku, priceSetId)
-GATE:    allPricesCreated()
+GATE:    allPricesCreated() — every variantRef.variantId has a pricePair
 THEN:    checkpoint(create-variant-prices, pricePairs)
-         → markWaitingExternal(create-inventory-item)
-         → publish RequestCreateInventoryItemEvent per inventoryLine
+         → markWaitingExternal(create-inventory-item) and publish inventory requests
+         → or COMPLETED when inventoryLines is empty
 ```
 
 #### Step `create-inventory-item`
 
 ```
-ENTER:  create-variant-prices fan-in satisfied + inventory requests published
-PUBLISH: RequestCreateInventoryItemEvent (count: per inventoryLines)
+ENTER:  create-variant-prices fan-in satisfied + inventoryLines non-empty
+PUBLISH: RequestCreateInventoryItemEvent (count: per inventoryLines; includes variantId)
 WAIT:    WAITING_EXTERNAL, currentStep=create-inventory-item
 ON:      InventoryItemCreatedEvent
-UPDATE:  inventoryItemIds
+UPDATE:  inventoryItems (inventoryItemId, sku, locationId)
 GATE:    allInventoryItemsCreated()
 THEN:    checkpoint(create-inventory-item, inventoryItemIds) → markCompleted
 ```
@@ -196,48 +183,49 @@ THEN:    checkpoint(create-inventory-item, inventoryItemIds) → markCompleted
 ```mermaid
 sequenceDiagram
     participant Mod as Module listener
-    participant O as CreateSellableProductOrchestrator
+    participant E as WorkflowEngine
     participant WS as WorkflowStore
     participant Price as Pricing compensation
     participant Cat as Catalog compensation
 
-    Mod-->>O: SellableProductStepFailedEvent(step, message)
+    Mod-->>E: SellableProductStepFailedEvent(step, message)
     alt already terminal (COMPLETED / COMPENSATED / FAILED / COMPENSATING)
-        O-->>O: ignore
+        E-->>E: ignore
     else active run
-        O->>WS: beginCompensation(step, message)
+        E->>WS: beginCompensation(step, message)
         loop each pricePair
-            O->>Price: RequestDeletePriceSetCompensationEvent
+            E->>Price: RequestDeletePriceSetCompensationEvent
         end
         opt productId present
-            O->>Cat: RequestDeleteProductCompensationEvent
+            E->>Cat: RequestDeleteProductCompensationEvent
         end
-        alt productId present or pricePairs non-empty
-            O->>WS: markCompensated
-        else nothing to compensate
-            O->>WS: markFailed
-        end
+        Price-->>E: PriceSetDeletedEvent
+        Cat-->>E: ProductDeletedEvent
+        Note over E: when all isCompensated
+        E->>WS: markCompensated
     end
 ```
 
 **Guards (required):**
-- Ignore completion events unless `status == WAITING_EXTERNAL` and `currentStep` matches (projection step also matches `productId` / `sku`).
+- Ignore completion events unless `status == WAITING_EXTERNAL` and `currentStep` matches.
 - Ignore failure if already terminal or `COMPENSATING`.
 - Idempotent start: same `idempotencyKey` returns existing instance.
+- Replays are suppressed by `workflow_signal_log` on `(workflow_id, step, dedup_key)`.
+- `COMPENSATED` requires every step to report `isCompensated` **and** to have an empty `compensate()`.
 
 ---
 
 ## 5. Context Progress Fields
 
-> Only fields the orchestrator mutates across steps (input vs progress). Full context shape belongs in the ADR.
+> Only fields the orchestrator mutates across steps (input vs progress).
 
 | Field | Set at | Used by |
 |-------|--------|---------|
 | `merchantId`, `createdBy`, `scopeKey`, `scopeId` | start | step requests / compensation |
 | `product`, `variantTypes`, `inventoryLines`, `pricingLines` | start | create-product / pricing / inventory requests |
-| `productId` | `create-product` completion | projection match, price requests, product compensation |
-| `expectedSkus` | `create-product` completion | `allSkusProjected()` gate |
-| `projectedSkus` | projection events | `allSkusProjected()` gate |
-| `variantRefs` | `create-product` completion | price fan-out / `allPricesCreated()` |
+| `productId` | `create-product` completion | price requests, product compensation |
+| `variantRefs` | `create-product` completion | price fan-out / inventory `variantId` / `allPricesCreated()` |
 | `pricePairs` | price completion events | inventory gate advance / price compensation |
-| `inventoryItemIds` | inventory completion events | `allInventoryItemsCreated()` → complete |
+| `compensatedPriceSetIds` | `PriceSetDeletedEvent` | `allPriceSetsCompensated()` |
+| `productDeleted` | `ProductDeletedEvent` | `isProductCompensated()` |
+| `inventoryItems` | inventory completion events | `allInventoryItemsCreated()` → complete |

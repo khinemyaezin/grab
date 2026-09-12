@@ -271,46 +271,27 @@ They write completion or failure events with `WorkflowSignalEmitter`.
 They never import another BC's internals.
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph WorkflowsApp["store/workflows"]
         API["Controller"]
         Svc["WorkflowService"]
-        WP["WorkflowProcess bean"]
-        Inbox["WorkflowSignalInbox"]
+        EventListener["WorkflowSignalListener"]
         Sweep["WorkflowSweeper"]
         Events["workflows.events"]
-        API --> Svc
-        Svc --> WP
-        Svc --> EngineTx["WorkflowEngine"]
-        Inbox --> EngineTx
-        Sweep --> EngineTx
+        EngineTx["WorkflowEngine"]
     end
-
-    subgraph Catalog["catalog"]
-        CatL["Request listener"]
-        CatCmd["CommandBus"]
-        CatL --> CatCmd
-    end
-
-    subgraph Pricing["pricing"]
-        PriceL["Request listener"]
-        PriceCmd["CommandBus"]
-        PriceL --> PriceCmd
-    end
-
-    subgraph Inventory["inventory"]
+    subgraph Inventory["DomainServices"]
         InvL["Request listener"]
         InvCmd["CommandBus"]
-        InvL --> InvCmd
     end
-
-    Events --> CatL
-    Events --> PriceL
+    API --> Svc
+    Svc -- create WorkflowProcess \n with Definition --> EngineTx
+    EventListener <-- listen on --> Events
+    Sweep --> EngineTx
+    InvL --> InvCmd
     Events --> InvL
-    CatL -->|"completion / failure"| Events
-    PriceL -->|"completion / failure"| Events
-    InvL -->|"completion / failure"| Events
-    Events --> Inbox
+    InvL -- completion / failure --> Events
+    EngineTx -- emit signal --> EventListener
 ```
 
 ---

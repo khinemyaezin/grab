@@ -3,7 +3,7 @@ package com.grab.store.workflows.updatesellableproduct;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.store.workflows.events.InventorySyncOp;
-import com.grab.store.workflows.internal.updatesellableproduct.rest.dto.request.UpdateSellableProductRequest;
+import com.grab.store.workflows.internal.workflows.updatesellableproduct.rest.dto.request.UpdateSellableProductRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;

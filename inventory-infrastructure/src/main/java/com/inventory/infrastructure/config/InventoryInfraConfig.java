@@ -45,6 +45,7 @@ import com.inventory.infrastructure.specification.jpa.InventorySearchSpecificati
 import com.inventory.infrastructure.specification.jpa.InventorySummarySpecification;
 import com.inventory.infrastructure.specification.jpa.LocationSearchSpecification;
 import com.inventory.infrastructure.specification.jpa.ZoneSearchSpecification;
+import com.inventory.infrastructure.workflow.InventoryWorkflowStepRunner;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -108,6 +109,15 @@ public class InventoryInfraConfig {
                 Duration.ofMillis(retentionMs)
         );
     }
+
+    @Bean
+    public InventoryWorkflowStepRunner inventoryWorkflowSignalEmitter(
+            @Qualifier("inventoryDomainEventProducer") DomainEventProducer producer,
+            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager
+    ) {
+        return new InventoryWorkflowStepRunner(producer, transactionManager);
+    }
+
 
     @Bean
     public InventoryJpaAssembler inventoryJpaAssembler(InventoryItemEntityMapper inventoryItemEntityMapper,

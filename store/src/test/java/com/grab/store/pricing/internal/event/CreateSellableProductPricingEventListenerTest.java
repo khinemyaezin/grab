@@ -8,13 +8,15 @@ import com.grab.framework.id.impl.CommonId;
 import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentCommand;
 import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentResult;
 import com.grab.store.pricing.internal.command.DeletePriceSetCommand;
+import com.grab.store.shared.workflow.FakeModuleOutbox;
+import com.pricing.infrastructure.workflow.PricingWorkflowStepRunner;
+import com.grab.store.workflows.events.PriceSetDeletedEvent;
 import com.grab.store.workflows.events.RequestCreateVariantPriceEvent;
 import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.grab.store.workflows.events.VariantPriceCreatedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,13 +28,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CreateSellableProductPricingEventListenerTest {
 
     private List<Command<?>> dispatched;
-    private List<Object> published;
+    private FakeModuleOutbox outbox;
     private CreateSellableProductPricingEventListener listener;
 
     @BeforeEach
     void setUp() {
         dispatched = new ArrayList<>();
-        published = new ArrayList<>();
+        outbox = new FakeModuleOutbox();
         CommandBus commandBus = new CommandBus() {
             @Override
             @SuppressWarnings("unchecked")
@@ -55,8 +57,11 @@ class CreateSellableProductPricingEventListenerTest {
                 return new CommonId(id);
             }
         };
-        ApplicationEventPublisher events = published::add;
-        listener = new CreateSellableProductPricingEventListener(commandBus, idGenerator, events);
+        listener = new CreateSellableProductPricingEventListener(
+                commandBus,
+                idGenerator,
+                new PricingWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
     }
 
     @Test
@@ -86,8 +91,8 @@ class CreateSellableProductPricingEventListenerTest {
             assertThat(command.currencyCode()).isEqualTo("USD");
             assertThat(command.amount()).isEqualByComparingTo("19.99");
         });
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(VariantPriceCreatedEvent.class, created -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(VariantPriceCreatedEvent.class, created -> {
             assertThat(created.workflowId()).isEqualTo("wf-1");
             assertThat(created.variantId()).isEqualTo("variant-1");
             assertThat(created.sku()).isEqualTo("SKU-1");
@@ -96,7 +101,7 @@ class CreateSellableProductPricingEventListenerTest {
     }
 
     @Test
-    void onRequestCreateVariantPrice_whenCommandFails_shouldPublishStepFailed() {
+    void onRequestCreateVariantPrice_whenCommandFails_shouldCommitStepFailedOutsideTheRolledBackStep() {
         CommandBus failingBus = new CommandBus() {
             @Override
             public <R> R dispatch(Command<R> command) {
@@ -116,7 +121,7 @@ class CreateSellableProductPricingEventListenerTest {
                         return new CommonId(id);
                     }
                 },
-                published::add
+                new PricingWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
         );
 
         listener.onRequestCreateVariantPrice(new RequestCreateVariantPriceEvent(
@@ -135,8 +140,8 @@ class CreateSellableProductPricingEventListenerTest {
                 1
         ));
 
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
             assertThat(failed.workflowId()).isEqualTo("wf-1");
             assertThat(failed.step()).isEqualTo("create-variant-prices");
             assertThat(failed.message()).isEqualTo("pricing boom");
@@ -150,5 +155,6 @@ class CreateSellableProductPricingEventListenerTest {
 
         assertThat(dispatched).hasSize(1);
         assertThat(dispatched.getFirst()).isInstanceOf(DeletePriceSetCommand.class);
+        assertThat(outbox.committed().getFirst()).isInstanceOf(PriceSetDeletedEvent.class);
     }
 }

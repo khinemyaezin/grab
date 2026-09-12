@@ -62,14 +62,19 @@ public class IdentityDataSourceConfig {
         Map<String, String> placeholders = new HashMap<>();
         String adminEmail = env.getProperty("identity.seed.admin-email");
         String adminPassword = env.getProperty("identity.seed.admin-password");
-        
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
         if (adminEmail != null && !adminEmail.isBlank() && adminPassword != null && !adminPassword.isBlank()) {
             placeholders.put("adminEmail", adminEmail.toLowerCase());
-            placeholders.put("adminPasswordHash", new BCryptPasswordEncoder().encode(adminPassword));
+            placeholders.put("adminPasswordHash", passwordEncoder.encode(adminPassword));
             placeholders.put("seedAdmin", "true");
         } else {
             placeholders.put("seedAdmin", "false");
         }
+
+        placeholders.put("demoEmail", "a@a.com");
+        placeholders.put("demoPasswordHash", passwordEncoder.encode("123123123"));
+        placeholders.put("seedDemo", "true");
 
         return Flyway.configure()
                 .dataSource(dataSource)

@@ -33,6 +33,7 @@ import com.pricing.infrastructure.repository.jpa.impl.DefaultPriceSetRepository;
 import com.pricing.infrastructure.repository.jpa.impl.DefaultVariantPriceSetLinkQueryRepository;
 import com.pricing.infrastructure.repository.jpa.impl.DefaultVariantPriceSetLinkRepository;
 import com.pricing.infrastructure.repository.jpa.impl.PricingPersistenceExecutor;
+import com.pricing.infrastructure.workflow.PricingWorkflowStepRunner;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -95,6 +96,14 @@ public class PricingInfraConfig {
                 Duration.ofMillis(claimTimeout),
                 Duration.ofMillis(retention)
         );
+    }
+
+    @Bean
+    public PricingWorkflowStepRunner pricingWorkflowSignalEmitter(
+            @Qualifier("pricingDomainEventProducer") DomainEventProducer producer,
+            @Qualifier("pricingTransactionManager") PlatformTransactionManager transactionManager
+    ) {
+        return new PricingWorkflowStepRunner(producer, transactionManager);
     }
 
     @Bean("pricingPersistenceExecutor")

@@ -1,25 +1,20 @@
 package com.grab.store.workflows.internal.config;
 
-import com.grab.framework.workflow.WorkflowRunner;
-import com.grab.framework.workflow.WorkflowStore;
-import com.grab.framework.workflow.impl.DefaultWorkflowRunner;
-import com.grab.framework.workflow.support.WorkflowPayloadCodec;
+import com.grab.framework.workflow.WorkflowDefinitionRegistry;
+import com.grab.framework.workflow.WorkflowProcess;
+import com.grab.workflow.infrastructure.config.WorkflowInfraConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+import java.util.List;
 
 @Configuration
+@Import(WorkflowInfraConfig.class)
 public class WorkflowConfiguration {
 
     @Bean
-    public WorkflowPayloadCodec workflowPayloadCodec() {
-        return new WorkflowPayloadCodec();
-    }
-
-    @Bean
-    public WorkflowRunner workflowRunner(
-            WorkflowStore workflowStore,
-            WorkflowPayloadCodec workflowPayloadCodec
-    ) {
-        return new DefaultWorkflowRunner(workflowStore, workflowPayloadCodec);
+    public WorkflowDefinitionRegistry workflowDefinitionRegistry(List<WorkflowProcess<?>> processes) {
+        return WorkflowDefinitionRegistry.fromProcesses(processes);
     }
 }

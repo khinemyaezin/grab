@@ -91,6 +91,7 @@ public class UpdateSellableProductInventoryEventListener {
         InventorySyncPayload.CreateStock create = requirePayload(event.create(), "create");
         return commandBus.dispatch(new CreateInventoryCommand(
                 event.sku(),
+                null,
                 idGenerator.convertIdFrom(event.merchantId()),
                 idGenerator.convertIdFrom(event.locationId()),
                 create.initialQuantity(),

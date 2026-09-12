@@ -1,6 +1,7 @@
 package com.grab.store.inventory.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.entity.StockMovement;
@@ -51,11 +52,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
             throw new InventoryServiceException(new InventoryServiceError.LocationInactive(command.locationId().getValue()));
         }
 
-        ProductView variantView = resolveActiveProductVariantBySku(command.sku());
-        if (!variantView.isManageInventory()) {
-            log.warn("Inventory is not managed for sku={}", command.sku());
-            throw new InventoryServiceException(new InventoryServiceError.InventoryNotManaged(command.sku()));
-        }
+        Id productVariantId = resolveProductVariantId(command);
 
         if (inventoryRepository.existsBySkuAndLocation(command.sku(), command.locationId())) {
             log.warn("Inventory already exists for sku={} at locationId={}", command.sku(), command.locationId().getValue());
@@ -71,7 +68,7 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
                 idGenerator.generateId(),
                 command.sku(),
                 command.merchantId(),
-                idGenerator.convertIdFrom(variantView.getVariantUuid()),
+                productVariantId,
                 command.locationId(),
                 command.initialQuantity(),
                 new ReorderConfig(
@@ -107,6 +104,18 @@ public class CreateInventoryCommandHandler implements CommandHandler<CreateInven
     @Override
     public Class<CreateInventoryCommand> getCommandType() {
         return CreateInventoryCommand.class;
+    }
+
+    private Id resolveProductVariantId(CreateInventoryCommand command) {
+        if (command.variantId() != null && !command.variantId().isBlank()) {
+            return idGenerator.convertIdFrom(command.variantId());
+        }
+        ProductView variantView = resolveActiveProductVariantBySku(command.sku());
+        if (!variantView.isManageInventory()) {
+            log.warn("Inventory is not managed for sku={}", command.sku());
+            throw new InventoryServiceException(new InventoryServiceError.InventoryNotManaged(command.sku()));
+        }
+        return idGenerator.convertIdFrom(variantView.getVariantUuid());
     }
 
     private ProductView resolveActiveProductVariantBySku(String sku) {
