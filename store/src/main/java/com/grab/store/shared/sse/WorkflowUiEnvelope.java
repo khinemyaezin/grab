@@ -6,6 +6,7 @@ public record WorkflowUiEnvelope(
         String workflowName,
         String status,
         String idempotencyKey,
-        String errorMessage
+        String errorMessage,
+        boolean partiallyApplied
 ) {
 }

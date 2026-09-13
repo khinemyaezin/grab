@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @ValidInventoryLines
+@ValidPricingLineSkus
 public record UpdateSellableProductRequest(
         @NotBlank String productId,
         @Valid @NotNull Product product,

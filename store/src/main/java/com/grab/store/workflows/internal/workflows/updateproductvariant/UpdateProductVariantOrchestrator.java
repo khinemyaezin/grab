@@ -364,7 +364,8 @@ public class UpdateProductVariantOrchestrator {
                 UpdateProductVariantWorkflowNames.WORKFLOW_NAME,
                 instance.status().name(),
                 instance.idempotencyKey().orElse(null),
-                errorMessage
+                errorMessage,
+                false
         ));
     }
 }

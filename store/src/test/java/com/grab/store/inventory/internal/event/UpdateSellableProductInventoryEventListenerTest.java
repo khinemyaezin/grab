@@ -11,12 +11,14 @@ import com.grab.store.inventory.internal.command.InventoryItemResult;
 import com.grab.store.inventory.internal.command.MarkDamagedCommand;
 import com.grab.store.inventory.internal.command.UpdateReorderConfigCommand;
 import com.grab.store.inventory.internal.command.WriteOffStockCommand;
+import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.InventoryItemSyncedEvent;
 import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.inventory.domain.enums.AdjustmentReason;
+import com.inventory.infrastructure.workflow.InventoryWorkflowStepRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,13 +31,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UpdateSellableProductInventoryEventListenerTest {
 
     private List<Command<?>> dispatched;
-    private List<Object> published;
+    private FakeModuleOutbox outbox;
     private UpdateSellableProductInventoryEventListener listener;
 
     @BeforeEach
     void setUp() {
         dispatched = new ArrayList<>();
-        published = new ArrayList<>();
+        outbox = new FakeModuleOutbox();
         CommandBus commandBus = new CommandBus() {
             @Override
             @SuppressWarnings("unchecked")
@@ -44,7 +46,11 @@ class UpdateSellableProductInventoryEventListenerTest {
                 return (R) sampleResult();
             }
         };
-        listener = new UpdateSellableProductInventoryEventListener(commandBus, idGenerator(), published::add);
+        listener = new UpdateSellableProductInventoryEventListener(
+                commandBus,
+                idGenerator(),
+                new InventoryWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
     }
 
     @Test
@@ -52,9 +58,12 @@ class UpdateSellableProductInventoryEventListenerTest {
         listener.onRequestSyncInventoryItem(createEvent());
 
         assertThat(dispatched).hasSize(1);
-        assertThat(dispatched.getFirst()).isInstanceOf(CreateInventoryCommand.class);
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(InventoryItemSyncedEvent.class, synced -> {
+        assertThat(dispatched.getFirst()).isInstanceOfSatisfying(CreateInventoryCommand.class, command -> {
+            assertThat(command.sku()).isEqualTo("SKU-1");
+            assertThat(command.variantId()).isEqualTo("variant-1");
+        });
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(InventoryItemSyncedEvent.class, synced -> {
             assertThat(synced.created()).isTrue();
         });
     }
@@ -68,8 +77,8 @@ class UpdateSellableProductInventoryEventListenerTest {
             assertThat(command.newOnHandQuantity()).isEqualTo(8);
             assertThat(command.reason()).isEqualTo(AdjustmentReason.CYCLE_COUNT);
         });
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(InventoryItemSyncedEvent.class, synced -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(InventoryItemSyncedEvent.class, synced -> {
             assertThat(synced.inventoryItemId()).isEqualTo("inv-1");
             assertThat(synced.created()).isFalse();
         });
@@ -101,7 +110,7 @@ class UpdateSellableProductInventoryEventListenerTest {
             assertThat(command.quantity()).isEqualTo(2);
             assertThat(command.notes()).isEqualTo("water damage");
         });
-        assertThat(published.getFirst()).isInstanceOf(InventoryItemSyncedEvent.class);
+        assertThat(outbox.committed().getFirst()).isInstanceOf(InventoryItemSyncedEvent.class);
     }
 
     @Test
@@ -137,7 +146,7 @@ class UpdateSellableProductInventoryEventListenerTest {
 
         assertThat(dispatched).hasSize(1);
         assertThat(dispatched.getFirst()).isInstanceOf(UpdateReorderConfigCommand.class);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(InventoryItemSyncedEvent.class, synced -> {
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(InventoryItemSyncedEvent.class, synced -> {
             assertThat(synced.created()).isFalse();
         });
     }
@@ -155,8 +164,8 @@ class UpdateSellableProductInventoryEventListenerTest {
         ));
 
         assertThat(dispatched).isEmpty();
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOf(SellableProductStepFailedEvent.class);
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOf(SellableProductStepFailedEvent.class);
     }
 
     private RequestSyncInventoryItemEvent createEvent() {
@@ -195,6 +204,7 @@ class UpdateSellableProductInventoryEventListenerTest {
         return new RequestSyncInventoryItemEvent(
                 "wf-1",
                 "SKU-1",
+                "variant-1",
                 "merchant-1",
                 "loc-1",
                 inventoryItemId,

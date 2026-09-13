@@ -7,6 +7,7 @@ import java.time.Instant;
 public record RequestSyncInventoryItemEvent(
         String workflowId,
         String sku,
+        String variantId,
         String merchantId,
         String locationId,
         String inventoryItemId,

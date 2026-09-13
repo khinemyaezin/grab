@@ -186,6 +186,103 @@ class UpdateSellableProductRequestContractTest {
     }
 
     @Test
+    void validate_fullSyncPricingSkuMissingFromOverrides_shouldFail() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variantSync": {
+                      "intent": "FULL_SYNC",
+                      "overrides": [
+                        { "sku": "SKU-1", "matrixKey": "", "variations": [] }
+                      ]
+                    }
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-MISSING", "currencyCode": "USD", "amount": 19.99 }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request)))
+                .anyMatch(path -> path.contains("pricingLines") && path.contains("sku"));
+    }
+
+    @Test
+    void validate_fullSyncPricingSkuInOverrides_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variantSync": {
+                      "intent": "FULL_SYNC",
+                      "overrides": [
+                        { "sku": "SKU-1", "matrixKey": "", "variations": [] }
+                      ]
+                    }
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-1", "currencyCode": "USD", "amount": 19.99 }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+    }
+
+    @Test
+    void validate_fullSyncUnknownSkuWithVariantId_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variantSync": {
+                      "intent": "FULL_SYNC",
+                      "overrides": [
+                        { "sku": "SKU-1", "matrixKey": "", "variations": [] }
+                      ]
+                    }
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-MISSING", "variantId": "variant-2", "currencyCode": "USD", "amount": 19.99 }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+    }
+
+    @Test
+    void validate_leaveAsIsUnknownPricingSku_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variantSync": {
+                      "intent": "LEAVE_AS_IS",
+                      "overrides": [
+                        { "sku": "SKU-1", "matrixKey": "", "variations": [] }
+                      ]
+                    }
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-MISSING", "currencyCode": "USD", "amount": 19.99 }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+    }
+
+    @Test
     void createLine_forUntrackedOverride_shouldFail() throws Exception {
         UpdateSellableProductRequest request = json.readValue("""
                 {

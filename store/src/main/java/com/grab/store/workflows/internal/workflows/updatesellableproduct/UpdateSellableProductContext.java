@@ -1,5 +1,6 @@
 package com.grab.store.workflows.internal.workflows.updatesellableproduct;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.events.InventorySyncPayload;
 
@@ -19,22 +20,23 @@ public record UpdateSellableProductContext(
         List<InventoryLine> inventoryLines,
         List<PricingLine> pricingLines,
         List<VariantRef> variantRefs,
-        Set<String> projectedVariantIds,
         List<PricePair> pricePairs,
         List<String> createdPriceSetIds,
         List<String> inventoryItemIds,
-        List<String> createdInventoryItemIds
+        List<String> createdInventoryItemIds,
+        boolean productUpdated,
+        Set<String> compensatedPriceSetIds
 ) {
 
     public UpdateSellableProductContext {
         inventoryLines = inventoryLines == null ? List.of() : List.copyOf(inventoryLines);
         pricingLines = pricingLines == null ? List.of() : List.copyOf(pricingLines);
         variantRefs = variantRefs == null ? List.of() : List.copyOf(variantRefs);
-        projectedVariantIds = projectedVariantIds == null ? Set.of() : Set.copyOf(projectedVariantIds);
         pricePairs = pricePairs == null ? List.of() : List.copyOf(pricePairs);
         createdPriceSetIds = createdPriceSetIds == null ? List.of() : List.copyOf(createdPriceSetIds);
         inventoryItemIds = inventoryItemIds == null ? List.of() : List.copyOf(inventoryItemIds);
         createdInventoryItemIds = createdInventoryItemIds == null ? List.of() : List.copyOf(createdInventoryItemIds);
+        compensatedPriceSetIds = compensatedPriceSetIds == null ? Set.of() : Set.copyOf(compensatedPriceSetIds);
     }
 
     public static UpdateSellableProductContext createContext(
@@ -57,11 +59,12 @@ public record UpdateSellableProductContext(
                 inventoryLines,
                 pricingLines,
                 List.of(),
-                Set.of(),
                 List.of(),
                 List.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                false,
+                Set.of()
         );
     }
 
@@ -70,120 +73,99 @@ public record UpdateSellableProductContext(
             List<VariantRef> newVariantRefs
     ) {
         List<PricingLine> assignedPricingLines = assignVariantIds(newVariantRefs);
-        return new UpdateSellableProductContext(
-                merchantId,
-                createdBy,
-                scopeKey,
-                scopeId,
+        return copy(
                 newProductId,
-                product,
-                inventoryLines,
                 assignedPricingLines,
                 newVariantRefs,
-                projectedVariantIds,
                 pricePairs,
                 createdPriceSetIds,
                 inventoryItemIds,
-                createdInventoryItemIds
-        );
-    }
-
-    public UpdateSellableProductContext withProjectedVariant(String variantId) {
-        Set<String> nextProjected = new LinkedHashSet<>(projectedVariantIds);
-        nextProjected.add(variantId);
-        return new UpdateSellableProductContext(
-                merchantId,
-                createdBy,
-                scopeKey,
-                scopeId,
-                productId,
-                product,
-                inventoryLines,
-                pricingLines,
-                variantRefs,
-                nextProjected,
-                pricePairs,
-                createdPriceSetIds,
-                inventoryItemIds,
-                createdInventoryItemIds
+                createdInventoryItemIds,
+                true,
+                compensatedPriceSetIds
         );
     }
 
     public UpdateSellableProductContext withPricePair(PricePair pricePair, boolean created) {
+        if (pricePairs.stream().anyMatch(existing -> existing.variantId().equals(pricePair.variantId()))) {
+            return this;
+        }
         List<PricePair> nextPairs = new ArrayList<>(pricePairs);
         nextPairs.add(pricePair);
         List<String> nextCreated = new ArrayList<>(createdPriceSetIds);
         if (created && pricePair.priceSetId() != null && !pricePair.priceSetId().isBlank()) {
             nextCreated.add(pricePair.priceSetId());
         }
-        return new UpdateSellableProductContext(
-                merchantId,
-                createdBy,
-                scopeKey,
-                scopeId,
+        return copy(
                 productId,
-                product,
-                inventoryLines,
                 pricingLines,
                 variantRefs,
-                projectedVariantIds,
                 nextPairs,
                 nextCreated,
                 inventoryItemIds,
-                createdInventoryItemIds
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds
         );
     }
 
     public UpdateSellableProductContext withInventoryItem(String inventoryItemId, boolean created) {
+        if (inventoryItemId != null && inventoryItemIds.contains(inventoryItemId)) {
+            return this;
+        }
         List<String> nextIds = new ArrayList<>(inventoryItemIds);
         nextIds.add(inventoryItemId);
         List<String> nextCreated = new ArrayList<>(createdInventoryItemIds);
         if (created && inventoryItemId != null && !inventoryItemId.isBlank()) {
             nextCreated.add(inventoryItemId);
         }
-        return new UpdateSellableProductContext(
-                merchantId,
-                createdBy,
-                scopeKey,
-                scopeId,
+        return copy(
                 productId,
-                product,
-                inventoryLines,
                 pricingLines,
                 variantRefs,
-                projectedVariantIds,
                 pricePairs,
                 createdPriceSetIds,
                 nextIds,
-                nextCreated
+                nextCreated,
+                productUpdated,
+                compensatedPriceSetIds
         );
     }
 
-    public boolean allVariantRefsProjected() {
-        if (variantRefs.isEmpty()) {
-            return false;
-        }
-        return variantRefs.stream()
-                .map(VariantRef::variantId)
-                .allMatch(projectedVariantIds::contains);
+    public UpdateSellableProductContext withPriceSetCompensated(String priceSetId) {
+        Set<String> next = new LinkedHashSet<>(compensatedPriceSetIds);
+        next.add(priceSetId);
+        return copy(
+                productId,
+                pricingLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                next
+        );
     }
 
-    public boolean matchesProjectedVariant(String variantId, String sku) {
-        if (variantId != null && !variantId.isBlank()) {
-            return variantRefs.stream().anyMatch(ref -> variantId.equals(ref.variantId()));
-        }
-        if (sku == null || sku.isBlank()) {
-            return false;
-        }
-        return variantRefs.stream().anyMatch(ref -> sku.equals(ref.sku()));
-    }
-
+    @JsonIgnore
     public boolean allPricesSynced() {
         return pricePairs.size() >= pricingLines.size();
     }
 
+    @JsonIgnore
     public boolean allInventoryItemsSynced() {
         return inventoryItemIds.size() >= inventoryLines.size();
+    }
+
+    @JsonIgnore
+    public boolean allCreatedPriceSetsCompensated() {
+        return createdPriceSetIds.stream().allMatch(compensatedPriceSetIds::contains);
+    }
+
+    @JsonIgnore
+    public boolean isPartiallyApplied() {
+        return productUpdated || !pricePairs.isEmpty() || !inventoryItemIds.isEmpty();
     }
 
     public PricingLine pricingLineForSku(String sku) {
@@ -198,6 +180,19 @@ public record UpdateSellableProductContext(
                 .filter(ref -> ref.sku().equals(sku))
                 .findFirst()
                 .orElse(null);
+    }
+
+    public String variantIdForSku(String sku) {
+        VariantRef variantRef = variantRefForSku(sku);
+        return variantRef == null ? null : variantRef.variantId();
+    }
+
+    public String resolvedVariantId(PricingLine pricingLine) {
+        if (pricingLine.variantId() != null && !pricingLine.variantId().isBlank()) {
+            return pricingLine.variantId();
+        }
+        VariantRef variantRef = variantRefForSku(pricingLine.sku());
+        return variantRef == null ? null : variantRef.variantId();
     }
 
     private List<PricingLine> assignVariantIds(List<VariantRef> refs) {
@@ -218,6 +213,36 @@ public record UpdateSellableProductContext(
             return line;
         }
         return line.withVariantId(match.variantId());
+    }
+
+    private UpdateSellableProductContext copy(
+            String newProductId,
+            List<PricingLine> newPricingLines,
+            List<VariantRef> newVariantRefs,
+            List<PricePair> newPricePairs,
+            List<String> newCreatedPriceSetIds,
+            List<String> newInventoryItemIds,
+            List<String> newCreatedInventoryItemIds,
+            boolean newProductUpdated,
+            Set<String> newCompensatedPriceSetIds
+    ) {
+        return new UpdateSellableProductContext(
+                merchantId,
+                createdBy,
+                scopeKey,
+                scopeId,
+                newProductId,
+                product,
+                inventoryLines,
+                newPricingLines,
+                newVariantRefs,
+                newPricePairs,
+                newCreatedPriceSetIds,
+                newInventoryItemIds,
+                newCreatedInventoryItemIds,
+                newProductUpdated,
+                newCompensatedPriceSetIds
+        );
     }
 
     public record Product(

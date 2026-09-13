@@ -1,6 +1,7 @@
 package com.grab.store.inventory.internal.event;
 
 import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
@@ -16,12 +17,13 @@ import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
+import com.inventory.infrastructure.workflow.InventoryWorkflowStepRunner;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -33,7 +35,7 @@ public class UpdateSellableProductInventoryEventListener {
 
     private final CommandBus commandBus;
     private final IdGenerator idGenerator;
-    private final ApplicationEventPublisher events;
+    private final InventoryWorkflowStepRunner signalEmitter;
 
     @EventListener
     public void onRequestSyncInventoryItem(RequestSyncInventoryItemEvent event) {
@@ -44,33 +46,39 @@ public class UpdateSellableProductInventoryEventListener {
                 event.locationId(),
                 event.op()
         );
-        try {
-            boolean created = event.op() == InventorySyncOp.CREATE;
-            InventoryItemResult result = dispatch(event);
-            events.publishEvent(new InventoryItemSyncedEvent(
-                    event.workflowId(),
-                    result.id(),
-                    result.sku(),
-                    result.locationId(),
-                    created,
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        } catch (RuntimeException exception) {
-            log.warn(
-                    "Sync inventory failed for workflowId={} sku={}: {}",
-                    event.workflowId(),
-                    event.sku(),
-                    exception.getMessage()
-            );
-            events.publishEvent(new SellableProductStepFailedEvent(
-                    event.workflowId(),
-                    STEP_SYNC_INVENTORY_ITEM,
-                    exception.getMessage(),
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        }
+        signalEmitter.runStep(
+                event.workflowId(),
+                () -> syncInventoryItem(event),
+                exception -> {
+                    log.warn(
+                            "Sync inventory failed for workflowId={} sku={}: {}",
+                            event.workflowId(),
+                            event.sku(),
+                            exception.getMessage()
+                    );
+                    return List.of(new SellableProductStepFailedEvent(
+                            event.workflowId(),
+                            STEP_SYNC_INVENTORY_ITEM,
+                            exception.getMessage(),
+                            Instant.now(),
+                            EVENT_VERSION
+                    ));
+                }
+        );
+    }
+
+    private List<Event> syncInventoryItem(RequestSyncInventoryItemEvent event) {
+        boolean created = event.op() == InventorySyncOp.CREATE;
+        InventoryItemResult result = dispatch(event);
+        return List.of(new InventoryItemSyncedEvent(
+                event.workflowId(),
+                result.id(),
+                result.sku(),
+                result.locationId(),
+                created,
+                Instant.now(),
+                EVENT_VERSION
+        ));
     }
 
     private InventoryItemResult dispatch(RequestSyncInventoryItemEvent event) {
@@ -91,7 +99,7 @@ public class UpdateSellableProductInventoryEventListener {
         InventorySyncPayload.CreateStock create = requirePayload(event.create(), "create");
         return commandBus.dispatch(new CreateInventoryCommand(
                 event.sku(),
-                null,
+                event.variantId(),
                 idGenerator.convertIdFrom(event.merchantId()),
                 idGenerator.convertIdFrom(event.locationId()),
                 create.initialQuantity(),

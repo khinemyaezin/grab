@@ -25,6 +25,7 @@ import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.grab.store.workflows.events.VariantPriceCreatedEvent;
 import com.grab.store.workflows.internal.workflows.createsellableproduct.CreateSellableProductContext;
 import com.grab.store.workflows.internal.workflows.createsellableproduct.CreateSellableProductDefinition;
+import com.grab.store.workflows.internal.workflows.createsellableproduct.CreateSellableProductTerminalContextAdapter;
 import com.grab.store.workflows.internal.workflows.createsellableproduct.CreateSellableProductWorkflowNames;
 import com.grab.store.workflows.internal.service.WorkflowTerminalLifecycleListener;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +72,10 @@ class CreateSellableProductDefinitionTest {
                         return new CommonId(id);
                     }
                 },
-                new WorkflowTerminalLifecycleListener(events)
+                new WorkflowTerminalLifecycleListener(
+                        events,
+                        List.of(new CreateSellableProductTerminalContextAdapter())
+                )
         );
     }
 

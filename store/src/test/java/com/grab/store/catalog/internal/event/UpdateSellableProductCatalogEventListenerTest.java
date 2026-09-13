@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.event;
 
+import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
@@ -7,6 +8,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.UpdateProductCommand;
 import com.grab.store.catalog.internal.command.UpdateProductResult;
+import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.RequestUpdateProductSetEvent;
 import com.grab.store.workflows.events.SellableProductProductUpdatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
@@ -22,13 +24,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UpdateSellableProductCatalogEventListenerTest {
 
     private List<Command<?>> dispatched;
-    private List<Object> published;
+    private FakeModuleOutbox outbox;
     private UpdateSellableProductCatalogEventListener listener;
 
     @BeforeEach
     void setUp() {
         dispatched = new ArrayList<>();
-        published = new ArrayList<>();
+        outbox = new FakeModuleOutbox();
         CommandBus commandBus = new CommandBus() {
             @Override
             @SuppressWarnings("unchecked")
@@ -50,7 +52,11 @@ class UpdateSellableProductCatalogEventListenerTest {
                 return null;
             }
         };
-        listener = new UpdateSellableProductCatalogEventListener(commandBus, idGenerator(), published::add);
+        listener = new UpdateSellableProductCatalogEventListener(
+                commandBus,
+                idGenerator(),
+                new CatalogWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
     }
 
     @Test
@@ -59,8 +65,8 @@ class UpdateSellableProductCatalogEventListenerTest {
 
         assertThat(dispatched).hasSize(1);
         assertThat(dispatched.getFirst()).isInstanceOf(UpdateProductCommand.class);
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(SellableProductProductUpdatedEvent.class, updated -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductProductUpdatedEvent.class, updated -> {
             assertThat(updated.workflowId()).isEqualTo("wf-1");
             assertThat(updated.productId()).isEqualTo("product-1");
             assertThat(updated.skus()).containsExactly("SKU-1");
@@ -71,19 +77,23 @@ class UpdateSellableProductCatalogEventListenerTest {
     }
 
     @Test
-    void onRequestUpdateProductSet_whenCommandFails_shouldPublishStepFailed() {
+    void onRequestUpdateProductSet_whenCommandFails_shouldCommitStepFailedOutsideTheRolledBackStep() {
         CommandBus failingBus = new CommandBus() {
             @Override
             public <R> R dispatch(Command<R> command) {
                 throw new IllegalStateException("boom");
             }
         };
-        listener = new UpdateSellableProductCatalogEventListener(failingBus, idGenerator(), published::add);
+        listener = new UpdateSellableProductCatalogEventListener(
+                failingBus,
+                idGenerator(),
+                new CatalogWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
 
         listener.onRequestUpdateProductSet(sampleEvent());
 
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
             assertThat(failed.workflowId()).isEqualTo("wf-1");
             assertThat(failed.step()).isEqualTo("update-product");
             assertThat(failed.message()).isEqualTo("boom");

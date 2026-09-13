@@ -1,6 +1,8 @@
 package com.grab.store.catalog.internal.event;
 
+import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
@@ -11,7 +13,6 @@ import com.grab.store.workflows.events.RequestUpdateProductSetEvent;
 import com.grab.store.workflows.events.SellableProductProductUpdatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -28,42 +29,48 @@ public class UpdateSellableProductCatalogEventListener {
 
     private final CommandBus commandBus;
     private final IdGenerator idGenerator;
-    private final ApplicationEventPublisher events;
+    private final CatalogWorkflowStepRunner signalEmitter;
 
     @EventListener
     public void onRequestUpdateProductSet(RequestUpdateProductSetEvent event) {
         log.info("Handling RequestUpdateProductSetEvent workflowId={} productId={}", event.workflowId(), event.productId());
-        try {
-            UpdateProductCommand command = toCommand(event);
-            UpdateProductResult result = commandBus.dispatch(command);
-            List<SellableProductProductUpdatedEvent.VariantRef> variants = result.variants().stream()
-                    .map(variant -> new SellableProductProductUpdatedEvent.VariantRef(
-                            variant.variantId(),
-                            variant.sku()
-                    ))
-                    .toList();
-            List<String> skus = variants.stream()
-                    .map(SellableProductProductUpdatedEvent.VariantRef::sku)
-                    .filter(sku -> sku != null && !sku.isBlank())
-                    .toList();
-            events.publishEvent(new SellableProductProductUpdatedEvent(
-                    event.workflowId(),
-                    result.productId(),
-                    skus,
-                    variants,
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        } catch (RuntimeException exception) {
-            log.warn("Update product set failed for workflowId={}: {}", event.workflowId(), exception.getMessage());
-            events.publishEvent(new SellableProductStepFailedEvent(
-                    event.workflowId(),
-                    STEP_UPDATE_PRODUCT,
-                    exception.getMessage(),
-                    Instant.now(),
-                    EVENT_VERSION
-            ));
-        }
+        signalEmitter.runStep(
+                event.workflowId(),
+                () -> updateProductSet(event),
+                exception -> {
+                    log.warn("Update product set failed for workflowId={}: {}", event.workflowId(), exception.getMessage());
+                    return List.of(new SellableProductStepFailedEvent(
+                            event.workflowId(),
+                            STEP_UPDATE_PRODUCT,
+                            exception.getMessage(),
+                            Instant.now(),
+                            EVENT_VERSION
+                    ));
+                }
+        );
+    }
+
+    private List<Event> updateProductSet(RequestUpdateProductSetEvent event) {
+        UpdateProductCommand command = toCommand(event);
+        UpdateProductResult result = commandBus.dispatch(command);
+        List<SellableProductProductUpdatedEvent.VariantRef> variants = result.variants().stream()
+                .map(variant -> new SellableProductProductUpdatedEvent.VariantRef(
+                        variant.variantId(),
+                        variant.sku()
+                ))
+                .toList();
+        List<String> skus = variants.stream()
+                .map(SellableProductProductUpdatedEvent.VariantRef::sku)
+                .filter(sku -> sku != null && !sku.isBlank())
+                .toList();
+        return List.of(new SellableProductProductUpdatedEvent(
+                event.workflowId(),
+                result.productId(),
+                skus,
+                variants,
+                Instant.now(),
+                EVENT_VERSION
+        ));
     }
 
     private UpdateProductCommand toCommand(RequestUpdateProductSetEvent event) {

@@ -7,7 +7,8 @@ public record WorkflowTerminalUiEvent(
         String workflowName,
         String status,
         String idempotencyKey,
-        String errorMessage
+        String errorMessage,
+        boolean partiallyApplied
 ) {
 
     public String subscriberKey() {
@@ -21,7 +22,8 @@ public record WorkflowTerminalUiEvent(
                 workflowName,
                 status,
                 idempotencyKey,
-                errorMessage
+                errorMessage,
+                partiallyApplied
         );
     }
 }
