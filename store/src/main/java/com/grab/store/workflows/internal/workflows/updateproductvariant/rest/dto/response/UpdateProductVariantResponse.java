@@ -1,5 +1,7 @@
 package com.grab.store.workflows.internal.workflows.updateproductvariant.rest.dto.response;
 
+import java.util.List;
+
 public record UpdateProductVariantResponse(
         String workflowId,
         String status,
@@ -7,8 +9,11 @@ public record UpdateProductVariantResponse(
         String productId,
         String variantId,
         String sku,
+        boolean variantUpdated,
         PricePair pricePair,
-        String inventoryItemId,
+        List<String> inventoryItemIds,
+        int compensatedPriceSetCount,
+        boolean partiallyApplied,
         String errorMessage
 ) {
 

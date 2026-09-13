@@ -1,5 +1,7 @@
 package com.grab.store.workflows.updateproductvariant;
 
+import com.grab.store.workflows.events.InventorySyncOp;
+import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.internal.workflows.updateproductvariant.UpdateProductVariantContext;
 import com.inventory.domain.enums.AdjustmentReason;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ class UpdateProductVariantContextTest {
         assertThat(updated.sku()).isEqualTo("SKU-1");
         assertThat(updated.catalogSku()).isEqualTo("NEW-SKU");
         assertThat(updated.skuForPrice()).isEqualTo("NEW-SKU");
+        assertThat(updated.variantUpdated()).isTrue();
     }
 
     @Test
@@ -39,11 +42,11 @@ class UpdateProductVariantContextTest {
         );
 
         assertThat(updated.pricePair().priceSetId()).isEqualTo("price-set-new");
-        assertThat(updated.createdPriceSetId()).isEqualTo("price-set-new");
+        assertThat(updated.createdPriceSetIds()).containsExactly("price-set-new");
     }
 
     @Test
-    void withPricePair_whenNotCreated_shouldLeaveCreatedPriceSetIdEmpty() {
+    void withPricePair_whenNotCreated_shouldLeaveCreatedPriceSetIdsEmpty() {
         UpdateProductVariantContext context = sampleContext();
 
         UpdateProductVariantContext updated = context.withPricePair(
@@ -51,11 +54,11 @@ class UpdateProductVariantContextTest {
                 false
         );
 
-        assertThat(updated.createdPriceSetId()).isNull();
+        assertThat(updated.createdPriceSetIds()).isEmpty();
     }
 
     @Test
-    void hasPriceAndAdjustStock_shouldFollowOptionalFields() {
+    void hasPriceAndInventory_shouldFollowOptionalFields() {
         UpdateProductVariantContext withBoth = sampleContext();
         UpdateProductVariantContext catalogOnly = UpdateProductVariantContext.createContext(
                 "merchant-1",
@@ -66,13 +69,22 @@ class UpdateProductVariantContextTest {
                 "variant-1",
                 "SKU-1",
                 null,
-                null
+                List.of()
         );
 
         assertThat(withBoth.hasPrice()).isTrue();
-        assertThat(withBoth.hasAdjustStock()).isTrue();
+        assertThat(withBoth.inventoryLines()).hasSize(1);
         assertThat(catalogOnly.hasPrice()).isFalse();
-        assertThat(catalogOnly.hasAdjustStock()).isFalse();
+        assertThat(catalogOnly.inventoryLines()).isEmpty();
+        assertThat(catalogOnly.priceSynced()).isTrue();
+        assertThat(catalogOnly.allInventoryItemsSynced()).isTrue();
+    }
+
+    @Test
+    void isPartiallyApplied_whenVariantUpdated_shouldBeTrue() {
+        UpdateProductVariantContext context = sampleContext().withVariantUpdated("SKU-1");
+
+        assertThat(context.isPartiallyApplied()).isTrue();
     }
 
     private static UpdateProductVariantContext sampleContext() {
@@ -92,7 +104,17 @@ class UpdateProductVariantContextTest {
                         null,
                         List.of()
                 ),
-                new UpdateProductVariantContext.AdjustStock("inv-1", 8, AdjustmentReason.CORRECTION)
+                List.of(new UpdateProductVariantContext.InventoryLine(
+                        "SKU-1",
+                        "loc-1",
+                        "inv-1",
+                        InventorySyncOp.ADJUST,
+                        null,
+                        new InventorySyncPayload.AdjustStock(8, AdjustmentReason.CORRECTION),
+                        null,
+                        null,
+                        null
+                ))
         );
     }
 }
