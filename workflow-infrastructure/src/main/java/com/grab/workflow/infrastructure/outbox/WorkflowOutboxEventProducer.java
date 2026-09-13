@@ -4,12 +4,13 @@ import com.grab.framework.domain.Event;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxDomainEventProducer;
 
 import java.util.List;
 
-public class WorkflowOutboxEventProducer extends JpaOutboxDomainEventProducer<WorkflowOutboxEvent> {
+public class WorkflowOutboxEventProducer extends JpaOutboxDomainEventProducer<WorkflowOutboxEvent, Long> {
 
     private static final Logger log = Loggers.getLogger(WorkflowOutboxEventProducer.class);
 
@@ -17,7 +18,15 @@ public class WorkflowOutboxEventProducer extends JpaOutboxDomainEventProducer<Wo
             OutboxStore<WorkflowOutboxEvent, Long> outboxStore,
             OutboxEventSerializer serializer
     ) {
-        super(outboxStore, serializer, WorkflowOutboxEvent::pending);
+        this(outboxStore, serializer, null);
+    }
+
+    public WorkflowOutboxEventProducer(
+            OutboxStore<WorkflowOutboxEvent, Long> outboxStore,
+            OutboxEventSerializer serializer,
+            OutboxRelay<Long> relay
+    ) {
+        super(outboxStore, serializer, WorkflowOutboxEvent::pending, relay);
     }
 
     @Override

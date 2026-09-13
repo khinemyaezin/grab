@@ -6,7 +6,9 @@ import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.framework.support.PersistenceExecutor;
+import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.identity.domain.repository.UserRepository;
@@ -70,12 +72,23 @@ public class IdentityInfraConfig {
         return applicationEventPublisher::publishEvent;
     }
 
+    @Bean("identityOutboxRelay")
+    public OutboxRelay<Long> identityOutboxRelay(
+            @Value("${identity.outbox.hot-queue.enabled:true}") boolean enabled,
+            @Value("${identity.outbox.hot-queue.workers:2}") int workers,
+            @Value("${identity.outbox.hot-queue.capacity:1000}") int capacity,
+            @Value("${identity.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    ) {
+        return OutboxRelays.moduleRelay("identity", enabled, workers, capacity, drainTimeoutMs);
+    }
+
     @Bean("identityDomainEventProducer")
     public DomainEventProducer identityDomainEventProducer(
             @Qualifier("identityOutboxStore") OutboxStore<IdentityOutboxEvent, Long> outboxStore,
-            @Qualifier("identityOutboxEventSerializer") OutboxEventSerializer serializer
+            @Qualifier("identityOutboxEventSerializer") OutboxEventSerializer serializer,
+            @Qualifier("identityOutboxRelay") OutboxRelay<Long> relay
     ) {
-        return new IdentityOutboxEventProducer(outboxStore, serializer);
+        return new IdentityOutboxEventProducer(outboxStore, serializer, relay);
     }
 
     @Bean("identityOutboxStore")
@@ -100,7 +113,8 @@ public class IdentityInfraConfig {
             @Value("${identity.outbox.batch-size:20}") int batchSize,
             @Value("${identity.outbox.retry-delay-ms:30000}") long retryDelayMs,
             @Value("${identity.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${identity.outbox.retention-ms:604800000}") long retentionMs
+            @Value("${identity.outbox.retention-ms:604800000}") long retentionMs,
+            @Qualifier("identityOutboxRelay") OutboxRelay<Long> relay
     ) {
         return new IdentityOutboxEventProcessor(
                 outboxStore,
@@ -110,7 +124,8 @@ public class IdentityInfraConfig {
                 batchSize,
                 Duration.ofMillis(retryDelayMs),
                 Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs)
+                Duration.ofMillis(retentionMs),
+                relay
         );
     }
 

@@ -2,6 +2,7 @@ package com.pricing.infrastructure.outbox;
 
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.AbstractOutboxProcessor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,7 +21,21 @@ public class PricingOutboxEventProcessor extends AbstractOutboxProcessor<Pricing
             Duration claimTimeout,
             Duration retention
     ) {
-        super(store, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention);
+        this(store, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, OutboxRelay.noop());
+    }
+
+    public PricingOutboxEventProcessor(
+            OutboxStore<PricingOutboxEvent, Long> store,
+            OutboxEventSerializer serializer,
+            OutboxEventDispatcher dispatcher,
+            PlatformTransactionManager transactionManager,
+            int batchSize,
+            Duration retryDelay,
+            Duration claimTimeout,
+            Duration retention,
+            OutboxRelay<Long> relay
+    ) {
+        super(store, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, relay);
     }
 
     @Scheduled(fixedDelayString = "${pricing.outbox.fixed-delay-ms:5000}")

@@ -6,7 +6,9 @@ import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.framework.support.PersistenceExecutor;
+import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.pricing.domain.repository.PriceListRepository;
@@ -67,12 +69,23 @@ public class PricingInfraConfig {
         );
     }
 
+    @Bean("pricingOutboxRelay")
+    OutboxRelay<Long> pricingOutboxRelay(
+            @Value("${pricing.outbox.hot-queue.enabled:true}") boolean enabled,
+            @Value("${pricing.outbox.hot-queue.workers:2}") int workers,
+            @Value("${pricing.outbox.hot-queue.capacity:1000}") int capacity,
+            @Value("${pricing.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    ) {
+        return OutboxRelays.moduleRelay("pricing", enabled, workers, capacity, drainTimeoutMs);
+    }
+
     @Bean("pricingDomainEventProducer")
     DomainEventProducer domainEventProducer(
             @Qualifier("pricingOutboxStore") OutboxStore<PricingOutboxEvent, Long> store,
-            @Qualifier("pricingOutboxEventSerializer") OutboxEventSerializer serializer
+            @Qualifier("pricingOutboxEventSerializer") OutboxEventSerializer serializer,
+            @Qualifier("pricingOutboxRelay") OutboxRelay<Long> relay
     ) {
-        return new PricingOutboxEventProducer(store, serializer);
+        return new PricingOutboxEventProducer(store, serializer, relay);
     }
 
     @Bean
@@ -84,7 +97,8 @@ public class PricingInfraConfig {
             @Value("${pricing.outbox.batch-size:20}") int batchSize,
             @Value("${pricing.outbox.retry-delay-ms:30000}") long retryDelay,
             @Value("${pricing.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${pricing.outbox.retention-ms:604800000}") long retention
+            @Value("${pricing.outbox.retention-ms:604800000}") long retention,
+            @Qualifier("pricingOutboxRelay") OutboxRelay<Long> relay
     ) {
         return new PricingOutboxEventProcessor(
                 store,
@@ -94,7 +108,8 @@ public class PricingInfraConfig {
                 batchSize,
                 Duration.ofMillis(retryDelay),
                 Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention)
+                Duration.ofMillis(retention),
+                relay
         );
     }
 

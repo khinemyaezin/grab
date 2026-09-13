@@ -33,6 +33,11 @@ catalog:
     retry-delay-ms: ${CATALOG_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${CATALOG_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${CATALOG_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${CATALOG_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${CATALOG_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${CATALOG_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${CATALOG_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
 
 inventory:
   seed:
@@ -56,6 +61,11 @@ inventory:
     retry-delay-ms: ${INVENTORY_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${INVENTORY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${INVENTORY_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${INVENTORY_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${INVENTORY_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${INVENTORY_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${INVENTORY_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
   reservation:
     expiry:
       fixed-delay-ms: ${INVENTORY_RESERVATION_EXPIRY_FIXED_DELAY_MS:60000}
@@ -83,6 +93,11 @@ identity:
     retry-delay-ms: ${IDENTITY_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${IDENTITY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${IDENTITY_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${IDENTITY_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${IDENTITY_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${IDENTITY_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${IDENTITY_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
 
 merchant:
   enabled: ${MERCHANT_ENABLED:true}
@@ -103,6 +118,11 @@ merchant:
     retry-delay-ms: ${MERCHANT_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${MERCHANT_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${MERCHANT_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${MERCHANT_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${MERCHANT_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${MERCHANT_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${MERCHANT_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
 
 pricing:
   enabled: ${PRICING_ENABLED:true}
@@ -125,6 +145,11 @@ pricing:
     retry-delay-ms: ${PRICING_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${PRICING_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${PRICING_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${PRICING_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${PRICING_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${PRICING_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${PRICING_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
 workflows:
   seed:
     enabled: ${WORKFLOW_SEED_ENABLED:true}
@@ -149,6 +174,11 @@ workflows:
     retry-delay-ms: ${WORKFLOWS_OUTBOX_RETRY_DELAY_MS:30000}
     claim-timeout-ms: ${WORKFLOWS_OUTBOX_CLAIM_TIMEOUT_MS:120000}
     retention-ms: ${WORKFLOWS_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${WORKFLOWS_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${WORKFLOWS_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${WORKFLOWS_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${WORKFLOWS_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
 
 security:
   enabled: ${API_SECURITY:true}

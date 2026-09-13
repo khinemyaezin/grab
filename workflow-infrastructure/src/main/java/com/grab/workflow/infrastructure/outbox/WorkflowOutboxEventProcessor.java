@@ -4,6 +4,7 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.AbstractOutboxProcessor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,7 +26,21 @@ public class WorkflowOutboxEventProcessor extends AbstractOutboxProcessor<Workfl
             Duration claimTimeout,
             Duration retention
     ) {
-        super(outboxStore, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention);
+        this(outboxStore, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, OutboxRelay.noop());
+    }
+
+    public WorkflowOutboxEventProcessor(
+            OutboxStore<WorkflowOutboxEvent, Long> outboxStore,
+            OutboxEventSerializer serializer,
+            OutboxEventDispatcher dispatcher,
+            PlatformTransactionManager transactionManager,
+            int batchSize,
+            Duration retryDelay,
+            Duration claimTimeout,
+            Duration retention,
+            OutboxRelay<Long> relay
+    ) {
+        super(outboxStore, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, relay);
     }
 
     @Scheduled(fixedDelayString = "${workflows.outbox.fixed-delay-ms:5000}")

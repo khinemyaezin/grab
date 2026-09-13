@@ -22,5 +22,12 @@ public interface OutboxStore<T extends OutboxEntry<ID>, ID> {
 
     Optional<T> findById(ID id);
 
+    default Optional<T> findByIdForUpdate(ID id) {
+        return findById(id);
+    }
+
+    default void flush() {
+    }
+
     void deletePublishedOlderThan(LocalDateTime cutoff);
 }

@@ -445,3 +445,6 @@ For service extraction:
 2. replace in-process dispatcher with broker-backed dispatcher
 3. replace Java serialization with a service-safe wire format
 4. keep idempotency checks on consuming side
+
+Delivery latency after commit is covered by [ADR-011 — Outbox Hot Queue](./ADR_011-Outbox_hot_queue.md): afterCommit enqueue onto a per-module hot queue, with the `@Scheduled` processor as the cold fallback.
+

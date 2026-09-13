@@ -5,9 +5,11 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.framework.workflow.*;
 import com.grab.framework.workflow.impl.EventDrivenWorkflowEngine;
 import com.grab.framework.workflow.support.WorkflowPayloadCodec;
+import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.grab.workflow.infrastructure.mapper.WorkflowInstanceMapper;
@@ -67,12 +69,23 @@ public class WorkflowInfraConfig {
         );
     }
 
+    @Bean("workflowOutboxRelay")
+    public OutboxRelay<Long> workflowOutboxRelay(
+            @Value("${workflows.outbox.hot-queue.enabled:true}") boolean enabled,
+            @Value("${workflows.outbox.hot-queue.workers:2}") int workers,
+            @Value("${workflows.outbox.hot-queue.capacity:1000}") int capacity,
+            @Value("${workflows.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    ) {
+        return OutboxRelays.moduleRelay("workflow", enabled, workers, capacity, drainTimeoutMs);
+    }
+
     @Bean("workflowDomainEventProducer")
     public DomainEventProducer workflowDomainEventProducer(
             @Qualifier("workflowOutboxStore") OutboxStore<WorkflowOutboxEvent, Long> outboxStore,
-            @Qualifier("workflowOutboxEventSerializer") OutboxEventSerializer serializer
+            @Qualifier("workflowOutboxEventSerializer") OutboxEventSerializer serializer,
+            @Qualifier("workflowOutboxRelay") OutboxRelay<Long> relay
     ) {
-        return new WorkflowOutboxEventProducer(outboxStore, serializer);
+        return new WorkflowOutboxEventProducer(outboxStore, serializer, relay);
     }
 
     @Bean
@@ -84,7 +97,8 @@ public class WorkflowInfraConfig {
             @Value("${workflows.outbox.batch-size:20}") int batchSize,
             @Value("${workflows.outbox.retry-delay-ms:30000}") long retryDelayMs,
             @Value("${workflows.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${workflows.outbox.retention-ms:604800000}") long retentionMs
+            @Value("${workflows.outbox.retention-ms:604800000}") long retentionMs,
+            @Qualifier("workflowOutboxRelay") OutboxRelay<Long> relay
     ) {
         return new WorkflowOutboxEventProcessor(
                 outboxStore,
@@ -94,7 +108,8 @@ public class WorkflowInfraConfig {
                 batchSize,
                 Duration.ofMillis(retryDelayMs),
                 Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs)
+                Duration.ofMillis(retentionMs),
+                relay
         );
     }
 
