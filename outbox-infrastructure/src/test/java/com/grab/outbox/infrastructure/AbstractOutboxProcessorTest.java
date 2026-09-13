@@ -5,6 +5,7 @@ import com.grab.framework.logger.slf4j.TraceContext;
 import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.outbox.SerializedEvent;
 import org.junit.jupiter.api.AfterEach;
@@ -20,11 +21,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -58,6 +62,7 @@ class AbstractOutboxProcessorTest {
     @AfterEach
     void clearMdc() {
         TraceContext.clear();
+        processor.destroy();
     }
 
     @Test
@@ -120,6 +125,82 @@ class AbstractOutboxProcessorTest {
         assertNull(TraceContext.current());
     }
 
+    @Test
+    void hotQueue_claimsByIdAndPublishes() throws Exception {
+        DualQueueOutboxRelay<Long> hotRelay = new DualQueueOutboxRelay<>("test", 1, 8, 8, Duration.ofSeconds(1));
+        TestProcessor hotProcessor = new TestProcessor(
+                outboxStore,
+                serializer,
+                dispatcher,
+                new NoOpTransactionManager(),
+                10,
+                Duration.ofSeconds(30),
+                Duration.ofMinutes(2),
+                Duration.ofDays(7),
+                hotRelay
+        );
+        try {
+            Event payload = new DummyEvent();
+            StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
+            CountDownLatch dispatched = new CountDownLatch(1);
+            when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
+            when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
+            when(serializer.deserialize(new SerializedEvent("type", "payload", 1, "{}")))
+                    .thenReturn(payload);
+            org.mockito.Mockito.doAnswer(invocation -> {
+                dispatched.countDown();
+                return null;
+            }).when(dispatcher).dispatch(payload);
+
+            assertTrue(hotRelay.enqueueHot(1L));
+            assertTrue(dispatched.await(2, TimeUnit.SECONDS));
+            awaitStatus(outboxEvent, OutboxStatus.PUBLISHED);
+        } finally {
+            hotProcessor.destroy();
+        }
+    }
+
+    @Test
+    void processAvailableEvents_withRelay_enqueuesColdAndPublishes() throws Exception {
+        DualQueueOutboxRelay<Long> coldRelay = new DualQueueOutboxRelay<>("test-cold", 1, 8, 8, Duration.ofSeconds(1));
+        TestProcessor coldProcessor = new TestProcessor(
+                outboxStore,
+                serializer,
+                dispatcher,
+                new NoOpTransactionManager(),
+                10,
+                Duration.ofSeconds(30),
+                Duration.ofMinutes(2),
+                Duration.ofDays(7),
+                coldRelay
+        );
+        try {
+            Event payload = new DummyEvent();
+            StubOutboxEvent outboxEvent = new StubOutboxEvent(2L, "{}");
+            CountDownLatch dispatched = new CountDownLatch(1);
+            when(outboxStore.findBatchForProcessing(
+                    eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
+                    eq(OutboxStatus.PROCESSING),
+                    any(LocalDateTime.class),
+                    any(LocalDateTime.class),
+                    eq(8)
+            )).thenReturn(List.of(outboxEvent));
+            when(outboxStore.findById(2L)).thenReturn(Optional.of(outboxEvent));
+            when(serializer.deserialize(new SerializedEvent("type", "payload", 1, "{}")))
+                    .thenReturn(payload);
+            org.mockito.Mockito.doAnswer(invocation -> {
+                dispatched.countDown();
+                return null;
+            }).when(dispatcher).dispatch(payload);
+
+            coldProcessor.process();
+            assertTrue(dispatched.await(2, TimeUnit.SECONDS));
+            awaitStatus(outboxEvent, OutboxStatus.PUBLISHED);
+        } finally {
+            coldProcessor.destroy();
+        }
+    }
+
     private static final class TestProcessor extends AbstractOutboxProcessor<StubOutboxEvent, Long> {
         private TestProcessor(
                 OutboxStore<StubOutboxEvent, Long> outboxStore,
@@ -134,9 +215,31 @@ class AbstractOutboxProcessorTest {
             super(outboxStore, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention);
         }
 
+        private TestProcessor(
+                OutboxStore<StubOutboxEvent, Long> outboxStore,
+                OutboxEventSerializer serializer,
+                OutboxEventDispatcher dispatcher,
+                PlatformTransactionManager transactionManager,
+                int batchSize,
+                Duration retryDelay,
+                Duration claimTimeout,
+                Duration retention,
+                OutboxRelay<Long> relay
+        ) {
+            super(outboxStore, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, relay);
+        }
+
         void process() {
             processAvailableEvents();
         }
+    }
+
+    private static void awaitStatus(StubOutboxEvent event, OutboxStatus expected) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (event.getStatus() != expected && System.nanoTime() < deadline) {
+            Thread.sleep(10);
+        }
+        assertEquals(expected, event.getStatus());
     }
 
     private record DummyEvent() implements Event {
@@ -186,6 +289,11 @@ class AbstractOutboxProcessorTest {
         @Override
         public String getClaimToken() {
             return claimToken;
+        }
+
+        @Override
+        public LocalDateTime getAvailableAt() {
+            return LocalDateTime.now().minusSeconds(1);
         }
 
         @Override

@@ -31,6 +31,7 @@ public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStor
         }
 
         events.forEach(entityManager::persist);
+        entityManager.flush();
     }
 
     @Override
@@ -63,6 +64,16 @@ public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStor
     @Override
     public Optional<T> findById(ID id) {
         return Optional.ofNullable(entityManager.find(entityType, id));
+    }
+
+    @Override
+    public Optional<T> findByIdForUpdate(ID id) {
+        return Optional.ofNullable(entityManager.find(entityType, id, LockModeType.PESSIMISTIC_WRITE));
+    }
+
+    @Override
+    public void flush() {
+        entityManager.flush();
     }
 
     @Override

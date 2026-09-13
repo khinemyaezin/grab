@@ -18,6 +18,8 @@ public interface OutboxEntry<ID> {
 
     String getClaimToken();
 
+    LocalDateTime getAvailableAt();
+
     void markProcessing(LocalDateTime now, String claimToken);
 
     void markPublished(LocalDateTime now);

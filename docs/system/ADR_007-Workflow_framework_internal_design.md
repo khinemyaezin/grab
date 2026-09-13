@@ -1,7 +1,7 @@
 # ADR-007: Workflow Framework Internal Design
 
 ## Status
-Accepted (July 22, 2026). Updated September 11, 2026.
+Updated September 12, 2026: outbox delivery uses a hot queue after commit; the `@Scheduled` processor is the cold fallback (ADR-011).
 
 Production runs use `EventDrivenWorkflowEngine`. `DefaultWorkflowRunner` is deprecated and is not a bean.
 
@@ -391,8 +391,10 @@ flowchart TB
         Call --> Dedup
         Call --> WOut
     end
-    Tx1 -->|"after commit"| Processor["WorkflowOutboxEventProcessor"]
-    Processor -->|"in-JVM event"| Listener["BC request listener"]
+    Tx1 -->|"after commit"| Hot["workflow hot queue"]
+    Hot --> Workers["relay workers"]
+    Workers -->|"in-JVM event"| Listener["BC request listener"]
+    Poller["@Scheduled poller"] -->|"cold queue"| Workers
 ```
 
 ### TX 2 — module success
@@ -410,8 +412,10 @@ flowchart TB
         Work --> MOut
     end
     Emitter["WorkflowSignalEmitter.runStep"] --> Tx2
-    Tx2 -->|"after commit"| ModProc["module outbox processor"]
-    ModProc -->|"WorkflowSignalEvent"| Inbox["WorkflowSignalInbox"]
+    Tx2 -->|"after commit"| Hot["module hot queue"]
+    Hot --> Workers["relay workers"]
+    Workers -->|"WorkflowSignalEvent"| Inbox["WorkflowSignalInbox"]
+    Poller["@Scheduled poller"] -->|"cold queue"| Workers
     Inbox -->|"TX 1 again"| Engine["engine.onSignal"]
 ```
 
@@ -429,7 +433,9 @@ flowchart TB
         FailOut["module outbox: failure signal"]
     end
     FailCmd -->|"catch"| Tx3
-    Tx3 -->|"after commit"| Inbox2["WorkflowSignalInbox"]
+    Tx3 -->|"after commit"| HotFail["module hot queue"]
+    HotFail --> WorkersFail["relay workers"]
+    WorkersFail -->|"WorkflowSignalEvent"| Inbox2["WorkflowSignalInbox"]
     Inbox2 -->|"TX 1"| Compensate["engine begins COMPENSATING"]
 ```
 
@@ -505,6 +511,9 @@ workflow-infrastructure/
   workflow_correlation, workflow_signal_log
   OutboxWorkflowSignalPublisher, WorkflowOutboxEventProcessor
 
+outbox-infrastructure/
+  DualQueueOutboxRelay, SpringOutboxCommitHook
+
 store/.../workflows/
   WorkflowConfiguration          — registry from List<WorkflowProcess<?>>
   WorkflowSignalInbox            — one listener on WorkflowSignalEvent
@@ -542,5 +551,6 @@ store/.../{catalog|pricing|inventory}/internal/event/
 
 - ADR-006 — when to use orchestration vs choreography
 - ADR-002 — module-scoped transactional outbox
+- ADR-011 — outbox hot queue (afterCommit wake + poller fallback)
 - ADR-009 — terminal UI notifications from `WorkflowLifecycleListener`
 - Flyway: `db/migration/workflows/V0__create_workflow_instance.sql`, `V1__workflow_engine.sql`

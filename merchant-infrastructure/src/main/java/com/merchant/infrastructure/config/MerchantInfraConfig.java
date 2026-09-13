@@ -4,6 +4,7 @@ import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.*;
 import com.grab.framework.support.PersistenceExecutor;
+import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.merchant.domain.repository.MerchantAccountRepository;
@@ -40,11 +41,22 @@ public class MerchantInfraConfig {
         );
     }
 
+    @Bean("merchantOutboxRelay")
+    OutboxRelay<Long> merchantOutboxRelay(
+            @Value("${merchant.outbox.hot-queue.enabled:true}") boolean enabled,
+            @Value("${merchant.outbox.hot-queue.workers:2}") int workers,
+            @Value("${merchant.outbox.hot-queue.capacity:1000}") int capacity,
+            @Value("${merchant.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    ) {
+        return OutboxRelays.moduleRelay("merchant", enabled, workers, capacity, drainTimeoutMs);
+    }
+
     @Bean("merchantDomainEventProducer")
     DomainEventProducer domainEventProducer(
             @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store,
-            @Qualifier("merchantOutboxEventSerializer") OutboxEventSerializer serializer) {
-        return new MerchantOutboxEventProducer(store, serializer);
+            @Qualifier("merchantOutboxEventSerializer") OutboxEventSerializer serializer,
+            @Qualifier("merchantOutboxRelay") OutboxRelay<Long> relay) {
+        return new MerchantOutboxEventProducer(store, serializer, relay);
     }
 
     @Bean
@@ -56,10 +68,12 @@ public class MerchantInfraConfig {
             @Value("${merchant.outbox.batch-size:20}") int batchSize,
             @Value("${merchant.outbox.retry-delay-ms:30000}") long retryDelay,
             @Value("${merchant.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${merchant.outbox.retention-ms:604800000}") long retention) {
+            @Value("${merchant.outbox.retention-ms:604800000}") long retention,
+            @Qualifier("merchantOutboxRelay") OutboxRelay<Long> relay) {
         return new MerchantOutboxEventProcessor(
                 store, serializer, dispatcher, transactionManager, batchSize,
-                Duration.ofMillis(retryDelay), Duration.ofMillis(claimTimeout), Duration.ofMillis(retention)
+                Duration.ofMillis(retryDelay), Duration.ofMillis(claimTimeout), Duration.ofMillis(retention),
+                relay
         );
     }
 

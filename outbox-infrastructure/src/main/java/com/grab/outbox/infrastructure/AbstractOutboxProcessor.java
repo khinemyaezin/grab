@@ -7,8 +7,12 @@ import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventHeaders;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.framework.outbox.OutboxStatus;
+import com.grab.framework.outbox.OutboxWorkSource;
+import com.grab.framework.outbox.QueuedOutboxWork;
 import com.grab.framework.outbox.SerializedEvent;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -16,9 +20,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
+public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> implements DisposableBean {
 
     private static final int MAX_ERROR_LENGTH = 2000;
 
@@ -32,6 +37,7 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
     private final Duration retryDelay;
     private final Duration claimTimeout;
     private final Duration retention;
+    private final OutboxRelay<ID> relay;
 
     protected AbstractOutboxProcessor(
             OutboxStore<T, ID> outboxStore,
@@ -43,6 +49,30 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
             Duration claimTimeout,
             Duration retention
     ) {
+        this(
+                outboxStore,
+                serializer,
+                dispatcher,
+                transactionManager,
+                batchSize,
+                retryDelay,
+                claimTimeout,
+                retention,
+                OutboxRelay.noop()
+        );
+    }
+
+    protected AbstractOutboxProcessor(
+            OutboxStore<T, ID> outboxStore,
+            OutboxEventSerializer serializer,
+            OutboxEventDispatcher dispatcher,
+            PlatformTransactionManager transactionManager,
+            int batchSize,
+            Duration retryDelay,
+            Duration claimTimeout,
+            Duration retention,
+            OutboxRelay<ID> relay
+    ) {
         this.outboxStore = outboxStore;
         this.serializer = serializer;
         this.dispatcher = dispatcher;
@@ -50,17 +80,40 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
         this.retryDelay = retryDelay;
         this.claimTimeout = claimTimeout;
         this.retention = retention;
+        this.relay = relay == null ? OutboxRelay.noop() : relay;
         this.claimTransactionTemplate = new TransactionTemplate(transactionManager);
         this.publishTransactionTemplate = new TransactionTemplate(transactionManager);
         this.publishTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         this.cleanupTransactionTemplate = new TransactionTemplate(transactionManager);
         this.cleanupTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        if (this.relay.isActive()) {
+            this.relay.setHandler(this::handleQueuedWork);
+            this.relay.start();
+        }
+    }
+
+    @Override
+    public void destroy() {
+        relay.stop();
     }
 
     protected void processAvailableEvents() {
-        List<ClaimedOutboxEvent<ID>> claimedEvents = claimBatch();
+        if (!relay.isActive()) {
+            List<ClaimedOutboxEvent<ID>> claimedEvents = claimBatch(batchSize);
+            for (ClaimedOutboxEvent<ID> claimedEvent : claimedEvents) {
+                publishEvent(claimedEvent);
+            }
+            return;
+        }
+        int capacity = relay.coldQueueRemainingCapacity();
+        if (capacity <= 0) {
+            return;
+        }
+        List<ClaimedOutboxEvent<ID>> claimedEvents = claimBatch(Math.min(batchSize, capacity));
         for (ClaimedOutboxEvent<ID> claimedEvent : claimedEvents) {
-            publishEvent(claimedEvent);
+            if (!relay.enqueueCold(claimedEvent)) {
+                break;
+            }
         }
     }
 
@@ -69,7 +122,18 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
                 outboxStore.deletePublishedOlderThan(LocalDateTime.now().minus(retention)));
     }
 
-    private List<ClaimedOutboxEvent<ID>> claimBatch() {
+    private void handleQueuedWork(QueuedOutboxWork<ID> work) {
+        if (work.source() == OutboxWorkSource.COLD) {
+            publishEvent(new ClaimedOutboxEvent<>(work.id(), work.claimToken()));
+            return;
+        }
+        claimById(work.id()).ifPresent(this::publishEvent);
+    }
+
+    private List<ClaimedOutboxEvent<ID>> claimBatch(int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
         List<ClaimedOutboxEvent<ID>> claimedEvents = claimTransactionTemplate.execute(status -> {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime staleBefore = now.minus(claimTimeout);
@@ -79,7 +143,7 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
                     OutboxStatus.PROCESSING,
                     now,
                     staleBefore,
-                    batchSize
+                    limit
             );
 
             return events.stream()
@@ -92,6 +156,30 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> {
         });
 
         return claimedEvents == null ? List.of() : claimedEvents;
+    }
+
+    private Optional<ClaimedOutboxEvent<ID>> claimById(ID id) {
+        ClaimedOutboxEvent<ID> claimed = claimTransactionTemplate.execute(status -> {
+            LocalDateTime now = LocalDateTime.now();
+            return outboxStore.findByIdForUpdate(id)
+                    .filter(event -> isHotClaimable(event, now))
+                    .map(event -> {
+                        String claimToken = UUID.randomUUID().toString();
+                        event.markProcessing(now, claimToken);
+                        return new ClaimedOutboxEvent<>(event.getId(), claimToken);
+                    })
+                    .orElse(null);
+        });
+        return Optional.ofNullable(claimed);
+    }
+
+    private boolean isHotClaimable(T event, LocalDateTime now) {
+        LocalDateTime availableAt = event.getAvailableAt();
+        if (availableAt != null && availableAt.isAfter(now)) {
+            return false;
+        }
+        OutboxStatus status = event.getStatus();
+        return status == OutboxStatus.NEW || status == OutboxStatus.FAILED;
     }
 
     private void publishEvent(ClaimedOutboxEvent<ID> claimedEvent) {

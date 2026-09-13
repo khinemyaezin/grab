@@ -126,6 +126,11 @@ public class WorkflowOutboxEvent implements OutboxEntry<Long> {
     }
 
     @Override
+    public LocalDateTime getAvailableAt() {
+        return availableAt;
+    }
+
+    @Override
     public void markProcessing(LocalDateTime now, String claimToken) {
         status = OutboxStatus.PROCESSING;
         claimedAt = now;

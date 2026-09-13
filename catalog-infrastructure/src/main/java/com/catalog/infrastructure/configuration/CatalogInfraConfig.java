@@ -31,8 +31,10 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.catalog.infrastructure.mapper.jpa.impl.ProductJpaAssemblerImpl;
 import com.catalog.infrastructure.repository.jpa.impl.CatalogPersistenceExecutor;
@@ -64,12 +66,23 @@ public class CatalogInfraConfig {
         return applicationEventPublisher::publishEvent;
     }
 
+    @Bean("catalogOutboxRelay")
+    public OutboxRelay<Long> catalogOutboxRelay(
+            @Value("${catalog.outbox.hot-queue.enabled:true}") boolean enabled,
+            @Value("${catalog.outbox.hot-queue.workers:2}") int workers,
+            @Value("${catalog.outbox.hot-queue.capacity:1000}") int capacity,
+            @Value("${catalog.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    ) {
+        return OutboxRelays.moduleRelay("catalog", enabled, workers, capacity, drainTimeoutMs);
+    }
+
     @Bean("catalogDomainEventProducer")
     public DomainEventProducer catalogDomainEventProducer(
             @Qualifier("catalogOutboxStore") OutboxStore<CatalogOutboxEvent, Long> outboxStore,
-            @Qualifier("catalogOutboxEventSerializer") OutboxEventSerializer serializer
+            @Qualifier("catalogOutboxEventSerializer") OutboxEventSerializer serializer,
+            @Qualifier("catalogOutboxRelay") OutboxRelay<Long> relay
     ) {
-        return new CatalogOutboxEventProducer(outboxStore, serializer);
+        return new CatalogOutboxEventProducer(outboxStore, serializer, relay);
     }
 
     @Bean("catalogOutboxStore")
@@ -94,7 +107,8 @@ public class CatalogInfraConfig {
             @Value("${catalog.outbox.batch-size:20}") int batchSize,
             @Value("${catalog.outbox.retry-delay-ms:30000}") long retryDelayMs,
             @Value("${catalog.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${catalog.outbox.retention-ms:604800000}") long retentionMs
+            @Value("${catalog.outbox.retention-ms:604800000}") long retentionMs,
+            @Qualifier("catalogOutboxRelay") OutboxRelay<Long> relay
     ) {
         return new CatalogOutboxEventProcessor(
                 outboxStore,
@@ -104,7 +118,8 @@ public class CatalogInfraConfig {
                 batchSize,
                 Duration.ofMillis(retryDelayMs),
                 Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs)
+                Duration.ofMillis(retentionMs),
+                relay
         );
     }
 

@@ -4,12 +4,13 @@ import com.grab.framework.domain.Event;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxDomainEventProducer;
 
 import java.util.List;
 
-public class InventoryOutboxEventProducer extends JpaOutboxDomainEventProducer<InventoryOutboxEvent> {
+public class InventoryOutboxEventProducer extends JpaOutboxDomainEventProducer<InventoryOutboxEvent, Long> {
 
     private static final Logger log = Loggers.getLogger(InventoryOutboxEventProducer.class);
 
@@ -17,10 +18,19 @@ public class InventoryOutboxEventProducer extends JpaOutboxDomainEventProducer<I
             OutboxStore<InventoryOutboxEvent, Long> outboxStore,
             OutboxEventSerializer serializer
     ) {
+        this(outboxStore, serializer, null);
+    }
+
+    public InventoryOutboxEventProducer(
+            OutboxStore<InventoryOutboxEvent, Long> outboxStore,
+            OutboxEventSerializer serializer,
+            OutboxRelay<Long> relay
+    ) {
         super(
                 outboxStore,
                 serializer,
-                InventoryOutboxEvent::pending
+                InventoryOutboxEvent::pending,
+                relay
         );
     }
 

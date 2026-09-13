@@ -4,8 +4,10 @@ import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.framework.support.PersistenceExecutor;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.inventory.infrastructure.mapper.jpa.*;
 import com.inventory.infrastructure.mapper.jpa.impl.BinJpaAssemblerImpl;
@@ -71,12 +73,23 @@ public class InventoryInfraConfig {
         return applicationEventPublisher::publishEvent;
     }
 
+    @Bean("inventoryOutboxRelay")
+    public OutboxRelay<Long> inventoryOutboxRelay(
+            @Value("${inventory.outbox.hot-queue.enabled:true}") boolean enabled,
+            @Value("${inventory.outbox.hot-queue.workers:2}") int workers,
+            @Value("${inventory.outbox.hot-queue.capacity:1000}") int capacity,
+            @Value("${inventory.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    ) {
+        return OutboxRelays.moduleRelay("inventory", enabled, workers, capacity, drainTimeoutMs);
+    }
+
     @Bean("inventoryDomainEventProducer")
     public DomainEventProducer inventoryDomainEventProducer(
             @Qualifier("inventoryOutboxStore") OutboxStore<InventoryOutboxEvent, Long> outboxStore,
-            @Qualifier("inventoryOutboxEventSerializer") OutboxEventSerializer serializer
+            @Qualifier("inventoryOutboxEventSerializer") OutboxEventSerializer serializer,
+            @Qualifier("inventoryOutboxRelay") OutboxRelay<Long> relay
     ) {
-        return new InventoryOutboxEventProducer(outboxStore, serializer);
+        return new InventoryOutboxEventProducer(outboxStore, serializer, relay);
     }
 
     @Bean("inventoryOutboxStore")
@@ -96,7 +109,8 @@ public class InventoryInfraConfig {
             @Value("${inventory.outbox.batch-size:20}") int batchSize,
             @Value("${inventory.outbox.retry-delay-ms:30000}") long retryDelayMs,
             @Value("${inventory.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${inventory.outbox.retention-ms:604800000}") long retentionMs
+            @Value("${inventory.outbox.retention-ms:604800000}") long retentionMs,
+            @Qualifier("inventoryOutboxRelay") OutboxRelay<Long> relay
     ) {
         return new InventoryOutboxEventProcessor(
                 outboxStore,
@@ -106,7 +120,8 @@ public class InventoryInfraConfig {
                 batchSize,
                 Duration.ofMillis(retryDelayMs),
                 Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs)
+                Duration.ofMillis(retentionMs),
+                relay
         );
     }
 

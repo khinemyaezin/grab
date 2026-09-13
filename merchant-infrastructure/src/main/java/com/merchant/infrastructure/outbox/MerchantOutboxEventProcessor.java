@@ -2,6 +2,7 @@ package com.merchant.infrastructure.outbox;
 
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.AbstractOutboxProcessor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,7 +17,17 @@ public class MerchantOutboxEventProcessor extends AbstractOutboxProcessor<Mercha
                                         PlatformTransactionManager transactionManager,
                                         int batchSize, Duration retryDelay,
                                         Duration claimTimeout, Duration retention) {
-        super(store, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention);
+        this(store, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, OutboxRelay.noop());
+    }
+
+    public MerchantOutboxEventProcessor(OutboxStore<MerchantOutboxEvent, Long> store,
+                                        OutboxEventSerializer serializer,
+                                        OutboxEventDispatcher dispatcher,
+                                        PlatformTransactionManager transactionManager,
+                                        int batchSize, Duration retryDelay,
+                                        Duration claimTimeout, Duration retention,
+                                        OutboxRelay<Long> relay) {
+        super(store, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, relay);
     }
 
     @Scheduled(fixedDelayString = "${merchant.outbox.fixed-delay-ms:5000}")
