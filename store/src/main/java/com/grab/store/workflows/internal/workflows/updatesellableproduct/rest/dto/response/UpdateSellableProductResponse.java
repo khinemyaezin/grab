@@ -7,8 +7,11 @@ public record UpdateSellableProductResponse(
         String status,
         String currentStep,
         String productId,
+        boolean productUpdated,
         List<PricePair> pricePairs,
         List<String> inventoryItemIds,
+        int compensatedPriceSetCount,
+        boolean partiallyApplied,
         String errorMessage
 ) {
 

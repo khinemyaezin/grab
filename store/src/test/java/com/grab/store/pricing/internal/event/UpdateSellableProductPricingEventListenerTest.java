@@ -4,9 +4,11 @@ import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.store.pricing.internal.command.UpdateVariantPriceCommand;
 import com.grab.store.pricing.internal.command.UpdateVariantPriceResult;
+import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.grab.store.workflows.events.VariantPriceSyncedEvent;
+import com.pricing.infrastructure.workflow.PricingWorkflowStepRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,13 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UpdateSellableProductPricingEventListenerTest {
 
     private List<Command<?>> dispatched;
-    private List<Object> published;
+    private FakeModuleOutbox outbox;
     private UpdateSellableProductPricingEventListener listener;
 
     @BeforeEach
     void setUp() {
         dispatched = new ArrayList<>();
-        published = new ArrayList<>();
+        outbox = new FakeModuleOutbox();
         CommandBus commandBus = new CommandBus() {
             @Override
             @SuppressWarnings("unchecked")
@@ -40,7 +42,10 @@ class UpdateSellableProductPricingEventListenerTest {
                 return null;
             }
         };
-        listener = new UpdateSellableProductPricingEventListener(commandBus, published::add);
+        listener = new UpdateSellableProductPricingEventListener(
+                commandBus,
+                new PricingWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
     }
 
     @Test
@@ -54,8 +59,8 @@ class UpdateSellableProductPricingEventListenerTest {
             assertThat(command.productId()).isEqualTo("product-1");
             assertThat(command.amount()).isEqualByComparingTo("19.99");
         });
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(VariantPriceSyncedEvent.class, synced -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(VariantPriceSyncedEvent.class, synced -> {
             assertThat(synced.workflowId()).isEqualTo("wf-1");
             assertThat(synced.priceSetId()).isEqualTo("price-set-1");
             assertThat(synced.created()).isFalse();
@@ -67,26 +72,29 @@ class UpdateSellableProductPricingEventListenerTest {
         listener.onRequestSyncVariantPrice(syncEvent("variant-new", "SKU-NEW"));
 
         assertThat(dispatched.getFirst()).isInstanceOf(UpdateVariantPriceCommand.class);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(VariantPriceSyncedEvent.class, synced -> {
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(VariantPriceSyncedEvent.class, synced -> {
             assertThat(synced.priceSetId()).isEqualTo("price-set-new");
             assertThat(synced.created()).isTrue();
         });
     }
 
     @Test
-    void onRequestSyncVariantPrice_whenCommandFails_shouldPublishStepFailed() {
+    void onRequestSyncVariantPrice_whenCommandFails_shouldCommitStepFailedOutsideTheRolledBackStep() {
         CommandBus failingBus = new CommandBus() {
             @Override
             public <R> R dispatch(Command<R> command) {
                 throw new IllegalStateException("pricing boom");
             }
         };
-        listener = new UpdateSellableProductPricingEventListener(failingBus, published::add);
+        listener = new UpdateSellableProductPricingEventListener(
+                failingBus,
+                new PricingWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
+        );
 
         listener.onRequestSyncVariantPrice(syncEvent("variant-1", "SKU-1"));
 
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
             assertThat(failed.step()).isEqualTo("sync-variant-prices");
             assertThat(failed.message()).isEqualTo("pricing boom");
         });

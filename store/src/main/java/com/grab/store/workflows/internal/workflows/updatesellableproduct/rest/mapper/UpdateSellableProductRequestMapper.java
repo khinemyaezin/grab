@@ -1,6 +1,7 @@
 package com.grab.store.workflows.internal.workflows.updatesellableproduct.rest.mapper;
 
 import com.grab.framework.workflow.WorkflowInstance;
+import com.grab.framework.workflow.WorkflowStatus;
 import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.internal.workflows.updatesellableproduct.UpdateSellableProductContext;
 import com.grab.store.workflows.internal.workflows.updatesellableproduct.rest.dto.request.UpdateSellableProductRequest;
@@ -48,13 +49,19 @@ public abstract class UpdateSellableProductRequestMapper {
                         pair.priceSetId()
                 ))
                 .toList();
+        boolean terminalPartial = instance.status() == WorkflowStatus.FAILED
+                || instance.status() == WorkflowStatus.COMPENSATED;
+        boolean partiallyApplied = terminalPartial && context != null && context.isPartiallyApplied();
         return new UpdateSellableProductResponse(
                 instance.id(),
                 instance.status().name(),
                 instance.currentStep().orElse(null),
                 context == null ? null : context.productId(),
+                context != null && context.productUpdated(),
                 pricePairs,
                 context == null ? List.of() : context.inventoryItemIds(),
+                context == null ? 0 : context.compensatedPriceSetIds().size(),
+                partiallyApplied,
                 instance.errorMessage().orElse(null)
         );
     }

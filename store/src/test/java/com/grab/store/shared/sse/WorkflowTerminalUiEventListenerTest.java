@@ -22,7 +22,8 @@ class WorkflowTerminalUiEventListenerTest {
                 "create-sellable-product",
                 "COMPLETED",
                 "idem-1",
-                null
+                null,
+                false
         ));
 
         assertThat(hub.namedEvent).isEqualTo("workflow");

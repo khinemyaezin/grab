@@ -214,4 +214,4 @@ sequenceDiagram
 
 - **Phase 1:** Establish core workflow framework in `framework/workflow/` (checkpointing store + instance model), durable persistence in `workflow-infrastructure/`, and Modulith wiring in `store/workflows/` with a dedicated `workflows` database. *(Landed.)*
 - **Phase 2:** Production process managers use `EventDrivenWorkflowEngine` + `ProcessDefinition` (reference: create-sellable-product). Shared capability ports in `store/shared/process/` remain optional for sync in-process steps; they are not required for the event-driven engine.
-- **Phase 3:** Migrate remaining hand-written orchestrators (update-sellable-product, update-product-variant) onto the engine; keep CQRS for single-BC writes.
+- **Phase 3:** Migrate remaining hand-written orchestrators (update-product-variant) onto the engine; keep CQRS for single-BC writes. *(update-sellable-product: landed on `UpdateSellableProductDefinition` + `EventDrivenWorkflowEngine`.)*

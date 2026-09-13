@@ -34,6 +34,8 @@ class UpdateSellableProductContextTest {
         assertThat(updated.variantRefs()).containsExactly(
                 new UpdateSellableProductContext.VariantRef("variant-new", "SKU-NEW")
         );
+        assertThat(updated.productUpdated()).isTrue();
+        assertThat(context.productUpdated()).isFalse();
     }
 
     @Test
@@ -80,7 +82,7 @@ class UpdateSellableProductContextTest {
     }
 
     @Test
-    void allVariantRefsProjected_shouldRequireEveryVariantId() {
+    void allCreatedPriceSetsCompensated_shouldTrackOnlyCreatedSets() {
         UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
                 "merchant-1",
                 "actor-1",
@@ -89,22 +91,15 @@ class UpdateSellableProductContextTest {
                 "product-1",
                 product(),
                 List.of(),
-                List.of()
-        ).withProductUpdated(
-                "product-1",
-                List.of(
-                        new UpdateSellableProductContext.VariantRef("variant-1", "SKU-1"),
-                        new UpdateSellableProductContext.VariantRef("variant-2", "SKU-2")
-                )
-        );
+                List.of(pricingLine("SKU-1", "variant-1"))
+        ).withPricePair(new UpdateSellableProductContext.PricePair("variant-1", "SKU-1", "price-set-new"), true);
 
-        assertThat(context.allVariantRefsProjected()).isFalse();
-        assertThat(context.matchesProjectedVariant("variant-1", "SKU-1")).isTrue();
-        assertThat(context.matchesProjectedVariant("variant-other", "SKU-1")).isFalse();
-
-        UpdateSellableProductContext one = context.withProjectedVariant("variant-1");
-        assertThat(one.allVariantRefsProjected()).isFalse();
-        assertThat(one.withProjectedVariant("variant-2").allVariantRefsProjected()).isTrue();
+        assertThat(context.allCreatedPriceSetsCompensated()).isFalse();
+        assertThat(context.withPriceSetCompensated("price-set-new").allCreatedPriceSetsCompensated()).isTrue();
+        assertThat(context.withPricePair(
+                new UpdateSellableProductContext.PricePair("variant-1", "SKU-1", "price-set-new"),
+                true
+        ).createdPriceSetIds()).hasSize(1);
     }
 
     private static UpdateSellableProductContext.Product product() {

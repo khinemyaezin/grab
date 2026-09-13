@@ -9,9 +9,9 @@ import java.time.Instant;
 /**
  * Emitted by the inventory projection after a product-variant view is written.
  *
- * <p>Carries no workflow id on purpose: the projection reacts to catalog integration events and has
- * no way to know which run, if any, is waiting. It routes by correlation on the product instead,
- * which also lets several runs waiting on the same product each receive it.
+ * <p>This is inventory-internal choreography. Sellable-product workflows do not wait on it;
+ * catalog completion already returns {@code variantId} for inventory CREATE.
+ * The event carries no workflow id because the projection reacts to catalog integration events.
  */
 public record ProductVariantViewProjectedEvent(
         String productId,
