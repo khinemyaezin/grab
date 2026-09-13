@@ -2,6 +2,7 @@ package com.grab.store.workflows.updateproductvariant;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.internal.workflows.updateproductvariant.rest.dto.request.UpdateProductVariantRequest;
 import com.inventory.domain.enums.AdjustmentReason;
 import jakarta.validation.ConstraintViolation;
@@ -32,17 +33,21 @@ class UpdateProductVariantRequestContractTest {
                     "currencyCode": "USD",
                     "amount": 19.99
                   },
-                  "adjustStock": {
-                    "inventoryItemId": "inv-1",
-                    "newOnHandQuantity": 10,
-                    "reason": "CORRECTION"
-                  }
+                  "inventoryLines": [
+                    {
+                      "sku": "TSHIRT-RED-L",
+                      "inventoryItemId": "inv-1",
+                      "op": "ADJUST",
+                      "adjust": { "newOnHandQuantity": 10, "reason": "CORRECTION" }
+                    }
+                  ]
                 }
                 """, UpdateProductVariantRequest.class);
 
         assertThat(validator.validate(request)).isEmpty();
         assertThat(request.price().amount()).isEqualByComparingTo("19.99");
-        assertThat(request.adjustStock().reason()).isEqualTo(AdjustmentReason.CORRECTION);
+        assertThat(request.inventoryLines().getFirst().op()).isEqualTo(InventorySyncOp.ADJUST);
+        assertThat(request.inventoryLines().getFirst().adjust().reason()).isEqualTo(AdjustmentReason.CORRECTION);
     }
 
     @Test
@@ -57,7 +62,29 @@ class UpdateProductVariantRequestContractTest {
 
         assertThat(validator.validate(request)).isEmpty();
         assertThat(request.price()).isNull();
-        assertThat(request.adjustStock()).isNull();
+        assertThat(request.inventoryLines()).isNull();
+    }
+
+    @Test
+    void deserialize_createLine_shouldBeValid() throws Exception {
+        UpdateProductVariantRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "variantId": "variant-1",
+                  "sku": "SKU-1",
+                  "inventoryLines": [
+                    {
+                      "sku": "SKU-1",
+                      "locationId": "loc-1",
+                      "op": "CREATE",
+                      "create": { "initialQuantity": 10, "safetyStock": 2 }
+                    }
+                  ]
+                }
+                """, UpdateProductVariantRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.inventoryLines().getFirst().op()).isEqualTo(InventorySyncOp.CREATE);
     }
 
     @Test
@@ -89,20 +116,93 @@ class UpdateProductVariantRequestContractTest {
     }
 
     @Test
-    void validate_adjustStockWithoutInventoryItemId_shouldFail() throws Exception {
+    void validate_adjustWithoutInventoryItemId_shouldFail() throws Exception {
         UpdateProductVariantRequest request = json.readValue("""
                 {
                   "productId": "prod-1",
                   "variantId": "variant-1",
                   "sku": "SKU-1",
-                  "adjustStock": {
-                    "newOnHandQuantity": 8,
-                    "reason": "CORRECTION"
-                  }
+                  "inventoryLines": [
+                    {
+                      "sku": "SKU-1",
+                      "op": "ADJUST",
+                      "adjust": { "newOnHandQuantity": 8, "reason": "CORRECTION" }
+                    }
+                  ]
                 }
                 """, UpdateProductVariantRequest.class);
 
-        assertThat(propertyPaths(validator.validate(request))).contains("adjustStock.inventoryItemId");
+        assertThat(propertyPaths(validator.validate(request))).contains("inventoryLines[0].inventoryItemId");
+    }
+
+    @Test
+    void validate_createWithInventoryItemId_shouldFail() throws Exception {
+        UpdateProductVariantRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "variantId": "variant-1",
+                  "sku": "SKU-1",
+                  "inventoryLines": [
+                    {
+                      "sku": "SKU-1",
+                      "locationId": "loc-1",
+                      "inventoryItemId": "inv-1",
+                      "op": "CREATE",
+                      "create": { "initialQuantity": 10 }
+                    }
+                  ]
+                }
+                """, UpdateProductVariantRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request))).contains("inventoryLines[0].inventoryItemId");
+    }
+
+    @Test
+    void validate_inventorySkuMismatch_shouldFail() throws Exception {
+        UpdateProductVariantRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "variantId": "variant-1",
+                  "sku": "SKU-1",
+                  "inventoryLines": [
+                    {
+                      "sku": "SKU-OTHER",
+                      "inventoryItemId": "inv-1",
+                      "op": "ADJUST",
+                      "adjust": { "newOnHandQuantity": 8, "reason": "CORRECTION" }
+                    }
+                  ]
+                }
+                """, UpdateProductVariantRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request))).contains("inventoryLines.sku");
+    }
+
+    @Test
+    void validate_duplicateInventoryItemId_shouldFail() throws Exception {
+        UpdateProductVariantRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "variantId": "variant-1",
+                  "sku": "SKU-1",
+                  "inventoryLines": [
+                    {
+                      "sku": "SKU-1",
+                      "inventoryItemId": "inv-1",
+                      "op": "ADJUST",
+                      "adjust": { "newOnHandQuantity": 8, "reason": "CORRECTION" }
+                    },
+                    {
+                      "sku": "SKU-1",
+                      "inventoryItemId": "inv-1",
+                      "op": "DAMAGE",
+                      "damage": { "quantity": 1 }
+                    }
+                  ]
+                }
+                """, UpdateProductVariantRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request))).contains("inventoryLines.inventoryItemId");
     }
 
     private Set<String> propertyPaths(Set<ConstraintViolation<UpdateProductVariantRequest>> violations) {
