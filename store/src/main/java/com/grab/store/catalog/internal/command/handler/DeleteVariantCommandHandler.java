@@ -37,13 +37,11 @@ public class DeleteVariantCommandHandler implements CommandHandler<DeleteVariant
 
         Product product = hasProduct.get();
 
-        product.applySoftDeleteVariants(Set.of(command.variantId()));
+        product.removeVariant(command.variantId());
 
         productRepository.save(product);
 
-        boolean deleted = product.findVariantById(command.variantId()).map(ProductVariant::isDeleted).orElse(false);
-
-        return new DeleteVariantResult(product.getId().getValue(), command.variantId().getValue(), deleted);
+        return new DeleteVariantResult(product.getId().getValue(), command.variantId().getValue(), true);
     }
 
     @Override
