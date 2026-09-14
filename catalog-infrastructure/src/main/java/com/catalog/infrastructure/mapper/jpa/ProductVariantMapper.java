@@ -5,9 +5,11 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.mapper.CentralMapperConfig;
+import com.grab.framework.id.Id;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.Collection;
 import java.util.List;
 
 @Mapper(config = CentralMapperConfig.class,uses = {IdGenerator.class})
@@ -18,5 +20,12 @@ public abstract class ProductVariantMapper {
     @Mapping(source = "variations" , target="variations")
     @Mapping(source = "entity.status" , target="status")
     @Mapping(source = "entity.manageInventory", target = "manageInventory")
-    public abstract ProductVariant toDomain(ProductVariantEntity entity, List<ProductVariation> variations) ;
+    @Mapping(source = "mediaIds", target = "mediaIds")
+    @Mapping(source = "thumbnailMediaId", target = "thumbnailMediaId")
+    public abstract ProductVariant toDomain(
+            ProductVariantEntity entity,
+            List<ProductVariation> variations,
+            Collection<Id> mediaIds,
+            Id thumbnailMediaId
+    );
 }

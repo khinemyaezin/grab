@@ -11,6 +11,8 @@ import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
 import com.catalog.infrastructure.mapper.jpa.*;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.impl.CommonId;
 import lombok.AllArgsConstructor;
 
 import java.util.*;
@@ -32,9 +34,9 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
         }
 
         productEntityMapper.toEntity(product, entity);
-        mergeVariants(entity, product.getVariants());
         mergeDescriptions(entity, product.getDescriptions());
         mergeMedias(entity, product.getMedias());
+        mergeVariants(entity, product.getVariants());
 
         return entity;
     }
@@ -94,21 +96,42 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
                         (left, right) -> left,
                         LinkedHashMap::new
                 ));
+        Map<String, MediaEntity> existingByStorageKey = entity.getMedias().stream()
+                .map(mediaEntity -> mediaEntity.getStorageKey() != null ? mediaEntity.getStorageKey() : mediaEntity.getPath())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        key -> key,
+                        key -> entity.getMedias().stream()
+                                .filter(media -> key.equals(media.getStorageKey()) || key.equals(media.getPath()))
+                                .findFirst()
+                                .orElseThrow(),
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
 
         List<MediaEntity> mergedMedias = new ArrayList<>();
+        int fallbackRank = 0;
         for (ProductMedia media : medias) {
             String mediaId = media.getId() == null ? null : media.getId().getValue();
             MediaEntity mediaEntity = existingByUuid.get(mediaId);
             if (mediaEntity == null) {
-                mediaEntity = existingByPath.get(media.getPath());
+                mediaEntity = existingByStorageKey.get(media.getStorageKey());
+            }
+            if (mediaEntity == null) {
+                mediaEntity = existingByPath.get(media.getStorageKey());
             }
             if (mediaEntity == null) {
                 mediaEntity = new MediaEntity();
             }
             mediaEntity.setUuid(mediaId);
-            mediaEntity.setType(media.getType());
-            mediaEntity.setPath(media.getPath());
+            mediaEntity.setType(media.getContentType());
+            mediaEntity.setContentType(media.getContentType());
+            mediaEntity.setStorageKey(media.getStorageKey());
+            mediaEntity.setPath(media.getStorageKey());
+            mediaEntity.setUrl(media.getUrl());
+            mediaEntity.setRank(media.getRank() >= 0 ? media.getRank() : fallbackRank);
             mergedMedias.add(mediaEntity);
+            fallbackRank++;
         }
 
         entity.clearMedias();
@@ -150,6 +173,7 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
             if (variantEntity != null) {
                 mergeProductVariantEntity(variantEntity, variantDomain);
                 mergeVariations(variantEntity, variantDomain.getVariations());
+                mergeVariantMedia(productEntity, variantEntity, variantDomain);
                 processedUuids.add(uuid);
                 resultVariants.add(variantEntity);
             } else {
@@ -158,6 +182,7 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
                     ProductVariationEntity variationEntity = toProductVariationEntity(variation);
                     productVariantEntity.addProductVariation(variationEntity);
                 }
+                mergeVariantMedia(productEntity, productVariantEntity, variantDomain);
                 resultVariants.add(productVariantEntity);
             }
         }
@@ -194,12 +219,38 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
         );
     }
 
+    private void mergeVariantMedia(
+            ProductEntity productEntity,
+            ProductVariantEntity variantEntity,
+            ProductVariant variant
+    ) {
+        Map<String, MediaEntity> productMediaByUuid = productEntity.getMedias().stream()
+                .filter(media -> media.getUuid() != null)
+                .collect(Collectors.toMap(MediaEntity::getUuid, Function.identity(), (left, right) -> left));
+
+        variantEntity.clearMedias();
+        for (Id mediaId : variant.getMediaIds()) {
+            MediaEntity mediaEntity = productMediaByUuid.get(mediaId.getValue());
+            if (mediaEntity != null) {
+                variantEntity.addMedia(mediaEntity);
+            }
+        }
+        variantEntity.setThumbnailMediaUuid(
+                variant.getThumbnailMediaId() == null ? null : variant.getThumbnailMediaId().getValue()
+        );
+    }
+
     private String variationKey(String optionId, String typeId) {
         return optionId + "::" + typeId;
     }
 
     @Override
     public Product toFullDomainGraph(ProductEntity productJpaEntity) {
+        List<ProductMedia> productMedias = toProductMedias(productJpaEntity.getMedias());
+        Map<String, Id> mediaIdByUuid = productMedias.stream()
+                .filter(media -> media.getId() != null)
+                .collect(Collectors.toMap(media -> media.getId().getValue(), ProductMedia::getId, (left, right) -> left));
+
         List<ProductVariant> productVariants = new ArrayList<>();
 
         for(ProductVariantEntity variantEntity : productJpaEntity.getProductVariants()) {
@@ -210,10 +261,73 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
                 productVariations.add(variation);
             }
 
-            ProductVariant variant = productVariantMapper.toDomain(variantEntity, productVariations);
-            productVariants.add(variant);
+            List<Id> mediaIds = variantMediaIds(variantEntity, mediaIdByUuid);
+            Id thumbnail = variantThumbnail(variantEntity, mediaIdByUuid);
+            productVariants.add(productVariantMapper.toDomain(variantEntity, productVariations, mediaIds, thumbnail));
         }
 
-        return productMapper.toDomain(productJpaEntity, productVariants);
+        return productMapper.toDomain(productJpaEntity, productVariants, productMedias);
+    }
+
+    private List<ProductMedia> toProductMedias(List<MediaEntity> mediaEntities) {
+        if (mediaEntities == null || mediaEntities.isEmpty()) {
+            return List.of();
+        }
+        List<ProductMedia> medias = new ArrayList<>();
+        int index = 0;
+        for (MediaEntity mediaEntity : mediaEntities) {
+            String domainId = mediaEntity.getUuid() != null
+                    ? mediaEntity.getUuid()
+                    : (mediaEntity.getId() == null ? null : String.valueOf(mediaEntity.getId()));
+            String storageKey = firstNonBlank(mediaEntity.getStorageKey(), mediaEntity.getPath());
+            String url = firstNonBlank(mediaEntity.getUrl(), storageKey);
+            String contentType = firstNonBlank(mediaEntity.getContentType(), mediaEntity.getType());
+            int rank = mediaEntity.getRank() > 0 ? mediaEntity.getRank() : index;
+            medias.add(new ProductMedia(
+                    domainId == null ? null : new CommonId(domainId),
+                    storageKey,
+                    url,
+                    contentType,
+                    rank
+            ));
+            index++;
+        }
+        return medias;
+    }
+
+    private List<Id> variantMediaIds(ProductVariantEntity variantEntity, Map<String, Id> mediaIdByUuid) {
+        List<Id> mediaIds = new ArrayList<>();
+        for (MediaEntity mediaEntity : variantEntity.getMedias()) {
+            String key = mediaEntity.getUuid() != null
+                    ? mediaEntity.getUuid()
+                    : (mediaEntity.getId() == null ? null : String.valueOf(mediaEntity.getId()));
+            Id mediaId = key == null ? null : mediaIdByUuid.getOrDefault(key, new CommonId(key));
+            if (mediaId != null) {
+                mediaIds.add(mediaId);
+            }
+        }
+        return mediaIds;
+    }
+
+    private Id variantThumbnail(ProductVariantEntity variantEntity, Map<String, Id> mediaIdByUuid) {
+        if (variantEntity.getThumbnailMediaUuid() == null) {
+            return null;
+        }
+        return mediaIdByUuid.getOrDefault(
+                variantEntity.getThumbnailMediaUuid(),
+                new CommonId(variantEntity.getThumbnailMediaUuid())
+        );
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 }

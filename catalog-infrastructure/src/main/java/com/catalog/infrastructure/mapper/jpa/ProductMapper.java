@@ -3,6 +3,7 @@ package com.catalog.infrastructure.mapper.jpa;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.grab.framework.id.IdGenerator;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.mapper.CentralMapperConfig;
@@ -22,5 +23,6 @@ public abstract class ProductMapper {
     @Mapping(source = "entity." + ProductEntity_.STATUS , target="status")
     @Mapping(source = "entity." + ProductEntity_.SLUG , target="slug")
     @Mapping(source = "variants" , target="variants")
-    public abstract Product toDomain(ProductEntity entity, List<ProductVariant> variants);
+    @Mapping(source = "productMedias" , target="medias")
+    public abstract Product toDomain(ProductEntity entity, List<ProductVariant> variants, List<ProductMedia> productMedias);
 }

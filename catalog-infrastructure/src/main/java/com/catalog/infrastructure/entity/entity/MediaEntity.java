@@ -18,10 +18,24 @@ public class MediaEntity {
     private Long id;
     @Column(name = "uuid", unique = true)
     private String uuid;
+
+    @Column(name = "type")
     private String type;
 
-    @Column(unique = true, nullable = false)
+    @Column(name = "content_type")
+    private String contentType;
+
+    @Column(name = "path", nullable = false)
     private String path;
+
+    @Column(name = "storage_key", nullable = false, unique = true)
+    private String storageKey;
+
+    @Column(name = "url")
+    private String url;
+
+    @Column(name = "rank", nullable = false)
+    private int rank;
 
     @ManyToMany(mappedBy = "medias")
     private Set<ProductEntity> products = new HashSet<>();
@@ -33,11 +47,11 @@ public class MediaEntity {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MediaEntity that)) return false;
-        return Objects.equals(uuid, that.uuid) && Objects.equals(path, that.path);
+        return Objects.equals(uuid, that.uuid) && Objects.equals(storageKey, that.storageKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(uuid, path);
+        return Objects.hash(uuid, storageKey);
     }
 }
