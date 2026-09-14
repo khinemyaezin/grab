@@ -50,13 +50,13 @@ public class ProductVariantDuplicateTest {
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
 
         // Create duplicate variant with same SKU but different ID
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
 
         assertDoesNotThrow(() -> product.addVariant(variant1));
         assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
@@ -69,13 +69,13 @@ public class ProductVariantDuplicateTest {
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
 
         // Create duplicate variant with different SKU but same variations
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
 
         assertDoesNotThrow(() -> product.addVariant(variant1));
         assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
@@ -87,13 +87,13 @@ public class ProductVariantDuplicateTest {
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
 
         // Create duplicate variant with variations in different order
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation(new CommonId("small"), new CommonId("size")),
                 new ProductVariation(new CommonId("red"), new CommonId("color"))
-        ), true);
+        ), true, List.of(), null);
 
         assertDoesNotThrow(() -> product.addVariant(variant1));
         assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
@@ -105,13 +105,13 @@ public class ProductVariantDuplicateTest {
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
 
         // Create duplicate variant with variations in different order
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU001",  ProductVariantStatus.ACTIVE,List.of(
                 new ProductVariation(new CommonId("small"), new CommonId("size")),
                 new ProductVariation(new CommonId("red"), new CommonId("color"))
-        ), true);
+        ), true, List.of(), null);
 
         assertDoesNotThrow(() -> product.addVariant(variant1));
         assertThrows(CatalogDomainValidationException.class, () -> product.addVariant(variant2));
@@ -125,13 +125,13 @@ public class ProductVariantDuplicateTest {
         var variant1 = new ProductVariant(new CommonId("v1"),  "SKU001", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
 
         // Create second variant with different color
         var variant2 = new ProductVariant(new CommonId("v2"),  "SKU002", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("blue"), new CommonId("color")),
                 new ProductVariation(new CommonId("small"), new CommonId("size"))
-        ), true);
+        ), true, List.of(), null);
         assertDoesNotThrow(() -> product.addVariant(variant1));
         assertDoesNotThrow(() -> product.addVariant(variant2));
         assertEquals(2, product.getVariants().size());

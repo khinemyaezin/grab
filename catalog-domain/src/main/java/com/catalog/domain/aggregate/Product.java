@@ -5,8 +5,10 @@ import com.catalog.domain.event.ProductDeletedEvent;
 import com.catalog.domain.event.ProductRestoredEvent;
 import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.event.ProductSuspendedEvent;
+import com.catalog.domain.event.ProductMediaChangedEvent;
 import com.catalog.domain.event.ProductUpdatedEvent;
 import com.catalog.domain.event.ProductVariantAddedEvent;
+import com.catalog.domain.event.VariantMediaChangedEvent;
 import com.catalog.domain.event.ProductVariantChangeEvent;
 import com.catalog.domain.event.ProductVariantDeletedEvent;
 import com.catalog.domain.event.ProductVariantRestoredEvent;
@@ -342,7 +344,32 @@ public class Product extends AggregateRoot<Id> {
 
         this.medias.clear();
         this.medias.addAll(normalizedMedias);
+        pruneVariantMediaNotOwnedByProduct();
+        super.addEvent(new ProductMediaChangedEvent(this.getId()));
         super.addEvent(new ProductUpdatedEvent(this.getId(), this.name, this.categoryId));
+    }
+
+    public void applyVariantMedia(Id variantId, Collection<Id> mediaIds, Id thumbnailMediaId) {
+        ProductVariant variant = findVariantById(variantId).orElseThrow(() ->
+                new CatalogDomainValidationException(
+                        new CatalogDomainError.VariantNotFound(variantId == null ? null : variantId.getValue()),
+                        "Variant not found: " + variantId
+                )
+        );
+        variant.replaceMedia(mediaIds, thumbnailMediaId);
+        super.addEvent(new VariantMediaChangedEvent(this.getId(), variantId));
+    }
+
+    private void pruneVariantMediaNotOwnedByProduct() {
+        Set<Id> owned = new HashSet<>();
+        for (ProductMedia media : this.medias) {
+            if (media.getId() != null) {
+                owned.add(media.getId());
+            }
+        }
+        for (ProductVariant variant : this.variants) {
+            variant.retainOwnedMedia(owned);
+        }
     }
 
     public boolean isVisibleOnStorefront() {

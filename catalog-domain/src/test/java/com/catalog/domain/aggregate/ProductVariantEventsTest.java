@@ -50,7 +50,7 @@ class ProductVariantEventsTest {
 
         var updated = new ProductVariant(new CommonId("v1"), "SKU002", ProductVariantStatus.ACTIVE, List.of(
                 new ProductVariation(new CommonId("red"), new CommonId("color"))
-        ), true);
+        ), true, List.of(), null);
         boolean ok = product.updateVariant(variant, updated);
 
         assertThat(ok).isTrue();
