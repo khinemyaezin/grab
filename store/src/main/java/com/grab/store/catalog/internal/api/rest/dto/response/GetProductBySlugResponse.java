@@ -28,8 +28,10 @@ public record GetProductBySlugResponse(
 
     public record Media(
             String id,
-            String type,
-            String path
+            String storageKey,
+            String url,
+            String contentType,
+            int rank
     ) {}
 
     public record Variant(
@@ -37,7 +39,9 @@ public record GetProductBySlugResponse(
             String sku,
             String status,
             List<Variation> variations,
-            boolean manageInventory
+            boolean manageInventory,
+            List<String> mediaIds,
+            String thumbnailMediaId
     ) {}
 
     public record Variation(
