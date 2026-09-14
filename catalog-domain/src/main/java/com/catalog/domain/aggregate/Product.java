@@ -416,7 +416,7 @@ public class Product extends AggregateRoot<Id> {
     }
 
     private void ensureLastActiveVariantIsNotRemoved(Set<Id> candidateVariantIds) {
-        if (this.status != ProductStatus.ACTIVE || candidateVariantIds == null || candidateVariantIds.isEmpty()) {
+        if (candidateVariantIds == null || candidateVariantIds.isEmpty()) {
             return;
         }
 
@@ -437,10 +437,10 @@ public class Product extends AggregateRoot<Id> {
                 .orElse(null);
 
         throw new CatalogDomainValidationException(
-                new CatalogDomainError.CannotDeleteLastActiveVariantFromActiveProduct(
+                new CatalogDomainError.CannotDeleteLastActiveVariant(
                         protectedVariantId == null ? null : protectedVariantId.getValue()
                 ),
-                "Cannot delete the last active variant from an active product."
+                "Cannot delete the last active variant from a product."
         );
     }
 

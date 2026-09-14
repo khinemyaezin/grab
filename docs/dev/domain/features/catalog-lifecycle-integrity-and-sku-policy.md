@@ -13,7 +13,7 @@ inside a single product instead of across the catalog.
 ## 2. Business Scope
 
 ### In scope
-- Prevent deletion of the last active variant from an active product
+- Prevent deletion of the last active variant from a product
 - Archive active products when they become unsellable
 - Make product delete archive-first instead of hard-delete
 - Validate category existence on product create and update
@@ -66,7 +66,7 @@ inside a single product instead of across the catalog.
 ## 5. Invariants
 
 ### Product lifecycle
-- An `ACTIVE` product must always have at least one active variant
+- A product must always keep at least one active variant, regardless of status
 - A product cannot be activated without active variants
 - A product delete operation archives the product first
 - Storefront visibility depends on `ACTIVE` status and at least one active variant
@@ -179,7 +179,7 @@ public enum ProductStatus {
 
 ### Domain errors
 - `cat.domain.product_activation_requires_active_variants`
-- `cat.domain.cannot_delete_last_active_variant_from_active_product`
+- `cat.domain.cannot_delete_last_active_variant`
 - `cat.domain.invalid_product_status_transition`
 
 ### Service errors
@@ -192,7 +192,7 @@ public enum ProductStatus {
 ## 12. Acceptance Scenarios
 
 ### Lifecycle
-- deleting the only active variant of an active product is rejected
+- deleting the only active variant of a product is rejected, regardless of product status
 - syncing an active product to zero active variants archives the product
 - deleting a product archives it first and does not hard-delete it directly
 

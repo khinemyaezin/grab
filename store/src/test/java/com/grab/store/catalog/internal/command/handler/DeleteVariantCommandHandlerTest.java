@@ -8,7 +8,6 @@ import com.catalog.domain.event.ProductVariantDeletedEvent;
 import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductStatus;
-import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
@@ -54,12 +53,13 @@ class DeleteVariantCommandHandlerTest {
     void handle_softDeletesActiveVariant() {
         Id productId = new CommonId(PRODUCT_ID);
         Id variantId = new CommonId(VARIANT_ID);
+        Id keptVariantId = new CommonId("variant-kept");
 
         Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
-        ProductVariation variation = new ProductVariation(
-                new CommonId("opt-red"), new CommonId("type-color"));
-        ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
-        product.addVariant(variant);
+        product.addVariant(ProductVariant.create(
+                variantId, "SKU-1", List.of(new ProductVariation(new CommonId("opt-red"), new CommonId("type-color")))));
+        product.addVariant(ProductVariant.create(
+                keptVariantId, "SKU-2", List.of(new ProductVariation(new CommonId("opt-blue"), new CommonId("type-color")))));
 
         when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
@@ -69,9 +69,8 @@ class DeleteVariantCommandHandlerTest {
         verify(productRepository).save(productCaptor.capture());
         Product saved = productCaptor.getValue();
 
-        assertThat(saved.findVariantById(variantId))
-                .isPresent()
-                .hasValueSatisfying(v -> assertThat(v.getStatus()).isEqualTo(ProductVariantStatus.DELETED));
+        assertThat(saved.findVariantById(variantId)).isEmpty();
+        assertThat(saved.findVariantById(keptVariantId)).isPresent();
         assertThat(saved.getEvents()).anyMatch(ProductVariantDeletedEvent.class::isInstance);
 
         assertThat(result.productId()).isEqualTo(PRODUCT_ID);
@@ -141,6 +140,27 @@ class DeleteVariantCommandHandlerTest {
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogDomainValidationException.class)
                 .satisfies(exception -> assertThat(((CatalogDomainValidationException) exception).getMessageSource().code())
-                        .isEqualTo("cat.domain.cannot_delete_last_active_variant_from_active_product"));
+                        .isEqualTo("cat.domain.cannot_delete_last_active_variant"));
+    }
+
+    @Test
+    void handle_lastActiveVariantOnDraftProductThrows() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
+        ProductVariation variation = new ProductVariation(
+                new CommonId("opt-red"), new CommonId("type-color"));
+        ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation));
+        product.addVariant(variant);
+
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+
+        DeleteVariantCommand command = new DeleteVariantCommand(productId, productId, variantId);
+
+        assertThatThrownBy(() -> handler.handle(command))
+                .isInstanceOf(CatalogDomainValidationException.class)
+                .satisfies(exception -> assertThat(((CatalogDomainValidationException) exception).getMessageSource().code())
+                        .isEqualTo("cat.domain.cannot_delete_last_active_variant"));
     }
 }

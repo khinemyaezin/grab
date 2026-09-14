@@ -24,6 +24,8 @@ class CatalogDomainErrorContractTest {
                 new CatalogDomainError.InvalidProductStatusTransition("DRAFT", "ARCHIVED");
         CatalogDomainError.ProductActivationRequiresActiveVariants activationError =
                 new CatalogDomainError.ProductActivationRequiresActiveVariants();
+        CatalogDomainError.CannotDeleteLastActiveVariant lastActiveVariantError =
+                new CatalogDomainError.CannotDeleteLastActiveVariant("variant-1");
 
         assertThat(transitionError.kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
         assertThat(transitionError.code()).isEqualTo("cat.domain.invalid_product_status_transition");
@@ -34,6 +36,10 @@ class CatalogDomainErrorContractTest {
         assertThat(activationError.kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
         assertThat(activationError.code()).isEqualTo("cat.domain.product_activation_requires_active_variants");
         assertThat(activationError.args()).isEmpty();
+
+        assertThat(lastActiveVariantError.kind()).isEqualTo(ErrorCategory.BUSINESS_RULE);
+        assertThat(lastActiveVariantError.code()).isEqualTo("cat.domain.cannot_delete_last_active_variant");
+        assertThat(lastActiveVariantError.args()).containsEntry("variantId", "variant-1");
     }
 
     @Test
