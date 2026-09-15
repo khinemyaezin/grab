@@ -40,6 +40,10 @@ public class ProductVariantEntity {
     @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductVariationEntity> productVariations = new ArrayList<>();
 
+    @Setter
+    @Column(name = "thumbnail_media_uuid")
+    private String thumbnailMediaUuid;
+
     @ManyToMany(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     @JoinTable(
             name = "product_variant_media",
@@ -56,6 +60,14 @@ public class ProductVariantEntity {
     public void addProductVariation(ProductVariationEntity entity) {
         entity.setProductVariant(this);
         this.productVariations.add(entity);
+    }
+
+    public void addMedia(MediaEntity mediaEntity) {
+        this.medias.add(mediaEntity);
+    }
+
+    public void clearMedias() {
+        this.medias.clear();
     }
 
     public void removeProductVariantOption(ProductVariationEntity entity) {

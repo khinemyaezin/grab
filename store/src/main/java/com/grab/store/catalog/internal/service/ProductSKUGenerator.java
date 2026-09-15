@@ -1,12 +1,13 @@
-package com.grab.store.catalog.internal.util;
+package com.grab.store.catalog.internal.service;
 
 import com.catalog.domain.service.SkuGenerator;
-import com.catalog.domain.valueobject.ProductVariation;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.security.SecureRandom;
-import java.util.List;
-import java.util.stream.Collectors;
 
+@Setter
+@Getter
 public class ProductSKUGenerator implements SkuGenerator {
 
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -20,33 +21,18 @@ public class ProductSKUGenerator implements SkuGenerator {
 
     @Override
     public String generate(Context context) {
-        return generateByPolicy(context, defaultPolicy);
+        return generateByPolicy(defaultPolicy);
     }
 
-    private String generateByPolicy(Context context, Policy policy) {
+    private String generateByPolicy(Policy policy) {
         return switch (policy) {
             case RANDOM -> generateRandomSku();
         };
     }
 
-    /**
-     * RANDOM policy: Generate random alphanumeric SKU.
-     * Example: "SKU-A7B3C9D2"
-     */
     private String generateRandomSku() {
         String randomPart = generateRandomString(8);
         return "SKU-" + randomPart;
-    }
-
-    private String abbreviate(String name, int maxLength) {
-        if (name == null || name.isEmpty()) {
-            return "UNK";
-        }
-        String cleaned = name.replaceAll("[^a-zA-Z0-9]", "").toUpperCase();
-        if (cleaned.isEmpty()) {
-            return "UNK";
-        }
-        return cleaned.length() <= maxLength ? cleaned : cleaned.substring(0, maxLength);
     }
 
     private String generateRandomString(int length) {
@@ -57,11 +43,4 @@ public class ProductSKUGenerator implements SkuGenerator {
         return sb.toString();
     }
 
-    public void setDefaultPolicy(Policy policy) {
-        this.defaultPolicy = policy;
-    }
-
-    public Policy getDefaultPolicy() {
-        return defaultPolicy;
-    }
 }

@@ -107,7 +107,7 @@ class ModerateProductCommandHandlerTest {
                 ListingCondition.USED,
                 "product",
                 List.of(new Description(null, "default", "Product", "Description")),
-                List.of(new ProductMedia(null, "IMAGE", "/images/product.jpg"))
+                List.of(new ProductMedia(null, "/images/product.jpg", "/images/product.jpg", "image/png", 0))
         );
     }
 

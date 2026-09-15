@@ -29,6 +29,8 @@ COPY pricing-infrastructure/pom.xml pricing-infrastructure/
 
 COPY workflow-infrastructure/pom.xml workflow-infrastructure/
 
+COPY storage-infrastructure/pom.xml storage-infrastructure/
+
 COPY logger-slf4j/pom.xml logger-slf4j/
 COPY store/pom.xml store/
 
@@ -54,6 +56,8 @@ COPY pricing-domain/src pricing-domain/src
 COPY pricing-infrastructure/src pricing-infrastructure/src
 
 COPY workflow-infrastructure/src workflow-infrastructure/src
+
+COPY storage-infrastructure/src storage-infrastructure/src
 
 COPY logger-slf4j/src logger-slf4j/src
 COPY store/src store/src

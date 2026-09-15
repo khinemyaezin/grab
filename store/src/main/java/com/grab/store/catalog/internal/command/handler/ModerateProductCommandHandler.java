@@ -10,7 +10,7 @@ import com.grab.store.catalog.internal.command.ModerateProductResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
-import com.grab.store.catalog.internal.util.CatalogPolicyValidator;
+import com.grab.store.catalog.internal.service.CatalogPolicyValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

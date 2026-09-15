@@ -1,6 +1,7 @@
 package com.catalog.infrastructure.configuration;
 
 import com.catalog.domain.service.MatrixCombinationService;
+import com.catalog.domain.service.ProductMediaService;
 import com.catalog.domain.service.VariantDeletionStrategy;
 import com.catalog.domain.service.MatrixCombinationSynchronizer;
 import com.catalog.domain.service.MatrixKeyGenerator;
@@ -45,5 +46,10 @@ public class CatalogDomainConfig {
             MatrixKeyGenerator matrixKeyGenerator,
             VariationMatrixMatcher variationMatrixMatcher) {
         return new DefaultMatrixCombinationSynchronizer(matrixKeyGenerator, variationMatrixMatcher);
+    }
+
+    @Bean
+    public ProductMediaService productMediaService() {
+        return new DefaultProductMediaService();
     }
 }

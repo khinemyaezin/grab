@@ -20,8 +20,8 @@ import com.grab.store.catalog.internal.query.GetProductQuery;
 import com.grab.store.catalog.internal.query.GetProductResult;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
-import com.grab.store.catalog.internal.util.ParentChildTransformer;
-import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
+import com.grab.store.catalog.internal.service.ParentChildTransformer;
+import com.grab.store.catalog.internal.service.StandaloneVariationFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

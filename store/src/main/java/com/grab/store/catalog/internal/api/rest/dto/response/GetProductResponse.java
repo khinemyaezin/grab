@@ -32,8 +32,10 @@ public record GetProductResponse(
 
     public record Media(
             String id,
-            String type,
-            String path
+            String storageKey,
+            String url,
+            String contentType,
+            int rank
     ) {}
 
     public record Variant(

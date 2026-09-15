@@ -1,4 +1,4 @@
-package com.grab.store.catalog.internal.util;
+package com.grab.store.catalog.internal.service;
 
 import com.catalog.domain.aggregate.Category;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;

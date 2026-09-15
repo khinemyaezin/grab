@@ -77,6 +77,25 @@ public class ProductController {
                 linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product")));
     }
 
+    @PostMapping(value = "/{productId}/media/uploads")
+    public ResponseEntity<EntityModel<ProductMediaUploadResponse>> createProductMediaUpload(
+            @PathVariable String productId,
+            @Valid @RequestBody CreateProductMediaUploadRequest request) {
+        ProductMediaUploadResponse response = productCommandService.createProductMediaUpload(productId, request);
+        return ResponseEntity.ok(EntityModel.of(response,
+                linkTo(methodOn(ProductController.class).getProduct(productId)).withRel("get-product")));
+    }
+
+    @PostMapping(value = "/{productId}/variants/{variantId}/images/batch")
+    public ResponseEntity<EntityModel<BatchVariantImagesResponse>> batchVariantImages(
+            @PathVariable String productId,
+            @PathVariable String variantId,
+            @RequestBody(required = false) BatchVariantImagesRequest request) {
+        BatchVariantImagesResponse response = variantCommandService.batchVariantImages(productId, variantId, request);
+        return ResponseEntity.ok(EntityModel.of(response,
+                linkTo(methodOn(ProductController.class).getVariant(productId, variantId)).withRel("get-variant")));
+    }
+
     @GetMapping(value = "/{productId}/variants/{variantId}")
     public ResponseEntity<EntityModel<GetVariantResponse>> getVariant(
             @PathVariable String productId,

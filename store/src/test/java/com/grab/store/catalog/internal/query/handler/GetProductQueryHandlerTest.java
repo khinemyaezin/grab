@@ -14,7 +14,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.query.GetProductQuery;
 import com.grab.store.catalog.internal.query.GetProductResult;
-import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
+import com.grab.store.catalog.internal.service.StandaloneVariationFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -84,7 +84,9 @@ class GetProductQueryHandlerTest {
                                         "STANDALONE",
                                         ProductVariantStatus.ACTIVE,
                                         standAloneVariation,
-                                        true
+                                        true,
+                                        List.of(),
+                                        null
                                 )
                         )
                 )));
@@ -130,7 +132,9 @@ class GetProductQueryHandlerTest {
                                         "CUSTOM_VARIATION",
                                         ProductVariantStatus.ACTIVE,
                                         customVariation,
-                                        true
+                                        true,
+                                        List.of(),
+                                        null
                                 )
                         )
                 )));

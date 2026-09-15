@@ -12,7 +12,8 @@ public record ReplaceProductMediaRequest(
 ) implements Serializable {
     public record Media(
             String id,
-            String type,
-            @NotBlank String path
+            @NotBlank String storageKey,
+            String contentType,
+            Integer rank
     ) implements Serializable {}
 }

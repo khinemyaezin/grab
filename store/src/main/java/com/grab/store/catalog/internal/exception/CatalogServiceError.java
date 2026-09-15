@@ -27,6 +27,8 @@ public sealed interface CatalogServiceError extends MessageSource permits
         CatalogServiceError.ProductMediaNotFound,
         CatalogServiceError.InvalidProductDescriptionPatch,
         CatalogServiceError.InvalidProductMediaPatch,
+        CatalogServiceError.MediaObjectNotFound,
+        CatalogServiceError.InvalidMediaUpload,
         CatalogServiceError.ProductAlreadyExisted,
         CatalogServiceError.MerchantScopeRequired,
         CatalogServiceError.EmptyVariantOverrides,
@@ -399,6 +401,40 @@ public sealed interface CatalogServiceError extends MessageSource permits
         @Override
         public String code() {
             return "cat.service.product.media_patch_invalid";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("reason", reason);
+        }
+    }
+
+    record MediaObjectNotFound(String storageKey) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.media_object_not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("storageKey", storageKey);
+        }
+    }
+
+    record InvalidMediaUpload(String reason) implements CatalogServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "cat.service.product.media_upload_invalid";
         }
 
         @Override

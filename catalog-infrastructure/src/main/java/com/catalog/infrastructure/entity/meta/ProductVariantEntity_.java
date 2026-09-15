@@ -13,6 +13,7 @@ public class ProductVariantEntity_ {
     public static volatile SingularAttribute<ProductVariantEntity, String> uuid;
     public static volatile SingularAttribute<ProductVariantEntity, String> status;
     public static volatile SingularAttribute<ProductVariantEntity, Boolean> manageInventory;
+    public static volatile SingularAttribute<ProductVariantEntity, String> thumbnailMediaUuid;
     public static volatile SingularAttribute<ProductVariantEntity, ProductEntity> product;
 
 
@@ -28,6 +29,7 @@ public class ProductVariantEntity_ {
     public static final String UUID = "uuid";
     public static final String STATUS = "status";
     public static final String MANAGE_INVENTORY = "manageInventory";
+    public static final String THUMBNAIL_MEDIA_UUID = "thumbnailMediaUuid";
     public static final String PRODUCT = "product";
     public static final String MEDIAS = "medias";
     public static final String DESCRIPTIONS = "descriptions";

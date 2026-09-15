@@ -12,6 +12,8 @@ import org.mapstruct.MappingTarget;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public interface ProductVariantEntityMapper {
     @Mapping(ignore = true, target = ProductEntity_.ID)
+    @Mapping(ignore = true, target = ProductVariantEntity_.MEDIAS)
+    @Mapping(ignore = true, target = ProductVariantEntity_.THUMBNAIL_MEDIA_UUID)
     @Mapping(source = "id", target = ProductVariantEntity_.UUID)
     @Mapping(source = "manageInventory", target = ProductVariantEntity_.MANAGE_INVENTORY)
     void toEntity(ProductVariant source, @MappingTarget ProductVariantEntity destination);

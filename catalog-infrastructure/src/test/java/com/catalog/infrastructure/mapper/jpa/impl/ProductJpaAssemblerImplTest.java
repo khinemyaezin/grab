@@ -115,7 +115,7 @@ class ProductJpaAssemblerImplTest {
                 null,
                 null,
                 List.of(),
-                List.of(new ProductMedia(id("3001"), "IMAGE", "/images/camera/main.jpg"))
+                List.of(new ProductMedia(id("3001"), "/images/camera/main.jpg", "/images/camera/main.jpg", "image/jpeg", 0))
         );
 
         ProductEntity existingEntity = new ProductEntity();
@@ -134,7 +134,8 @@ class ProductJpaAssemblerImplTest {
         assertThat(mergedMedia).isSameAs(existingMedia);
         assertThat(mergedMedia.getId()).isEqualTo(21L);
         assertThat(mergedMedia.getUuid()).isEqualTo("3001");
-        assertThat(mergedMedia.getType()).isEqualTo("IMAGE");
+        assertThat(mergedMedia.getType()).isEqualTo("image/jpeg");
+        assertThat(mergedMedia.getStorageKey()).isEqualTo("/images/camera/main.jpg");
         assertThat(mergedMedia.getPath()).isEqualTo("/images/camera/main.jpg");
     }
 
@@ -236,8 +237,8 @@ class ProductJpaAssemblerImplTest {
         assertThat(result.getDescriptions().getFirst().getTitle()).isEqualTo("Summary");
 
         assertThat(result.getMedias()).hasSize(1);
-        assertThat(result.getMedias().getFirst().getId().getValue()).isEqualTo("42");
-        assertThat(result.getMedias().getFirst().getPath()).isEqualTo("/images/phone/main.jpg");
+        assertThat(result.getMedias().getFirst().getId().getValue()).isEqualTo("media-1");
+        assertThat(result.getMedias().getFirst().getStorageKey()).isEqualTo("/images/phone/main.jpg");
 
         assertThat(result.getVariants()).hasSize(1);
         ProductVariant mappedVariant = result.getVariants().getFirst();
@@ -247,6 +248,37 @@ class ProductJpaAssemblerImplTest {
         ProductVariation variation = mappedVariant.getVariations().iterator().next();
         assertThat(variation.getOptionId().getValue()).isEqualTo("opt-red");
         assertThat(variation.getTypeId().getValue()).isEqualTo("type-color");
+    }
+
+    @Test
+    void variantMedia_isMergedAsSubsetOfProductMedia_andReconstructed() {
+        Product product = Product.create(
+                id("p1"),
+                id("merchant-1"),
+                "Camera",
+                id("electronics"),
+                null,
+                null,
+                List.of(),
+                List.of(
+                        new ProductMedia(id("m1"), "merchants/m/products/p1/a.jpg", "http://minio/a.jpg", "image/jpeg", 0),
+                        new ProductMedia(id("m2"), "merchants/m/products/p1/b.jpg", "http://minio/b.jpg", "image/jpeg", 1)
+                )
+        );
+        ProductVariant variant = ProductVariant.create(id("v1"), "SKU-1", List.of());
+        product.addVariant(variant);
+        product.applyVariantMedia(id("v1"), List.of(id("m2")), id("m2"));
+
+        ProductEntity result = assembler.buildFullEntityGraph(product, new ProductEntity());
+        ProductVariantEntity variantEntity = findVariant(result, "v1");
+        assertThat(variantEntity.getMedias()).extracting(MediaEntity::getUuid).containsExactly("m2");
+        assertThat(variantEntity.getThumbnailMediaUuid()).isEqualTo("m2");
+
+        Product reconstituted = assembler.toFullDomainGraph(result);
+        assertThat(reconstituted.getVariants().getFirst().getMediaIds())
+                .extracting(Id::getValue)
+                .containsExactly("m2");
+        assertThat(reconstituted.getVariants().getFirst().getThumbnailMediaId().getValue()).isEqualTo("m2");
     }
 
     private Product createProduct(String productId, String name) {
@@ -268,7 +300,10 @@ class ProductJpaAssemblerImplTest {
         entity.setId(id);
         entity.setUuid(uuid);
         entity.setType(type);
+        entity.setContentType(type);
         entity.setPath(path);
+        entity.setStorageKey(path);
+        entity.setUrl(path);
         return entity;
     }
 

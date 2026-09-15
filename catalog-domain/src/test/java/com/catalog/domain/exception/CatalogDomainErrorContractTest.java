@@ -42,6 +42,7 @@ class CatalogDomainErrorContractTest {
         assertThat(lastActiveVariantError.args()).containsEntry("variantId", "variant-1");
     }
 
+
     @Test
     void tooManyCombinationsError_shouldExposeLimitAndTotal() {
         CatalogDomainError.TooManyVariantCombinations error =

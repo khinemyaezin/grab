@@ -12,7 +12,8 @@ public record ReplaceProductMediaCommand(
 ) implements Command<ProductMediaResult> {
     public record Media(
             Id id,
-            String type,
-            String path
+            String storageKey,
+            String contentType,
+            Integer rank
     ) {}
 }

@@ -1,6 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariantStatus;
@@ -75,6 +76,56 @@ class UpdateVariantCommandHandlerTest {
         assertThat(result.variantId()).isEqualTo(VARIANT_ID);
         assertThat(result.sku()).isEqualTo("NEW-SKU");
         assertThat(result.status()).isEqualTo(ProductVariantStatus.ACTIVE.name());
+    }
+
+    @Test
+    void handle_updatesSku_preservesVariantMedia() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Id mediaId = new CommonId("media-1");
+
+        Product product = Product.create(
+                productId,
+                productId,
+                "Product",
+                new CommonId(CATEGORY_ID),
+                null,
+                null,
+                List.of(),
+                List.of(new ProductMedia(
+                        mediaId,
+                        "merchants/m/products/p/1.jpg",
+                        "http://minio/1.jpg",
+                        "image/jpeg",
+                        0
+                ))
+        );
+        ProductVariation variation = new ProductVariation(
+                new CommonId("opt-red"), new CommonId("type-color"));
+        ProductVariant variant = new ProductVariant(
+                variantId,
+                "OLD-SKU",
+                ProductVariantStatus.ACTIVE,
+                List.of(variation),
+                false,
+                List.of(mediaId),
+                mediaId
+        );
+        product.addVariant(variant);
+
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+
+        handler.handle(new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU"));
+
+        verify(productRepository).save(productCaptor.capture());
+        Product saved = productCaptor.getValue();
+        assertThat(saved.findVariantById(variantId))
+                .isPresent()
+                .hasValueSatisfying(v -> {
+                    assertThat(v.getSku()).isEqualTo("NEW-SKU");
+                    assertThat(v.getMediaIds()).extracting(Id::getValue).containsExactly("media-1");
+                    assertThat(v.getThumbnailMediaId().getValue()).isEqualTo("media-1");
+                });
     }
 
     @Test

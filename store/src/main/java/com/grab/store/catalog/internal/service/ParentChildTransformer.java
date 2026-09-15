@@ -1,7 +1,6 @@
-package com.grab.store.catalog.internal.util;
+package com.grab.store.catalog.internal.service;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 

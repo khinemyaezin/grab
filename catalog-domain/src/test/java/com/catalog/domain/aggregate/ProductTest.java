@@ -85,6 +85,44 @@ class ProductTest {
         assertThat(product.getActiveVariants()).extracting(v -> v.getId().getValue()).containsExactly("v1");
     }
 
+    @Test
+    void replaceMedias_prunesVariantMediaNoLongerOwned() {
+        Product product = productWithMedia();
+        product.addVariant(variant("v1", "SKU-1", "red"));
+        product.applyVariantMedia(new CommonId("v1"), List.of(new CommonId("media-1")), new CommonId("media-1"));
+
+        product.replaceMedias(List.of(new ProductMedia(
+                new CommonId("media-2"),
+                "merchants/m/products/p/2.jpg",
+                "http://minio/2.jpg",
+                "image/jpeg",
+                0
+        )));
+
+        ProductVariant stored = product.findVariantById(new CommonId("v1")).orElseThrow();
+        assertThat(stored.getMediaIds()).isEmpty();
+        assertThat(stored.getThumbnailMediaId()).isNull();
+    }
+
+    private static Product productWithMedia() {
+        return Product.create(
+                new CommonId("product-1"),
+                new CommonId("merchant-1"),
+                "T-Shirt",
+                new CommonId("clothing"),
+                null,
+                null,
+                List.of(),
+                List.of(new ProductMedia(
+                        new CommonId("media-1"),
+                        "merchants/m/products/p/1.jpg",
+                        "http://minio/1.jpg",
+                        "image/jpeg",
+                        0
+                ))
+        );
+    }
+
     private static Product productWithStatus(ProductStatus status, ProductVariant... variants) {
         Product product = Product.create(
                 new CommonId("product-1"),

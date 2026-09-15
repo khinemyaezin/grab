@@ -11,6 +11,9 @@ import org.mapstruct.MappingTarget;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ProductEntityMapper {
     @Mapping(ignore = true, target = ProductEntity_.ID)
+    @Mapping(ignore = true, target = ProductEntity_.MEDIA_ENTITIES)
+    @Mapping(ignore = true, target = ProductEntity_.DESCRIPTION_ENTITIES)
+    @Mapping(ignore = true, target = ProductEntity_.PRODUCT_VARIANT_ENTITIES)
     @Mapping(source = "id", target = ProductEntity_.UUID)
     @Mapping(source = "name", target = ProductEntity_.NAME)
     @Mapping(source = "merchantId", target = ProductEntity_.MERCHANT_ID)

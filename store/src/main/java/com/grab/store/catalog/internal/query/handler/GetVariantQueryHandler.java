@@ -17,7 +17,7 @@ import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetVariantQuery;
 import com.grab.store.catalog.internal.query.GetVariantResult;
-import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
+import com.grab.store.catalog.internal.service.StandaloneVariationFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

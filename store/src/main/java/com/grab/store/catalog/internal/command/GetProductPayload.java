@@ -22,7 +22,9 @@ public record GetProductPayload(
 
     public record Media(
             Id id,
-            String type,
-            String path
+            String storageKey,
+            String url,
+            String contentType,
+            int rank
     ) {}
 }

@@ -18,7 +18,10 @@ public sealed interface CatalogDomainError extends MessageSource permits
         CatalogDomainError.DuplicateVariantOption,
         CatalogDomainError.VariantOptionTypeMismatch,
         CatalogDomainError.DuplicateCategoryVariantTypeLink,
-        CatalogDomainError.DuplicateSKU {
+        CatalogDomainError.DuplicateSKU,
+        CatalogDomainError.DuplicateProductMedia,
+        CatalogDomainError.VariantMediaNotOwnedByProduct,
+        CatalogDomainError.VariantNotFound {
 
     record InvalidProductStatusTransition(String currentStatus, String newStatus) implements CatalogDomainError {
         @Override
@@ -243,6 +246,24 @@ public sealed interface CatalogDomainError extends MessageSource permits
     }
 
 
+    record DuplicateProductMedia(String identifier) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.duplicate_product_media";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("identifier", identifier);
+        }
+    }
+
+
     record DuplicateSKU(String sku) implements CatalogDomainError {
         @Override
         public ErrorCategory kind() {
@@ -259,6 +280,43 @@ public sealed interface CatalogDomainError extends MessageSource permits
             return Map.of(
                     "sku", sku
             );
+        }
+    }
+
+    record VariantMediaNotOwnedByProduct(String variantId, String mediaId) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.variant_media_not_owned_by_product";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of(
+                    "variantId", variantId,
+                    "mediaId", mediaId
+            );
+        }
+    }
+
+    record VariantNotFound(String variantId) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.variant_not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("variantId", variantId);
         }
     }
 }

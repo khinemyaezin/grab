@@ -17,7 +17,7 @@ import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
-import com.grab.store.catalog.internal.util.ParentChildTransformer;
+import com.grab.store.catalog.internal.service.ParentChildTransformer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -144,7 +144,9 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
                     variant.getSku(),
                     variant.getStatus().name(),
                     variations,
-                    variant.isManageInventory()
+                    variant.isManageInventory(),
+                    variant.getMediaIds().stream().map(Id::getValue).toList(),
+                    variant.getThumbnailMediaId() == null ? null : variant.getThumbnailMediaId().getValue()
             );
             result.add(resultVariant);
         }
@@ -155,8 +157,10 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
     private GetProductBySlugResult.Media mapToSlugResultMedia(ProductMedia media) {
         return new GetProductBySlugResult.Media(
                 media.getId() == null ? null : media.getId().getValue(),
-                media.getType(),
-                media.getPath()
+                media.getStorageKey(),
+                media.getUrl(),
+                media.getContentType(),
+                media.getRank()
         );
     }
 }
