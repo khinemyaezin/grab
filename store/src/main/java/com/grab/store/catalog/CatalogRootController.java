@@ -1,5 +1,6 @@
 package com.grab.store.catalog;
 
+import com.grab.store.catalog.internal.api.rest.controller.CatalogMediaController;
 import com.grab.store.catalog.internal.api.rest.controller.CategoryController;
 import com.grab.store.catalog.internal.api.rest.controller.ProductController;
 import com.grab.store.catalog.internal.api.rest.controller.VariantOptionController;
@@ -46,6 +47,18 @@ public class CatalogRootController {
         model.add(linkTo(methodOn(ProductController.class)
                 .saveProduct(null))
                 .withRel("create-product"));
+
+        model.add(linkTo(methodOn(CatalogMediaController.class)
+                .createStagedMediaUpload(null))
+                .withRel("create-staged-media-upload"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .createProductMediaUpload(null, null))
+                .withRel("create-product-media-upload"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .replaceProductMedia(null, null))
+                .withRel("replace-product-media"));
 
         model.add(linkTo(methodOn(ProductController.class).getVariationMatrix(null))
                 .withRel("generate-variation-matrix"));

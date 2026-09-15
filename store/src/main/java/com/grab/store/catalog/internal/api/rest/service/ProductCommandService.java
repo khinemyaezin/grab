@@ -85,13 +85,37 @@ public class ProductCommandService {
                 request.medias().stream()
                         .map(media -> new ReplaceProductMediaCommand.Media(
                                 media.id() == null || media.id().isBlank() ? null : idGenerator.convertIdFrom(media.id()),
-                                media.type(),
-                                media.path()
+                                media.storageKey(),
+                                media.contentType(),
+                                media.rank()
                         ))
                         .toList()
         );
         ProductMediaResult result = commandBus.dispatch(command);
         return new ProductMediaResponse(result.productId(), mapMedias(result));
+    }
+
+    public ProductMediaUploadResponse createProductMediaUpload(String productId, CreateProductMediaUploadRequest request) {
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        ProductMediaUploadResult result = commandBus.dispatch(new CreateProductMediaUploadCommand(
+                idGenerator.convertIdFrom(merchantId),
+                idGenerator.convertIdFrom(productId),
+                request.filename(),
+                request.contentType(),
+                request.sizeBytes()
+        ));
+        return toUploadResponse(result);
+    }
+
+    public ProductMediaUploadResponse createStagedMediaUpload(CreateProductMediaUploadRequest request) {
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        ProductMediaUploadResult result = commandBus.dispatch(new CreateStagedMediaUploadCommand(
+                idGenerator.convertIdFrom(merchantId),
+                request.filename(),
+                request.contentType(),
+                request.sizeBytes()
+        ));
+        return toUploadResponse(result);
     }
 
     public UpdateProductStatusResponse updateProductStatus(String productId, UpdateProductStatusRequest request) {
@@ -140,12 +164,24 @@ public class ProductCommandService {
                 .toList();
     }
 
+    private ProductMediaUploadResponse toUploadResponse(ProductMediaUploadResult result) {
+        return new ProductMediaUploadResponse(
+                result.url(),
+                result.method(),
+                result.requiredHeaders(),
+                result.storageKey(),
+                result.expiresAt()
+        );
+    }
+
     private List<GetProductResponse.Media> mapMedias(ProductMediaResult result) {
         return result.medias().stream()
                 .map(media -> new GetProductResponse.Media(
                         media.id() == null ? null : media.id().getValue(),
-                        media.type(),
-                        media.path()
+                        media.storageKey(),
+                        media.url(),
+                        media.contentType(),
+                        media.rank()
                 ))
                 .toList();
     }

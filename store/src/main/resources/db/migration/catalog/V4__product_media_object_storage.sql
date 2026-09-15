@@ -1,0 +1,19 @@
+ALTER TABLE media ADD COLUMN IF NOT EXISTS storage_key VARCHAR(512);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS content_type VARCHAR(255);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS url VARCHAR(1024);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS rank INTEGER NOT NULL DEFAULT 0;
+
+UPDATE media SET storage_key = path WHERE storage_key IS NULL;
+UPDATE media SET url = path WHERE url IS NULL;
+UPDATE media SET content_type = type WHERE content_type IS NULL AND type IS NOT NULL;
+
+ALTER TABLE media ALTER COLUMN storage_key SET NOT NULL;
+
+ALTER TABLE media DROP CONSTRAINT IF EXISTS media_path_key;
+DROP INDEX IF EXISTS media_path_key;
+
+CREATE UNIQUE INDEX IF NOT EXISTS media_storage_key_uidx ON media (storage_key);
+
+ALTER TABLE product_media ADD COLUMN IF NOT EXISTS rank INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE product_variant ADD COLUMN IF NOT EXISTS thumbnail_media_uuid VARCHAR(255);

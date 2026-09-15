@@ -125,7 +125,7 @@ class DeleteVariantCommandHandlerTest {
                 null,
                 null,
                 List.of(new Description(null, "summary", "Summary", "Product summary")),
-                List.of(new ProductMedia(null, "IMAGE", "/images/product.png"))
+                List.of(new ProductMedia(null, "/images/product.png", "/images/product.png", "image/png", 0))
         );
         ProductVariation variation = new ProductVariation(
                 new CommonId("opt-red"), new CommonId("type-color"));

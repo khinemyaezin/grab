@@ -13,6 +13,8 @@ import com.grab.store.workflows.internal.workflows.createsellableproduct.rest.ma
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class CreateSellableProductWorkflowService {
@@ -50,7 +52,7 @@ public class CreateSellableProductWorkflowService {
         return mapper.toResponse(instance, context);
     }
 
-    private java.util.Optional<CreateSellableProductContext> readContext(WorkflowInstance instance) {
+    private Optional<CreateSellableProductContext> readContext(WorkflowInstance instance) {
         return instance.contextJson()
                 .map(json -> payloadCodec.readTyped(json, CreateSellableProductContext.class));
     }

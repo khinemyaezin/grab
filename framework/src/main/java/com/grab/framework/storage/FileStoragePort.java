@@ -13,5 +13,7 @@ public interface FileStoragePort {
 
     PresignedUrl createPresignedGet(String storageKey);
 
+    void copy(String sourceKey, String destKey);
+
     void delete(String storageKey);
 }

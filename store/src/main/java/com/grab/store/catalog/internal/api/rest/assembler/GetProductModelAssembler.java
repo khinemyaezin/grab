@@ -25,6 +25,10 @@ public class GetProductModelAssembler
         entity.add(linkTo(methodOn(CategoryController.class).getCategory(response.category().id())).withRel("get-category"));
         entity.add(linkTo(methodOn(ProductController.class).updateProduct(response.id(), null)).withRel("update-product"));
         entity.add(linkTo(methodOn(ProductController.class).updateProductStatus(response.id(), null)).withRel("update-product-status"));
+        entity.add(linkTo(methodOn(ProductController.class).createProductMediaUpload(response.id(), null))
+                .withRel("create-product-media-upload"));
+        entity.add(linkTo(methodOn(ProductController.class).replaceProductMedia(response.id(), null))
+                .withRel("replace-product-media"));
 
         try {
             ProductStatus currentStatus = ProductStatus.valueOf(response.status().toUpperCase());

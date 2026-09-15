@@ -23,9 +23,9 @@ import com.grab.store.catalog.internal.config.CatalogTransactional;
 import com.grab.store.catalog.internal.exception.CatalogCommandHandlerError;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
-import com.grab.store.catalog.internal.util.CatalogPolicyValidator;
-import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
-import com.grab.store.catalog.internal.util.UniqueSlugResolver;
+import com.grab.store.catalog.internal.service.CatalogPolicyValidator;
+import com.grab.store.catalog.internal.service.StandaloneVariationFactory;
+import com.grab.store.catalog.internal.service.UniqueSlugResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -205,11 +205,14 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
                 MatrixCombinationSynchronizer.VariantCombinationResult.MatchedType.UNCHANGED)) {
             ProductVariant existingVariant = combinationResult.productVariants().getFirst();
 
-            return ProductVariant.create(
+            return new ProductVariant(
                     existingVariant.getId(),
                     overrideVariant.sku(),
+                    existingVariant.getStatus(),
                     new ArrayList<>(existingVariant.getVariations()),
-                    Boolean.TRUE.equals(overrideVariant.manageInventory())
+                    Boolean.TRUE.equals(overrideVariant.manageInventory()),
+                    existingVariant.getMediaIds(),
+                    existingVariant.getThumbnailMediaId()
             );
         }
 
@@ -303,11 +306,14 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
             String sku = override != null && StringUtils.hasText(override.sku())
                     ? override.sku()
                     : existing.getSku();
-            return ProductVariant.create(
+            return new ProductVariant(
                     existing.getId(),
                     sku,
+                    existing.getStatus(),
                     new ArrayList<>(existing.getVariations()),
-                    Boolean.TRUE.equals(override == null ? null : override.manageInventory())
+                    Boolean.TRUE.equals(override == null ? null : override.manageInventory()),
+                    existing.getMediaIds(),
+                    existing.getThumbnailMediaId()
             );
         }
         return createStandaloneVariant(command);
@@ -443,8 +449,10 @@ public class UpdateProductCommandHandler implements CommandHandler<UpdateProduct
         return medias.stream()
                 .map(media -> new GetProductPayload.Media(
                         media.getId() == null ? null : new CommonId(media.getId().getValue()),
-                        media.getType(),
-                        media.getPath()
+                        media.getStorageKey(),
+                        media.getUrl(),
+                        media.getContentType(),
+                        media.getRank()
                 ))
                 .toList();
     }

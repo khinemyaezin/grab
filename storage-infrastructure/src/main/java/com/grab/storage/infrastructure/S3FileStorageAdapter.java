@@ -5,6 +5,7 @@ import com.grab.framework.storage.PresignedUpload;
 import com.grab.framework.storage.PresignedUrl;
 import com.grab.framework.storage.UploadRequest;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
@@ -17,7 +18,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -50,15 +50,10 @@ public class S3FileStorageAdapter implements FileStoragePort {
                 .putObjectRequest(put.build())
                 .build());
 
-        Map<String, String> headers = new LinkedHashMap<>();
-        presigned.signedHeaders().forEach((name, values) -> {
-            if (values != null && !values.isEmpty()) {
-                headers.put(name, values.getFirst());
-            }
-        });
-        if (request.contentType() != null && !request.contentType().isBlank()) {
-            headers.putIfAbsent("Content-Type", request.contentType());
-        }
+        Map<String, String> headers = PresignedUploadHeaders.fromSigned(
+                presigned.signedHeaders(),
+                request.contentType()
+        );
 
         return new PresignedUpload(
                 presigned.url().toString(),
@@ -103,6 +98,16 @@ public class S3FileStorageAdapter implements FileStoragePort {
                 .getObjectRequest(builder -> builder.bucket(properties.bucket()).key(storageKey))
                 .build());
         return new PresignedUrl(presigned.url().toString(), Instant.now().plus(properties.presignTtl()));
+    }
+
+    @Override
+    public void copy(String sourceKey, String destKey) {
+        s3Client.copyObject(CopyObjectRequest.builder()
+                .sourceBucket(properties.bucket())
+                .sourceKey(sourceKey)
+                .destinationBucket(properties.bucket())
+                .destinationKey(destKey)
+                .build());
     }
 
     @Override

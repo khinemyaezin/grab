@@ -1,4 +1,4 @@
-package com.grab.store.catalog.internal.util;
+package com.grab.store.catalog.internal.service;
 
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;

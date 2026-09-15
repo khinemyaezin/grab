@@ -15,7 +15,7 @@ import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetVariantQuery;
 import com.grab.store.catalog.internal.query.GetVariantResult;
-import com.grab.store.catalog.internal.util.StandaloneVariationFactory;
+import com.grab.store.catalog.internal.service.StandaloneVariationFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -263,6 +263,7 @@ public sealed interface CatalogDomainError extends MessageSource permits
         }
     }
 
+
     record DuplicateSKU(String sku) implements CatalogDomainError {
         @Override
         public ErrorCategory kind() {
