@@ -9,9 +9,17 @@ public record GetProductResult(
         String condition,
         String status,
         String slug,
+        List<Media> medias,
         List<Variant> variants,
         List<VariantType> variantTypes
 ) {
+    public record Media(
+            String id,
+            String storageKey,
+            String url,
+            String contentType,
+            int rank
+    ) {}
 
     public record Category(
             String id,

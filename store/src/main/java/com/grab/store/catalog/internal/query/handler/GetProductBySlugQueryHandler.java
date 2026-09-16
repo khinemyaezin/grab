@@ -1,7 +1,6 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
@@ -17,6 +16,7 @@ import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
 import com.grab.store.catalog.internal.query.GetProductBySlugResult;
+import com.grab.store.catalog.internal.query.ProductMediaQueryMapper;
 import com.grab.store.catalog.internal.service.ParentChildTransformer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -36,6 +36,7 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
     private final ProductRepository productRepository;
     private final VariantOptionQueryRepository variantOptionQueryRepository;
     private final IdGenerator idGenerator;
+    private final ProductMediaQueryMapper productMediaQueryMapper;
 
     @Override
     @CatalogReadTransactional
@@ -92,9 +93,7 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
                                 description.getDescription()
                         ))
                         .toList(),
-                product.getMedias().stream()
-                        .map(this::mapToSlugResultMedia)
-                        .toList(),
+                productMediaQueryMapper.toGetProductBySlugMedias(product.getMedias()),
                 variants,
                 variantTypes
         );
@@ -151,16 +150,5 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
             result.add(resultVariant);
         }
         return result;
-    }
-
-
-    private GetProductBySlugResult.Media mapToSlugResultMedia(ProductMedia media) {
-        return new GetProductBySlugResult.Media(
-                media.getId() == null ? null : media.getId().getValue(),
-                media.getStorageKey(),
-                media.getUrl(),
-                media.getContentType(),
-                media.getRank()
-        );
     }
 }

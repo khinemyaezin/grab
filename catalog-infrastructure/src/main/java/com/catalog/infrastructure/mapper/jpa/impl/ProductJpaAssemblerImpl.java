@@ -282,7 +282,9 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
             String storageKey = firstNonBlank(mediaEntity.getStorageKey(), mediaEntity.getPath());
             String url = firstNonBlank(mediaEntity.getUrl(), storageKey);
             String contentType = firstNonBlank(mediaEntity.getContentType(), mediaEntity.getType());
-            int rank = mediaEntity.getRank() > 0 ? mediaEntity.getRank() : index;
+            
+            int rank = mediaEntity.getRank() >= 0 ? mediaEntity.getRank() : index;
+            
             medias.add(new ProductMedia(
                     domainId == null ? null : new CommonId(domainId),
                     storageKey,
@@ -292,8 +294,11 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
             ));
             index++;
         }
+        // FIX: Ensure domain list is sorted by rank ascending
+        medias.sort(Comparator.comparingInt(ProductMedia::getRank));
         return medias;
     }
+
 
     private List<Id> variantMediaIds(ProductVariantEntity variantEntity, Map<String, Id> mediaIdByUuid) {
         List<Id> mediaIds = new ArrayList<>();
