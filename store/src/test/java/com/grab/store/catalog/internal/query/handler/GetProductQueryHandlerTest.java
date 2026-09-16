@@ -1,6 +1,7 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.service.MatrixKeyGenerator;
@@ -12,8 +13,10 @@ import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
+import com.grab.framework.storage.FileStoragePort;
 import com.grab.store.catalog.internal.query.GetProductQuery;
 import com.grab.store.catalog.internal.query.GetProductResult;
+import com.grab.store.catalog.internal.query.ProductMediaQueryMapper;
 import com.grab.store.catalog.internal.service.StandaloneVariationFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +45,8 @@ class GetProductQueryHandlerTest {
     private IdGenerator idGenerator;
     @Mock
     private MatrixKeyGenerator matrixKeyGenerator;
+    @Mock
+    private FileStoragePort fileStoragePort;
 
     private GetProductQueryHandler getProductQueryHandler;
 
@@ -51,7 +56,8 @@ class GetProductQueryHandlerTest {
                 variantOptionQueryRepository,
                 idGenerator,
                 categoryQueryRepository,
-                matrixKeyGenerator);
+                matrixKeyGenerator,
+                new ProductMediaQueryMapper(fileStoragePort));
     }
 
     @Test
@@ -95,6 +101,7 @@ class GetProductQueryHandlerTest {
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(productId.getValue());
+        assertThat(result.medias()).isEmpty();
         assertThat(result.variants()).hasSize(1);
         assertThat(result.variants().getFirst().variations()).hasSize(0);
         assertThat(result.variantTypes()).hasSize(0);
@@ -143,8 +150,85 @@ class GetProductQueryHandlerTest {
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(productId.getValue());
+        assertThat(result.medias()).isEmpty();
         assertThat(result.variants()).hasSize(1);
         assertThat(result.variantTypes()).hasSize(0);
+    }
+
+    @Test
+    public void handle_withMedias_shouldReturnRankedGalleryWithResolvedUrls() {
+        Id productId = new CommonId("prod-1");
+        Id variantId = new CommonId("var-1");
+        GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
+        String secondaryKey = "merchants/m/products/prod-1/side.jpg";
+        String heroKey = "merchants/m/products/prod-1/hero.jpg";
+
+        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+                .thenReturn(Collections.emptyList());
+        when(idGenerator.convertIdFrom(anyString()))
+                .thenAnswer(invocationOnMock ->
+                        new CommonId(invocationOnMock.getArgument(0)));
+        when(fileStoragePort.resolvePublicUrl(anyString())).thenAnswer(invocation ->
+                "http://localhost:8333/grab-media/" + invocation.getArgument(0));
+
+        List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
+                new Product(
+                        productId,
+                        productId,
+                        "Shirt",
+                        new CommonId(),
+                        null,
+                        ProductStatus.ACTIVE,
+                        null,
+                        null,
+                        List.of(
+                                new ProductMedia(
+                                        new CommonId("media-2"),
+                                        secondaryKey,
+                                        "stale-url",
+                                        "image/jpeg",
+                                        1
+                                ),
+                                new ProductMedia(
+                                        new CommonId("media-1"),
+                                        heroKey,
+                                        "stale-url",
+                                        "image/jpeg",
+                                        0
+                                )
+                        ),
+                        List.of(
+                                new ProductVariant(
+                                        variantId,
+                                        "STANDALONE",
+                                        ProductVariantStatus.ACTIVE,
+                                        standAloneVariation,
+                                        true,
+                                        List.of(),
+                                        null
+                                )
+                        )
+                )));
+
+        GetProductResult result = getProductQueryHandler.handle(query);
+
+        assertThat(result.medias()).containsExactly(
+                new GetProductResult.Media(
+                        "media-1",
+                        heroKey,
+                        "http://localhost:8333/grab-media/" + heroKey,
+                        "image/jpeg",
+                        0
+                ),
+                new GetProductResult.Media(
+                        "media-2",
+                        secondaryKey,
+                        "http://localhost:8333/grab-media/" + secondaryKey,
+                        "image/jpeg",
+                        1
+                )
+        );
     }
 
 }

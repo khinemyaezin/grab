@@ -18,6 +18,7 @@ import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductQuery;
 import com.grab.store.catalog.internal.query.GetProductResult;
+import com.grab.store.catalog.internal.query.ProductMediaQueryMapper;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.store.catalog.internal.service.ParentChildTransformer;
@@ -40,6 +41,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     private final IdGenerator idGenerator;
     private final CategoryQueryRepository categoryQueryRepository;
     private final MatrixKeyGenerator matrixKeyGenerator;
+    private final ProductMediaQueryMapper productMediaQueryMapper;
 
     @Override
     @CatalogReadTransactional
@@ -85,6 +87,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getListingCondition() == null ? null : product.getListingCondition().name(),
                 product.getStatus().name(),
                 product.getSlug(),
+                productMediaQueryMapper.toGetProductMedias(product.getMedias()),
                 variants,
                 variantTypes
         );

@@ -184,6 +184,44 @@ class ProductContentCommandHandlerTest {
     }
 
     @Test
+    void replaceMediaKeepsExistingIdAndPromotesStagedKeyInSameGallery() {
+        Product product = seedProduct("merchant-1", "product-1");
+        var existingMediaId = product.getMedias().getFirst().getId();
+        String keepKey = "merchants/merchant-1/products/product-1/keep.jpg";
+        String stagedKey = "merchants/merchant-1/staged/object-2.jpg";
+        String promotedKey = "merchants/merchant-1/products/product-1/object-2.jpg";
+
+        ProductMediaResult result = replaceMediaHandler.handle(new ReplaceProductMediaCommand(
+                new CommonId("merchant-1"),
+                new CommonId("product-1"),
+                List.of(
+                        new ReplaceProductMediaCommand.Media(
+                                existingMediaId,
+                                keepKey,
+                                "image/jpeg",
+                                0
+                        ),
+                        new ReplaceProductMediaCommand.Media(
+                                null,
+                                stagedKey,
+                                "image/jpeg",
+                                1
+                        )
+                )
+        ));
+
+        Product saved = productRepository.getLastSaved();
+        assertThat(saved.getMedias()).hasSize(2);
+        assertThat(saved.getMedias().getFirst().getId()).isEqualTo(existingMediaId);
+        assertThat(saved.getMedias().getFirst().getStorageKey()).isEqualTo(keepKey);
+        assertThat(saved.getMedias().get(1).getStorageKey()).isEqualTo(promotedKey);
+        assertThat(result.medias()).hasSize(2);
+        assertThat(result.medias().getFirst().id()).isEqualTo(existingMediaId);
+        verify(fileStoragePort).copy(stagedKey, promotedKey);
+        verify(fileStoragePort, never()).copy(keepKey, keepKey);
+    }
+
+    @Test
     void replaceMediaLeavesNonStagedKeysUnchanged() {
         seedProduct("merchant-1", "product-1");
         String existingKey = "merchants/merchant-1/products/product-1/keep.jpg";
