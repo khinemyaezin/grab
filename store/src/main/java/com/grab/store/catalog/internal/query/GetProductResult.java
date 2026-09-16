@@ -9,10 +9,18 @@ public record GetProductResult(
         String condition,
         String status,
         String slug,
+        List<Description> descriptions,
         List<Media> medias,
         List<Variant> variants,
         List<VariantType> variantTypes
 ) {
+    public record Description(
+            String id,
+            String name,
+            String title,
+            String description
+    ) {}
+
     public record Media(
             String id,
             String storageKey,
@@ -32,7 +40,9 @@ public record GetProductResult(
             String status,
             String matrixKey,
             List<Variation> variations,
-            boolean manageInventory
+            boolean manageInventory,
+            List<String> mediaIds,
+            String thumbnailMediaId
     ) {}
 
     public record Variation(

@@ -3,6 +3,7 @@ package com.catalog.infrastructure.repository.jpa.impl;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.specification.jpa.ProductSearchSpecification;
+import com.catalog.infrastructure.view.ProductHeroMediaView;
 import com.catalog.infrastructure.view.ProductView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -10,6 +11,9 @@ import com.grab.framework.support.PersistenceExecutor;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.Collection;
+import java.util.List;
 
 @AllArgsConstructor
 public class ProductQueryRepositoryImpl implements ProductQueryRepository {
@@ -27,5 +31,12 @@ public class ProductQueryRepositoryImpl implements ProductQueryRepository {
 
         log.debug("Product search returned {} elements", page.getTotalElements());
         return page;
+    }
+
+    @Override
+    public List<ProductHeroMediaView> findHeroMediasByProductIds(Collection<String> productIds) {
+        log.debug("Finding hero medias for {} products", productIds == null ? 0 : productIds.size());
+        return executor.query("Product", () ->
+                productSearchSpecification.findHeroMediasByProductIds(productIds));
     }
 }

@@ -9,6 +9,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
+import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
@@ -87,10 +88,25 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 product.getListingCondition() == null ? null : product.getListingCondition().name(),
                 product.getStatus().name(),
                 product.getSlug(),
+                mapDescriptions(product.getDescriptions()),
                 productMediaQueryMapper.toGetProductMedias(product.getMedias()),
                 variants,
                 variantTypes
         );
+    }
+
+    private List<GetProductResult.Description> mapDescriptions(List<Description> descriptions) {
+        if (descriptions == null || descriptions.isEmpty()) {
+            return List.of();
+        }
+        return descriptions.stream()
+                .map(description -> new GetProductResult.Description(
+                        description.getId() == null ? null : description.getId().getValue(),
+                        description.getName(),
+                        description.getTitle(),
+                        description.getDescription()
+                ))
+                .toList();
     }
 
     private List<GetProductResult.VariantType> extractVariantTypes(List<VariantOptionView> optionViews) {
@@ -134,7 +150,9 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                     variant.getStatus().name(),
                     matrixKey,
                     variations,
-                    variant.isManageInventory()
+                    variant.isManageInventory(),
+                    variant.getMediaIds().stream().map(Id::getValue).toList(),
+                    variant.getThumbnailMediaId() == null ? null : variant.getThumbnailMediaId().getValue()
             );
         }).toList();
     }

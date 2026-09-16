@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.query.handler;
 
+import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
@@ -101,9 +102,12 @@ class GetProductQueryHandlerTest {
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(productId.getValue());
+        assertThat(result.descriptions()).isEmpty();
         assertThat(result.medias()).isEmpty();
         assertThat(result.variants()).hasSize(1);
         assertThat(result.variants().getFirst().variations()).hasSize(0);
+        assertThat(result.variants().getFirst().mediaIds()).isEmpty();
+        assertThat(result.variants().getFirst().thumbnailMediaId()).isNull();
         assertThat(result.variantTypes()).hasSize(0);
     }
 
@@ -205,14 +209,15 @@ class GetProductQueryHandlerTest {
                                         ProductVariantStatus.ACTIVE,
                                         standAloneVariation,
                                         true,
-                                        List.of(),
-                                        null
+                                        List.of(new CommonId("media-1")),
+                                        new CommonId("media-1")
                                 )
                         )
                 )));
 
         GetProductResult result = getProductQueryHandler.handle(query);
 
+        assertThat(result.descriptions()).isEmpty();
         assertThat(result.medias()).containsExactly(
                 new GetProductResult.Media(
                         "media-1",
@@ -227,6 +232,65 @@ class GetProductQueryHandlerTest {
                         "http://localhost:8333/grab-media/" + secondaryKey,
                         "image/jpeg",
                         1
+                )
+        );
+        assertThat(result.variants()).hasSize(1);
+        assertThat(result.variants().getFirst().mediaIds()).containsExactly("media-1");
+        assertThat(result.variants().getFirst().thumbnailMediaId()).isEqualTo("media-1");
+    }
+
+    @Test
+    public void handle_withDescriptions_shouldReturnDescriptionSections() {
+        Id productId = new CommonId("prod-1");
+        Id variantId = new CommonId("var-1");
+        GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
+
+        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+                .thenReturn(Collections.emptyList());
+        when(idGenerator.convertIdFrom(anyString()))
+                .thenAnswer(invocationOnMock ->
+                        new CommonId(invocationOnMock.getArgument(0)));
+
+        List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
+                new Product(
+                        productId,
+                        productId,
+                        "Shirt",
+                        new CommonId(),
+                        null,
+                        ProductStatus.ACTIVE,
+                        null,
+                        List.of(
+                                new Description(
+                                        new CommonId("desc-1"),
+                                        "overview",
+                                        "Overview",
+                                        "Soft cotton shirt"
+                                )
+                        ),
+                        null,
+                        List.of(
+                                new ProductVariant(
+                                        variantId,
+                                        "STANDALONE",
+                                        ProductVariantStatus.ACTIVE,
+                                        standAloneVariation,
+                                        true,
+                                        List.of(),
+                                        null
+                                )
+                        )
+                )));
+
+        GetProductResult result = getProductQueryHandler.handle(query);
+
+        assertThat(result.descriptions()).containsExactly(
+                new GetProductResult.Description(
+                        "desc-1",
+                        "overview",
+                        "Overview",
+                        "Soft cotton shirt"
                 )
         );
     }

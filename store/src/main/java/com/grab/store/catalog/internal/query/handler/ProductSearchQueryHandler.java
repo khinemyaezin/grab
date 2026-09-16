@@ -4,10 +4,12 @@ import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.view.CategoryView;
+import com.catalog.infrastructure.view.ProductHeroMediaView;
 import com.catalog.infrastructure.view.ProductView;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
+import com.grab.framework.storage.FileStoragePort;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.query.ProductSearchQuery;
 import com.grab.store.catalog.internal.query.ProductSearchResult;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,6 +30,7 @@ public class ProductSearchQueryHandler implements QueryHandler<ProductSearchQuer
 
     private final ProductQueryRepository productQueryRepository;
     private final CategoryQueryRepository categoryRepository;
+    private final FileStoragePort fileStoragePort;
 
     @Override
     @CatalogReadTransactional
@@ -43,8 +47,9 @@ public class ProductSearchQueryHandler implements QueryHandler<ProductSearchQuer
 
         Page<ProductView> page = productQueryRepository.search(criteria, query.pageable());
         Map<String, String> categoryViewMap = getCategoryViewMap(page.getContent());
+        Map<String, ProductHeroMediaView> heroMediaByProductId = getHeroMediaByProductId(page.getContent());
 
-        return page.map(view -> mapToResult(view, categoryViewMap));
+        return page.map(view -> mapToResult(view, categoryViewMap, heroMediaByProductId));
     }
 
     @Override
@@ -61,14 +66,44 @@ public class ProductSearchQueryHandler implements QueryHandler<ProductSearchQuer
                 .collect(Collectors.toMap(CategoryView::id, CategoryView::name));
     }
 
-    private ProductSearchResult mapToResult(ProductView view, Map<String, String> categoryViewMap) {
+    private Map<String, ProductHeroMediaView> getHeroMediaByProductId(List<ProductView> views) {
+        List<String> productIds = views.stream()
+                .map(ProductView::id)
+                .toList();
+        return productQueryRepository.findHeroMediasByProductIds(productIds).stream()
+                .collect(Collectors.toMap(
+                        ProductHeroMediaView::productId,
+                        Function.identity(),
+                        (first, ignored) -> first
+                ));
+    }
+
+    private ProductSearchResult mapToResult(
+            ProductView view,
+            Map<String, String> categoryViewMap,
+            Map<String, ProductHeroMediaView> heroMediaByProductId
+    ) {
         return new ProductSearchResult(
                 view.id(),
                 view.name(),
                 view.status(),
                 view.slug(),
                 resolveCategoryName(categoryViewMap, view.categoryId()),
-                view.categoryId()
+                view.categoryId(),
+                toThumbnail(heroMediaByProductId.get(view.id()))
+        );
+    }
+
+    private ProductSearchResult.Media toThumbnail(ProductHeroMediaView hero) {
+        if (hero == null || hero.storageKey() == null || hero.storageKey().isBlank()) {
+            return null;
+        }
+        return new ProductSearchResult.Media(
+                hero.mediaId(),
+                hero.storageKey(),
+                fileStoragePort.resolvePublicUrl(hero.storageKey()),
+                hero.contentType(),
+                hero.rank()
         );
     }
 

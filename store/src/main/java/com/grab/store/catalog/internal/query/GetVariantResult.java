@@ -10,7 +10,9 @@ public record GetVariantResult(
         String status,
         String matrixKey,
         List<Variation> variations,
-        boolean manageInventory
+        boolean manageInventory,
+        List<String> mediaIds,
+        String thumbnailMediaId
 ) {
     public record Variation(
             String optionId,

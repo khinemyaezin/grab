@@ -1,9 +1,11 @@
 package com.catalog.infrastructure.specification.jpa;
 
+import com.catalog.infrastructure.entity.entity.MediaEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
 import com.catalog.infrastructure.repository.jpa.config.ProductRepositoryTestConfig;
+import com.catalog.infrastructure.view.ProductHeroMediaView;
 import com.catalog.infrastructure.view.ProductView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -170,7 +172,48 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
         assertEquals("Oldest Product", page.getContent().get(1).name());
     }
 
-    private void persistProduct(String name, String categoryId, VariantData... variants) {
+    @Test
+    void findHeroMediasByProductIds_returnsRankZeroMediaOnly() {
+        ProductEntity withHero = persistProduct("Hero Shirt", "cat-hero");
+        ProductEntity withoutMedia = persistProduct("Plain Shirt", "cat-hero");
+        persistMedia(withHero, "hero-1", "merchants/m/products/hero.jpg", 0);
+        persistMedia(withHero, "side-1", "merchants/m/products/side.jpg", 1);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        List<ProductHeroMediaView> heroes = specification.findHeroMediasByProductIds(
+                List.of(withHero.getUuid(), withoutMedia.getUuid())
+        );
+
+        assertEquals(1, heroes.size());
+        ProductHeroMediaView hero = heroes.getFirst();
+        assertEquals(withHero.getUuid(), hero.productId());
+        assertEquals("hero-1", hero.mediaId());
+        assertEquals("merchants/m/products/hero.jpg", hero.storageKey());
+        assertEquals("image/jpeg", hero.contentType());
+        assertEquals(0, hero.rank());
+    }
+
+    @Test
+    void findHeroMediasByProductIds_withEmptyIds_returnsEmptyList() {
+        assertTrue(specification.findHeroMediasByProductIds(List.of()).isEmpty());
+    }
+
+    private void persistMedia(ProductEntity product, String uuid, String storageKey, int rank) {
+        MediaEntity media = new MediaEntity();
+        media.setUuid(uuid);
+        media.setType("image/jpeg");
+        media.setContentType("image/jpeg");
+        media.setPath(storageKey);
+        media.setStorageKey(storageKey);
+        media.setUrl("stale-url");
+        media.setRank(rank);
+        entityManager.persist(media);
+        product.addMedia(media);
+    }
+
+    private ProductEntity persistProduct(String name, String categoryId, VariantData... variants) {
         ProductEntity product = new ProductEntity();
         product.setUuid(UUID.randomUUID().toString());
         product.setName(name);
@@ -194,6 +237,7 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
                 entityManager.persist(variationEntity);
             }
         }
+        return product;
     }
 
     private static VariantData variant(String sku, String status, VariationData... variations) {
