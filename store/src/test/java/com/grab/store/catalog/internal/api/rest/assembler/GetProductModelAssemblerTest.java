@@ -18,10 +18,13 @@ class GetProductModelAssemblerTest {
 
         assertThat(model.getLink("create-product-media-upload")).isPresent();
         assertThat(model.getLink("replace-product-media")).isPresent();
+        assertThat(model.getLink("replace-product-descriptions")).isPresent();
         assertThat(model.getRequiredLink("create-product-media-upload").getHref())
                 .contains("/products/prod-1/media/uploads");
         assertThat(model.getRequiredLink("replace-product-media").getHref())
                 .contains("/products/prod-1/media");
+        assertThat(model.getRequiredLink("replace-product-descriptions").getHref())
+                .contains("/products/prod-1/descriptions");
     }
 
     private GetProductResponse product(String status) {

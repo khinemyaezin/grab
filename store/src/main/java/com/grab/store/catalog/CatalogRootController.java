@@ -60,6 +60,14 @@ public class CatalogRootController {
                 .replaceProductMedia(null, null))
                 .withRel("replace-product-media"));
 
+        model.add(linkTo(methodOn(ProductController.class)
+                .batchVariantImages(null, null, null))
+                .withRel("batch-variant-images"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .replaceProductDescriptions(null, null))
+                .withRel("replace-product-descriptions"));
+
         model.add(linkTo(methodOn(ProductController.class).getVariationMatrix(null))
                 .withRel("generate-variation-matrix"));
 

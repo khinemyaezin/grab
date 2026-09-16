@@ -29,6 +29,8 @@ public class GetProductModelAssembler
                 .withRel("create-product-media-upload"));
         entity.add(linkTo(methodOn(ProductController.class).replaceProductMedia(response.id(), null))
                 .withRel("replace-product-media"));
+        entity.add(linkTo(methodOn(ProductController.class).replaceProductDescriptions(response.id(), null))
+                .withRel("replace-product-descriptions"));
 
         try {
             ProductStatus currentStatus = ProductStatus.valueOf(response.status().toUpperCase());

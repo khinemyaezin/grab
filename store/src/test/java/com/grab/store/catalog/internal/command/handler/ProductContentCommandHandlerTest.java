@@ -40,12 +40,12 @@ class ProductContentCommandHandlerTest {
     @BeforeEach
     void setUp() {
         productRepository = new InMemoryProductRepositoryTest();
-        replaceDescriptionsHandler = new ReplaceProductDescriptionsCommandHandler(productRepository);
+        IdGenerator idGenerator = new UuidGenerator();
+        replaceDescriptionsHandler = new ReplaceProductDescriptionsCommandHandler(productRepository, idGenerator);
         fileStoragePort = mock(FileStoragePort.class);
         when(fileStoragePort.objectExists(anyString())).thenReturn(true);
         when(fileStoragePort.resolvePublicUrl(anyString())).thenAnswer(invocation ->
                 "http://localhost:9000/grab-media/" + invocation.getArgument(0));
-        IdGenerator idGenerator = new UuidGenerator();
         replaceMediaHandler = new ReplaceProductMediaCommandHandler(
                 productRepository, fileStoragePort, idGenerator, new DefaultProductMediaService());
     }
@@ -72,6 +72,29 @@ class ProductContentCommandHandlerTest {
         assertThat(saved.getDescriptions().getFirst().getTitle()).isEqualTo("Updated Summary");
         assertThat(result.descriptions()).hasSize(1);
         assertThat(result.descriptions().getFirst().id()).isEqualTo(existingDescriptionId);
+    }
+
+    @Test
+    void replaceDescriptionsGeneratesIdWhenMissing() {
+        seedProduct();
+
+        ProductDescriptionsResult result = replaceDescriptionsHandler.handle(new ReplaceProductDescriptionsCommand(
+                new CommonId(PRODUCT_ID),
+                new CommonId(PRODUCT_ID),
+                List.of(new ReplaceProductDescriptionsCommand.Description(
+                        null,
+                        "overview",
+                        "Overview",
+                        "New body"
+                ))
+        ));
+
+        Product saved = productRepository.getLastSaved();
+        assertThat(saved.getDescriptions()).hasSize(1);
+        assertThat(saved.getDescriptions().getFirst().getId()).isNotNull();
+        assertThat(saved.getDescriptions().getFirst().getId().getValue()).isNotBlank();
+        assertThat(saved.getDescriptions().getFirst().getName()).isEqualTo("overview");
+        assertThat(result.descriptions().getFirst().id()).isEqualTo(saved.getDescriptions().getFirst().getId());
     }
 
     @Test

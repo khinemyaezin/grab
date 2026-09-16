@@ -87,6 +87,8 @@ class GetVariantQueryHandlerTest {
         assertThat(result.status()).isEqualTo(ProductVariantStatus.ACTIVE.name());
         assertThat(result.matrixKey()).isEqualTo(MATRIX_KEY);
         assertThat(result.manageInventory()).isTrue();
+        assertThat(result.mediaIds()).isEmpty();
+        assertThat(result.thumbnailMediaId()).isNull();
         assertThat(result.variations()).containsExactly(
                 new GetVariantResult.Variation("opt-red", "Red", "type-color", "Color")
         );
@@ -158,6 +160,35 @@ class GetVariantQueryHandlerTest {
 
         assertThat(result.status()).isEqualTo(ProductVariantStatus.DELETED.name());
         assertThat(result.variantId()).isEqualTo(VARIANT_ID);
+    }
+
+    @Test
+    void handle_returnsVariantMediaIds() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        ProductVariation variation = new ProductVariation(
+                new CommonId("opt-red"), new CommonId("type-color"));
+        Product product = productWithVariant(
+                new ProductVariant(
+                        variantId,
+                        "TSHIRT-RED-L",
+                        ProductVariantStatus.ACTIVE,
+                        List.of(variation),
+                        true,
+                        List.of(new CommonId("media-1"), new CommonId("media-2")),
+                        new CommonId("media-2")
+                )
+        );
+
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+        when(variantOptionQueryRepository.findAllByUuidIn(List.of("opt-red")))
+                .thenReturn(List.of(new VariantOptionView("opt-red", "Red", "type-color", "Color")));
+        when(matrixKeyGenerator.generateKey(anyList())).thenReturn(MATRIX_KEY);
+
+        GetVariantResult result = handler.handle(new GetVariantQuery(PRODUCT_ID, PRODUCT_ID, VARIANT_ID));
+
+        assertThat(result.mediaIds()).containsExactly("media-1", "media-2");
+        assertThat(result.thumbnailMediaId()).isEqualTo("media-2");
     }
 
     private Product productWithVariant(ProductVariant variant) {

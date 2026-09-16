@@ -95,7 +95,9 @@ public class GetVariantQueryHandler implements QueryHandler<GetVariantQuery, Get
                 variant.getStatus().name(),
                 matrixKey,
                 variations,
-                variant.isManageInventory()
+                variant.isManageInventory(),
+                variant.getMediaIds().stream().map(Id::getValue).toList(),
+                variant.getThumbnailMediaId() == null ? null : variant.getThumbnailMediaId().getValue()
         );
     }
 

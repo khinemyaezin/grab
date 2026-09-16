@@ -1,10 +1,13 @@
 package com.catalog.infrastructure.mapper.jpa;
 
+import com.catalog.infrastructure.entity.meta.ProductDescriptionEntity_;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.grab.framework.id.IdGenerator;
+import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
+import com.catalog.infrastructure.entity.entity.ProductDescriptionEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.mapper.CentralMapperConfig;
 import org.mapstruct.Mapper;
@@ -25,4 +28,7 @@ public abstract class ProductMapper {
     @Mapping(source = "variants" , target="variants")
     @Mapping(source = "productMedias" , target="medias")
     public abstract Product toDomain(ProductEntity entity, List<ProductVariant> variants, List<ProductMedia> productMedias);
+
+    @Mapping(source = ProductDescriptionEntity_.UUID, target = "id")
+    protected abstract Description toDescription(ProductDescriptionEntity entity);
 }

@@ -233,7 +233,7 @@ class ProductJpaAssemblerImplTest {
         assertThat(result.getSlug()).isEqualTo("phone");
 
         assertThat(result.getDescriptions()).hasSize(1);
-        assertThat(result.getDescriptions().getFirst().getId().getValue()).isEqualTo("41");
+        assertThat(result.getDescriptions().getFirst().getId().getValue()).isEqualTo("desc-1");
         assertThat(result.getDescriptions().getFirst().getTitle()).isEqualTo("Summary");
 
         assertThat(result.getMedias()).hasSize(1);

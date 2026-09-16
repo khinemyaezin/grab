@@ -6,6 +6,14 @@ public record ProductSearchResult(
         String status,
         String slug,
         String categoryName,
-        String categoryId
+        String categoryId,
+        Media thumbnail
 ) {
+    public record Media(
+            String id,
+            String storageKey,
+            String url,
+            String contentType,
+            int rank
+    ) {}
 }

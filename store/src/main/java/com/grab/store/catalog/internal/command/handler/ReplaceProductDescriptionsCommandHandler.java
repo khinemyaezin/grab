@@ -4,6 +4,7 @@ import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.GetProductPayload;
 import com.grab.store.catalog.internal.command.ProductDescriptionsResult;
@@ -21,6 +22,7 @@ import java.util.List;
 public class ReplaceProductDescriptionsCommandHandler implements CommandHandler<ReplaceProductDescriptionsCommand, ProductDescriptionsResult> {
 
     private final ProductRepository productRepository;
+    private final IdGenerator idGenerator;
 
     @Override
     @CatalogTransactional
@@ -33,7 +35,7 @@ public class ReplaceProductDescriptionsCommandHandler implements CommandHandler<
                     validateRequired(description.name(), "name");
                     validateRequired(description.description(), "description");
                     return new Description(
-                            description.id(),
+                            description.id() == null ? idGenerator.generateId() : description.id(),
                             description.name(),
                             description.title(),
                             description.description()

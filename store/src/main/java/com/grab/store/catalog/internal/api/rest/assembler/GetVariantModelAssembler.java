@@ -37,6 +37,9 @@ public class GetVariantModelAssembler
                 entity.add(WorkflowApiLinks.updateProductVariantLink());
                 entity.add(linkTo(methodOn(ProductController.class)
                         .deleteVariant(response.productId(), response.variantId())).withRel("delete-variant"));
+                entity.add(linkTo(methodOn(ProductController.class)
+                        .batchVariantImages(response.productId(), response.variantId(), null))
+                        .withRel("batch-variant-images"));
             }
         } catch (IllegalArgumentException | NullPointerException ignored) {
             // Invalid or missing status, safely ignore adding conditional links
