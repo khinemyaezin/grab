@@ -63,6 +63,59 @@ class UpdateProductVariantRequestContractTest {
         assertThat(validator.validate(request)).isEmpty();
         assertThat(request.price()).isNull();
         assertThat(request.inventoryLines()).isNull();
+        assertThat(request.manageInventory()).isNull();
+    }
+
+    @Test
+    void deserialize_manageInventoryTrue_shouldBeValid() throws Exception {
+        UpdateProductVariantRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "variantId": "variant-1",
+                  "sku": "SKU-1",
+                  "manageInventory": true
+                }
+                """, UpdateProductVariantRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.manageInventory()).isTrue();
+    }
+
+    @Test
+    void deserialize_manageInventoryFalse_shouldBeValid() throws Exception {
+        UpdateProductVariantRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "variantId": "variant-1",
+                  "sku": "SKU-1",
+                  "manageInventory": false
+                }
+                """, UpdateProductVariantRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.manageInventory()).isFalse();
+    }
+
+    @Test
+    void validate_createWhenManageInventoryFalse_shouldFail() throws Exception {
+        UpdateProductVariantRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "variantId": "variant-1",
+                  "sku": "SKU-1",
+                  "manageInventory": false,
+                  "inventoryLines": [
+                    {
+                      "sku": "SKU-1",
+                      "locationId": "loc-1",
+                      "op": "CREATE",
+                      "create": { "initialQuantity": 10 }
+                    }
+                  ]
+                }
+                """, UpdateProductVariantRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request))).contains("inventoryLines.sku");
     }
 
     @Test

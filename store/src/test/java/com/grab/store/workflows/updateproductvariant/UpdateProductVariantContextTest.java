@@ -69,6 +69,7 @@ class UpdateProductVariantContextTest {
                 "variant-1",
                 "SKU-1",
                 null,
+                null,
                 List.of()
         );
 
@@ -96,6 +97,7 @@ class UpdateProductVariantContextTest {
                 "product-1",
                 "variant-1",
                 "SKU-1",
+                true,
                 new UpdateProductVariantContext.Price(
                         "Base",
                         "USD",

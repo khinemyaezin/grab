@@ -18,6 +18,7 @@ public record UpdateProductVariantContext(
         String productId,
         String variantId,
         String sku,
+        Boolean manageInventory,
         Price price,
         List<InventoryLine> inventoryLines,
         String catalogSku,
@@ -53,6 +54,7 @@ public record UpdateProductVariantContext(
             String productId,
             String variantId,
             String sku,
+            Boolean manageInventory,
             Price price,
             List<InventoryLine> inventoryLines
     ) {
@@ -64,6 +66,7 @@ public record UpdateProductVariantContext(
                 productId,
                 variantId,
                 sku,
+                manageInventory,
                 price,
                 inventoryLines,
                 null,
@@ -181,6 +184,7 @@ public record UpdateProductVariantContext(
                 productId,
                 variantId,
                 sku,
+                manageInventory,
                 price,
                 inventoryLines,
                 newCatalogSku,

@@ -58,6 +58,7 @@ class UpdateProductVariantCatalogEventListenerTest {
             assertThat(command.productId().getValue()).isEqualTo("product-1");
             assertThat(command.variantId().getValue()).isEqualTo("variant-1");
             assertThat(command.sku()).isEqualTo("NEW-SKU");
+            assertThat(command.manageInventory()).isTrue();
         });
         assertThat(outbox.committed()).hasSize(1);
         assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(VariantUpdatedEvent.class, updated -> {
@@ -99,6 +100,7 @@ class UpdateProductVariantCatalogEventListenerTest {
                 "product-1",
                 "variant-1",
                 "NEW-SKU",
+                true,
                 Instant.now(),
                 1
         );

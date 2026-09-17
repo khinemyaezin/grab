@@ -1,5 +1,6 @@
 package com.grab.store.workflows.internal.workflows.updateproductvariant.rest.dto.request;
 
+import com.grab.store.workflows.events.InventorySyncOp;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
@@ -20,7 +21,25 @@ public class InventoryLinesValidator
         List<UpdateProductVariantRequest.InventoryLine> lines = request.inventoryLines();
         for (int i = 0; i < lines.size(); i++) {
             UpdateProductVariantRequest.InventoryLine line = lines.get(i);
-            if (line == null || isBlank(line.inventoryItemId())) {
+            if (line == null) {
+                continue;
+            }
+            boolean creatingUntrackedInventory = line.op() == InventorySyncOp.CREATE
+                    && Boolean.FALSE.equals(request.manageInventory());
+            if (creatingUntrackedInventory) {
+                if (valid) {
+                    context.disableDefaultConstraintViolation();
+                    valid = false;
+                }
+                context.buildConstraintViolationWithTemplate(
+                                "cannot create inventory when manageInventory is false")
+                        .addPropertyNode("inventoryLines")
+                        .inIterable()
+                        .atIndex(i)
+                        .addPropertyNode("sku")
+                        .addConstraintViolation();
+            }
+            if (isBlank(line.inventoryItemId())) {
                 continue;
             }
             if (seen.add(line.inventoryItemId())) {
