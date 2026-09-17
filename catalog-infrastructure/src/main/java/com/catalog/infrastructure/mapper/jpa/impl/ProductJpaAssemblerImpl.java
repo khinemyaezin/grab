@@ -186,6 +186,9 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
                 resultVariants.add(productVariantEntity);
             }
         }
+        productEntity.getProductVariants().stream()
+                .filter(e -> !processedUuids.contains(e.getUuid()))
+                .forEach(ProductVariantEntity::clearMedias);
         productEntity.getProductVariants()
                 .removeIf(e -> !processedUuids.contains(e.getUuid()));
 

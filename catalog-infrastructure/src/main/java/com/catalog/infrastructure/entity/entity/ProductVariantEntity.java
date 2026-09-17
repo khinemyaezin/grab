@@ -44,7 +44,7 @@ public class ProductVariantEntity {
     @Column(name = "thumbnail_media_uuid")
     private String thumbnailMediaUuid;
 
-    @ManyToMany(cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "product_variant_media",
             joinColumns = @JoinColumn(name = "variant_id"),
