@@ -39,6 +39,7 @@ public class ProductEntity_ {
     public static final String PRODUCT_VARIANT_ENTITIES = "productVariants";
     public static final String STATUS = "status";
     public static final String SLUG = "slug";
+    public static final String FEATURED = "featured";
     public static final String CREATED_AT = "createdAt";
     public static final String UPDATED_AT = "updatedAt";
 }

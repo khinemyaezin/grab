@@ -4,6 +4,8 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductVariation;
+import com.catalog.infrastructure.entity.entity.CatalogMerchantAvailabilityEntity;
+import com.catalog.infrastructure.repository.jpa.CatalogMerchantAvailabilityJpaRepository;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
 import com.catalog.infrastructure.view.VariantOptionView;
 import com.grab.framework.cqrs.query.QueryHandler;
@@ -15,7 +17,7 @@ import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
-import com.grab.store.catalog.internal.query.GetProductBySlugResult;
+import com.grab.store.catalog.queries.GetProductBySlugResult;
 import com.grab.store.catalog.internal.query.ProductMediaQueryMapper;
 import com.grab.store.catalog.internal.service.ParentChildTransformer;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
 
     private final ProductRepository productRepository;
     private final VariantOptionQueryRepository variantOptionQueryRepository;
+    private final CatalogMerchantAvailabilityJpaRepository merchantAvailability;
     private final IdGenerator idGenerator;
     private final ProductMediaQueryMapper productMediaQueryMapper;
 
@@ -54,7 +57,16 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
             );
         }
 
-        return mapToSlugResult(product);
+        CatalogMerchantAvailabilityEntity availability = merchantAvailability
+                .findByMerchantId(product.getMerchantId().getValue())
+                .orElse(null);
+        if (availability == null || !"ACTIVE".equals(availability.getStatus())) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.ProductNotFoundBySlug(query.slug())
+            );
+        }
+
+        return mapToSlugResult(product, availability.getMerchantType());
     }
 
     @Override
@@ -62,7 +74,7 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
         return GetProductBySlugQuery.class;
     }
 
-    public GetProductBySlugResult mapToSlugResult(Product product) {
+    public GetProductBySlugResult mapToSlugResult(Product product, String merchantType) {
         List<ProductVariation> allVariations = product.getVariants().stream()
                 .flatMap(v -> v.getVariations().stream())
                 .toList();
@@ -82,9 +94,12 @@ public class GetProductBySlugQueryHandler implements QueryHandler<GetProductBySl
                 product.getId().getValue(),
                 product.getName(),
                 product.getCategoryId().getValue(),
+                product.getMerchantId().getValue(),
+                merchantType,
                 product.getListingCondition() == null ? null : product.getListingCondition().name(),
                 product.getStatus().name(),
                 product.getSlug(),
+                product.isFeatured(),
                 product.getDescriptions().stream()
                         .map(description -> new GetProductBySlugResult.Description(
                                 description.getId() == null ? null : description.getId().getValue(),

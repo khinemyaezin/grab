@@ -25,6 +25,7 @@ public abstract class ProductMapper {
     @Mapping(source = "entity." + ProductEntity_.LISTING_CONDITION , target="listingCondition")
     @Mapping(source = "entity." + ProductEntity_.STATUS , target="status")
     @Mapping(source = "entity." + ProductEntity_.SLUG , target="slug")
+    @Mapping(source = "entity." + ProductEntity_.FEATURED , target="featured")
     @Mapping(source = "variants" , target="variants")
     @Mapping(source = "productMedias" , target="medias")
     public abstract Product toDomain(ProductEntity entity, List<ProductVariant> variants, List<ProductMedia> productMedias);

@@ -8,6 +8,7 @@ public record MerchantApprovedIntegrationEvent(
         String merchantId,
         String applicantUserId,
         String merchantName,
+        String merchantType,
         String status,
         Instant occurredAt,
         int version

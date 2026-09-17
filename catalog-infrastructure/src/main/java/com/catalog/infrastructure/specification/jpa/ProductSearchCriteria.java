@@ -8,6 +8,9 @@ public record ProductSearchCriteria(
     String query,
     String variantStatus,
     String categoryId,
-    String productStatus
+    String productStatus,
+    Boolean featured,
+    String condition,
+    boolean storefrontVisible
 )
 { }

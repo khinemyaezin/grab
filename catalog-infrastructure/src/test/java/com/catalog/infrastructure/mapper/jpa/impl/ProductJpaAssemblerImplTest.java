@@ -281,6 +281,38 @@ class ProductJpaAssemblerImplTest {
         assertThat(reconstituted.getVariants().getFirst().getThumbnailMediaId().getValue()).isEqualTo("m2");
     }
 
+    @Test
+    void buildFullEntityGraph_whenVariantRemoved_clearsRemovedVariantMedias() {
+        Product product = Product.create(
+                id("p1"),
+                id("merchant-1"),
+                "Camera",
+                id("electronics"),
+                null,
+                null,
+                List.of(),
+                List.of(new ProductMedia(id("m1"), "merchants/m/products/p1/a.jpg", "http://minio/a.jpg", "image/jpeg", 0))
+        );
+        ProductVariant newVariant = ProductVariant.create(id("v2"), "SKU-2", List.of());
+        product.addVariant(newVariant);
+
+        ProductEntity existingEntity = new ProductEntity();
+        existingEntity.setUuid("p1");
+        MediaEntity mediaEntity = mediaRow(10L, "m1", "image/jpeg", "merchants/m/products/p1/a.jpg");
+        existingEntity.addMedia(mediaEntity);
+
+        ProductVariantEntity oldVariantEntity = new ProductVariantEntity();
+        oldVariantEntity.setUuid("v1");
+        oldVariantEntity.addMedia(mediaEntity);
+        existingEntity.addVariant(oldVariantEntity);
+
+        ProductEntity result = assembler.buildFullEntityGraph(product, existingEntity);
+
+        assertThat(oldVariantEntity.getMedias()).isEmpty();
+        assertThat(result.getProductVariants()).extracting(ProductVariantEntity::getUuid).containsExactly("v2");
+        assertThat(result.getMedias()).containsExactly(mediaEntity);
+    }
+
     private Product createProduct(String productId, String name) {
         return Product.create(id(productId), name, id("clothing"));
     }

@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.query;
 
 import com.catalog.domain.aggregate.ProductMedia;
 import com.grab.framework.storage.FileStoragePort;
+import com.grab.store.catalog.queries.GetProductBySlugResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

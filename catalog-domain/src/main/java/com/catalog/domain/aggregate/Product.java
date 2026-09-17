@@ -57,6 +57,10 @@ public class Product extends AggregateRoot<Id> {
     private String slug;
 
     @Getter
+    @Setter
+    private boolean featured;
+
+    @Getter
     private ListingCondition listingCondition;
 
     private Product(Id id, Id merchantId, String name, Id categoryId) {

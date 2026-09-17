@@ -16,6 +16,9 @@ class ApiRootControllerTest {
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getLink("event-stream")).isPresent();
+        assertThat(response.getBody().getLink("get-storefront-root")).isPresent();
+        assertThat(response.getBody().getLink("get-storefront-root").orElseThrow().getHref())
+                .endsWith("/api/v1/storefront");
         assertThat(response.getBody().getLink("event-stream").orElseThrow().getHref())
                 .endsWith("/api/v1/events/stream");
     }

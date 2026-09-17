@@ -114,6 +114,15 @@ public class JpaSessionStoreAdapter implements SessionStore {
         sessionRepository.saveAll(assignmentSessions);
     }
 
+    @Override
+    public void revokeByScope(String platformCode, String scopeKey, String scopeId) {
+        Instant now = Instant.now();
+        var scopedSessions = sessionRepository.findByPlatformCodeAndScopeKeyAndScopeIdAndRevokedAtIsNull(
+                platformCode, scopeKey, scopeId);
+        scopedSessions.forEach(session -> session.setRevokedAt(now));
+        sessionRepository.saveAll(scopedSessions);
+    }
+
     private Optional<AccessContext> contextOf(RefreshSessionEntity session) {
         if (session.getPlatformCode() == null
                 || session.getAssignmentUuid() == null

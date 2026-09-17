@@ -1,11 +1,14 @@
 package com.catalog.infrastructure.specification.jpa;
 
+import com.catalog.domain.valueobject.ProductStatus;
+import com.catalog.infrastructure.entity.entity.CatalogMerchantAvailabilityEntity;
 import com.catalog.infrastructure.entity.entity.MediaEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
 import com.catalog.infrastructure.repository.jpa.config.ProductRepositoryTestConfig;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductVariantRefView;
 import com.catalog.infrastructure.view.ProductView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -200,6 +203,82 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
         assertTrue(specification.findHeroMediasByProductIds(List.of()).isEmpty());
     }
 
+    @Test
+    void search_storefrontVisible_returnsActiveProductsOfActiveMerchantsOnly() {
+        ProductEntity visible = persistProduct("Visible Shirt", "cat-sf",
+                variant("VIS-1", "ACTIVE"));
+        visible.setStatus(ProductStatus.ACTIVE);
+        visible.setFeatured(true);
+        visible.setListingCondition("NEW");
+        persistAvailability(MERCHANT_ID, "ACTIVE", "FIRST_PARTY_RETAILER");
+
+        ProductEntity draft = persistProduct("Draft Shirt", "cat-sf");
+        draft.setStatus(ProductStatus.DRAFT);
+
+        ProductEntity suspendedMerchantProduct = persistProduct("Hidden Shirt", "cat-sf", "merchant-suspended",
+                variant("HID-1", "ACTIVE"));
+        suspendedMerchantProduct.setStatus(ProductStatus.ACTIVE);
+        persistAvailability("merchant-suspended", "SUSPENDED", "C2C");
+
+        entityManager.flush();
+        entityManager.clear();
+
+        ProductSearchCriteria criteria = ProductSearchCriteria.builder()
+                .storefrontVisible(true)
+                .build();
+
+        Page<ProductView> page = specification.search(criteria, PageRequest.of(0, 10));
+
+        assertEquals(1, page.getTotalElements());
+        ProductView view = page.getContent().getFirst();
+        assertEquals("Visible Shirt", view.name());
+        assertEquals(MERCHANT_ID, view.merchantId());
+        assertTrue(view.featured());
+        assertEquals("NEW", view.condition());
+    }
+
+    @Test
+    void search_storefrontVisible_doesNotFilterByStorefrontStatus() {
+        ProductEntity visible = persistProduct("Still Listed", "cat-sf",
+                variant("STILL-1", "ACTIVE"));
+        visible.setStatus(ProductStatus.ACTIVE);
+        persistAvailability(MERCHANT_ID, "ACTIVE", "FIRST_PARTY_RETAILER");
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<ProductView> page = specification.search(
+                ProductSearchCriteria.builder().storefrontVisible(true).build(),
+                PageRequest.of(0, 10)
+        );
+
+        assertEquals(1, page.getTotalElements());
+        assertEquals("Still Listed", page.getContent().getFirst().name());
+    }
+
+    @Test
+    void findActiveVariantsByProductIds_returnsActiveVariantRefs() {
+        ProductEntity product = persistProduct("Variant Shirt", "cat-var",
+                variant("VAR-ACTIVE", "ACTIVE"),
+                variant("VAR-DELETED", "DELETED"));
+        entityManager.flush();
+        entityManager.clear();
+
+        List<ProductVariantRefView> refs = specification.findActiveVariantsByProductIds(List.of(product.getUuid()));
+
+        assertEquals(1, refs.size());
+        assertEquals(product.getUuid(), refs.getFirst().productId());
+        assertEquals("VAR-ACTIVE", refs.getFirst().sku());
+    }
+
+    private void persistAvailability(String merchantId, String status, String merchantType) {
+        CatalogMerchantAvailabilityEntity availability = new CatalogMerchantAvailabilityEntity();
+        availability.setMerchantId(merchantId);
+        availability.setStatus(status);
+        availability.setMerchantType(merchantType);
+        availability.setUpdatedAt(java.time.Instant.now());
+        entityManager.persist(availability);
+    }
+
     private void persistMedia(ProductEntity product, String uuid, String storageKey, int rank) {
         MediaEntity media = new MediaEntity();
         media.setUuid(uuid);
@@ -214,11 +293,15 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
     }
 
     private ProductEntity persistProduct(String name, String categoryId, VariantData... variants) {
+        return persistProduct(name, categoryId, MERCHANT_ID, variants);
+    }
+
+    private ProductEntity persistProduct(String name, String categoryId, String merchantId, VariantData... variants) {
         ProductEntity product = new ProductEntity();
         product.setUuid(UUID.randomUUID().toString());
         product.setName(name);
         product.setCategoryId(categoryId);
-        product.setMerchantId(MERCHANT_ID);
+        product.setMerchantId(merchantId);
         entityManager.persist(product);
 
         for (VariantData v : variants) {

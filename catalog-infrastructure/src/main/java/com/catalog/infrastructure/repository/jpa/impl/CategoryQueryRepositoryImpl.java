@@ -83,6 +83,17 @@ public class CategoryQueryRepositoryImpl implements CategoryQueryRepository {
             categoryJpaRepo.findAllByUuids(ids));
     }
 
+    @Override
+    public List<CategoryNodeView> findRootTrees() {
+        log.debug("Loading root category trees");
+        return executor.query("Category", () ->
+                categoryJpaRepo.findByDepthOrderByLftAsc(0).stream()
+                        .map(root -> categoryNodeRepository.findSubtree(root.getUuid()))
+                        .flatMap(Optional::stream)
+                        .map(this::toNodeView)
+                        .toList());
+    }
+
     private CategoryNodeView toNodeView(CategoryTreeNode node) {
         return new CategoryNodeView(
                 node.entity().getUuid(),

@@ -1,6 +1,7 @@
 package com.merchant.infrastructure.repository.jpa.config;
 
 import com.merchant.infrastructure.repository.jpa.MerchantAccountJpaRepository;
+import com.merchant.infrastructure.repository.jpa.StorefrontJpaRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -41,6 +42,11 @@ public class RepositoryTestConfig extends PostgreSqlTestContainer {
         @Bean
         MerchantAccountJpaRepository merchantAccountJpaRepository(EntityManager entityManager) {
             return new JpaRepositoryFactory(entityManager).getRepository(MerchantAccountJpaRepository.class);
+        }
+
+        @Bean
+        StorefrontJpaRepository storefrontJpaRepository(EntityManager entityManager) {
+            return new JpaRepositoryFactory(entityManager).getRepository(StorefrontJpaRepository.class);
         }
     }
 }

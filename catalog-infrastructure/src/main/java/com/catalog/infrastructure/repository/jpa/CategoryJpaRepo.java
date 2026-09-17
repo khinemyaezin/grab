@@ -37,4 +37,6 @@ public interface CategoryJpaRepo extends EntityRepository<CategoryEntity, Long>,
             where c.uuid in :categoryUuid
             """)
     List<CategoryView> findAllByUuids(@Param("categoryUuid") List<String> categoryUuids);
+
+    List<CategoryEntity> findByDepthOrderByLftAsc(Integer depth);
 }

@@ -21,6 +21,7 @@ class MerchantAccountApprovedStatusEventListenerTest {
                 "merchant-1",
                 "applicant-1",
                 "merchant-1",
+                "FIRST_PARTY_RETAILER",
                 "ACTIVE",
                 Instant.parse("2026-07-02T00:00:00Z"),
                 1

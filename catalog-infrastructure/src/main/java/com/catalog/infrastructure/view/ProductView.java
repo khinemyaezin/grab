@@ -7,8 +7,21 @@ public record ProductView(
         String name,
         String status,
         String slug,
-        String categoryId
+        String categoryId,
+        String merchantId,
+        boolean featured,
+        String condition
 ) {
+    public ProductView(
+            String id,
+            String name,
+            String status,
+            String slug,
+            String categoryId
+    ) {
+        this(id, name, status, slug, categoryId, null, false, null);
+    }
+
     public ProductView(
             String id,
             String name,
@@ -16,12 +29,28 @@ public record ProductView(
             String slug,
             String categoryId
     ) {
+        this(id, name, status != null ? status.name() : null, slug, categoryId, null, false, null);
+    }
+
+    public ProductView(
+            String id,
+            String name,
+            ProductStatus status,
+            String slug,
+            String categoryId,
+            String merchantId,
+            Boolean featured,
+            String condition
+    ) {
         this(
                 id,
                 name,
                 status != null ? status.name() : null,
                 slug,
-                categoryId
+                categoryId,
+                merchantId,
+                featured != null && featured,
+                condition
         );
     }
 }

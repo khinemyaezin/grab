@@ -11,7 +11,10 @@ public sealed interface MerchantDomainError extends MessageSource permits
         MerchantDomainError.IncompleteProfile,
         MerchantDomainError.DuplicateOpenApplication,
         MerchantDomainError.DuplicateRegistration,
-        MerchantDomainError.ApplicantAccessForbidden {
+        MerchantDomainError.ApplicantAccessForbidden,
+        MerchantDomainError.DuplicateSlug,
+        MerchantDomainError.MerchantNotOperational,
+        MerchantDomainError.InvalidStorefrontTransition {
 
     record InvalidField(String field) implements MerchantDomainError {
         public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
@@ -53,5 +56,25 @@ public sealed interface MerchantDomainError extends MessageSource permits
         public ErrorCategory kind() { return ErrorCategory.FORBIDDEN; }
         public String code() { return "mer.domain.applicant_access_forbidden"; }
         public Map<String, Object> args() { return Map.of("merchantId", merchantId); }
+    }
+
+    record DuplicateSlug(String slug) implements MerchantDomainError {
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        public String code() { return "mer.domain.storefront.slug_duplicate"; }
+        public Map<String, Object> args() { return Map.of("slug", slug); }
+    }
+
+    record MerchantNotOperational(String merchantId, String status) implements MerchantDomainError {
+        public ErrorCategory kind() { return ErrorCategory.BUSINESS_RULE; }
+        public String code() { return "mer.domain.merchant_not_operational"; }
+        public Map<String, Object> args() { return Map.of("merchantId", merchantId, "status", status); }
+    }
+
+    record InvalidStorefrontTransition(String currentStatus, String requestedStatus) implements MerchantDomainError {
+        public ErrorCategory kind() { return ErrorCategory.BUSINESS_RULE; }
+        public String code() { return "mer.domain.storefront.status_transition_invalid"; }
+        public Map<String, Object> args() {
+            return Map.of("currentStatus", currentStatus, "requestedStatus", requestedStatus);
+        }
     }
 }

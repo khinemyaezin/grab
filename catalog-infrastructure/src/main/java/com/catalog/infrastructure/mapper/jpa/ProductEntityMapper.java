@@ -20,5 +20,6 @@ public abstract class ProductEntityMapper {
     @Mapping(source = "categoryId", target = ProductEntity_.CATEGORY_ENTITY)
     @Mapping(source = "listingCondition", target = ProductEntity_.LISTING_CONDITION)
     @Mapping(source = "slug", target = ProductEntity_.SLUG)
+    @Mapping(source = "featured", target = ProductEntity_.FEATURED)
     public abstract void toEntity(Product source, @MappingTarget ProductEntity destination);
 }
