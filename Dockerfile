@@ -27,6 +27,9 @@ COPY merchant-infrastructure/pom.xml merchant-infrastructure/
 COPY pricing-domain/pom.xml pricing-domain/
 COPY pricing-infrastructure/pom.xml pricing-infrastructure/
 
+COPY sales-channel-domain/pom.xml sales-channel-domain/
+COPY sales-channel-infrastructure/pom.xml sales-channel-infrastructure/
+
 COPY workflow-infrastructure/pom.xml workflow-infrastructure/
 
 COPY storage-infrastructure/pom.xml storage-infrastructure/
@@ -54,6 +57,9 @@ COPY merchant-infrastructure/src merchant-infrastructure/src
 
 COPY pricing-domain/src pricing-domain/src
 COPY pricing-infrastructure/src pricing-infrastructure/src
+
+COPY sales-channel-domain/src sales-channel-domain/src
+COPY sales-channel-infrastructure/src sales-channel-infrastructure/src
 
 COPY workflow-infrastructure/src workflow-infrastructure/src
 

@@ -12,9 +12,11 @@ import com.catalog.infrastructure.adapter.category.impl.CategoryNodeRetrieverImp
 import com.catalog.infrastructure.entity.entity.CategoryEntity;
 import com.catalog.infrastructure.factory.CategoryComponentFactory;
 import com.catalog.infrastructure.mapper.jpa.*;
+import com.catalog.domain.repository.ProductPublicationRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.mapper.jpa.impl.CategoryJpaAssemblerImpl;
+import com.catalog.infrastructure.mapper.jpa.impl.ProductPublicationJpaAssemblerImpl;
 import com.catalog.infrastructure.mapper.jpa.impl.VariantTypeJpaAssemblerImpl;
 import com.catalog.infrastructure.outbox.CatalogOutboxEvent;
 import com.catalog.infrastructure.outbox.CatalogOutboxEventProcessor;
@@ -150,6 +152,34 @@ public class CatalogInfraConfig {
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new ProductRepositoryImpl(
                 jpaAssembler, productJpaRepo, domainEventProducer, executor
+        );
+    }
+
+    @Bean
+    public ProductPublicationJpaAssembler productPublicationJpaAssembler(
+            ProductPublicationEntityMapper productPublicationEntityMapper,
+            ProductPublicationMapper productPublicationMapper
+    ) {
+        return new ProductPublicationJpaAssemblerImpl(
+                productPublicationEntityMapper,
+                productPublicationMapper
+        );
+    }
+
+    @Bean
+    public ProductPublicationRepository productPublicationRepository(
+            ProductPublicationJpaRepository productPublicationJpaRepository,
+            ProductJpaRepo productJpaRepo,
+            ProductPublicationJpaAssembler mapper,
+            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultProductPublicationRepository(
+                productPublicationJpaRepository,
+                productJpaRepo,
+                mapper,
+                domainEventProducer,
+                executor
         );
     }
 

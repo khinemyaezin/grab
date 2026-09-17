@@ -4,21 +4,17 @@ import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.infrastructure.entity.entity.CatalogMerchantAvailabilityEntity;
 import com.catalog.infrastructure.entity.entity.MediaEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
+import com.catalog.infrastructure.entity.entity.ProductPublicationEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.catalog.infrastructure.entity.meta.ProductVariantEntity_;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import com.catalog.infrastructure.view.ProductVariantRefView;
 import com.catalog.infrastructure.view.ProductView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Order;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import jakarta.persistence.criteria.Subquery;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -128,6 +124,26 @@ public class ProductSearchSpecification {
         return entityManager.createQuery(query).getResultList();
     }
 
+    public List<ProductPublicationView> findPublicationsByProductIds(Collection<String> productIds) {
+        if (CollectionUtils.isEmpty(productIds)) {
+            return List.of();
+        }
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ProductPublicationView> query = cb.createQuery(ProductPublicationView.class);
+        Root<ProductPublicationEntity> publication = query.from(ProductPublicationEntity.class);
+        Root<ProductEntity> product = query.from(ProductEntity.class);
+        query.select(cb.construct(
+                ProductPublicationView.class,
+                product.get(ProductEntity_.UUID),
+                publication.get("salesChannelId")
+        ));
+        query.where(
+                cb.equal(product.get(ProductEntity_.ID), publication.get("productId")),
+                product.get(ProductEntity_.UUID).in(productIds)
+        );
+        return entityManager.createQuery(query).getResultList();
+    }
+
     private long countMatches(CriteriaBuilder cb, ProductSearchCriteria criteria) {
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<ProductEntity> product = countQuery.from(ProductEntity.class);
@@ -154,6 +170,10 @@ public class ProductSearchSpecification {
             predicates.add(cb.equal(product.get(ProductEntity_.STATUS), ProductStatus.ACTIVE));
             predicates.add(hasActiveMerchant(cb, query, product));
             predicates.add(hasVariantWithStatus(cb, query, product, "ACTIVE"));
+        }
+
+        if (StringUtils.hasLength(criteria.salesChannelId())) {
+            predicates.add(isPublishedToChannel(cb, query, product, criteria.salesChannelId()));
         }
 
         if (criteria.featured() != null) {
@@ -236,6 +256,22 @@ public class ProductSearchSpecification {
         subquery.where(
                 cb.equal(availability.get("merchantId"), product.get(ProductEntity_.MERCHANT_ID)),
                 cb.equal(availability.get("status"), "ACTIVE")
+        );
+        return cb.exists(subquery);
+    }
+
+    private Predicate isPublishedToChannel(
+            CriteriaBuilder cb,
+            CriteriaQuery<?> query,
+            Root<ProductEntity> product,
+            String salesChannelId
+    ) {
+        Subquery<Integer> subquery = query.subquery(Integer.class);
+        Root<ProductPublicationEntity> publication = subquery.from(ProductPublicationEntity.class);
+        subquery.select(cb.literal(1));
+        subquery.where(
+                cb.equal(publication.get("productId"), product.get(ProductEntity_.ID)),
+                cb.equal(publication.get("salesChannelId"), salesChannelId)
         );
         return cb.exists(subquery);
     }

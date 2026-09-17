@@ -35,7 +35,7 @@ public class Location extends AggregateRoot<Id> {
 
     public static Location create(Id id, Id merchantId, String code, String name, LocationType type, Address address) {
         Location location = new Location(id, merchantId, code, name, type, address, true);
-        location.addEvent(new LocationCreatedEvent(id, code, name, type, LocalDateTime.now()));
+        location.addEvent(new LocationCreatedEvent(id, merchantId, code, name, type, LocalDateTime.now()));
         return location;
     }
 

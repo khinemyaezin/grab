@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -19,6 +20,8 @@ public interface LocationJpaRepository extends JpaRepository<LocationEntity, Lon
     Optional<LocationEntity> findByCode(String code);
 
     boolean existsByCode(String code);
+
+    List<LocationEntity> findByMerchantId(String merchantId);
 
     Page<LocationView> findAllByMerchantId(@Param("merchantId") String merchantId, Pageable pageable);
 

@@ -1,13 +1,10 @@
 package com.catalog.infrastructure.specification.jpa;
 
 import com.catalog.domain.valueobject.ProductStatus;
-import com.catalog.infrastructure.entity.entity.CatalogMerchantAvailabilityEntity;
-import com.catalog.infrastructure.entity.entity.MediaEntity;
-import com.catalog.infrastructure.entity.entity.ProductEntity;
-import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
-import com.catalog.infrastructure.entity.entity.ProductVariationEntity;
+import com.catalog.infrastructure.entity.entity.*;
 import com.catalog.infrastructure.repository.jpa.config.ProductRepositoryTestConfig;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import com.catalog.infrastructure.view.ProductVariantRefView;
 import com.catalog.infrastructure.view.ProductView;
 import jakarta.persistence.EntityManager;
@@ -20,7 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
 
@@ -256,6 +254,27 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
     }
 
     @Test
+    void search_withSalesChannelId_returnsOnlyProductsPublishedToThatChannel() {
+        ProductEntity websiteOnly = persistProduct("Website Only Shirt", "cat-ch");
+        persistPublication(websiteOnly, "website-1");
+        ProductEntity marketplaceOnly = persistProduct("Marketplace Only Shirt", "cat-ch");
+        persistPublication(marketplaceOnly, "marketplace-1");
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<ProductView> website = specification.search(
+                ProductSearchCriteria.builder()
+                        .merchantId(MERCHANT_ID)
+                        .salesChannelId("website-1")
+                        .build(),
+                PageRequest.of(0, 10)
+        );
+
+        assertTrue(website.getContent().stream().anyMatch(product -> product.name().equals("Website Only Shirt")));
+        assertTrue(website.getContent().stream().noneMatch(product -> product.name().equals("Marketplace Only Shirt")));
+    }
+
+    @Test
     void findActiveVariantsByProductIds_returnsActiveVariantRefs() {
         ProductEntity product = persistProduct("Variant Shirt", "cat-var",
                 variant("VAR-ACTIVE", "ACTIVE"),
@@ -268,6 +287,29 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
         assertEquals(1, refs.size());
         assertEquals(product.getUuid(), refs.getFirst().productId());
         assertEquals("VAR-ACTIVE", refs.getFirst().sku());
+    }
+
+    @Test
+    void findPublicationsByProductIds_returnsChannelIdsFromPublicationTable() {
+        ProductEntity product = persistProduct("Published Shirt", "cat-pub");
+        persistPublication(product, "website-1");
+        persistPublication(product, "marketplace-1");
+        entityManager.flush();
+        entityManager.clear();
+
+        List<ProductPublicationView> publications = specification.findPublicationsByProductIds(List.of(product.getUuid()));
+
+        assertEquals(2, publications.size());
+        assertTrue(publications.stream().allMatch(view -> view.productId().equals(product.getUuid())));
+        assertTrue(publications.stream().anyMatch(view -> view.salesChannelId().equals("website-1")));
+        assertTrue(publications.stream().anyMatch(view -> view.salesChannelId().equals("marketplace-1")));
+    }
+
+    private void persistPublication(ProductEntity product, String salesChannelId) {
+        ProductPublicationEntity publication = new ProductPublicationEntity();
+        publication.setProductId(product.getId());
+        publication.setSalesChannelId(salesChannelId);
+        entityManager.persist(publication);
     }
 
     private void persistAvailability(String merchantId, String status, String merchantType) {

@@ -11,6 +11,7 @@ public record ProductSearchCriteria(
     String productStatus,
     Boolean featured,
     String condition,
-    boolean storefrontVisible
+    boolean storefrontVisible,
+    String salesChannelId
 )
 { }

@@ -8,14 +8,21 @@ import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.merchant.domain.repository.MerchantAccountRepository;
+import com.merchant.domain.repository.StorefrontChannelBrandRepository;
 import com.merchant.domain.repository.StorefrontRepository;
 import com.merchant.infrastructure.entity.StorefrontEntity;
 import com.merchant.infrastructure.mapper.jpa.impl.MerchantAccountJpaAssembler;
 import com.merchant.infrastructure.mapper.jpa.impl.StorefrontJpaAssembler;
 import com.merchant.infrastructure.mapper.jpa.MerchantAccountEntityMapper;
+import com.merchant.infrastructure.mapper.jpa.StorefrontChannelBrandEntityMapper;
+import com.merchant.infrastructure.mapper.jpa.StorefrontChannelBrandJpaAssembler;
+import com.merchant.infrastructure.mapper.jpa.StorefrontChannelBrandMapper;
 import com.merchant.infrastructure.mapper.jpa.StorefrontEntityMapper;
+import com.merchant.infrastructure.mapper.jpa.impl.StorefrontChannelBrandJpaAssemblerImpl;
+import com.merchant.infrastructure.repository.jpa.StorefrontChannelBrandJpaRepository;
 import com.merchant.infrastructure.repository.jpa.StorefrontJpaRepository;
 import com.merchant.infrastructure.repository.jpa.StorefrontQueryRepository;
+import com.merchant.infrastructure.repository.jpa.impl.DefaultStorefrontChannelBrandRepository;
 import com.merchant.infrastructure.repository.jpa.impl.DefaultStorefrontQueryRepository;
 import com.merchant.infrastructure.repository.jpa.impl.DefaultStorefrontRepository;
 import com.merchant.infrastructure.specification.jpa.StorefrontQuerySpecification;
@@ -115,6 +122,25 @@ public class MerchantInfraConfig {
             @Qualifier("merchantDomainEventProducer") DomainEventProducer events,
             @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
         return new DefaultStorefrontRepository(storefronts, assembler, events, executor);
+    }
+
+    @Bean
+    StorefrontChannelBrandJpaAssembler storefrontChannelBrandJpaAssembler(
+            StorefrontChannelBrandEntityMapper entityMapper,
+            StorefrontChannelBrandMapper domainMapper
+    ) {
+        return new StorefrontChannelBrandJpaAssemblerImpl(entityMapper, domainMapper);
+    }
+
+    @Bean
+    StorefrontChannelBrandRepository storefrontChannelBrandRepository(
+            StorefrontChannelBrandJpaRepository brands,
+            StorefrontJpaRepository storefronts,
+            StorefrontChannelBrandJpaAssembler assembler,
+            @Qualifier("merchantDomainEventProducer") DomainEventProducer events,
+            @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultStorefrontChannelBrandRepository(brands, storefronts, assembler, events, executor);
     }
 
     @Bean

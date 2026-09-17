@@ -11,12 +11,14 @@ import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.inventory.infrastructure.mapper.jpa.*;
 import com.inventory.infrastructure.mapper.jpa.impl.BinJpaAssemblerImpl;
+import com.inventory.infrastructure.mapper.jpa.impl.ChannelFulfillmentRouteJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.InventoryJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.InventoryReservationJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.LocationJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.StockMovementJpaAssemblerImpl;
 import com.inventory.infrastructure.mapper.jpa.impl.ZoneJpaAssemblerImpl;
 import com.inventory.infrastructure.repository.jpa.BinJpaRepository;
+import com.inventory.infrastructure.repository.jpa.ChannelFulfillmentRouteJpaRepository;
 import com.inventory.infrastructure.repository.jpa.InventoryItemJpaRepository;
 import com.inventory.infrastructure.repository.jpa.InventoryReservationJpaRepository;
 import com.inventory.infrastructure.repository.jpa.LocationJpaRepository;
@@ -26,6 +28,7 @@ import com.inventory.infrastructure.outbox.InventoryOutboxEvent;
 import com.inventory.infrastructure.outbox.InventoryOutboxEventProcessor;
 import com.inventory.infrastructure.outbox.InventoryOutboxEventProducer;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultBinRepository;
+import com.inventory.infrastructure.repository.jpa.impl.DefaultChannelFulfillmentRouteRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultInventoryReservationRepository;
 import com.inventory.infrastructure.repository.jpa.impl.DefaultLocationRepository;
@@ -166,6 +169,17 @@ public class InventoryInfraConfig {
     }
 
     @Bean
+    public ChannelFulfillmentRouteJpaAssembler channelFulfillmentRouteJpaAssembler(
+            ChannelFulfillmentRouteEntityMapper channelFulfillmentRouteEntityMapper,
+            ChannelFulfillmentRouteMapper channelFulfillmentRouteMapper
+    ) {
+        return new ChannelFulfillmentRouteJpaAssemblerImpl(
+                channelFulfillmentRouteEntityMapper,
+                channelFulfillmentRouteMapper
+        );
+    }
+
+    @Bean
     public ZoneJpaAssembler zoneJpaAssembler(
             ZoneEntityMapper zoneEntityMapper,
             ZoneMapper zoneMapper
@@ -229,6 +243,23 @@ public class InventoryInfraConfig {
                                                  @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
                                                  @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new DefaultLocationRepository(jpaRepository, mapper, domainEventProducer, executor);
+    }
+
+    @Bean
+    public DefaultChannelFulfillmentRouteRepository channelFulfillmentRouteRepository(
+            ChannelFulfillmentRouteJpaRepository jpaRepository,
+            LocationJpaRepository locationJpaRepository,
+            ChannelFulfillmentRouteJpaAssembler mapper,
+            @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new DefaultChannelFulfillmentRouteRepository(
+                jpaRepository,
+                locationJpaRepository,
+                mapper,
+                domainEventProducer,
+                executor
+        );
     }
 
     @Bean

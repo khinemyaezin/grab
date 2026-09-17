@@ -2,6 +2,7 @@ package com.catalog.infrastructure.repository.jpa;
 
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import com.catalog.infrastructure.view.ProductVariantRefView;
 import com.catalog.infrastructure.view.ProductView;
 import org.springframework.data.domain.Page;
@@ -16,4 +17,6 @@ public interface ProductQueryRepository {
     List<ProductHeroMediaView> findHeroMediasByProductIds(Collection<String> productIds);
 
     List<ProductVariantRefView> findActiveVariantsByProductIds(Collection<String> productIds);
+
+    List<ProductPublicationView> findPublicationsByProductIds(Collection<String> productIds);
 }

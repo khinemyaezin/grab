@@ -1,6 +1,7 @@
 package com.inventory.infrastructure.config;
 
 import com.grab.framework.id.IdGenerator;
+import com.inventory.domain.repository.ChannelFulfillmentRouteRepository;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.StockMovementRepository;
 import com.inventory.domain.service.InventoryAllocationService;
@@ -19,12 +20,14 @@ public class InventoryDomainConfig {
             InventoryRepository inventoryRepository,
             StockMovementRepository stockMovementRepository,
             com.inventory.domain.repository.LocationRepository locationRepository,
+            ChannelFulfillmentRouteRepository channelFulfillmentRouteRepository,
             IdGenerator idGenerator
     ) {
         return new DefaultInventoryAllocationService(
                 inventoryRepository,
                 stockMovementRepository,
                 locationRepository,
+                channelFulfillmentRouteRepository,
                 idGenerator
         );
     }

@@ -10,6 +10,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class StorefrontEntityMapper {
     @Mapping(ignore = true, target = "id")
+    @Mapping(ignore = true, target = "channelBrand")
     @Mapping(source = "id", target = "uuid")
     @Mapping(source = "merchantId", target = "merchantId")
     @Mapping(source = "name.value", target = "name")
