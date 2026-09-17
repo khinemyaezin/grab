@@ -3,6 +3,7 @@ package com.grab.store.catalog.internal.event;
 import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.domain.Event;
+import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -55,12 +56,17 @@ public class UpdateProductVariantCatalogEventListener {
     }
 
     private List<Event> updateVariant(RequestUpdateVariantEvent event) {
-        UpdateVariantResult result = commandBus.dispatch(new UpdateVariantCommand(
-                idGenerator.convertIdFrom(event.merchantId()),
-                idGenerator.convertIdFrom(event.productId()),
-                idGenerator.convertIdFrom(event.variantId()),
-                event.sku()
-        ));
+        Id merchantId = idGenerator.convertIdFrom(event.merchantId());
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        Id variantId = idGenerator.convertIdFrom(event.variantId());
+        UpdateVariantCommand command = new UpdateVariantCommand(
+                merchantId,
+                productId,
+                variantId,
+                event.sku(),
+                event.manageInventory()
+        );
+        UpdateVariantResult result = commandBus.dispatch(command);
         return List.of(new VariantUpdatedEvent(
                 event.workflowId(),
                 result.productId(),

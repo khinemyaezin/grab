@@ -94,6 +94,7 @@ class UpdateProductVariantDefinitionTest {
             assertThat(request.productId()).isEqualTo("product-1");
             assertThat(request.variantId()).isEqualTo("variant-1");
             assertThat(request.sku()).isEqualTo("SKU-1");
+            assertThat(request.manageInventory()).isTrue();
         });
     }
 
@@ -152,6 +153,7 @@ class UpdateProductVariantDefinitionTest {
                 "product-1",
                 "variant-1",
                 "SKU-1",
+                true,
                 null,
                 List.of(new UpdateProductVariantContext.InventoryLine(
                         "SKU-1",
@@ -191,6 +193,7 @@ class UpdateProductVariantDefinitionTest {
                 "variant-1",
                 "SKU-1",
                 null,
+                null,
                 List.of()
         );
         WorkflowInstance started = engine.start(definition, context, "idem-update-1");
@@ -219,6 +222,7 @@ class UpdateProductVariantDefinitionTest {
                 "product-1",
                 "variant-1",
                 "SKU-1",
+                true,
                 samplePrice(),
                 List.of()
         );
@@ -329,6 +333,7 @@ class UpdateProductVariantDefinitionTest {
                 "product-1",
                 "variant-1",
                 "SKU-1",
+                true,
                 samplePrice(),
                 List.of(new UpdateProductVariantContext.InventoryLine(
                         "SKU-1",

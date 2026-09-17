@@ -26,6 +26,7 @@ class UpdateProductVariantTerminalContextAdapterTest {
                 "variant-1",
                 "SKU-1",
                 null,
+                null,
                 List.of()
         );
 
@@ -43,6 +44,7 @@ class UpdateProductVariantTerminalContextAdapterTest {
                 "product-1",
                 "variant-1",
                 "SKU-1",
+                null,
                 null,
                 List.of()
         ).withVariantUpdated("SKU-1");

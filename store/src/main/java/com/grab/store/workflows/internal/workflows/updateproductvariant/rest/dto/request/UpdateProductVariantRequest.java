@@ -16,6 +16,7 @@ public record UpdateProductVariantRequest(
         @NotBlank String productId,
         @NotBlank String variantId,
         @NotBlank String sku,
+        Boolean manageInventory,
         @Valid Price price,
         @Valid List<InventoryLine> inventoryLines,
         String idempotencyKey

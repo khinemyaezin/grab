@@ -28,6 +28,7 @@ public class UpdateProductVariantRequestMapper {
                 request.productId(),
                 request.variantId(),
                 request.sku(),
+                request.manageInventory(),
                 toContextPrice(request.price()),
                 toContextInventoryLines(request.inventoryLines())
         );

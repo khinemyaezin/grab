@@ -52,6 +52,7 @@ public final class UpdateProductVariantDefinition implements WorkflowProcess<Upd
                     context.productId(),
                     context.variantId(),
                     context.sku(),
+                    context.manageInventory(),
                     Instant.now(),
                     EVENT_VERSION
             ));

@@ -53,12 +53,19 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
 
         validateSkuAvailability(command.merchantId(), command.sku(), command.variantId().getValue());
 
+        Boolean requestedManageInventory = command.manageInventory();
+        boolean manageInventory = requestedManageInventory != null
+                ? requestedManageInventory
+                : existing.isManageInventory();
+        ProductVariantStatus status = existing.isActive()
+                ? ProductVariantStatus.ACTIVE
+                : ProductVariantStatus.DELETED;
         ProductVariant updated = new ProductVariant(
                 existing.getId(),
                 command.sku(),
-                existing.isActive() ? ProductVariantStatus.ACTIVE : ProductVariantStatus.DELETED,
+                status,
                 existing.getVariations().stream().toList(),
-                existing.isManageInventory(),
+                manageInventory,
                 existing.getMediaIds(),
                 existing.getThumbnailMediaId()
         );

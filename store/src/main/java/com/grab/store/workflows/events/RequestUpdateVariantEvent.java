@@ -10,6 +10,7 @@ public record RequestUpdateVariantEvent(
         String productId,
         String variantId,
         String sku,
+        Boolean manageInventory,
         Instant occurredAt,
         int version
 ) implements Event {

@@ -62,7 +62,7 @@ class UpdateVariantCommandHandlerTest {
 
         when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU", null);
         UpdateVariantResult result = handler.handle(command);
 
         verify(productRepository).save(productCaptor.capture());
@@ -115,7 +115,7 @@ class UpdateVariantCommandHandlerTest {
 
         when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        handler.handle(new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU"));
+        handler.handle(new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU", null));
 
         verify(productRepository).save(productCaptor.capture());
         Product saved = productCaptor.getValue();
@@ -133,7 +133,7 @@ class UpdateVariantCommandHandlerTest {
         Id productId = new CommonId(PRODUCT_ID);
         when(productRepository.find(productId, productId)).thenReturn(Optional.empty());
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, new CommonId(VARIANT_ID), "SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, new CommonId(VARIANT_ID), "SKU", null);
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -150,7 +150,7 @@ class UpdateVariantCommandHandlerTest {
         Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
         when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, new CommonId(VARIANT_ID), "SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, new CommonId(VARIANT_ID), "SKU", null);
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -175,7 +175,7 @@ class UpdateVariantCommandHandlerTest {
 
         when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU", null);
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -200,7 +200,7 @@ class UpdateVariantCommandHandlerTest {
         when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
         when(productRepository.isSkuTaken(productId, "NEW-SKU", VARIANT_ID)).thenReturn(true);
 
-        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU");
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU", null);
 
         assertThatThrownBy(() -> handler.handle(command))
                 .isInstanceOf(CatalogServiceException.class)
@@ -209,5 +209,65 @@ class UpdateVariantCommandHandlerTest {
                     assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.variant.sku_already_exists");
                     assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.CONFLICT);
                 });
+    }
+
+    @Test
+    void handle_updatesManageInventory() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Product product = productWithVariant(productId, variantId, false);
+
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+
+        handler.handle(new UpdateVariantCommand(productId, productId, variantId, "SKU-1", true));
+
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(productCaptor.getValue().findVariantById(variantId))
+                .isPresent()
+                .hasValueSatisfying(variant -> assertThat(variant.isManageInventory()).isTrue());
+    }
+
+    @Test
+    void handle_clearsManageInventory() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Product product = productWithVariant(productId, variantId, true);
+
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+
+        handler.handle(new UpdateVariantCommand(productId, productId, variantId, "SKU-1", false));
+
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(productCaptor.getValue().findVariantById(variantId))
+                .isPresent()
+                .hasValueSatisfying(variant -> assertThat(variant.isManageInventory()).isFalse());
+    }
+
+    @Test
+    void handle_nullManageInventory_preservesExisting() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Product product = productWithVariant(productId, variantId, true);
+
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+
+        handler.handle(new UpdateVariantCommand(productId, productId, variantId, "NEW-SKU", null));
+
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(productCaptor.getValue().findVariantById(variantId))
+                .isPresent()
+                .hasValueSatisfying(variant -> {
+                    assertThat(variant.getSku()).isEqualTo("NEW-SKU");
+                    assertThat(variant.isManageInventory()).isTrue();
+                });
+    }
+
+    private static Product productWithVariant(Id productId, Id variantId, boolean manageInventory) {
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
+        ProductVariation variation = new ProductVariation(
+                new CommonId("opt-red"), new CommonId("type-color"));
+        ProductVariant variant = ProductVariant.create(variantId, "SKU-1", List.of(variation), manageInventory);
+        product.addVariant(variant);
+        return product;
     }
 }
