@@ -28,6 +28,9 @@ public interface SessionStore {
     void revokeAll(String userId);
 
     void revokeByAssignment(String assignmentId);
+
+    default void revokeByScope(String platformCode, String scopeKey, String scopeId) {
+    }
     
     void replaceSession(String oldTokenHash, String newTokenHash, Instant oldRevokedAt);
 }

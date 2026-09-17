@@ -9,6 +9,7 @@ import com.grab.store.catalog.internal.api.rest.dto.request.VariationMatrixReque
 import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
 import com.grab.store.catalog.internal.query.*;
+import com.grab.store.catalog.queries.GetProductBySlugResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

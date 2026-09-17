@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,6 +73,20 @@ class CategoryQueryRepositoryTest extends CategoryRepositoryTestConfig {
         assertThat(parent).isPresent();
         assertThat(parent.orElseThrow().id()).isEqualTo("cat-2");
         assertThat(parent.orElseThrow().parentId()).isEqualTo("cat-1");
+    }
+
+    @Test
+    void findRootTrees_returnsDepthZeroHierarchies() {
+        List<CategoryNodeView> roots = categoryQueryRepository.findRootTrees();
+
+        assertThat(roots).extracting(CategoryNodeView::id).contains("cat-1");
+        CategoryNodeView electronics = roots.stream()
+                .filter(node -> "cat-1".equals(node.id()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(electronics.children())
+                .extracting(CategoryNodeView::id)
+                .containsExactlyInAnyOrder("cat-2", "cat-3");
     }
 
     private CategoryEntity category(String uuid, String name) {

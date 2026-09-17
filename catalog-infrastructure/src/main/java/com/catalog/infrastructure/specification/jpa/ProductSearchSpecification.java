@@ -1,12 +1,14 @@
 package com.catalog.infrastructure.specification.jpa;
 
 import com.catalog.domain.valueobject.ProductStatus;
+import com.catalog.infrastructure.entity.entity.CatalogMerchantAvailabilityEntity;
 import com.catalog.infrastructure.entity.entity.MediaEntity;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
 import com.catalog.infrastructure.entity.meta.ProductVariantEntity_;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductVariantRefView;
 import com.catalog.infrastructure.view.ProductView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
@@ -53,7 +55,10 @@ public class ProductSearchSpecification {
                 product.get(ProductEntity_.NAME),
                 product.get(ProductEntity_.STATUS),
                 product.get(ProductEntity_.SLUG),
-                product.get(ProductEntity_.CATEGORY_ENTITY)
+                product.get(ProductEntity_.CATEGORY_ENTITY),
+                product.get(ProductEntity_.MERCHANT_ID),
+                product.get(ProductEntity_.FEATURED),
+                product.get(ProductEntity_.LISTING_CONDITION)
         ));
         dataQuery.where(toPredicates(cb, dataQuery, product, criteria).toArray(new Predicate[0]));
         if (pageable.getSort() != null && pageable.getSort().isSorted()) {
@@ -102,6 +107,27 @@ public class ProductSearchSpecification {
         return entityManager.createQuery(query).getResultList();
     }
 
+    public List<ProductVariantRefView> findActiveVariantsByProductIds(Collection<String> productIds) {
+        if (CollectionUtils.isEmpty(productIds)) {
+            return List.of();
+        }
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ProductVariantRefView> query = cb.createQuery(ProductVariantRefView.class);
+        Root<ProductVariantEntity> variant = query.from(ProductVariantEntity.class);
+        Join<ProductVariantEntity, ProductEntity> product = variant.join(ProductVariantEntity_.PRODUCT);
+        query.select(cb.construct(
+                ProductVariantRefView.class,
+                product.get(ProductEntity_.UUID),
+                variant.get(ProductVariantEntity_.UUID),
+                variant.get(ProductVariantEntity_.SKU)
+        ));
+        query.where(
+                product.get(ProductEntity_.UUID).in(productIds),
+                cb.equal(variant.get(ProductVariantEntity_.STATUS), "ACTIVE")
+        );
+        return entityManager.createQuery(query).getResultList();
+    }
+
     private long countMatches(CriteriaBuilder cb, ProductSearchCriteria criteria) {
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<ProductEntity> product = countQuery.from(ProductEntity.class);
@@ -120,7 +146,26 @@ public class ProductSearchSpecification {
     ) {
         List<Predicate> predicates = new ArrayList<>();
 
-        predicates.add(cb.equal(product.get(ProductEntity_.MERCHANT_ID), criteria.merchantId()));
+        if (StringUtils.hasLength(criteria.merchantId())) {
+            predicates.add(cb.equal(product.get(ProductEntity_.MERCHANT_ID), criteria.merchantId()));
+        }
+
+        if (criteria.storefrontVisible()) {
+            predicates.add(cb.equal(product.get(ProductEntity_.STATUS), ProductStatus.ACTIVE));
+            predicates.add(hasActiveMerchant(cb, query, product));
+            predicates.add(hasVariantWithStatus(cb, query, product, "ACTIVE"));
+        }
+
+        if (criteria.featured() != null) {
+            predicates.add(cb.equal(product.get(ProductEntity_.FEATURED), criteria.featured()));
+        }
+
+        if (StringUtils.hasLength(criteria.condition())) {
+            predicates.add(cb.equal(
+                    product.get(ProductEntity_.LISTING_CONDITION),
+                    criteria.condition().toUpperCase()
+            ));
+        }
 
         if (StringUtils.hasLength(criteria.query())) {
             String pattern = "%" + criteria.query().toLowerCase() + "%";
@@ -176,6 +221,21 @@ public class ProductSearchSpecification {
         subquery.where(
                 cb.equal(variant.get(ProductVariantEntity_.PRODUCT), product),
                 cb.equal(variant.get(ProductVariantEntity_.STATUS), variantStatus)
+        );
+        return cb.exists(subquery);
+    }
+
+    private Predicate hasActiveMerchant(
+            CriteriaBuilder cb,
+            CriteriaQuery<?> query,
+            Root<ProductEntity> product
+    ) {
+        Subquery<Integer> subquery = query.subquery(Integer.class);
+        Root<CatalogMerchantAvailabilityEntity> availability = subquery.from(CatalogMerchantAvailabilityEntity.class);
+        subquery.select(cb.literal(1));
+        subquery.where(
+                cb.equal(availability.get("merchantId"), product.get(ProductEntity_.MERCHANT_ID)),
+                cb.equal(availability.get("status"), "ACTIVE")
         );
         return cb.exists(subquery);
     }

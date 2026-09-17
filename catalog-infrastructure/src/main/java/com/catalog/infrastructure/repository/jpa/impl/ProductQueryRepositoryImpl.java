@@ -4,6 +4,7 @@ import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.specification.jpa.ProductSearchSpecification;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductVariantRefView;
 import com.catalog.infrastructure.view.ProductView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -38,5 +39,11 @@ public class ProductQueryRepositoryImpl implements ProductQueryRepository {
         log.debug("Finding hero medias for {} products", productIds == null ? 0 : productIds.size());
         return executor.query("Product", () ->
                 productSearchSpecification.findHeroMediasByProductIds(productIds));
+    }
+
+    @Override
+    public List<ProductVariantRefView> findActiveVariantsByProductIds(Collection<String> productIds) {
+        return executor.query("Product", () ->
+                productSearchSpecification.findActiveVariantsByProductIds(productIds));
     }
 }

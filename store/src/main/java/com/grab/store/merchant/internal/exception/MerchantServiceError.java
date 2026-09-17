@@ -7,7 +7,8 @@ import java.util.Map;
 
 public sealed interface MerchantServiceError extends MessageSource permits
         MerchantServiceError.MerchantNotFound,
-        MerchantServiceError.MerchantScopeForbidden {
+        MerchantServiceError.MerchantScopeForbidden,
+        MerchantServiceError.StorefrontNotFound {
 
     record MerchantNotFound(String merchantId) implements MerchantServiceError {
         @Override
@@ -45,6 +46,23 @@ public sealed interface MerchantServiceError extends MessageSource permits
                     "scopeKey", scopeKey,
                     "scopeId", scopeId
             );
+        }
+    }
+
+    record StorefrontNotFound(String storefrontId) implements MerchantServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "mer.service.storefront.not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("storefrontId", storefrontId);
         }
     }
 }

@@ -22,4 +22,6 @@ public interface CategoryQueryRepository {
     List<CategoryView> findLeafNodesByName(String name);
 
     List<CategoryView> findViewByIds(List<String> ids);
+
+    List<CategoryNodeView> findRootTrees();
 }

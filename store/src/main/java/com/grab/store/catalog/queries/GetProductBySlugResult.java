@@ -1,4 +1,4 @@
-package com.grab.store.catalog.internal.query;
+package com.grab.store.catalog.queries;
 
 import java.util.List;
 
@@ -6,9 +6,12 @@ public record GetProductBySlugResult(
         String id,
         String name,
         String categoryId,
+        String merchantId,
+        String merchantType,
         String condition,
         String status,
         String slug,
+        boolean featured,
         List<Description> descriptions,
         List<Media> medias,
         List<Variant> variants,

@@ -6,6 +6,8 @@ public final class MerchantAuthorityCodes {
     public static final String APPLICATION_WRITE = "MERCHANT_APPLICATION_WRITE";
     public static final String PROFILE_WRITE = "MERCHANT_PROFILE_WRITE";
     public static final String PROFILE_READ = "MERCHANT_PROFILE_READ";
+    public static final String STOREFRONT_READ = "MERCHANT_STOREFRONT_READ";
+    public static final String STOREFRONT_WRITE = "MERCHANT_STOREFRONT_WRITE";
 
     private MerchantAuthorityCodes() {
     }

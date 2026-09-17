@@ -1,4 +1,4 @@
-package com.grab.store.pricing.internal.query;
+package com.grab.store.pricing.queries;
 
 import com.grab.framework.cqrs.query.Query;
 

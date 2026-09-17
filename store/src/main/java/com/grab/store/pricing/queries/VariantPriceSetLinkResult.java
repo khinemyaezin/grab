@@ -1,4 +1,4 @@
-package com.grab.store.pricing.internal.query;
+package com.grab.store.pricing.queries;
 
 public record VariantPriceSetLinkResult(
         String variantId,

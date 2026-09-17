@@ -25,6 +25,12 @@ public class MerchantSecurityConfigurer implements ModuleSecurityConfigurer {
                 .hasAuthority(MerchantAuthorityCodes.APPLICATION_WRITE);
         auth.requestMatchers(HttpMethod.PATCH, "/api/v1/merchants/accounts/*/profile")
                 .hasAuthority(MerchantAuthorityCodes.PROFILE_WRITE);
+        auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants/storefronts", "/api/v1/merchants/storefronts/**")
+                .hasAuthority(MerchantAuthorityCodes.STOREFRONT_READ);
+        auth.requestMatchers(HttpMethod.POST, "/api/v1/merchants/storefronts", "/api/v1/merchants/storefronts/**")
+                .hasAuthority(MerchantAuthorityCodes.STOREFRONT_WRITE);
+        auth.requestMatchers(HttpMethod.PATCH, "/api/v1/merchants/storefronts/**")
+                .hasAuthority(MerchantAuthorityCodes.STOREFRONT_WRITE);
         auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants/**")
                 .hasAuthority(MerchantAuthorityCodes.PROFILE_READ);
     }

@@ -3,6 +3,7 @@ package com.grab.store.merchant;
 import com.grab.store.merchant.internal.api.rest.controller.C2CApplicationController;
 import com.grab.store.merchant.internal.api.rest.controller.FirstPartyRetailerApplicationController;
 import com.grab.store.merchant.internal.api.rest.controller.MerchantController;
+import com.grab.store.merchant.internal.api.rest.controller.StorefrontController;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
@@ -48,6 +49,16 @@ public class MerchantRootController {
         model.add(linkTo(methodOn(FirstPartyRetailerApplicationController.class)
                 .startFirstPartyApplication(null,null))
                 .withRel("create-first-party-retailer-application"));
+
+        model.add(linkTo(methodOn(StorefrontController.class)
+                .list(null))
+                .withRel("list-storefronts"));
+        model.add(linkTo(methodOn(StorefrontController.class)
+                .get(null, null))
+                .withRel("get-storefront"));
+        model.add(linkTo(methodOn(StorefrontController.class)
+                .create(null, null))
+                .withRel("create-storefront"));
         return ResponseEntity.ok(model);
     }
 }
