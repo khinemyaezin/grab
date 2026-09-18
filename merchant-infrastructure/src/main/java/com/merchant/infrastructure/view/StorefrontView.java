@@ -7,6 +7,7 @@ import java.time.Instant;
 public record StorefrontView(
         String id,
         String merchantId,
+        String salesChannelId,
         String name,
         String slug,
         StorefrontStatus status,

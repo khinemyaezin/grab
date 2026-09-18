@@ -49,5 +49,7 @@ public interface InventoryAllocationService {
 
     int getAvailableForAllocation(String sku);
 
+    int getAvailableForAllocation(String sku, Id salesChannelId);
+
     List<InventoryItem> findAvailableInventory(String sku);
 }

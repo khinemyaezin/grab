@@ -1,10 +1,13 @@
 package com.merchant.infrastructure.specification.jpa;
 
+import com.merchant.infrastructure.entity.StorefrontChannelBrandEntity;
 import com.merchant.infrastructure.entity.StorefrontEntity;
 import com.merchant.infrastructure.view.StorefrontView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.springframework.util.StringUtils;
@@ -23,11 +26,14 @@ public class StorefrontQuerySpecification {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<StorefrontView> query = cb.createQuery(StorefrontView.class);
         Root<StorefrontEntity> storefront = query.from(StorefrontEntity.class);
+        Join<StorefrontEntity, StorefrontChannelBrandEntity> brand =
+                storefront.join("channelBrand", JoinType.LEFT);
 
         query.select(cb.construct(
                 StorefrontView.class,
                 storefront.get("uuid"),
                 storefront.get("merchantId"),
+                brand.get("salesChannelId"),
                 storefront.get("name"),
                 storefront.get("slug"),
                 storefront.get("status"),

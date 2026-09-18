@@ -4,6 +4,7 @@ import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.specification.jpa.ProductSearchSpecification;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import com.catalog.infrastructure.view.ProductVariantRefView;
 import com.catalog.infrastructure.view.ProductView;
 import com.grab.framework.logger.Logger;
@@ -45,5 +46,11 @@ public class ProductQueryRepositoryImpl implements ProductQueryRepository {
     public List<ProductVariantRefView> findActiveVariantsByProductIds(Collection<String> productIds) {
         return executor.query("Product", () ->
                 productSearchSpecification.findActiveVariantsByProductIds(productIds));
+    }
+
+    @Override
+    public List<ProductPublicationView> findPublicationsByProductIds(Collection<String> productIds) {
+        return executor.query("Product", () ->
+                productSearchSpecification.findPublicationsByProductIds(productIds));
     }
 }

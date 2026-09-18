@@ -25,6 +25,9 @@ public class StorefrontEntity {
     @Column(name = "merchant_id", nullable = false, updatable = false)
     private String merchantId;
 
+    @OneToOne(mappedBy = "storefront", fetch = FetchType.LAZY)
+    private StorefrontChannelBrandEntity channelBrand;
+
     @Column(nullable = false)
     private String name;
 

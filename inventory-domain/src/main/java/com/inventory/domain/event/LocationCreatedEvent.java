@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 public record LocationCreatedEvent(
         Id locationId,
+        Id merchantId,
         String code,
         String name,
         LocationType type,

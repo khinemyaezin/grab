@@ -6,6 +6,7 @@ import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.exception.InventoryDomainError;
+import com.inventory.domain.repository.ChannelFulfillmentRouteRepository;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
@@ -24,7 +25,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultInventoryAllocationServiceTest {
@@ -39,6 +39,9 @@ class DefaultInventoryAllocationServiceTest {
     private LocationRepository locationRepository;
 
     @Mock
+    private ChannelFulfillmentRouteRepository channelFulfillmentRouteRepository;
+
+    @Mock
     private IdGenerator idGenerator;
 
     @Mock
@@ -48,7 +51,13 @@ class DefaultInventoryAllocationServiceTest {
 
     @BeforeEach
     void setUp() {
-        allocationService = new DefaultInventoryAllocationService(inventoryRepository, stockMovementRepository, locationRepository, idGenerator);
+        allocationService = new DefaultInventoryAllocationService(
+                inventoryRepository,
+                stockMovementRepository,
+                locationRepository,
+                channelFulfillmentRouteRepository,
+                idGenerator
+        );
         Location activeLocation = mock(Location.class);
         lenient().when(activeLocation.isActive()).thenReturn(true);
         lenient().when(locationRepository.findById(any())).thenReturn(Optional.of(activeLocation));
@@ -430,6 +439,35 @@ class DefaultInventoryAllocationServiceTest {
         int result = allocationService.getAvailableForAllocation("SKU-001");
 
         assertThat(result).isEqualTo(150);
+    }
+
+    @Test
+    void getAvailableForAllocation_shouldSumOnlyChannelLinkedLocations() {
+        InventoryItem websiteItem = createInventoryItem("item-1", "loc-1", 100, InventoryStatus.ACTIVE);
+        InventoryItem otherItem = createInventoryItem("item-2", "loc-2", 50, InventoryStatus.ACTIVE);
+        Location websiteLocation = mock(Location.class);
+        Location otherLocation = mock(Location.class);
+        when(websiteLocation.isActive()).thenReturn(true);
+        when(otherLocation.isActive()).thenReturn(true);
+        when(channelFulfillmentRouteRepository.exists(any(), any())).thenAnswer(invocation -> {
+            Id locationId = invocation.getArgument(0);
+            return "loc-1".equals(locationId.getValue());
+        });
+        when(locationRepository.findById(any())).thenAnswer(invocation -> {
+            Id locationId = invocation.getArgument(0);
+            if ("loc-1".equals(locationId.getValue())) {
+                return Optional.of(websiteLocation);
+            }
+            if ("loc-2".equals(locationId.getValue())) {
+                return Optional.of(otherLocation);
+            }
+            return Optional.empty();
+        });
+        when(inventoryRepository.findBySku("SKU-001")).thenReturn(List.of(websiteItem, otherItem));
+
+        int result = allocationService.getAvailableForAllocation("SKU-001", id("channel-1"));
+
+        assertThat(result).isEqualTo(100);
     }
 
     @Test

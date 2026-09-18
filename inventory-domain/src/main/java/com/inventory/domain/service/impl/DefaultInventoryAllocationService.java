@@ -8,6 +8,7 @@ import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.exception.InventoryDomainError;
+import com.inventory.domain.repository.ChannelFulfillmentRouteRepository;
 import com.inventory.domain.repository.InventoryRepository;
 import com.inventory.domain.repository.LocationRepository;
 import com.inventory.domain.repository.StockMovementRepository;
@@ -25,17 +26,20 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
     private final InventoryRepository inventoryRepository;
     private final StockMovementRepository stockMovementRepository;
     private final LocationRepository locationRepository;
+    private final ChannelFulfillmentRouteRepository channelFulfillmentRouteRepository;
     private final IdGenerator idGenerator;
 
     public DefaultInventoryAllocationService(
             InventoryRepository inventoryRepository,
             StockMovementRepository stockMovementRepository,
             LocationRepository locationRepository,
+            ChannelFulfillmentRouteRepository channelFulfillmentRouteRepository,
             IdGenerator idGenerator
     ) {
         this.inventoryRepository = inventoryRepository;
         this.stockMovementRepository = stockMovementRepository;
         this.locationRepository = locationRepository;
+        this.channelFulfillmentRouteRepository = channelFulfillmentRouteRepository;
         this.idGenerator = idGenerator;
     }
 
@@ -210,23 +214,37 @@ public class DefaultInventoryAllocationService implements InventoryAllocationSer
 
     @Override
     public int getAvailableForAllocation(String sku) {
-        return findAvailableInventory(sku).stream()
+        return getAvailableForAllocation(sku, null);
+    }
+
+    @Override
+    public int getAvailableForAllocation(String sku, Id salesChannelId) {
+        return findAvailableInventory(sku, salesChannelId).stream()
                 .mapToInt(InventoryItem::getAvailableQuantity)
                 .sum();
     }
 
     @Override
     public List<InventoryItem> findAvailableInventory(String sku) {
+        return findAvailableInventory(sku, null);
+    }
+
+    private List<InventoryItem> findAvailableInventory(String sku, Id salesChannelId) {
         List<InventoryItem> availableItems = inventoryRepository.findBySku(sku).stream()
                 .filter(InventoryItem::isActive)
                 .filter(item -> item.getAvailableQuantity() > 0)
                 .filter(item -> locationRepository.findById(item.getLocationId())
                         .map(Location::isActive)
                         .orElse(false))
+                .filter(item -> salesChannelId == null
+                        || channelFulfillmentRouteRepository.exists(item.getLocationId(), salesChannelId))
                 .sorted(Comparator.comparingInt(InventoryItem::getAvailableQuantity).reversed())
                 .toList();
 
-        log.debug("Found {} allocatable inventory items for sku={}", availableItems.size(), sku);
+        log.debug("Found {} allocatable inventory items for sku={} salesChannelId={}",
+                availableItems.size(),
+                sku,
+                salesChannelId == null ? null : salesChannelId.getValue());
         return availableItems;
     }
 }

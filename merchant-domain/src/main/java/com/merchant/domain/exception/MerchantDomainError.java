@@ -14,7 +14,8 @@ public sealed interface MerchantDomainError extends MessageSource permits
         MerchantDomainError.ApplicantAccessForbidden,
         MerchantDomainError.DuplicateSlug,
         MerchantDomainError.MerchantNotOperational,
-        MerchantDomainError.InvalidStorefrontTransition {
+        MerchantDomainError.InvalidStorefrontTransition,
+        MerchantDomainError.StorefrontChannelAlreadyAttached {
 
     record InvalidField(String field) implements MerchantDomainError {
         public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
@@ -75,6 +76,14 @@ public sealed interface MerchantDomainError extends MessageSource permits
         public String code() { return "mer.domain.storefront.status_transition_invalid"; }
         public Map<String, Object> args() {
             return Map.of("currentStatus", currentStatus, "requestedStatus", requestedStatus);
+        }
+    }
+
+    record StorefrontChannelAlreadyAttached(String storefrontId) implements MerchantDomainError {
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        public String code() { return "mer.domain.storefront.channel_already_attached"; }
+        public Map<String, Object> args() {
+            return Map.of("storefrontId", storefrontId);
         }
     }
 }

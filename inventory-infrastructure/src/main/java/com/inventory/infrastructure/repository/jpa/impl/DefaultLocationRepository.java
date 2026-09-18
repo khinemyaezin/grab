@@ -72,4 +72,12 @@ public class DefaultLocationRepository implements LocationRepository {
         log.debug("Checking location existence by code={}", code);
         return executor.query("Location", () -> jpaRepository.existsByCode(code));
     }
+
+    @Override
+    public List<Location> findByMerchantId(Id merchantId) {
+        log.debug("Loading locations by merchantId={}", merchantId.getValue());
+        return executor.query("Location", () -> jpaRepository.findByMerchantId(merchantId.getValue()).stream()
+                .map(mapper::toFullDomainGraph)
+                .toList());
+    }
 }

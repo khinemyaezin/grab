@@ -21,7 +21,8 @@ public sealed interface CatalogDomainError extends MessageSource permits
         CatalogDomainError.DuplicateSKU,
         CatalogDomainError.DuplicateProductMedia,
         CatalogDomainError.VariantMediaNotOwnedByProduct,
-        CatalogDomainError.VariantNotFound {
+        CatalogDomainError.VariantNotFound,
+        CatalogDomainError.ProductNotPublishable {
 
     record InvalidProductStatusTransition(String currentStatus, String newStatus) implements CatalogDomainError {
         @Override
@@ -317,6 +318,23 @@ public sealed interface CatalogDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("variantId", variantId);
+        }
+    }
+
+    record ProductNotPublishable(String currentStatus) implements CatalogDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BUSINESS_RULE;
+        }
+
+        @Override
+        public String code() {
+            return "cat.domain.product_not_publishable";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("currentStatus", currentStatus);
         }
     }
 }
