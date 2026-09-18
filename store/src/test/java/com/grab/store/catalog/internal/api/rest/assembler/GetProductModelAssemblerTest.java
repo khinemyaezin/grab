@@ -27,7 +27,34 @@ class GetProductModelAssemblerTest {
                 .contains("/products/prod-1/descriptions");
     }
 
+    @Test
+    void toModel_whenActive_shouldExposePublishProductToChannelLink() {
+        EntityModel<GetProductResponse> model = assembler.toModel(product("ACTIVE", List.of()));
+
+        assertThat(model.getLink("publish-product")).isEmpty();
+        assertThat(model.getLink("publish-product-to-channel")).isPresent();
+        assertThat(model.getLink("unpublish-product-from-channel")).isEmpty();
+        assertThat(model.getRequiredLink("publish-product-to-channel").getHref())
+                .contains("/workflows/publish-product-to-channel");
+    }
+
+    @Test
+    void toModel_whenPublished_shouldExposeUnpublishLink() {
+        EntityModel<GetProductResponse> model = assembler.toModel(product(
+                "ACTIVE",
+                List.of(new GetProductResponse.Publication("channel-1"))
+        ));
+
+        assertThat(model.getLink("unpublish-product-from-channel")).isPresent();
+        assertThat(model.getRequiredLink("unpublish-product-from-channel").getHref())
+                .contains("/products/prod-1/channels/unpublish");
+    }
+
     private GetProductResponse product(String status) {
+        return product(status, List.of());
+    }
+
+    private GetProductResponse product(String status, List<GetProductResponse.Publication> publications) {
         return new GetProductResponse(
                 "prod-1",
                 "Shirt",
@@ -43,7 +70,8 @@ class GetProductModelAssemblerTest {
                 List.of(),
                 null,
                 List.of(),
-                List.of()
+                List.of(),
+                publications
         );
     }
 }

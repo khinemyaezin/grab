@@ -47,7 +47,7 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 
 Verify all of the following before producing or changing code.
 
-1. Controller delegates to CommandService/QueryService. No inline logic.
+1. Controller delegates writes to CommandService and reads to QueryService. No inline logic, no direct bus or repository injection.
 2. MapStruct mapper abstract class exists per Command/Query operation, annotated with `@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)`.
 3. Command/Query records use `Id` for identifiers, not `String`.
 4. Handlers are `@Component` implementing `CommandHandler`/`QueryHandler` with the module transactional annotations.
@@ -71,3 +71,4 @@ Verify all of the following before producing or changing code.
 22. Cross-module events use named interfaces (`{module}::events`). Consuming modules list them in `allowedDependencies`.
 23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks`. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding. No proxying owner list/search.
 24. `shared` remains `@ApplicationModule(type = OPEN)`.
+25. Strict CQRS isolation: CommandService and QueryService never mess with each other or cross-call. CommandService NEVER injects or invokes QueryBus or queries data. QueryService NEVER injects or invokes CommandBus or mutates state.

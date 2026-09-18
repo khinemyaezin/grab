@@ -1,6 +1,7 @@
 package com.grab.store.workflows;
 
 import com.grab.store.workflows.internal.workflows.createsellableproduct.rest.controller.CreateSellableProductController;
+import com.grab.store.workflows.internal.workflows.publishproducttochannel.rest.controller.PublishProductToChannelController;
 import com.grab.store.workflows.internal.workflows.updateproductvariant.rest.controller.UpdateProductVariantController;
 import com.grab.store.workflows.internal.workflows.updatesellableproduct.rest.controller.UpdateSellableProductController;
 import org.springframework.hateoas.MediaTypes;
@@ -33,6 +34,10 @@ public class WorkflowsRootController {
                 .withRel("update-product-variant"));
         model.add(linkTo(methodOn(UpdateProductVariantController.class).get(null, null))
                 .withRel("get-update-product-variant"));
+        model.add(linkTo(methodOn(PublishProductToChannelController.class).start(null, null))
+                .withRel("publish-product-to-channel"));
+        model.add(linkTo(methodOn(PublishProductToChannelController.class).get(null, null))
+                .withRel("get-publish-product-to-channel"));
         return ResponseEntity.ok(model);
     }
 }

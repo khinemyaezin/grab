@@ -24,6 +24,8 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.store.catalog.internal.service.ParentChildTransformer;
 import com.grab.store.catalog.internal.service.StandaloneVariationFactory;
+import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     private static final Logger log = Loggers.getLogger(GetProductQueryHandler.class);
 
     private final ProductRepository productRepository;
+    private final ProductQueryRepository productQueryRepository;
     private final VariantOptionQueryRepository variantOptionQueryRepository;
     private final IdGenerator idGenerator;
     private final CategoryQueryRepository categoryQueryRepository;
@@ -56,7 +59,13 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                         new CatalogServiceError.ProductNotFound(query.productId())
                 ));
 
-        return mapToResult(product);
+        List<GetProductResult.Publication> publications = productQueryRepository
+                .findPublicationsByProductIds(List.of(query.productId()))
+                .stream()
+                .map(ProductPublicationView::salesChannelId)
+                .map(GetProductResult.Publication::new)
+                .toList();
+        return mapToResult(product, publications);
     }
 
     @Override
@@ -65,6 +74,10 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
     }
 
     public GetProductResult mapToResult(Product product) {
+        return mapToResult(product, List.of());
+    }
+
+    public GetProductResult mapToResult(Product product, List<GetProductResult.Publication> publications) {
         List<ProductVariation> allVariations = product.getVariants().stream()
                 .flatMap(v -> v.getVariations().stream())
                 .toList();
@@ -91,7 +104,8 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 mapDescriptions(product.getDescriptions()),
                 productMediaQueryMapper.toGetProductMedias(product.getMedias()),
                 variants,
-                variantTypes
+                variantTypes,
+                publications == null ? List.of() : publications
         );
     }
 

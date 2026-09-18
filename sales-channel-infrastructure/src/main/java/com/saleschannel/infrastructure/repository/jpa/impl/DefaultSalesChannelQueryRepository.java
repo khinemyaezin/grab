@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Optional;
+
 @RequiredArgsConstructor
 public class DefaultSalesChannelQueryRepository implements SalesChannelQueryRepository {
     private final SalesChannelQuerySpecification specification;
@@ -17,5 +19,10 @@ public class DefaultSalesChannelQueryRepository implements SalesChannelQueryRepo
     @Override
     public Page<SalesChannelView> list(SalesChannelQueryCriteria criteria, Pageable pageable) {
         return executor.query("SalesChannel", () -> specification.list(criteria, pageable));
+    }
+
+    @Override
+    public Optional<SalesChannelView> findById(String id) {
+        return executor.query("SalesChannel", () -> specification.findById(id));
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class SalesChannelQuerySpecification {
     private final EntityManager entityManager;
@@ -58,6 +59,32 @@ public class SalesChannelQuerySpecification {
 
         List<SalesChannelView> content = typedQuery.getResultList();
         return new PageImpl<>(content, pageable, total);
+    }
+
+    public Optional<SalesChannelView> findById(String id) {
+        if (!StringUtils.hasLength(id)) {
+            return Optional.empty();
+        }
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<SalesChannelView> dataQuery = cb.createQuery(SalesChannelView.class);
+        Root<SalesChannelEntity> channel = dataQuery.from(SalesChannelEntity.class);
+        dataQuery.select(cb.construct(
+                SalesChannelView.class,
+                channel.get("uuid"),
+                channel.get("name"),
+                channel.get("type"),
+                channel.get("owner"),
+                channel.get("merchantId"),
+                channel.get("status"),
+                channel.get("createdAt"),
+                channel.get("updatedAt"),
+                channel.get("version")
+        ));
+        dataQuery.where(cb.equal(channel.get("uuid"), id));
+        List<SalesChannelView> results = entityManager.createQuery(dataQuery)
+                .setMaxResults(1)
+                .getResultList();
+        return results.stream().findFirst();
     }
 
     private long countMatches(CriteriaBuilder cb, SalesChannelQueryCriteria criteria) {

@@ -4,8 +4,8 @@ import com.grab.framework.id.Id;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.pricing.internal.api.rest.dto.request.CalculatePricesRequest;
 import com.grab.store.pricing.internal.api.rest.dto.response.CalculatedPriceSetResponse;
-import com.grab.store.pricing.queries.CalculatePricesQuery;
-import com.grab.store.pricing.queries.CalculatedPriceSetResult;
+import com.grab.store.pricing.internal.query.CalculatePricesQuery;
+import com.grab.store.pricing.internal.query.CalculatedPriceSetResult;
 import org.mapstruct.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 

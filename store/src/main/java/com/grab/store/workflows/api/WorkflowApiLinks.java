@@ -1,6 +1,7 @@
 package com.grab.store.workflows.api;
 
 import com.grab.store.workflows.internal.workflows.createsellableproduct.rest.controller.CreateSellableProductController;
+import com.grab.store.workflows.internal.workflows.publishproducttochannel.rest.controller.PublishProductToChannelController;
 import com.grab.store.workflows.internal.workflows.updateproductvariant.rest.controller.UpdateProductVariantController;
 import com.grab.store.workflows.internal.workflows.updatesellableproduct.rest.controller.UpdateSellableProductController;
 import org.springframework.hateoas.Link;
@@ -24,5 +25,10 @@ public final class WorkflowApiLinks {
     public static Link updateProductVariantLink() {
         return linkTo(methodOn(UpdateProductVariantController.class).start(null, null))
                 .withRel("update-product-variant");
+    }
+
+    public static Link publishProductToChannelLink() {
+        return linkTo(methodOn(PublishProductToChannelController.class).start(null, null))
+                .withRel("publish-product-to-channel");
     }
 }

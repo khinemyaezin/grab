@@ -5,6 +5,7 @@ import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.view.CategoryView;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import com.catalog.infrastructure.view.ProductView;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.framework.logger.Logger;
@@ -48,8 +49,10 @@ public class ProductSearchQueryHandler implements QueryHandler<ProductSearchQuer
         Page<ProductView> page = productQueryRepository.search(criteria, query.pageable());
         Map<String, String> categoryViewMap = getCategoryViewMap(page.getContent());
         Map<String, ProductHeroMediaView> heroMediaByProductId = getHeroMediaByProductId(page.getContent());
+        Map<String, List<ProductSearchResult.Publication>> publicationsByProductId =
+                getPublicationsByProductId(page.getContent());
 
-        return page.map(view -> mapToResult(view, categoryViewMap, heroMediaByProductId));
+        return page.map(view -> mapToResult(view, categoryViewMap, heroMediaByProductId, publicationsByProductId));
     }
 
     @Override
@@ -78,10 +81,25 @@ public class ProductSearchQueryHandler implements QueryHandler<ProductSearchQuer
                 ));
     }
 
+    private Map<String, List<ProductSearchResult.Publication>> getPublicationsByProductId(List<ProductView> views) {
+        List<String> productIds = views.stream()
+                .map(ProductView::id)
+                .toList();
+        return productQueryRepository.findPublicationsByProductIds(productIds).stream()
+                .collect(Collectors.groupingBy(
+                        ProductPublicationView::productId,
+                        Collectors.mapping(
+                                view -> new ProductSearchResult.Publication(view.salesChannelId()),
+                                Collectors.toList()
+                        )
+                ));
+    }
+
     private ProductSearchResult mapToResult(
             ProductView view,
             Map<String, String> categoryViewMap,
-            Map<String, ProductHeroMediaView> heroMediaByProductId
+            Map<String, ProductHeroMediaView> heroMediaByProductId,
+            Map<String, List<ProductSearchResult.Publication>> publicationsByProductId
     ) {
         return new ProductSearchResult(
                 view.id(),
@@ -90,7 +108,8 @@ public class ProductSearchQueryHandler implements QueryHandler<ProductSearchQuer
                 view.slug(),
                 resolveCategoryName(categoryViewMap, view.categoryId()),
                 view.categoryId(),
-                toThumbnail(heroMediaByProductId.get(view.id()))
+                toThumbnail(heroMediaByProductId.get(view.id())),
+                publicationsByProductId.getOrDefault(view.id(), List.of())
         );
     }
 

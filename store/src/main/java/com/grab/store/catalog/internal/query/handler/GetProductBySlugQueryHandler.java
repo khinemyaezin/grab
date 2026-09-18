@@ -17,7 +17,7 @@ import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import com.grab.store.catalog.internal.exception.CatalogServiceError;
 import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import com.grab.store.catalog.internal.query.GetProductBySlugQuery;
-import com.grab.store.catalog.queries.GetProductBySlugResult;
+import com.grab.store.catalog.internal.query.GetProductBySlugResult;
 import com.grab.store.catalog.internal.query.ProductMediaQueryMapper;
 import com.grab.store.catalog.internal.service.ParentChildTransformer;
 import lombok.RequiredArgsConstructor;

@@ -12,8 +12,25 @@ public record GetProductResult(
         List<Description> descriptions,
         List<Media> medias,
         List<Variant> variants,
-        List<VariantType> variantTypes
+        List<VariantType> variantTypes,
+        List<Publication> publications
 ) {
+    public GetProductResult(
+            String id,
+            String name,
+            Category category,
+            String condition,
+            String status,
+            String slug,
+            List<Description> descriptions,
+            List<Media> medias,
+            List<Variant> variants,
+            List<VariantType> variantTypes
+    ) {
+        this(id, name, category, condition, status, slug, descriptions, medias, variants, variantTypes, List.of());
+    }
+
+    public record Publication(String salesChannelId) {}
     public record Description(
             String id,
             String name,

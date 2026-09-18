@@ -17,8 +17,14 @@ public record GetProductResponse(
         List<Media> medias,
         String moderationNote,
         List<Variant> variants,
-        List<VariantType> variantTypes
+        List<VariantType> variantTypes,
+        List<Publication> publications
 ) {
+    public GetProductResponse {
+        publications = publications == null ? List.of() : List.copyOf(publications);
+    }
+
+    public record Publication(String salesChannelId) {}
     public record Category(
             String id,
             String name

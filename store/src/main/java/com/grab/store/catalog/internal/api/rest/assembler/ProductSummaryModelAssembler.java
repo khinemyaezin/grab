@@ -3,6 +3,7 @@ package com.grab.store.catalog.internal.api.rest.assembler;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.store.catalog.internal.api.rest.controller.ProductController;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductSearchResponse;
+import com.grab.store.workflows.api.WorkflowApiLinks;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
@@ -29,11 +30,17 @@ public class ProductSummaryModelAssembler
             } else if (currentStatus == ProductStatus.ACTIVE) {
                 entity.add(linkTo(methodOn(ProductController.class).suspend(response.productId(), null)).withRel("suspend-product"));
                 entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.productId())).withRel("delete-product"));
+                entity.add(WorkflowApiLinks.publishProductToChannelLink());
             } else if (currentStatus == ProductStatus.SUSPENDED || currentStatus == ProductStatus.ARCHIVED) {
                 entity.add(linkTo(methodOn(ProductController.class).restore(response.productId(), null)).withRel("restore-product"));
             }
         } catch (IllegalArgumentException | NullPointerException e) {
             // Invalid or missing status, safely ignore adding conditional links
+        }
+
+        if (response.publications() != null && !response.publications().isEmpty()) {
+            entity.add(linkTo(methodOn(ProductController.class).unpublishFromChannel(response.productId(), null))
+                    .withRel("unpublish-product-from-channel"));
         }
 
         return entity;

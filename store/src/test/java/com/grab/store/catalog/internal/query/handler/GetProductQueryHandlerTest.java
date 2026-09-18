@@ -10,6 +10,7 @@ import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
+import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
@@ -39,6 +40,8 @@ class GetProductQueryHandlerTest {
     @Mock
     private ProductRepository productRepository;
     @Mock
+    private ProductQueryRepository productQueryRepository;
+    @Mock
     private VariantOptionQueryRepository variantOptionQueryRepository;
     @Mock
     private CategoryQueryRepository categoryQueryRepository;
@@ -54,6 +57,7 @@ class GetProductQueryHandlerTest {
     @BeforeEach
     void setUp() {
         getProductQueryHandler = new GetProductQueryHandler(productRepository,
+                productQueryRepository,
                 variantOptionQueryRepository,
                 idGenerator,
                 categoryQueryRepository,
