@@ -28,26 +28,29 @@ public class PublishProductToChannelCommandHandler
     @Override
     @CatalogTransactional
     public PublishProductToChannelResult handle(PublishProductToChannelCommand command) {
-        if (productPublicationRepository.exists(command.productId(), command.salesChannelId())) {
-            return new PublishProductToChannelResult(
-                    command.productId().getValue(),
-                    command.salesChannelId().getValue(),
-                    false
-            );
-        }
         Product product = productRepository.find(command.productId(), command.merchantId())
                 .orElseThrow(() -> new CatalogServiceException(
                         new CatalogServiceError.ProductNotFound(command.productId().getValue())
                 ));
+        requireVariantOnProduct(product, command);
+        if (productPublicationRepository.exists(command.variantId(), command.salesChannelId())) {
+            return new PublishProductToChannelResult(
+                    command.productId().getValue(),
+                    command.variantId().getValue(),
+                    command.salesChannelId().getValue(),
+                    false
+            );
+        }
         productPublicationPolicy.requirePublishable(product);
         ProductPublication publication = ProductPublication.publish(
-                command.productId(),
+                command.variantId(),
                 command.salesChannelId(),
                 Instant.now()
         );
         productPublicationRepository.save(publication);
         return new PublishProductToChannelResult(
                 command.productId().getValue(),
+                command.variantId().getValue(),
                 command.salesChannelId().getValue(),
                 true
         );
@@ -56,5 +59,14 @@ public class PublishProductToChannelCommandHandler
     @Override
     public Class<PublishProductToChannelCommand> getCommandType() {
         return PublishProductToChannelCommand.class;
+    }
+
+    private void requireVariantOnProduct(Product product, PublishProductToChannelCommand command) {
+        boolean variantOnProduct = product.findVariantById(command.variantId()).isPresent();
+        if (!variantOnProduct) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.VariantNotFound(command.variantId().getValue())
+            );
+        }
     }
 }

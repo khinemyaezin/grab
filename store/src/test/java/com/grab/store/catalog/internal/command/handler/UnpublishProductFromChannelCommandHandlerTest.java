@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductPublication;
+import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.ProductPublicationRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductStatus;
@@ -44,25 +45,26 @@ class UnpublishProductFromChannelCommandHandlerTest {
     void handle_whenMissingRow_isNoOp() {
         when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
                 .thenReturn(Optional.of(product()));
-        when(productPublicationRepository.find(new CommonId("prod-1"), new CommonId("channel-1")))
+        when(productPublicationRepository.find(new CommonId("var-1"), new CommonId("channel-1")))
                 .thenReturn(Optional.empty());
 
         UnpublishProductFromChannelResult result = handler.handle(command());
 
         assertThat(result.deleted()).isFalse();
+        assertThat(result.variantId()).isEqualTo("var-1");
         verify(productPublicationRepository, never()).delete(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
     void handle_whenPresent_deletesWithoutChangingProduct() {
         ProductPublication publication = ProductPublication.restore(
-                new CommonId("prod-1"),
+                new CommonId("var-1"),
                 new CommonId("channel-1"),
                 Instant.parse("2026-09-18T00:00:00Z")
         );
         when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
                 .thenReturn(Optional.of(product()));
-        when(productPublicationRepository.find(new CommonId("prod-1"), new CommonId("channel-1")))
+        when(productPublicationRepository.find(new CommonId("var-1"), new CommonId("channel-1")))
                 .thenReturn(Optional.of(publication));
 
         UnpublishProductFromChannelResult result = handler.handle(command());
@@ -81,10 +83,28 @@ class UnpublishProductFromChannelCommandHandlerTest {
                 .isInstanceOf(CatalogServiceException.class);
     }
 
+    @Test
+    void handle_whenVariantNotOnProduct_throws() {
+        when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
+                .thenReturn(Optional.of(product()));
+
+        UnpublishProductFromChannelCommand otherVariant = new UnpublishProductFromChannelCommand(
+                new CommonId("merchant-1"),
+                new CommonId("prod-1"),
+                new CommonId("var-missing"),
+                new CommonId("channel-1")
+        );
+
+        assertThatThrownBy(() -> handler.handle(otherVariant))
+                .isInstanceOf(CatalogServiceException.class);
+        verify(productPublicationRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+    }
+
     private UnpublishProductFromChannelCommand command() {
         return new UnpublishProductFromChannelCommand(
                 new CommonId("merchant-1"),
                 new CommonId("prod-1"),
+                new CommonId("var-1"),
                 new CommonId("channel-1")
         );
     }
@@ -100,7 +120,7 @@ class UnpublishProductFromChannelCommandHandlerTest {
                 "shirt",
                 List.of(),
                 List.of(),
-                List.of()
+                List.of(ProductVariant.create(new CommonId("var-1"), "SKU-1", List.of()))
         );
     }
 }

@@ -1,7 +1,6 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
-import com.catalog.infrastructure.view.ProductPublicationView;
 import com.catalog.domain.repository.ProductRepository;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.framework.id.IdGenerator;
@@ -34,8 +33,7 @@ public class ListProductPublicationsQueryHandler
                         new CatalogServiceError.ProductNotFound(query.productId())
                 ));
         return productQueryRepository.findPublicationsByProductIds(List.of(query.productId())).stream()
-                .map(ProductPublicationView::salesChannelId)
-                .map(ProductPublicationItem::new)
+                .map(view -> new ProductPublicationItem(view.variantId(), view.salesChannelId()))
                 .toList();
     }
 

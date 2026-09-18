@@ -1,8 +1,8 @@
 package com.catalog.infrastructure.mapper.jpa.impl;
 
 import com.catalog.domain.aggregate.ProductPublication;
-import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductPublicationEntity;
+import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.mapper.jpa.ProductPublicationEntityMapper;
 import com.catalog.infrastructure.mapper.jpa.ProductPublicationMapper;
 import com.grab.framework.id.impl.CommonId;
@@ -35,30 +35,30 @@ class ProductPublicationJpaAssemblerImplTest {
     @Test
     void buildFullEntityGraph_withNoExistingEntity_createsNewEntity() {
         ProductPublication publication = ProductPublication.restore(
-                new CommonId("p1"),
+                new CommonId("var-1"),
                 new CommonId("channel-1"),
                 null);
-        ProductEntity product = productEntity(20L, "p1");
+        ProductVariantEntity variant = variantEntity(30L, "var-1");
 
-        ProductPublicationEntity result = assembler.buildFullEntityGraph(publication, null, product);
+        ProductPublicationEntity result = assembler.buildFullEntityGraph(publication, null, variant);
 
         assertNotNull(result);
-        assertEquals(20L, result.getProductId());
+        assertEquals(30L, result.getVariantId());
         verify(entityMapper).toEntity(eq(publication), any(ProductPublicationEntity.class));
     }
 
     @Test
     void buildFullEntityGraph_withExistingEntity_mergesIntoExistingEntity() {
         ProductPublication publication = ProductPublication.restore(
-                new CommonId("p1"),
+                new CommonId("var-1"),
                 new CommonId("channel-1"),
                 null);
-        ProductEntity product = productEntity(20L, "p1");
+        ProductVariantEntity variant = variantEntity(30L, "var-1");
         ProductPublicationEntity existingEntity = new ProductPublicationEntity();
-        existingEntity.setProductId(20L);
+        existingEntity.setVariantId(30L);
         existingEntity.setSalesChannelId("channel-1");
 
-        ProductPublicationEntity result = assembler.buildFullEntityGraph(publication, existingEntity, product);
+        ProductPublicationEntity result = assembler.buildFullEntityGraph(publication, existingEntity, variant);
 
         assertSame(existingEntity, result);
         verify(entityMapper).toEntity(same(publication), same(existingEntity));
@@ -67,25 +67,25 @@ class ProductPublicationJpaAssemblerImplTest {
     @Test
     void toFullDomainGraph_mapsEntityToDomain() {
         ProductPublicationEntity entity = new ProductPublicationEntity();
-        entity.setProductId(20L);
+        entity.setVariantId(30L);
         entity.setSalesChannelId("channel-1");
-        ProductEntity product = productEntity(20L, "p1");
+        ProductVariantEntity variant = variantEntity(30L, "var-1");
         ProductPublication expected = ProductPublication.restore(
-                new CommonId("p1"),
+                new CommonId("var-1"),
                 new CommonId("channel-1"),
                 null);
-        when(domainMapper.toDomain(entity, product)).thenReturn(expected);
+        when(domainMapper.toDomain(entity, variant)).thenReturn(expected);
 
-        ProductPublication result = assembler.toFullDomainGraph(entity, product);
+        ProductPublication result = assembler.toFullDomainGraph(entity, variant);
 
         assertSame(expected, result);
-        verify(domainMapper).toDomain(entity, product);
+        verify(domainMapper).toDomain(entity, variant);
     }
 
-    private static ProductEntity productEntity(Long id, String uuid) {
-        ProductEntity product = new ProductEntity();
-        product.setId(id);
-        product.setUuid(uuid);
-        return product;
+    private static ProductVariantEntity variantEntity(Long id, String uuid) {
+        ProductVariantEntity variant = new ProductVariantEntity();
+        variant.setId(id);
+        variant.setUuid(uuid);
+        return variant;
     }
 }

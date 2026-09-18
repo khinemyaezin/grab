@@ -8,6 +8,7 @@ import java.time.Instant;
 public record ProductUnpublishedFromChannelEvent(
         String workflowId,
         String productId,
+        String variantId,
         String salesChannelId,
         Instant occurredAt,
         int version
@@ -25,6 +26,6 @@ public record ProductUnpublishedFromChannelEvent(
 
     @Override
     public String signalDedupKey() {
-        return "product-unpublished-from-channel:" + productId + ":" + salesChannelId;
+        return "product-unpublished-from-channel:" + variantId + ":" + salesChannelId;
     }
 }

@@ -20,7 +20,7 @@ public class ProductPublicationModelAssembler
         entity.add(linkTo(methodOn(ProductController.class).getProduct(response.productId())).withRel("get-product"));
         entity.add(linkTo(methodOn(ProductController.class).unpublishFromChannel(response.productId(), null))
                 .withRel("unpublish-product-from-channel"));
-        entity.add(WorkflowApiLinks.publishProductToChannelLink());
+        entity.add(WorkflowApiLinks.updateSellableProductLink());
         return entity;
     }
 }

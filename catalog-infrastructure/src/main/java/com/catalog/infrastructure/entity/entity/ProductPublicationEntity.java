@@ -16,8 +16,8 @@ import lombok.Setter;
 public class ProductPublicationEntity {
 
     @Id
-    @Column(name = "product_id", nullable = false)
-    private Long productId;
+    @Column(name = "variant_id", nullable = false)
+    private Long variantId;
 
     @Id
     @Column(name = "sales_channel_id", nullable = false)

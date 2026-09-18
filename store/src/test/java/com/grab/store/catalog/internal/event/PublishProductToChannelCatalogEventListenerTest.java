@@ -74,7 +74,7 @@ class PublishProductToChannelCatalogEventListenerTest {
     @Test
     void onRequestWritePublication_shouldDispatchCommand() {
         listener.onRequestWritePublication(new RequestWritePublicationEvent(
-                "wf-1", "merchant-1", "prod-1", "channel-1", Instant.now(), 1
+                "wf-1", "merchant-1", "prod-1", "var-1", "channel-1", Instant.now(), 1
         ));
 
         assertThat(dispatched).hasSize(1);
@@ -86,7 +86,7 @@ class PublishProductToChannelCatalogEventListenerTest {
     @Test
     void onRequestUnpublishCompensation_shouldDispatchUnpublishCommand() {
         listener.onRequestUnpublishProductCompensation(new RequestUnpublishProductCompensationEvent(
-                "wf-1", "merchant-1", "prod-1", "channel-1", Instant.now(), 1
+                "wf-1", "merchant-1", "prod-1", "var-1", "channel-1", Instant.now(), 1
         ));
 
         assertThat(dispatched).hasSize(1);
@@ -124,6 +124,7 @@ class PublishProductToChannelCatalogEventListenerTest {
                 if (command instanceof PublishProductToChannelCommand publish) {
                     return (R) new PublishProductToChannelResult(
                             publish.productId().getValue(),
+                            publish.variantId().getValue(),
                             publish.salesChannelId().getValue(),
                             true
                     );

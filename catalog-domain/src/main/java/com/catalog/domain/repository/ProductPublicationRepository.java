@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProductPublicationRepository {
-    Optional<ProductPublication> find(Id productId, Id salesChannelId);
+    Optional<ProductPublication> find(Id variantId, Id salesChannelId);
+
+    List<ProductPublication> findByVariantId(Id variantId);
 
     List<ProductPublication> findByProductId(Id productId);
 
-    boolean exists(Id productId, Id salesChannelId);
+    boolean exists(Id variantId, Id salesChannelId);
 
     void save(ProductPublication publication);
 

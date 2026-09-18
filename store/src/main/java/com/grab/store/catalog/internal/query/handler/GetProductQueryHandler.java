@@ -59,13 +59,9 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                         new CatalogServiceError.ProductNotFound(query.productId())
                 ));
 
-        List<GetProductResult.Publication> publications = productQueryRepository
-                .findPublicationsByProductIds(List.of(query.productId()))
-                .stream()
-                .map(ProductPublicationView::salesChannelId)
-                .map(GetProductResult.Publication::new)
-                .toList();
-        return mapToResult(product, publications);
+        List<ProductPublicationView> publicationViews = productQueryRepository
+                .findPublicationsByProductIds(List.of(query.productId()));
+        return mapToResult(product, publicationViews);
     }
 
     @Override
@@ -77,7 +73,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         return mapToResult(product, List.of());
     }
 
-    public GetProductResult mapToResult(Product product, List<GetProductResult.Publication> publications) {
+    public GetProductResult mapToResult(Product product, List<ProductPublicationView> publicationViews) {
         List<ProductVariation> allVariations = product.getVariants().stream()
                 .flatMap(v -> v.getVariations().stream())
                 .toList();
@@ -88,7 +84,11 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 .toList();
 
         List<VariantOptionView> optionViews = fetchVariantOptions(optionIds);
-        List<GetProductResult.Variant> variants = mapToResultVariantList(product.getVariants(), optionViews);
+        List<GetProductResult.Variant> variants = mapToResultVariantList(
+                product.getVariants(),
+                optionViews,
+                publicationViews
+        );
         List<GetProductResult.VariantType> variantTypes = extractVariantTypes(optionViews);
         GetProductResult.Category category = findCategoryById(product.getCategoryId())
                 .map(this::mapToCategory)
@@ -104,8 +104,7 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                 mapDescriptions(product.getDescriptions()),
                 productMediaQueryMapper.toGetProductMedias(product.getMedias()),
                 variants,
-                variantTypes,
-                publications == null ? List.of() : publications
+                variantTypes
         );
     }
 
@@ -144,11 +143,17 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
         return variantOptionQueryRepository.findAllByUuidIn(optionIds);
     }
 
-    private List<GetProductResult.Variant> mapToResultVariantList(List<ProductVariant> variantList, List<VariantOptionView> optionViews) {
+    private List<GetProductResult.Variant> mapToResultVariantList(
+            List<ProductVariant> variantList,
+            List<VariantOptionView> optionViews,
+            List<ProductPublicationView> publicationViews
+    ) {
         Map<String, VariantOptionView> variationMapByOptionId = Optional.ofNullable(optionViews)
                 .orElseGet(Collections::emptyList)
                 .stream()
                 .collect(Collectors.toMap(VariantOptionView::optionId, Function.identity(), (a, b) -> a));
+        Map<String, List<GetProductResult.Publication>> publicationsByVariantId =
+                publicationsByVariantId(publicationViews);
 
         return variantList.stream().map(variant -> {
             List<GetProductResult.Variation> variations = variant.getVariations().stream()
@@ -157,6 +162,10 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                     .toList();
 
             String matrixKey = matrixKeyGenerator.generateKey(new ArrayList<>(variant.getVariations()));
+            List<GetProductResult.Publication> publications = publicationsByVariantId.getOrDefault(
+                    variant.getId().getValue(),
+                    List.of()
+            );
 
             return new GetProductResult.Variant(
                     variant.getId().getValue(),
@@ -166,9 +175,25 @@ public class GetProductQueryHandler implements QueryHandler<GetProductQuery, Get
                     variations,
                     variant.isManageInventory(),
                     variant.getMediaIds().stream().map(Id::getValue).toList(),
-                    variant.getThumbnailMediaId() == null ? null : variant.getThumbnailMediaId().getValue()
+                    variant.getThumbnailMediaId() == null ? null : variant.getThumbnailMediaId().getValue(),
+                    publications
             );
         }).toList();
+    }
+
+    private Map<String, List<GetProductResult.Publication>> publicationsByVariantId(
+            List<ProductPublicationView> publicationViews
+    ) {
+        return Optional.ofNullable(publicationViews)
+                .orElseGet(List::of)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        ProductPublicationView::variantId,
+                        Collectors.mapping(
+                                view -> new GetProductResult.Publication(view.salesChannelId()),
+                                Collectors.toList()
+                        )
+                ));
     }
 
     private GetProductResult.Variation mapToVariation(ProductVariation pv, Map<String, VariantOptionView> viewMap) {

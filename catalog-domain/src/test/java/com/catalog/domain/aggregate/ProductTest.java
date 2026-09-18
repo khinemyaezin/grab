@@ -104,6 +104,52 @@ class ProductTest {
         assertThat(stored.getThumbnailMediaId()).isNull();
     }
 
+    @Test
+    void publish_missingDescriptions_throwsListingIncomplete() {
+        Product product = Product.create(
+                new CommonId("product-1"),
+                new CommonId("merchant-1"),
+                "T-Shirt",
+                new CommonId("clothing"),
+                null,
+                null,
+                List.of(),
+                List.of(new ProductMedia(
+                        new CommonId("media-1"),
+                        "merchants/m/products/p/1.jpg",
+                        "http://minio/1.jpg",
+                        "image/jpeg",
+                        0
+                ))
+        );
+        product.addVariant(variant("v1", "SKU-1", "red"));
+
+        assertThatThrownBy(product::publish)
+                .isInstanceOf(CatalogDomainValidationException.class)
+                .satisfies(exception -> assertThat(((CatalogDomainValidationException) exception).getMessageSource().code())
+                        .isEqualTo("cat.domain.listing_incomplete"));
+    }
+
+    @Test
+    void publish_missingMedias_throwsListingIncomplete() {
+        Product product = Product.create(
+                new CommonId("product-1"),
+                new CommonId("merchant-1"),
+                "T-Shirt",
+                new CommonId("clothing"),
+                null,
+                null,
+                List.of(Description.create(new CommonId("desc-1"), "Default", "Title", "A description")),
+                List.of()
+        );
+        product.addVariant(variant("v1", "SKU-1", "red"));
+
+        assertThatThrownBy(product::publish)
+                .isInstanceOf(CatalogDomainValidationException.class)
+                .satisfies(exception -> assertThat(((CatalogDomainValidationException) exception).getMessageSource().code())
+                        .isEqualTo("cat.domain.listing_incomplete"));
+    }
+
     private static Product productWithMedia() {
         return Product.create(
                 new CommonId("product-1"),
@@ -128,7 +174,17 @@ class ProductTest {
                 new CommonId("product-1"),
                 new CommonId("merchant-1"),
                 "T-Shirt",
-                new CommonId("clothing")
+                new CommonId("clothing"),
+                null,
+                null,
+                List.of(Description.create(new CommonId("desc-1"), "Default", "Title", "A description")),
+                List.of(new ProductMedia(
+                        new CommonId("media-1"),
+                        "merchants/m/products/p/1.jpg",
+                        "http://minio/1.jpg",
+                        "image/jpeg",
+                        0
+                ))
         );
         for (ProductVariant variant : variants) {
             product.addVariant(variant);

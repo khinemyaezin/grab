@@ -8,6 +8,7 @@ public record RequestWritePublicationEvent(
         String workflowId,
         String merchantId,
         String productId,
+        String variantId,
         String salesChannelId,
         Instant occurredAt,
         int version

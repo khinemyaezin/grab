@@ -9,7 +9,7 @@ import java.util.Objects;
 @Setter
 @Getter
 public class ProductPublicationEntityId implements Serializable {
-    private Long productId;
+    private Long variantId;
     private String salesChannelId;
 
     public ProductPublicationEntityId() {
@@ -23,12 +23,12 @@ public class ProductPublicationEntityId implements Serializable {
         if (!(other instanceof ProductPublicationEntityId that)) {
             return false;
         }
-        return Objects.equals(productId, that.productId)
+        return Objects.equals(variantId, that.variantId)
                 && Objects.equals(salesChannelId, that.salesChannelId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(productId, salesChannelId);
+        return Objects.hash(variantId, salesChannelId);
     }
 }

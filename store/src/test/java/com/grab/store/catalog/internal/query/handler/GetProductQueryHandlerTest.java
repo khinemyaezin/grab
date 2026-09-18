@@ -12,6 +12,7 @@ import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.infrastructure.repository.jpa.CategoryQueryRepository;
 import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
@@ -297,6 +298,58 @@ class GetProductQueryHandlerTest {
                         "Soft cotton shirt"
                 )
         );
+    }
+
+    @Test
+    public void handle_nestsPublicationsOnMatchingVariants() {
+        Id productId = new CommonId("prod-1");
+        Id variantId = new CommonId("var-1");
+        GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
+
+        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+                .thenReturn(Collections.emptyList());
+        when(idGenerator.convertIdFrom(anyString()))
+                .thenAnswer(invocationOnMock ->
+                        new CommonId(invocationOnMock.getArgument(0)));
+        when(productQueryRepository.findPublicationsByProductIds(List.of(productId.getValue())))
+                .thenReturn(List.of(
+                        new ProductPublicationView(
+                                productId.getValue(),
+                                variantId.getValue(),
+                                "channel-1"
+                        )
+                ));
+
+        List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
+                new Product(
+                        productId,
+                        productId,
+                        "Shirt",
+                        new CommonId(),
+                        null,
+                        ProductStatus.ACTIVE,
+                        null,
+                        null,
+                        null,
+                        List.of(
+                                new ProductVariant(
+                                        variantId,
+                                        "STANDALONE",
+                                        ProductVariantStatus.ACTIVE,
+                                        standAloneVariation,
+                                        true,
+                                        List.of(),
+                                        null
+                                )
+                        )
+                )));
+
+        GetProductResult result = getProductQueryHandler.handle(query);
+
+        assertThat(result.variants()).hasSize(1);
+        assertThat(result.variants().getFirst().publications())
+                .containsExactly(new GetProductResult.Publication("channel-1"));
     }
 
 }

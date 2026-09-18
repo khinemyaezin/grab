@@ -27,6 +27,9 @@ public abstract class UpdateSellableProductRequestMapper {
         List<UpdateSellableProductContext.PricingLine> pricingLines = request.pricingLines() == null
                 ? List.of()
                 : request.pricingLines().stream().map(this::toContextPricingLine).toList();
+        List<UpdateSellableProductContext.PublicationLine> publicationLines = request.publicationLines() == null
+                ? List.of()
+                : request.publicationLines().stream().map(this::toContextPublicationLine).toList();
         return UpdateSellableProductContext.createContext(
                 merchantId,
                 createdBy,
@@ -35,7 +38,8 @@ public abstract class UpdateSellableProductRequestMapper {
                 request.productId(),
                 product,
                 inventoryLines,
-                pricingLines
+                pricingLines,
+                publicationLines
         );
     }
 
@@ -49,6 +53,22 @@ public abstract class UpdateSellableProductRequestMapper {
                         pair.priceSetId()
                 ))
                 .toList();
+        List<UpdateSellableProductResponse.PublicationPair> writtenPublications = context == null
+                ? List.of()
+                : context.writtenPublications().stream()
+                .map(pair -> new UpdateSellableProductResponse.PublicationPair(
+                        pair.variantId(),
+                        pair.sku(),
+                        pair.salesChannelId()
+                ))
+                .toList();
+        List<String> missingRouteChannelIds = context == null
+                ? List.of()
+                : List.copyOf(context.missingRouteChannelIds());
+        List<String> inventoryItemIds = context == null ? List.of() : context.inventoryItemIds();
+        int compensatedPriceSetCount = context == null ? 0 : context.compensatedPriceSetIds().size();
+        String productId = context == null ? null : context.productId();
+        boolean productUpdated = context != null && context.productUpdated();
         boolean terminalPartial = instance.status() == WorkflowStatus.FAILED
                 || instance.status() == WorkflowStatus.COMPENSATED;
         boolean partiallyApplied = terminalPartial && context != null && context.isPartiallyApplied();
@@ -56,11 +76,13 @@ public abstract class UpdateSellableProductRequestMapper {
                 instance.id(),
                 instance.status().name(),
                 instance.currentStep().orElse(null),
-                context == null ? null : context.productId(),
-                context != null && context.productUpdated(),
+                productId,
+                productUpdated,
                 pricePairs,
-                context == null ? List.of() : context.inventoryItemIds(),
-                context == null ? 0 : context.compensatedPriceSetIds().size(),
+                inventoryItemIds,
+                compensatedPriceSetCount,
+                writtenPublications,
+                missingRouteChannelIds,
                 partiallyApplied,
                 instance.errorMessage().orElse(null)
         );
@@ -74,6 +96,10 @@ public abstract class UpdateSellableProductRequestMapper {
 
     protected abstract UpdateSellableProductContext.PricingLine toContextPricingLine(
             UpdateSellableProductRequest.PricingLine pricingLine
+    );
+
+    protected abstract UpdateSellableProductContext.PublicationLine toContextPublicationLine(
+            UpdateSellableProductRequest.PublicationLine publicationLine
     );
 
     protected abstract InventorySyncPayload.CreateStock toCreateStock(UpdateSellableProductRequest.CreateStock create);

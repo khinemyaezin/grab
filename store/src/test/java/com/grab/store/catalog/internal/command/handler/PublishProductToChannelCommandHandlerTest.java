@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductPublication;
+import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.ProductPublicationRepository;
 import com.catalog.domain.repository.ProductRepository;
@@ -9,6 +10,7 @@ import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.command.PublishProductToChannelCommand;
 import com.grab.store.catalog.internal.command.PublishProductToChannelResult;
+import com.grab.store.catalog.internal.exception.CatalogServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,42 +44,61 @@ class PublishProductToChannelCommandHandlerTest {
 
     @Test
     void handle_whenRowExists_isIdempotent() {
-        when(productPublicationRepository.exists(new CommonId("prod-1"), new CommonId("channel-1")))
+        when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
+                .thenReturn(Optional.of(activeProduct()));
+        when(productPublicationRepository.exists(new CommonId("var-1"), new CommonId("channel-1")))
                 .thenReturn(true);
 
         PublishProductToChannelResult result = handler.handle(command());
 
         assertThat(result.written()).isFalse();
-        verify(productRepository, never()).find(new CommonId("prod-1"), new CommonId("merchant-1"));
+        assertThat(result.variantId()).isEqualTo("var-1");
         verify(productPublicationRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
     void handle_whenMissing_insertsPublicationWithoutSavingProduct() {
-        when(productPublicationRepository.exists(new CommonId("prod-1"), new CommonId("channel-1")))
-                .thenReturn(false);
         when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
                 .thenReturn(Optional.of(activeProduct()));
+        when(productPublicationRepository.exists(new CommonId("var-1"), new CommonId("channel-1")))
+                .thenReturn(false);
 
         PublishProductToChannelResult result = handler.handle(command());
 
         assertThat(result.written()).isTrue();
         ArgumentCaptor<ProductPublication> captor = ArgumentCaptor.forClass(ProductPublication.class);
         verify(productPublicationRepository).save(captor.capture());
-        assertThat(captor.getValue().getProductId().getValue()).isEqualTo("prod-1");
+        assertThat(captor.getValue().getVariantId().getValue()).isEqualTo("var-1");
         assertThat(captor.getValue().getSalesChannelId().getValue()).isEqualTo("channel-1");
         verify(productRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
     void handle_whenProductNotActive_throws() {
-        when(productPublicationRepository.exists(new CommonId("prod-1"), new CommonId("channel-1")))
-                .thenReturn(false);
         when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
                 .thenReturn(Optional.of(product(ProductStatus.DRAFT)));
+        when(productPublicationRepository.exists(new CommonId("var-1"), new CommonId("channel-1")))
+                .thenReturn(false);
 
         assertThatThrownBy(() -> handler.handle(command()))
                 .isInstanceOf(CatalogDomainValidationException.class);
+        verify(productPublicationRepository, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void handle_whenVariantNotOnProduct_throws() {
+        when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
+                .thenReturn(Optional.of(activeProduct()));
+
+        PublishProductToChannelCommand otherVariant = new PublishProductToChannelCommand(
+                new CommonId("merchant-1"),
+                new CommonId("prod-1"),
+                new CommonId("var-missing"),
+                new CommonId("channel-1")
+        );
+
+        assertThatThrownBy(() -> handler.handle(otherVariant))
+                .isInstanceOf(CatalogServiceException.class);
         verify(productPublicationRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
@@ -85,6 +106,7 @@ class PublishProductToChannelCommandHandlerTest {
         return new PublishProductToChannelCommand(
                 new CommonId("merchant-1"),
                 new CommonId("prod-1"),
+                new CommonId("var-1"),
                 new CommonId("channel-1")
         );
     }
@@ -104,7 +126,7 @@ class PublishProductToChannelCommandHandlerTest {
                 "shirt",
                 List.of(),
                 List.of(),
-                List.of()
+                List.of(ProductVariant.create(new CommonId("var-1"), "SKU-1", List.of()))
         );
     }
 }

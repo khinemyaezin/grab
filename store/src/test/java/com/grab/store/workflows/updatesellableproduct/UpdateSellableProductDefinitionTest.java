@@ -12,17 +12,28 @@ import com.grab.framework.workflow.impl.EventDrivenWorkflowEngine;
 import com.grab.framework.workflow.impl.InMemoryWorkflowStore;
 import com.grab.framework.workflow.support.WorkflowPayloadCodec;
 import com.grab.store.shared.sse.WorkflowTerminalUiEvent;
+import com.grab.store.workflows.events.ChannelAssertedEvent;
 import com.grab.store.workflows.events.InventoryItemSyncedEvent;
 import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.events.PriceSetDeletedEvent;
+import com.grab.store.workflows.events.ProductAssertedEvent;
+import com.grab.store.workflows.events.ProductPublishedToChannelEvent;
+import com.grab.store.workflows.events.ProductUnpublishedFromChannelEvent;
+import com.grab.store.workflows.events.PublishProductStepFailedEvent;
+import com.grab.store.workflows.events.RequestAssertChannelEvent;
+import com.grab.store.workflows.events.RequestAssertProductEvent;
+import com.grab.store.workflows.events.RequestCheckChannelStockPathEvent;
 import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
+import com.grab.store.workflows.events.RequestUnpublishProductCompensationEvent;
 import com.grab.store.workflows.events.RequestUpdateProductSetEvent;
+import com.grab.store.workflows.events.RequestWritePublicationEvent;
 import com.grab.store.workflows.events.SellableProductProductUpdatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
+import com.grab.store.workflows.events.StockPathCheckedEvent;
 import com.grab.store.workflows.events.VariantPriceSyncedEvent;
 import com.grab.store.workflows.internal.service.WorkflowTerminalLifecycleListener;
 import com.grab.store.workflows.internal.workflows.updatesellableproduct.UpdateSellableProductContext;
@@ -383,6 +394,194 @@ class UpdateSellableProductDefinitionTest {
     }
 
     @Test
+    void productOnlyUpdate_whenPublicationLinesPresent_shouldWriteEachVariantChannel() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                sampleProduct(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new UpdateSellableProductContext.PublicationLine("SKU-1", null, "web-1"),
+                        new UpdateSellableProductContext.PublicationLine("SKU-2", null, "pos-1")
+                )
+        );
+        WorkflowInstance started = engine.start(definition, context, null);
+        published.clear();
+
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-1", "SKU-2"),
+                List.of(
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"),
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-2", "SKU-2")
+                )
+        )));
+
+        assertThat(published).hasSize(2);
+        assertThat(published).allMatch(RequestAssertChannelEvent.class::isInstance);
+        assertThat(published).extracting(event -> ((RequestAssertChannelEvent) event).salesChannelId())
+                .containsExactly("web-1", "pos-1");
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL,
+                new ChannelAssertedEvent(started.id(), "web-1", Instant.now(), 1),
+                "channel-asserted:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL,
+                new ChannelAssertedEvent(started.id(), "pos-1", Instant.now(), 1),
+                "channel-asserted:pos-1"
+        ));
+        assertThat(published.getFirst()).isInstanceOf(RequestAssertProductEvent.class);
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_PRODUCT,
+                new ProductAssertedEvent(started.id(), "product-1", Instant.now(), 1),
+                "product-asserted:product-1"
+        ));
+        assertThat(published).allMatch(RequestCheckChannelStockPathEvent.class::isInstance);
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL_STOCK_PATH,
+                new StockPathCheckedEvent(started.id(), "web-1", true, Instant.now(), 1),
+                "stock-path-checked:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL_STOCK_PATH,
+                new StockPathCheckedEvent(started.id(), "pos-1", false, Instant.now(), 1),
+                "stock-path-checked:pos-1"
+        ));
+        assertThat(published).hasSize(2);
+        assertThat(published).allMatch(RequestWritePublicationEvent.class::isInstance);
+        assertThat(published).extracting(event -> ((RequestWritePublicationEvent) event).variantId())
+                .containsExactly("variant-1", "variant-2");
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION,
+                new ProductPublishedToChannelEvent(
+                        started.id(), "product-1", "variant-1", "web-1", Instant.now(), 1),
+                "product-published-to-channel:variant-1:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION,
+                new ProductPublishedToChannelEvent(
+                        started.id(), "product-1", "variant-2", "pos-1", Instant.now(), 1),
+                "product-published-to-channel:variant-2:pos-1"
+        ));
+
+        WorkflowInstance completed = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(completed.status()).isEqualTo(WorkflowStatus.COMPLETED);
+        UpdateSellableProductContext finalContext = readContext(completed);
+        assertThat(finalContext.missingRouteChannelIds()).containsExactly("web-1");
+        assertThat(finalContext.writtenPublications()).containsExactly(
+                new UpdateSellableProductContext.PublicationPair("variant-1", "SKU-1", "web-1"),
+                new UpdateSellableProductContext.PublicationPair("variant-2", "SKU-2", "pos-1")
+        );
+    }
+
+    @Test
+    void channelFailure_shouldNotUnpublish() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                sampleProduct(),
+                List.of(),
+                List.of(),
+                List.of(new UpdateSellableProductContext.PublicationLine("SKU-1", null, "web-1"))
+        );
+        WorkflowInstance started = engine.start(definition, context, null);
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-1"),
+                List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"))
+        )));
+        published.clear();
+
+        engine.onSignal(InboundSignal.failure(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL,
+                new PublishProductStepFailedEvent(
+                        started.id(),
+                        UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL,
+                        "Sales channel is disabled",
+                        Instant.now(),
+                        1
+                ),
+                "failed:assert-channel:Sales channel is disabled"
+        ));
+
+        WorkflowInstance failed = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(failed.status()).isEqualTo(WorkflowStatus.FAILED);
+        assertThat(published).noneMatch(RequestUnpublishProductCompensationEvent.class::isInstance);
+    }
+
+    @Test
+    void writeStepCompensate_shouldUnpublishWrittenPairsOnly() {
+        UpdateSellableProductContext written = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                sampleProduct(),
+                List.of(),
+                List.of(),
+                List.of(new UpdateSellableProductContext.PublicationLine("SKU-1", "variant-1", "web-1"))
+        ).withProductUpdated(
+                "product-1",
+                List.of(new UpdateSellableProductContext.VariantRef("variant-1", "SKU-1"))
+        ).withChannelAsserted("web-1")
+                .withProductAsserted()
+                .withStockPathChecked("web-1", false)
+                .withPublicationWritten(new UpdateSellableProductContext.PublicationPair(
+                        "variant-1",
+                        "SKU-1",
+                        "web-1"
+                ));
+
+        var events = definition.step(UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION)
+                .orElseThrow()
+                .compensate("wf-1", written);
+
+        assertThat(events).hasSize(1);
+        assertThat(events.getFirst()).isInstanceOfSatisfying(RequestUnpublishProductCompensationEvent.class, event -> {
+            assertThat(event.variantId()).isEqualTo("variant-1");
+            assertThat(event.salesChannelId()).isEqualTo("web-1");
+        });
+
+        UpdateSellableProductContext compensated = definition
+                .step(UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION)
+                .orElseThrow()
+                .onCompensationAck(
+                        written,
+                        InboundSignal.compensationAck(
+                                "wf-1",
+                                new ProductUnpublishedFromChannelEvent(
+                                        "wf-1", "product-1", "variant-1", "web-1", Instant.now(), 1),
+                                "product-unpublished-from-channel:variant-1:web-1"
+                        )
+                );
+        assertThat(compensated.allWrittenPublicationsCompensated()).isTrue();
+    }
+
+    @Test
     void unresolvablePricingSku_shouldPublishNoPriceRequestsAndFail() {
         UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
                 "merchant-1",
@@ -414,6 +613,54 @@ class UpdateSellableProductDefinitionTest {
 
         assertThat(published).noneMatch(RequestSyncVariantPriceEvent.class::isInstance);
         assertThat(published).noneMatch(RequestDeleteProductCompensationEvent.class::isInstance);
+        WorkflowInstance failed = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(failed.status()).isEqualTo(WorkflowStatus.FAILED);
+        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal
+                && "FAILED".equals(terminal.status())
+                && terminal.partiallyApplied());
+    }
+
+    @Test
+    void unknownPublicationSku_shouldFailWriteWithoutUnpublish() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                sampleProduct(),
+                List.of(),
+                List.of(),
+                List.of(new UpdateSellableProductContext.PublicationLine("SKU-MISSING", null, "web-1"))
+        );
+        WorkflowInstance started = engine.start(definition, context, null);
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-1"),
+                List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"))
+        )));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL,
+                new ChannelAssertedEvent(started.id(), "web-1", Instant.now(), 1),
+                "channel-asserted:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_PRODUCT,
+                new ProductAssertedEvent(started.id(), "product-1", Instant.now(), 1),
+                "product-asserted:product-1"
+        ));
+        published.clear();
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL_STOCK_PATH,
+                new StockPathCheckedEvent(started.id(), "web-1", false, Instant.now(), 1),
+                "stock-path-checked:web-1"
+        ));
+
+        assertThat(published).noneMatch(RequestWritePublicationEvent.class::isInstance);
+        assertThat(published).noneMatch(RequestUnpublishProductCompensationEvent.class::isInstance);
         WorkflowInstance failed = workflowStore.findById(started.id()).orElseThrow();
         assertThat(failed.status()).isEqualTo(WorkflowStatus.FAILED);
         assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal

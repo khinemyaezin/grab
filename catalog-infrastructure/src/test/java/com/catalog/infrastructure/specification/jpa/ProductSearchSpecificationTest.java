@@ -255,10 +255,12 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
 
     @Test
     void search_withSalesChannelId_returnsOnlyProductsPublishedToThatChannel() {
-        ProductEntity websiteOnly = persistProduct("Website Only Shirt", "cat-ch");
-        persistPublication(websiteOnly, "website-1");
-        ProductEntity marketplaceOnly = persistProduct("Marketplace Only Shirt", "cat-ch");
-        persistPublication(marketplaceOnly, "marketplace-1");
+        ProductEntity websiteOnly = persistProduct("Website Only Shirt", "cat-ch",
+                variant("WEB-SKU", "ACTIVE"));
+        persistPublication(websiteOnly.getProductVariants().getFirst(), "website-1");
+        ProductEntity marketplaceOnly = persistProduct("Marketplace Only Shirt", "cat-ch",
+                variant("MKT-SKU", "ACTIVE"));
+        persistPublication(marketplaceOnly.getProductVariants().getFirst(), "marketplace-1");
         entityManager.flush();
         entityManager.clear();
 
@@ -290,10 +292,12 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
     }
 
     @Test
-    void findPublicationsByProductIds_returnsChannelIdsFromPublicationTable() {
-        ProductEntity product = persistProduct("Published Shirt", "cat-pub");
-        persistPublication(product, "website-1");
-        persistPublication(product, "marketplace-1");
+    void findPublicationsByProductIds_returnsVariantAndChannelIdsFromPublicationTable() {
+        ProductEntity product = persistProduct("Published Shirt", "cat-pub",
+                variant("PUB-SKU", "ACTIVE"));
+        ProductVariantEntity variant = product.getProductVariants().getFirst();
+        persistPublication(variant, "website-1");
+        persistPublication(variant, "marketplace-1");
         entityManager.flush();
         entityManager.clear();
 
@@ -301,13 +305,14 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
 
         assertEquals(2, publications.size());
         assertTrue(publications.stream().allMatch(view -> view.productId().equals(product.getUuid())));
+        assertTrue(publications.stream().allMatch(view -> view.variantId().equals(variant.getUuid())));
         assertTrue(publications.stream().anyMatch(view -> view.salesChannelId().equals("website-1")));
         assertTrue(publications.stream().anyMatch(view -> view.salesChannelId().equals("marketplace-1")));
     }
 
-    private void persistPublication(ProductEntity product, String salesChannelId) {
+    private void persistPublication(ProductVariantEntity variant, String salesChannelId) {
         ProductPublicationEntity publication = new ProductPublicationEntity();
-        publication.setProductId(product.getId());
+        publication.setVariantId(variant.getId());
         publication.setSalesChannelId(salesChannelId);
         entityManager.persist(publication);
     }

@@ -12,24 +12,8 @@ public record GetProductResult(
         List<Description> descriptions,
         List<Media> medias,
         List<Variant> variants,
-        List<VariantType> variantTypes,
-        List<Publication> publications
+        List<VariantType> variantTypes
 ) {
-    public GetProductResult(
-            String id,
-            String name,
-            Category category,
-            String condition,
-            String status,
-            String slug,
-            List<Description> descriptions,
-            List<Media> medias,
-            List<Variant> variants,
-            List<VariantType> variantTypes
-    ) {
-        this(id, name, category, condition, status, slug, descriptions, medias, variants, variantTypes, List.of());
-    }
-
     public record Publication(String salesChannelId) {}
     public record Description(
             String id,
@@ -59,8 +43,13 @@ public record GetProductResult(
             List<Variation> variations,
             boolean manageInventory,
             List<String> mediaIds,
-            String thumbnailMediaId
-    ) {}
+            String thumbnailMediaId,
+            List<Publication> publications
+    ) {
+        public Variant {
+            publications = publications == null ? List.of() : List.copyOf(publications);
+        }
+    }
 
     public record Variation(
             String optionId,

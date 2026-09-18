@@ -82,6 +82,33 @@ class UpdateSellableProductContextTest {
     }
 
     @Test
+    void withProductUpdated_whenPublicationLineHasSkuOnly_shouldAssignVariantIdFromEvent() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                product(),
+                List.of(),
+                List.of(),
+                List.of(new UpdateSellableProductContext.PublicationLine("SKU-NEW", null, "web-1"))
+        );
+
+        UpdateSellableProductContext updated = context.withProductUpdated(
+                "product-1",
+                List.of(new UpdateSellableProductContext.VariantRef("variant-new", "SKU-NEW"))
+        );
+
+        assertThat(updated.publicationLines()).hasSize(1);
+        assertThat(updated.publicationLines().getFirst().sku()).isEqualTo("SKU-NEW");
+        assertThat(updated.publicationLines().getFirst().variantId()).isEqualTo("variant-new");
+        assertThat(updated.publicationLines().getFirst().salesChannelId()).isEqualTo("web-1");
+        assertThat(updated.shouldPublish()).isTrue();
+        assertThat(context.shouldPublish()).isTrue();
+    }
+
+    @Test
     void allCreatedPriceSetsCompensated_shouldTrackOnlyCreatedSets() {
         UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
                 "merchant-1",

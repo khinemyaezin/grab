@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.command.handler;
 
+import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductPublication;
 import com.catalog.domain.repository.ProductPublicationRepository;
 import com.catalog.domain.repository.ProductRepository;
@@ -25,17 +26,19 @@ public class UnpublishProductFromChannelCommandHandler
     @Override
     @CatalogTransactional
     public UnpublishProductFromChannelResult handle(UnpublishProductFromChannelCommand command) {
-        productRepository.find(command.productId(), command.merchantId())
+        Product product = productRepository.find(command.productId(), command.merchantId())
                 .orElseThrow(() -> new CatalogServiceException(
                         new CatalogServiceError.ProductNotFound(command.productId().getValue())
                 ));
+        requireVariantOnProduct(product, command);
         Optional<ProductPublication> existing = productPublicationRepository.find(
-                command.productId(),
+                command.variantId(),
                 command.salesChannelId()
         );
         if (existing.isEmpty()) {
             return new UnpublishProductFromChannelResult(
                     command.productId().getValue(),
+                    command.variantId().getValue(),
                     command.salesChannelId().getValue(),
                     false
             );
@@ -45,6 +48,7 @@ public class UnpublishProductFromChannelCommandHandler
         productPublicationRepository.delete(publication);
         return new UnpublishProductFromChannelResult(
                 command.productId().getValue(),
+                command.variantId().getValue(),
                 command.salesChannelId().getValue(),
                 true
         );
@@ -53,5 +57,14 @@ public class UnpublishProductFromChannelCommandHandler
     @Override
     public Class<UnpublishProductFromChannelCommand> getCommandType() {
         return UnpublishProductFromChannelCommand.class;
+    }
+
+    private void requireVariantOnProduct(Product product, UnpublishProductFromChannelCommand command) {
+        boolean variantOnProduct = product.findVariantById(command.variantId()).isPresent();
+        if (!variantOnProduct) {
+            throw new CatalogServiceException(
+                    new CatalogServiceError.VariantNotFound(command.variantId().getValue())
+            );
+        }
     }
 }

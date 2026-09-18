@@ -169,6 +169,7 @@ public class CatalogInfraConfig {
     @Bean
     public ProductPublicationRepository productPublicationRepository(
             ProductPublicationJpaRepository productPublicationJpaRepository,
+            ProductVariantJpaRepo productVariantJpaRepo,
             ProductJpaRepo productJpaRepo,
             ProductPublicationJpaAssembler mapper,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
@@ -176,6 +177,7 @@ public class CatalogInfraConfig {
     ) {
         return new DefaultProductPublicationRepository(
                 productPublicationJpaRepository,
+                productVariantJpaRepo,
                 productJpaRepo,
                 mapper,
                 domainEventProducer,

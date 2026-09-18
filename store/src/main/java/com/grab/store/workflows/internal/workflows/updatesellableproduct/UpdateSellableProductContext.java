@@ -19,24 +19,41 @@ public record UpdateSellableProductContext(
         Product product,
         List<InventoryLine> inventoryLines,
         List<PricingLine> pricingLines,
+        List<PublicationLine> publicationLines,
         List<VariantRef> variantRefs,
         List<PricePair> pricePairs,
         List<String> createdPriceSetIds,
         List<String> inventoryItemIds,
         List<String> createdInventoryItemIds,
         boolean productUpdated,
-        Set<String> compensatedPriceSetIds
+        Set<String> compensatedPriceSetIds,
+        Set<String> assertedChannelIds,
+        boolean productAsserted,
+        Set<String> stockPathCheckedChannelIds,
+        Set<String> missingRouteChannelIds,
+        List<PublicationPair> writtenPublications,
+        Set<String> compensatedPublicationKeys
 ) {
 
     public UpdateSellableProductContext {
         inventoryLines = inventoryLines == null ? List.of() : List.copyOf(inventoryLines);
         pricingLines = pricingLines == null ? List.of() : List.copyOf(pricingLines);
+        publicationLines = publicationLines == null ? List.of() : List.copyOf(publicationLines);
         variantRefs = variantRefs == null ? List.of() : List.copyOf(variantRefs);
         pricePairs = pricePairs == null ? List.of() : List.copyOf(pricePairs);
         createdPriceSetIds = createdPriceSetIds == null ? List.of() : List.copyOf(createdPriceSetIds);
         inventoryItemIds = inventoryItemIds == null ? List.of() : List.copyOf(inventoryItemIds);
         createdInventoryItemIds = createdInventoryItemIds == null ? List.of() : List.copyOf(createdInventoryItemIds);
         compensatedPriceSetIds = compensatedPriceSetIds == null ? Set.of() : Set.copyOf(compensatedPriceSetIds);
+        assertedChannelIds = assertedChannelIds == null ? Set.of() : Set.copyOf(assertedChannelIds);
+        stockPathCheckedChannelIds = stockPathCheckedChannelIds == null
+                ? Set.of()
+                : Set.copyOf(stockPathCheckedChannelIds);
+        missingRouteChannelIds = missingRouteChannelIds == null ? Set.of() : Set.copyOf(missingRouteChannelIds);
+        writtenPublications = writtenPublications == null ? List.of() : List.copyOf(writtenPublications);
+        compensatedPublicationKeys = compensatedPublicationKeys == null
+                ? Set.of()
+                : Set.copyOf(compensatedPublicationKeys);
     }
 
     public static UpdateSellableProductContext createContext(
@@ -49,6 +66,30 @@ public record UpdateSellableProductContext(
             List<InventoryLine> inventoryLines,
             List<PricingLine> pricingLines
     ) {
+        return createContext(
+                merchantId,
+                createdBy,
+                scopeKey,
+                scopeId,
+                productId,
+                product,
+                inventoryLines,
+                pricingLines,
+                List.of()
+        );
+    }
+
+    public static UpdateSellableProductContext createContext(
+            String merchantId,
+            String createdBy,
+            String scopeKey,
+            String scopeId,
+            String productId,
+            Product product,
+            List<InventoryLine> inventoryLines,
+            List<PricingLine> pricingLines,
+            List<PublicationLine> publicationLines
+    ) {
         return new UpdateSellableProductContext(
                 merchantId,
                 createdBy,
@@ -58,12 +99,19 @@ public record UpdateSellableProductContext(
                 product,
                 inventoryLines,
                 pricingLines,
+                publicationLines,
                 List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
                 false,
+                Set.of(),
+                Set.of(),
+                false,
+                Set.of(),
+                Set.of(),
+                List.of(),
                 Set.of()
         );
     }
@@ -72,17 +120,25 @@ public record UpdateSellableProductContext(
             String newProductId,
             List<VariantRef> newVariantRefs
     ) {
-        List<PricingLine> assignedPricingLines = assignVariantIds(newVariantRefs);
+        List<PricingLine> assignedPricingLines = assignPricingVariantIds(newVariantRefs);
+        List<PublicationLine> assignedPublicationLines = assignPublicationVariantIds(newVariantRefs);
         return copy(
                 newProductId,
                 assignedPricingLines,
+                assignedPublicationLines,
                 newVariantRefs,
                 pricePairs,
                 createdPriceSetIds,
                 inventoryItemIds,
                 createdInventoryItemIds,
                 true,
-                compensatedPriceSetIds
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys
         );
     }
 
@@ -99,13 +155,20 @@ public record UpdateSellableProductContext(
         return copy(
                 productId,
                 pricingLines,
+                publicationLines,
                 variantRefs,
                 nextPairs,
                 nextCreated,
                 inventoryItemIds,
                 createdInventoryItemIds,
                 productUpdated,
-                compensatedPriceSetIds
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys
         );
     }
 
@@ -122,13 +185,20 @@ public record UpdateSellableProductContext(
         return copy(
                 productId,
                 pricingLines,
+                publicationLines,
                 variantRefs,
                 pricePairs,
                 createdPriceSetIds,
                 nextIds,
                 nextCreated,
                 productUpdated,
-                compensatedPriceSetIds
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys
         );
     }
 
@@ -138,12 +208,143 @@ public record UpdateSellableProductContext(
         return copy(
                 productId,
                 pricingLines,
+                publicationLines,
                 variantRefs,
                 pricePairs,
                 createdPriceSetIds,
                 inventoryItemIds,
                 createdInventoryItemIds,
                 productUpdated,
+                next,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys
+        );
+    }
+
+    public UpdateSellableProductContext withChannelAsserted(String salesChannelId) {
+        Set<String> next = new LinkedHashSet<>(assertedChannelIds);
+        next.add(salesChannelId);
+        return copy(
+                productId,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                next,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys
+        );
+    }
+
+    public UpdateSellableProductContext withProductAsserted() {
+        return copy(
+                productId,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                true,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys
+        );
+    }
+
+    public UpdateSellableProductContext withStockPathChecked(String salesChannelId, boolean missingRoute) {
+        Set<String> nextChecked = new LinkedHashSet<>(stockPathCheckedChannelIds);
+        nextChecked.add(salesChannelId);
+        Set<String> nextMissing = new LinkedHashSet<>(missingRouteChannelIds);
+        if (missingRoute) {
+            nextMissing.add(salesChannelId);
+        }
+        return copy(
+                productId,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                nextChecked,
+                nextMissing,
+                writtenPublications,
+                compensatedPublicationKeys
+        );
+    }
+
+    public UpdateSellableProductContext withPublicationWritten(PublicationPair publication) {
+        String key = publicationKey(publication.variantId(), publication.salesChannelId());
+        if (writtenPublications.stream().anyMatch(existing -> publicationKey(
+                existing.variantId(),
+                existing.salesChannelId()
+        ).equals(key))) {
+            return this;
+        }
+        List<PublicationPair> nextWritten = new ArrayList<>(writtenPublications);
+        nextWritten.add(publication);
+        return copy(
+                productId,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                nextWritten,
+                compensatedPublicationKeys
+        );
+    }
+
+    public UpdateSellableProductContext withPublicationCompensated(String variantId, String salesChannelId) {
+        Set<String> next = new LinkedHashSet<>(compensatedPublicationKeys);
+        next.add(publicationKey(variantId, salesChannelId));
+        return copy(
+                productId,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
                 next
         );
     }
@@ -164,8 +365,49 @@ public record UpdateSellableProductContext(
     }
 
     @JsonIgnore
+    public boolean shouldPublish() {
+        return !publicationLines.isEmpty();
+    }
+
+    @JsonIgnore
+    public List<String> uniqueSalesChannelIds() {
+        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        for (PublicationLine line : publicationLines) {
+            if (line.salesChannelId() != null && !line.salesChannelId().isBlank()) {
+                ids.add(line.salesChannelId());
+            }
+        }
+        return List.copyOf(ids);
+    }
+
+    @JsonIgnore
+    public boolean allChannelsAsserted() {
+        return assertedChannelIds.containsAll(uniqueSalesChannelIds());
+    }
+
+    @JsonIgnore
+    public boolean allStockPathsChecked() {
+        return stockPathCheckedChannelIds.containsAll(uniqueSalesChannelIds());
+    }
+
+    @JsonIgnore
+    public boolean allPublicationsWritten() {
+        return writtenPublications.size() >= publicationLines.size();
+    }
+
+    @JsonIgnore
+    public boolean allWrittenPublicationsCompensated() {
+        return writtenPublications.stream()
+                .map(pair -> publicationKey(pair.variantId(), pair.salesChannelId()))
+                .allMatch(compensatedPublicationKeys::contains);
+    }
+
+    @JsonIgnore
     public boolean isPartiallyApplied() {
-        return productUpdated || !pricePairs.isEmpty() || !inventoryItemIds.isEmpty();
+        return productUpdated
+                || !pricePairs.isEmpty()
+                || !inventoryItemIds.isEmpty()
+                || (!writtenPublications.isEmpty() && !allWrittenPublicationsCompensated());
     }
 
     public PricingLine pricingLineForSku(String sku) {
@@ -191,40 +433,78 @@ public record UpdateSellableProductContext(
         if (pricingLine.variantId() != null && !pricingLine.variantId().isBlank()) {
             return pricingLine.variantId();
         }
-        VariantRef variantRef = variantRefForSku(pricingLine.sku());
-        return variantRef == null ? null : variantRef.variantId();
+        return variantIdForSku(pricingLine.sku());
     }
 
-    private List<PricingLine> assignVariantIds(List<VariantRef> refs) {
+    public String resolvedVariantId(PublicationLine publicationLine) {
+        if (publicationLine.variantId() != null && !publicationLine.variantId().isBlank()) {
+            return publicationLine.variantId();
+        }
+        return variantIdForSku(publicationLine.sku());
+    }
+
+    public static String publicationKey(String variantId, String salesChannelId) {
+        return variantId + ":" + salesChannelId;
+    }
+
+    private List<PricingLine> assignPricingVariantIds(List<VariantRef> refs) {
         if (refs == null || refs.isEmpty()) {
             return pricingLines;
         }
         return pricingLines.stream()
-                .map(line -> assignVariantId(line, refs))
+                .map(line -> assignPricingVariantId(line, refs))
                 .toList();
     }
 
-    private PricingLine assignVariantId(PricingLine line, List<VariantRef> refs) {
-        VariantRef match = refs.stream()
-                .filter(ref -> ref.sku().equals(line.sku()))
-                .findFirst()
-                .orElse(null);
+    private PricingLine assignPricingVariantId(PricingLine line, List<VariantRef> refs) {
+        VariantRef match = matchingRef(line.sku(), refs);
         if (match == null) {
             return line;
         }
         return line.withVariantId(match.variantId());
     }
 
+    private List<PublicationLine> assignPublicationVariantIds(List<VariantRef> refs) {
+        if (refs == null || refs.isEmpty()) {
+            return publicationLines;
+        }
+        return publicationLines.stream()
+                .map(line -> assignPublicationVariantId(line, refs))
+                .toList();
+    }
+
+    private PublicationLine assignPublicationVariantId(PublicationLine line, List<VariantRef> refs) {
+        VariantRef match = matchingRef(line.sku(), refs);
+        if (match == null) {
+            return line;
+        }
+        return line.withVariantId(match.variantId());
+    }
+
+    private VariantRef matchingRef(String sku, List<VariantRef> refs) {
+        return refs.stream()
+                .filter(ref -> ref.sku().equals(sku))
+                .findFirst()
+                .orElse(null);
+    }
+
     private UpdateSellableProductContext copy(
             String newProductId,
             List<PricingLine> newPricingLines,
+            List<PublicationLine> newPublicationLines,
             List<VariantRef> newVariantRefs,
             List<PricePair> newPricePairs,
             List<String> newCreatedPriceSetIds,
             List<String> newInventoryItemIds,
             List<String> newCreatedInventoryItemIds,
             boolean newProductUpdated,
-            Set<String> newCompensatedPriceSetIds
+            Set<String> newCompensatedPriceSetIds,
+            Set<String> newAssertedChannelIds,
+            boolean newProductAsserted,
+            Set<String> newStockPathCheckedChannelIds,
+            Set<String> newMissingRouteChannelIds,
+            List<PublicationPair> newWrittenPublications,
+            Set<String> newCompensatedPublicationKeys
     ) {
         return new UpdateSellableProductContext(
                 merchantId,
@@ -235,13 +515,20 @@ public record UpdateSellableProductContext(
                 product,
                 inventoryLines,
                 newPricingLines,
+                newPublicationLines,
                 newVariantRefs,
                 newPricePairs,
                 newCreatedPriceSetIds,
                 newInventoryItemIds,
                 newCreatedInventoryItemIds,
                 newProductUpdated,
-                newCompensatedPriceSetIds
+                newCompensatedPriceSetIds,
+                newAssertedChannelIds,
+                newProductAsserted,
+                newStockPathCheckedChannelIds,
+                newMissingRouteChannelIds,
+                newWrittenPublications,
+                newCompensatedPublicationKeys
         );
     }
 
@@ -350,9 +637,22 @@ public record UpdateSellableProductContext(
     ) {
     }
 
+    public record PublicationLine(
+            String sku,
+            String variantId,
+            String salesChannelId
+    ) {
+        public PublicationLine withVariantId(String assignedVariantId) {
+            return new PublicationLine(sku, assignedVariantId, salesChannelId);
+        }
+    }
+
     public record VariantRef(String variantId, String sku) {
     }
 
     public record PricePair(String variantId, String sku, String priceSetId) {
+    }
+
+    public record PublicationPair(String variantId, String sku, String salesChannelId) {
     }
 }

@@ -41,14 +41,17 @@ public class GetProductModelAssembler
             } else if (currentStatus == ProductStatus.ACTIVE) {
                 entity.add(linkTo(methodOn(ProductController.class).suspend(response.id(), null)).withRel("suspend-product"));
                 entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
-                entity.add(WorkflowApiLinks.publishProductToChannelLink());
+                entity.add(WorkflowApiLinks.updateSellableProductLink());
             } else if (currentStatus == ProductStatus.SUSPENDED || currentStatus == ProductStatus.ARCHIVED) {
                 entity.add(linkTo(methodOn(ProductController.class).restore(response.id(), null)).withRel("restore-product"));
             }
         } catch (IllegalArgumentException | NullPointerException ignored) {
         }
 
-        if (response.publications() != null && !response.publications().isEmpty()) {
+        boolean hasPublications = response.variants() != null
+                && response.variants().stream()
+                .anyMatch(variant -> variant.publications() != null && !variant.publications().isEmpty());
+        if (hasPublications) {
             entity.add(linkTo(methodOn(ProductController.class).unpublishFromChannel(response.id(), null))
                     .withRel("unpublish-product-from-channel"));
         }

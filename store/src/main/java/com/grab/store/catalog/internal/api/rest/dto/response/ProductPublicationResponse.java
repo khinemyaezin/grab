@@ -6,6 +6,6 @@ public record ProductPublicationResponse(
         String productId,
         List<Publication> publications
 ) {
-    public record Publication(String salesChannelId) {
+    public record Publication(String variantId, String salesChannelId) {
     }
 }

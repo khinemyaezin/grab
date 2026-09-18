@@ -9,14 +9,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 class WorkflowsRootControllerTest {
 
     @Test
-    void root_shouldExposePublishProductToChannelLinks() {
+    void root_shouldExposeUpdateSellableProductLinks() {
         ResponseEntity<RepresentationModel<?>> response = new WorkflowsRootController().root();
         RepresentationModel<?> body = response.getBody();
 
         assertThat(body).isNotNull();
-        assertThat(body.getLink("publish-product-to-channel")).isPresent();
-        assertThat(body.getLink("get-publish-product-to-channel")).isPresent();
-        assertThat(body.getRequiredLink("publish-product-to-channel").getHref())
-                .contains("/api/v1/workflows/publish-product-to-channel");
+        assertThat(body.getLink("update-sellable-product")).isPresent();
+        assertThat(body.getLink("get-update-sellable-product")).isPresent();
+        assertThat(body.getRequiredLink("update-sellable-product").getHref())
+                .contains("/api/v1/workflows/update-sellable-product");
+        assertThat(body.getLink("publish-product-to-channel")).isEmpty();
+        assertThat(body.getLink("get-publish-product-to-channel")).isEmpty();
     }
 }

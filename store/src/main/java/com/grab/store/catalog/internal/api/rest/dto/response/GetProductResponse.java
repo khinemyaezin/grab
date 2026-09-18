@@ -17,13 +17,8 @@ public record GetProductResponse(
         List<Media> medias,
         String moderationNote,
         List<Variant> variants,
-        List<VariantType> variantTypes,
-        List<Publication> publications
+        List<VariantType> variantTypes
 ) {
-    public GetProductResponse {
-        publications = publications == null ? List.of() : List.copyOf(publications);
-    }
-
     public record Publication(String salesChannelId) {}
     public record Category(
             String id,
@@ -52,8 +47,13 @@ public record GetProductResponse(
             List<Variation> variations,
             boolean manageInventory,
             List<String> mediaIds,
-            String thumbnailMediaId
-    ) {}
+            String thumbnailMediaId,
+            List<Publication> publications
+    ) {
+        public Variant {
+            publications = publications == null ? List.of() : List.copyOf(publications);
+        }
+    }
 
     public record Variation(
             String optionId,

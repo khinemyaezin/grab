@@ -5,14 +5,24 @@ import com.grab.framework.workflow.InboundSignal;
 import com.grab.framework.workflow.ProcessDefinition;
 import com.grab.framework.workflow.StepDefinition;
 import com.grab.framework.workflow.WorkflowProcess;
+import com.grab.store.workflows.events.ChannelAssertedEvent;
 import com.grab.store.workflows.events.InventoryItemSyncedEvent;
 import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.events.PriceSetDeletedEvent;
+import com.grab.store.workflows.events.ProductAssertedEvent;
+import com.grab.store.workflows.events.ProductPublishedToChannelEvent;
+import com.grab.store.workflows.events.ProductUnpublishedFromChannelEvent;
+import com.grab.store.workflows.events.RequestAssertChannelEvent;
+import com.grab.store.workflows.events.RequestAssertProductEvent;
+import com.grab.store.workflows.events.RequestCheckChannelStockPathEvent;
 import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
+import com.grab.store.workflows.events.RequestUnpublishProductCompensationEvent;
 import com.grab.store.workflows.events.RequestUpdateProductSetEvent;
+import com.grab.store.workflows.events.RequestWritePublicationEvent;
 import com.grab.store.workflows.events.SellableProductProductUpdatedEvent;
+import com.grab.store.workflows.events.StockPathCheckedEvent;
 import com.grab.store.workflows.events.VariantPriceSyncedEvent;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +40,11 @@ public final class UpdateSellableProductDefinition implements WorkflowProcess<Up
             UpdateSellableProductContext.class,
             new UpdateProductStep(),
             new SyncVariantPricesStep(),
-            new SyncInventoryItemStep()
+            new SyncInventoryItemStep(),
+            new AssertChannelStep(),
+            new AssertProductStep(),
+            new AssertChannelStockPathStep(),
+            new WritePublicationStep()
     );
 
     @Override
@@ -218,6 +232,223 @@ public final class UpdateSellableProductDefinition implements WorkflowProcess<Up
         @Override
         public Object checkpointOutput(UpdateSellableProductContext context) {
             return context.inventoryItemIds();
+        }
+    }
+
+    private static final class AssertChannelStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            Instant now = Instant.now();
+            List<Event> events = new ArrayList<>();
+            for (String salesChannelId : context.uniqueSalesChannelIds()) {
+                events.add(new RequestAssertChannelEvent(
+                        workflowId,
+                        context.merchantId(),
+                        salesChannelId,
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            return events;
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (signal.event() instanceof ChannelAssertedEvent event) {
+                return context.withChannelAsserted(event.salesChannelId());
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldPublish() || context.allChannelsAsserted();
+        }
+
+        @Override
+        public Object checkpointOutput(UpdateSellableProductContext context) {
+            return context.assertedChannelIds();
+        }
+    }
+
+    private static final class AssertProductStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_ASSERT_PRODUCT;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            return List.of(new RequestAssertProductEvent(
+                    workflowId,
+                    context.merchantId(),
+                    context.productId(),
+                    Instant.now(),
+                    EVENT_VERSION
+            ));
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (signal.event() instanceof ProductAssertedEvent) {
+                return context.withProductAsserted();
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldPublish() || context.productAsserted();
+        }
+    }
+
+    private static final class AssertChannelStockPathStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL_STOCK_PATH;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            Instant now = Instant.now();
+            List<Event> events = new ArrayList<>();
+            for (String salesChannelId : context.uniqueSalesChannelIds()) {
+                events.add(new RequestCheckChannelStockPathEvent(
+                        workflowId,
+                        context.merchantId(),
+                        salesChannelId,
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            return events;
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (signal.event() instanceof StockPathCheckedEvent event) {
+                return context.withStockPathChecked(event.salesChannelId(), event.missingRoute());
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldPublish() || context.allStockPathsChecked();
+        }
+
+        @Override
+        public Object checkpointOutput(UpdateSellableProductContext context) {
+            return context.missingRouteChannelIds();
+        }
+    }
+
+    private static final class WritePublicationStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            Instant now = Instant.now();
+            List<Event> events = new ArrayList<>();
+            for (UpdateSellableProductContext.PublicationLine line : context.publicationLines()) {
+                String variantId = context.resolvedVariantId(line);
+                if (variantId == null || variantId.isBlank()) {
+                    throw new IllegalStateException("Missing variant ref for sku=" + line.sku());
+                }
+                events.add(new RequestWritePublicationEvent(
+                        workflowId,
+                        context.merchantId(),
+                        context.productId(),
+                        variantId,
+                        line.salesChannelId(),
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            return events;
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (!(signal.event() instanceof ProductPublishedToChannelEvent event)) {
+                return context;
+            }
+            return context.withPublicationWritten(new UpdateSellableProductContext.PublicationPair(
+                    event.variantId(),
+                    skuForVariant(context, event.variantId()),
+                    event.salesChannelId()
+            ));
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldPublish() || context.allPublicationsWritten();
+        }
+
+        @Override
+        public Object checkpointOutput(UpdateSellableProductContext context) {
+            return context.writtenPublications();
+        }
+
+        @Override
+        public List<Event> compensate(String workflowId, UpdateSellableProductContext context) {
+            Instant now = Instant.now();
+            List<Event> events = new ArrayList<>();
+            for (UpdateSellableProductContext.PublicationPair pair : context.writtenPublications()) {
+                String key = UpdateSellableProductContext.publicationKey(pair.variantId(), pair.salesChannelId());
+                if (context.compensatedPublicationKeys().contains(key)) {
+                    continue;
+                }
+                events.add(new RequestUnpublishProductCompensationEvent(
+                        workflowId,
+                        context.merchantId(),
+                        context.productId(),
+                        pair.variantId(),
+                        pair.salesChannelId(),
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            return events;
+        }
+
+        @Override
+        public UpdateSellableProductContext onCompensationAck(
+                UpdateSellableProductContext context,
+                InboundSignal signal
+        ) {
+            if (signal.event() instanceof ProductUnpublishedFromChannelEvent event) {
+                return context.withPublicationCompensated(event.variantId(), event.salesChannelId());
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isCompensated(UpdateSellableProductContext context) {
+            return context.allWrittenPublicationsCompensated();
+        }
+
+        private static String skuForVariant(UpdateSellableProductContext context, String variantId) {
+            UpdateSellableProductContext.VariantRef variantRef = context.variantRefs().stream()
+                    .filter(ref -> ref.variantId().equals(variantId))
+                    .findFirst()
+                    .orElse(null);
+            if (variantRef != null) {
+                return variantRef.sku();
+            }
+            UpdateSellableProductContext.PublicationLine line = context.publicationLines().stream()
+                    .filter(publicationLine -> variantId.equals(context.resolvedVariantId(publicationLine)))
+                    .findFirst()
+                    .orElse(null);
+            return line == null ? null : line.sku();
         }
     }
 

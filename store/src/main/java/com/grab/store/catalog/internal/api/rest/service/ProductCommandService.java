@@ -163,6 +163,7 @@ public class ProductCommandService {
         commandBus.dispatch(new UnpublishProductFromChannelCommand(
                 idGenerator.convertIdFrom(merchantId),
                 idGenerator.convertIdFrom(productId),
+                idGenerator.convertIdFrom(request.variantId()),
                 idGenerator.convertIdFrom(request.salesChannelId())
         ));
         List<ProductPublicationItem> publications = queryBus.dispatch(
@@ -171,7 +172,10 @@ public class ProductCommandService {
         return new ProductPublicationResponse(
                 productId,
                 publications.stream()
-                        .map(item -> new ProductPublicationResponse.Publication(item.salesChannelId()))
+                        .map(item -> new ProductPublicationResponse.Publication(
+                                item.variantId(),
+                                item.salesChannelId()
+                        ))
                         .toList()
         );
     }

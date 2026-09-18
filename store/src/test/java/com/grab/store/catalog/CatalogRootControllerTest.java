@@ -32,8 +32,9 @@ class CatalogRootControllerTest {
                 .contains("/products/{productId}/descriptions");
         assertThat(body.getRequiredLink("batch-variant-images").getHref())
                 .contains("/products/{productId}/variants/{variantId}/images/batch");
-        assertThat(body.getLink("publish-product-to-channel")).isPresent();
-        assertThat(body.getRequiredLink("publish-product-to-channel").getHref())
-                .contains("/workflows/publish-product-to-channel");
+        assertThat(body.getLink("update-sellable-product")).isPresent();
+        assertThat(body.getRequiredLink("update-sellable-product").getHref())
+                .contains("/workflows/update-sellable-product");
+        assertThat(body.getLink("publish-product-to-channel")).isEmpty();
     }
 }

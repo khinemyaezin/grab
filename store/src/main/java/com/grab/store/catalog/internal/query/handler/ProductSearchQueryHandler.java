@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -88,9 +89,14 @@ public class ProductSearchQueryHandler implements QueryHandler<ProductSearchQuer
         return productQueryRepository.findPublicationsByProductIds(productIds).stream()
                 .collect(Collectors.groupingBy(
                         ProductPublicationView::productId,
-                        Collectors.mapping(
-                                view -> new ProductSearchResult.Publication(view.salesChannelId()),
-                                Collectors.toList()
+                        Collectors.collectingAndThen(
+                                Collectors.mapping(
+                                        ProductPublicationView::salesChannelId,
+                                        Collectors.toCollection(LinkedHashSet::new)
+                                ),
+                                channelIds -> channelIds.stream()
+                                        .map(ProductSearchResult.Publication::new)
+                                        .toList()
                         )
                 ));
     }

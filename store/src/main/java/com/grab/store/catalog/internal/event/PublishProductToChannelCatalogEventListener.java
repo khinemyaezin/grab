@@ -67,9 +67,10 @@ public class PublishProductToChannelCatalogEventListener {
     @EventListener
     public void onRequestWritePublication(RequestWritePublicationEvent event) {
         log.info(
-                "Handling RequestWritePublicationEvent workflowId={} productId={} salesChannelId={}",
+                "Handling RequestWritePublicationEvent workflowId={} productId={} variantId={} salesChannelId={}",
                 event.workflowId(),
                 event.productId(),
+                event.variantId(),
                 event.salesChannelId()
         );
         signalEmitter.runStep(
@@ -95,9 +96,10 @@ public class PublishProductToChannelCatalogEventListener {
     @EventListener
     public void onRequestUnpublishProductCompensation(RequestUnpublishProductCompensationEvent event) {
         log.info(
-                "Compensating unpublish workflowId={} productId={} salesChannelId={}",
+                "Compensating unpublish workflowId={} productId={} variantId={} salesChannelId={}",
                 event.workflowId(),
                 event.productId(),
+                event.variantId(),
                 event.salesChannelId()
         );
         signalEmitter.runStep(
@@ -135,11 +137,13 @@ public class PublishProductToChannelCatalogEventListener {
         commandBus.dispatch(new PublishProductToChannelCommand(
                 idGenerator.convertIdFrom(event.merchantId()),
                 idGenerator.convertIdFrom(event.productId()),
+                idGenerator.convertIdFrom(event.variantId()),
                 idGenerator.convertIdFrom(event.salesChannelId())
         ));
         return List.of(new ProductPublishedToChannelEvent(
                 event.workflowId(),
                 event.productId(),
+                event.variantId(),
                 event.salesChannelId(),
                 Instant.now(),
                 EVENT_VERSION
@@ -150,11 +154,13 @@ public class PublishProductToChannelCatalogEventListener {
         commandBus.dispatch(new UnpublishProductFromChannelCommand(
                 idGenerator.convertIdFrom(event.merchantId()),
                 idGenerator.convertIdFrom(event.productId()),
+                idGenerator.convertIdFrom(event.variantId()),
                 idGenerator.convertIdFrom(event.salesChannelId())
         ));
         return List.of(new ProductUnpublishedFromChannelEvent(
                 event.workflowId(),
                 event.productId(),
+                event.variantId(),
                 event.salesChannelId(),
                 Instant.now(),
                 EVENT_VERSION

@@ -85,7 +85,6 @@ public class CatalogRootController {
         model.add(WorkflowApiLinks.createSellableProductLink());
         model.add(WorkflowApiLinks.updateSellableProductLink());
         model.add(WorkflowApiLinks.updateProductVariantLink());
-        model.add(WorkflowApiLinks.publishProductToChannelLink());
 
         return ResponseEntity.ok(model);
     }

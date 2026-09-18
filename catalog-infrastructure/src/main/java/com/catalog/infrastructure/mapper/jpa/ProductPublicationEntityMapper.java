@@ -11,7 +11,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(config = CentralMapperConfig.class, uses = {IdMapper.class})
 public abstract class ProductPublicationEntityMapper {
 
-    @Mapping(ignore = true, target = ProductPublicationEntity_.PRODUCT_ID)
+    @Mapping(ignore = true, target = ProductPublicationEntity_.VARIANT_ID)
     @Mapping(source = "salesChannelId", target = ProductPublicationEntity_.SALES_CHANNEL_ID)
     public abstract void toEntity(ProductPublication source, @MappingTarget ProductPublicationEntity destination);
 }

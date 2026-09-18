@@ -30,7 +30,7 @@ public class ProductSummaryModelAssembler
             } else if (currentStatus == ProductStatus.ACTIVE) {
                 entity.add(linkTo(methodOn(ProductController.class).suspend(response.productId(), null)).withRel("suspend-product"));
                 entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.productId())).withRel("delete-product"));
-                entity.add(WorkflowApiLinks.publishProductToChannelLink());
+                entity.add(WorkflowApiLinks.updateSellableProductLink());
             } else if (currentStatus == ProductStatus.SUSPENDED || currentStatus == ProductStatus.ARCHIVED) {
                 entity.add(linkTo(methodOn(ProductController.class).restore(response.productId(), null)).withRel("restore-product"));
             }

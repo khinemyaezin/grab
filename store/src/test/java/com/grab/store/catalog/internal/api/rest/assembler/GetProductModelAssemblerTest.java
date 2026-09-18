@@ -28,14 +28,15 @@ class GetProductModelAssemblerTest {
     }
 
     @Test
-    void toModel_whenActive_shouldExposePublishProductToChannelLink() {
+    void toModel_whenActive_shouldExposeUpdateSellableProductLink() {
         EntityModel<GetProductResponse> model = assembler.toModel(product("ACTIVE", List.of()));
 
         assertThat(model.getLink("publish-product")).isEmpty();
-        assertThat(model.getLink("publish-product-to-channel")).isPresent();
+        assertThat(model.getLink("publish-product-to-channel")).isEmpty();
+        assertThat(model.getLink("update-sellable-product")).isPresent();
         assertThat(model.getLink("unpublish-product-from-channel")).isEmpty();
-        assertThat(model.getRequiredLink("publish-product-to-channel").getHref())
-                .contains("/workflows/publish-product-to-channel");
+        assertThat(model.getRequiredLink("update-sellable-product").getHref())
+                .contains("/workflows/update-sellable-product");
     }
 
     @Test
@@ -69,9 +70,18 @@ class GetProductModelAssemblerTest {
                 List.of(),
                 List.of(),
                 null,
-                List.of(),
-                List.of(),
-                publications
+                List.of(new GetProductResponse.Variant(
+                        "var-1",
+                        "SKU-1",
+                        "ACTIVE",
+                        "key",
+                        List.of(),
+                        false,
+                        List.of(),
+                        null,
+                        publications
+                )),
+                List.of()
         );
     }
 }
