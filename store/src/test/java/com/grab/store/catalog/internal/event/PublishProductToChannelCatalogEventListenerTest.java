@@ -20,6 +20,7 @@ import com.grab.store.workflows.events.ProductUnpublishedFromChannelEvent;
 import com.grab.store.workflows.events.PublishProductStepFailedEvent;
 import com.grab.store.workflows.events.RequestAssertProductEvent;
 import com.grab.store.workflows.events.RequestUnpublishProductCompensationEvent;
+import com.grab.store.workflows.events.RequestUnpublishProductFromChannelEvent;
 import com.grab.store.workflows.events.RequestWritePublicationEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -107,6 +108,18 @@ class PublishProductToChannelCatalogEventListenerTest {
         assertThat(dispatched.getFirst()).isInstanceOf(PublishProductToChannelCommand.class);
         assertThat(outbox.committed()).hasSize(1);
         assertThat(outbox.committed().getFirst()).isInstanceOf(ProductPublishedToChannelEvent.class);
+    }
+
+    @Test
+    void onRequestUnpublishProductFromChannel_shouldDispatchUnpublishCommand() {
+        listener.onRequestUnpublishProductFromChannel(new RequestUnpublishProductFromChannelEvent(
+                "wf-1", "merchant-1", "prod-1", "var-1", "channel-1", Instant.now(), 1
+        ));
+
+        assertThat(dispatched).hasSize(1);
+        assertThat(dispatched.getFirst()).isInstanceOf(UnpublishProductFromChannelCommand.class);
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOf(ProductUnpublishedFromChannelEvent.class);
     }
 
     @Test

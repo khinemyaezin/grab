@@ -10,6 +10,7 @@ public final class UpdateSellableProductWorkflowNames {
     public static final String STEP_ASSERT_PRODUCT = "assert-product";
     public static final String STEP_ASSERT_CHANNEL_STOCK_PATH = "assert-channel-stock-path";
     public static final String STEP_WRITE_PUBLICATION = "write-publication";
+    public static final String STEP_UNPUBLISH_PUBLICATION = "unpublish-publication";
 
     private UpdateSellableProductWorkflowNames() {
     }

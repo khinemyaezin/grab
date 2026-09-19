@@ -18,6 +18,7 @@ public record UpdateSellableProductRequest(
         @Valid List<InventoryLine> inventoryLines,
         @Valid List<PricingLine> pricingLines,
         @Valid List<PublicationLine> publicationLines,
+        @Valid List<PublicationLine> unpublishLines,
         String idempotencyKey
 ) {
 

@@ -17,6 +17,7 @@ import com.grab.store.workflows.events.ProductUnpublishedFromChannelEvent;
 import com.grab.store.workflows.events.PublishProductStepFailedEvent;
 import com.grab.store.workflows.events.RequestAssertProductEvent;
 import com.grab.store.workflows.events.RequestUnpublishProductCompensationEvent;
+import com.grab.store.workflows.events.RequestUnpublishProductFromChannelEvent;
 import com.grab.store.workflows.events.RequestWritePublicationEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -94,6 +95,41 @@ public class PublishProductToChannelCatalogEventListener {
     }
 
     @EventListener
+    public void onRequestUnpublishProductFromChannel(RequestUnpublishProductFromChannelEvent event) {
+        log.info(
+                "Handling RequestUnpublishProductFromChannelEvent workflowId={} productId={} variantId={} salesChannelId={}",
+                event.workflowId(),
+                event.productId(),
+                event.variantId(),
+                event.salesChannelId()
+        );
+        signalEmitter.runStep(
+                event.workflowId(),
+                () -> unpublish(
+                        event.workflowId(),
+                        event.merchantId(),
+                        event.productId(),
+                        event.variantId(),
+                        event.salesChannelId()
+                ),
+                exception -> {
+                    log.warn(
+                            "Unpublish product failed for workflowId={}: {}",
+                            event.workflowId(),
+                            exception.getMessage()
+                    );
+                    return List.of(new PublishProductStepFailedEvent(
+                            event.workflowId(),
+                            "unpublish-publication",
+                            exception.getMessage(),
+                            Instant.now(),
+                            EVENT_VERSION
+                    ));
+                }
+        );
+    }
+
+    @EventListener
     public void onRequestUnpublishProductCompensation(RequestUnpublishProductCompensationEvent event) {
         log.info(
                 "Compensating unpublish workflowId={} productId={} variantId={} salesChannelId={}",
@@ -104,7 +140,13 @@ public class PublishProductToChannelCatalogEventListener {
         );
         signalEmitter.runStep(
                 event.workflowId(),
-                () -> unpublish(event),
+                () -> unpublish(
+                        event.workflowId(),
+                        event.merchantId(),
+                        event.productId(),
+                        event.variantId(),
+                        event.salesChannelId()
+                ),
                 exception -> {
                     log.warn(
                             "Compensation unpublish failed workflowId={} productId={}: {}",
@@ -150,18 +192,24 @@ public class PublishProductToChannelCatalogEventListener {
         ));
     }
 
-    private List<Event> unpublish(RequestUnpublishProductCompensationEvent event) {
+    private List<Event> unpublish(
+            String workflowId,
+            String merchantId,
+            String productId,
+            String variantId,
+            String salesChannelId
+    ) {
         commandBus.dispatch(new UnpublishProductFromChannelCommand(
-                idGenerator.convertIdFrom(event.merchantId()),
-                idGenerator.convertIdFrom(event.productId()),
-                idGenerator.convertIdFrom(event.variantId()),
-                idGenerator.convertIdFrom(event.salesChannelId())
+                idGenerator.convertIdFrom(merchantId),
+                idGenerator.convertIdFrom(productId),
+                idGenerator.convertIdFrom(variantId),
+                idGenerator.convertIdFrom(salesChannelId)
         ));
         return List.of(new ProductUnpublishedFromChannelEvent(
-                event.workflowId(),
-                event.productId(),
-                event.variantId(),
-                event.salesChannelId(),
+                workflowId,
+                productId,
+                variantId,
+                salesChannelId,
                 Instant.now(),
                 EVENT_VERSION
         ));

@@ -29,6 +29,7 @@ import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
 import com.grab.store.workflows.events.RequestUnpublishProductCompensationEvent;
+import com.grab.store.workflows.events.RequestUnpublishProductFromChannelEvent;
 import com.grab.store.workflows.events.RequestUpdateProductSetEvent;
 import com.grab.store.workflows.events.RequestWritePublicationEvent;
 import com.grab.store.workflows.events.SellableProductProductUpdatedEvent;
@@ -579,6 +580,198 @@ class UpdateSellableProductDefinitionTest {
                         )
                 );
         assertThat(compensated.allWrittenPublicationsCompensated()).isTrue();
+    }
+
+    @Test
+    void productOnlyUpdate_whenUnpublishLinesPresent_shouldUnpublishEachVariantChannel() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                sampleProduct(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new UpdateSellableProductContext.PublicationLine("SKU-1", null, "web-1"),
+                        new UpdateSellableProductContext.PublicationLine("SKU-2", null, "pos-1")
+                )
+        );
+        WorkflowInstance started = engine.start(definition, context, null);
+        published.clear();
+
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-1", "SKU-2"),
+                List.of(
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"),
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-2", "SKU-2")
+                )
+        )));
+
+        assertThat(published).hasSize(2);
+        assertThat(published).allMatch(RequestUnpublishProductFromChannelEvent.class::isInstance);
+        assertThat(published).extracting(event -> ((RequestUnpublishProductFromChannelEvent) event).variantId())
+                .containsExactly("variant-1", "variant-2");
+        assertThat(published).extracting(event -> ((RequestUnpublishProductFromChannelEvent) event).salesChannelId())
+                .containsExactly("web-1", "pos-1");
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_UNPUBLISH_PUBLICATION,
+                new ProductUnpublishedFromChannelEvent(
+                        started.id(), "product-1", "variant-1", "web-1", Instant.now(), 1),
+                "product-unpublished-from-channel:variant-1:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_UNPUBLISH_PUBLICATION,
+                new ProductUnpublishedFromChannelEvent(
+                        started.id(), "product-1", "variant-2", "pos-1", Instant.now(), 1),
+                "product-unpublished-from-channel:variant-2:pos-1"
+        ));
+
+        WorkflowInstance completed = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(completed.status()).isEqualTo(WorkflowStatus.COMPLETED);
+        UpdateSellableProductContext finalContext = readContext(completed);
+        assertThat(finalContext.unpublishedPublications()).containsExactly(
+                new UpdateSellableProductContext.PublicationPair("variant-1", "SKU-1", "web-1"),
+                new UpdateSellableProductContext.PublicationPair("variant-2", "SKU-2", "pos-1")
+        );
+    }
+
+    @Test
+    void emptyUnpublishLines_shouldSkipUnpublishStep() {
+        var step = definition.step(UpdateSellableProductWorkflowNames.STEP_UNPUBLISH_PUBLICATION).orElseThrow();
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                sampleProduct(),
+                List.of(),
+                List.of()
+        );
+
+        assertThat(step.isComplete(context)).isTrue();
+        assertThat(step.onEnter("wf-1", context)).isEmpty();
+    }
+
+    @Test
+    void conversionUnpublishOfRemovedStandaloneSku_shouldWriteNewSkusAndSkipUnpublish() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                fullSyncProduct(),
+                List.of(),
+                List.of(),
+                List.of(
+                        new UpdateSellableProductContext.PublicationLine("SKU-M", null, "web-1"),
+                        new UpdateSellableProductContext.PublicationLine("SKU-L", null, "web-1"),
+                        new UpdateSellableProductContext.PublicationLine("SKU-L", null, "pos-1")
+                ),
+                List.of(
+                        new UpdateSellableProductContext.PublicationLine("SKU-STANDALONE", null, "web-1"),
+                        new UpdateSellableProductContext.PublicationLine("SKU-STANDALONE", null, "pos-1")
+                )
+        );
+        WorkflowInstance started = engine.start(definition, context, null);
+        published.clear();
+
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-M", "SKU-L"),
+                List.of(
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-m", "SKU-M"),
+                        new SellableProductProductUpdatedEvent.VariantRef("variant-l", "SKU-L")
+                )
+        )));
+
+        assertThat(published).noneMatch(RequestUnpublishProductFromChannelEvent.class::isInstance);
+        assertThat(published).allMatch(RequestAssertChannelEvent.class::isInstance);
+        assertThat(published).extracting(event -> ((RequestAssertChannelEvent) event).salesChannelId())
+                .containsExactly("web-1", "pos-1");
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL,
+                new ChannelAssertedEvent(started.id(), "web-1", Instant.now(), 1),
+                "channel-asserted:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL,
+                new ChannelAssertedEvent(started.id(), "pos-1", Instant.now(), 1),
+                "channel-asserted:pos-1"
+        ));
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_PRODUCT,
+                new ProductAssertedEvent(started.id(), "product-1", Instant.now(), 1),
+                "product-asserted:product-1"
+        ));
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL_STOCK_PATH,
+                new StockPathCheckedEvent(started.id(), "web-1", false, Instant.now(), 1),
+                "stock-path-checked:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_ASSERT_CHANNEL_STOCK_PATH,
+                new StockPathCheckedEvent(started.id(), "pos-1", false, Instant.now(), 1),
+                "stock-path-checked:pos-1"
+        ));
+
+        assertThat(published).hasSize(3);
+        assertThat(published).allMatch(RequestWritePublicationEvent.class::isInstance);
+        assertThat(published).extracting(event -> ((RequestWritePublicationEvent) event).variantId())
+                .containsExactly("variant-m", "variant-l", "variant-l");
+        assertThat(published).noneMatch(RequestUnpublishProductFromChannelEvent.class::isInstance);
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION,
+                new ProductPublishedToChannelEvent(
+                        started.id(), "product-1", "variant-m", "web-1", Instant.now(), 1),
+                "product-published-to-channel:variant-m:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION,
+                new ProductPublishedToChannelEvent(
+                        started.id(), "product-1", "variant-l", "web-1", Instant.now(), 1),
+                "product-published-to-channel:variant-l:web-1"
+        ));
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_WRITE_PUBLICATION,
+                new ProductPublishedToChannelEvent(
+                        started.id(), "product-1", "variant-l", "pos-1", Instant.now(), 1),
+                "product-published-to-channel:variant-l:pos-1"
+        ));
+
+        WorkflowInstance completed = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(completed.status()).isEqualTo(WorkflowStatus.COMPLETED);
+        UpdateSellableProductContext finalContext = readContext(completed);
+        assertThat(finalContext.unpublishLines()).isEmpty();
+        assertThat(finalContext.shouldUnpublish()).isFalse();
+        assertThat(finalContext.writtenPublications()).containsExactly(
+                new UpdateSellableProductContext.PublicationPair("variant-m", "SKU-M", "web-1"),
+                new UpdateSellableProductContext.PublicationPair("variant-l", "SKU-L", "web-1"),
+                new UpdateSellableProductContext.PublicationPair("variant-l", "SKU-L", "pos-1")
+        );
     }
 
     @Test

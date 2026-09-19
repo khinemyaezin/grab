@@ -19,6 +19,7 @@ import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
 import com.grab.store.workflows.events.RequestUnpublishProductCompensationEvent;
+import com.grab.store.workflows.events.RequestUnpublishProductFromChannelEvent;
 import com.grab.store.workflows.events.RequestUpdateProductSetEvent;
 import com.grab.store.workflows.events.RequestWritePublicationEvent;
 import com.grab.store.workflows.events.SellableProductProductUpdatedEvent;
@@ -44,7 +45,8 @@ public final class UpdateSellableProductDefinition implements WorkflowProcess<Up
             new AssertChannelStep(),
             new AssertProductStep(),
             new AssertChannelStockPathStep(),
-            new WritePublicationStep()
+            new WritePublicationStep(),
+            new UnpublishPublicationStep()
     );
 
     @Override
@@ -445,6 +447,117 @@ public final class UpdateSellableProductDefinition implements WorkflowProcess<Up
                 return variantRef.sku();
             }
             UpdateSellableProductContext.PublicationLine line = context.publicationLines().stream()
+                    .filter(publicationLine -> variantId.equals(context.resolvedVariantId(publicationLine)))
+                    .findFirst()
+                    .orElse(null);
+            if (line != null) {
+                return line.sku();
+            }
+            UpdateSellableProductContext.PublicationLine unpublishLine = context.unpublishLines().stream()
+                    .filter(publicationLine -> variantId.equals(context.resolvedVariantId(publicationLine)))
+                    .findFirst()
+                    .orElse(null);
+            return unpublishLine == null ? null : unpublishLine.sku();
+        }
+    }
+
+    private static final class UnpublishPublicationStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_UNPUBLISH_PUBLICATION;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            Instant now = Instant.now();
+            List<Event> events = new ArrayList<>();
+            for (UpdateSellableProductContext.PublicationLine line : context.unpublishLines()) {
+                String variantId = context.resolvedVariantId(line);
+                if (variantId == null || variantId.isBlank()) {
+                    throw new IllegalStateException("Missing variant ref for sku=" + line.sku());
+                }
+                events.add(new RequestUnpublishProductFromChannelEvent(
+                        workflowId,
+                        context.merchantId(),
+                        context.productId(),
+                        variantId,
+                        line.salesChannelId(),
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            return events;
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (!(signal.event() instanceof ProductUnpublishedFromChannelEvent event)) {
+                return context;
+            }
+            return context.withUnpublished(new UpdateSellableProductContext.PublicationPair(
+                    event.variantId(),
+                    skuForVariant(context, event.variantId()),
+                    event.salesChannelId()
+            ));
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldUnpublish() || context.allUnpublished();
+        }
+
+        @Override
+        public Object checkpointOutput(UpdateSellableProductContext context) {
+            return context.unpublishedPublications();
+        }
+
+        @Override
+        public List<Event> compensate(String workflowId, UpdateSellableProductContext context) {
+            Instant now = Instant.now();
+            List<Event> events = new ArrayList<>();
+            for (UpdateSellableProductContext.PublicationPair pair : context.unpublishedPublications()) {
+                String key = UpdateSellableProductContext.publicationKey(pair.variantId(), pair.salesChannelId());
+                if (context.compensatedUnpublishKeys().contains(key)) {
+                    continue;
+                }
+                events.add(new RequestWritePublicationEvent(
+                        workflowId,
+                        context.merchantId(),
+                        context.productId(),
+                        pair.variantId(),
+                        pair.salesChannelId(),
+                        now,
+                        EVENT_VERSION
+                ));
+            }
+            return events;
+        }
+
+        @Override
+        public UpdateSellableProductContext onCompensationAck(
+                UpdateSellableProductContext context,
+                InboundSignal signal
+        ) {
+            if (signal.event() instanceof ProductPublishedToChannelEvent event) {
+                return context.withUnpublishCompensated(event.variantId(), event.salesChannelId());
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isCompensated(UpdateSellableProductContext context) {
+            return context.allUnpublishedCompensated();
+        }
+
+        private static String skuForVariant(UpdateSellableProductContext context, String variantId) {
+            UpdateSellableProductContext.VariantRef variantRef = context.variantRefs().stream()
+                    .filter(ref -> ref.variantId().equals(variantId))
+                    .findFirst()
+                    .orElse(null);
+            if (variantRef != null) {
+                return variantRef.sku();
+            }
+            UpdateSellableProductContext.PublicationLine line = context.unpublishLines().stream()
                     .filter(publicationLine -> variantId.equals(context.resolvedVariantId(publicationLine)))
                     .findFirst()
                     .orElse(null);

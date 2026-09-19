@@ -30,6 +30,9 @@ public abstract class UpdateSellableProductRequestMapper {
         List<UpdateSellableProductContext.PublicationLine> publicationLines = request.publicationLines() == null
                 ? List.of()
                 : request.publicationLines().stream().map(this::toContextPublicationLine).toList();
+        List<UpdateSellableProductContext.PublicationLine> unpublishLines = request.unpublishLines() == null
+                ? List.of()
+                : request.unpublishLines().stream().map(this::toContextPublicationLine).toList();
         return UpdateSellableProductContext.createContext(
                 merchantId,
                 createdBy,
@@ -39,7 +42,8 @@ public abstract class UpdateSellableProductRequestMapper {
                 product,
                 inventoryLines,
                 pricingLines,
-                publicationLines
+                publicationLines,
+                unpublishLines
         );
     }
 
