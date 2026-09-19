@@ -51,7 +51,9 @@ public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariant
             );
         }
 
-        validateSkuAvailability(command.merchantId(), command.sku(), command.variantId().getValue());
+        if (!existing.getSku().equalsIgnoreCase(command.sku())) {
+            validateSkuAvailability(command.merchantId(), command.sku(), command.variantId().getValue());
+        }
 
         Boolean requestedManageInventory = command.manageInventory();
         boolean manageInventory = requestedManageInventory != null

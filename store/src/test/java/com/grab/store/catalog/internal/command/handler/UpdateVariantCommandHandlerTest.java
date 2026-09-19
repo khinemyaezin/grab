@@ -25,6 +25,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -209,6 +211,27 @@ class UpdateVariantCommandHandlerTest {
                     assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.variant.sku_already_exists");
                     assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.CONFLICT);
                 });
+    }
+
+    @Test
+    void handle_sameSku_skipsSkuAvailabilityValidation() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+
+        Product product = Product.create(productId, productId, "Product", new CommonId(CATEGORY_ID));
+        ProductVariation variation = new ProductVariation(
+                new CommonId("opt-red"), new CommonId("type-color"));
+        ProductVariant variant = ProductVariant.create(variantId, "SAME-SKU", List.of(variation));
+        product.addVariant(variant);
+
+        when(productRepository.find(productId, productId)).thenReturn(Optional.of(product));
+
+        UpdateVariantCommand command = new UpdateVariantCommand(productId, productId, variantId, "SAME-SKU", null);
+        UpdateVariantResult result = handler.handle(command);
+
+        verify(productRepository, never()).isSkuTaken(any(), any(), any());
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(result.sku()).isEqualTo("SAME-SKU");
     }
 
     @Test

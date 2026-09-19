@@ -8,13 +8,17 @@ import java.util.*;
 @Getter
 @Entity
 @Table(name = "product_variant", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"sku", "product_id"})
+        @UniqueConstraint(name = "uq_product_variant_merchant_sku", columnNames = {"merchant_id", "sku"})
 })
 public class ProductVariantEntity {
     @Setter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Setter
+    @Column(name = "merchant_id", nullable = false)
+    private String merchantId;
 
     @Setter
     @Column(nullable = false)

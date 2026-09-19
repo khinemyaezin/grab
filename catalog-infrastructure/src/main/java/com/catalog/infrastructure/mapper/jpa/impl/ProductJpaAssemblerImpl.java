@@ -172,12 +172,14 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
 
             if (variantEntity != null) {
                 mergeProductVariantEntity(variantEntity, variantDomain);
+                variantEntity.setMerchantId(productEntity.getMerchantId());
                 mergeVariations(variantEntity, variantDomain.getVariations());
                 mergeVariantMedia(productEntity, variantEntity, variantDomain);
                 processedUuids.add(uuid);
                 resultVariants.add(variantEntity);
             } else {
                 ProductVariantEntity productVariantEntity = toProductVariantEntity(variantDomain);
+                productVariantEntity.setMerchantId(productEntity.getMerchantId());
                 for (ProductVariation variation : variantDomain.getVariations()) {
                     ProductVariationEntity variationEntity = toProductVariationEntity(variation);
                     productVariantEntity.addProductVariation(variationEntity);
@@ -297,7 +299,6 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
             ));
             index++;
         }
-        // FIX: Ensure domain list is sorted by rank ascending
         medias.sort(Comparator.comparingInt(ProductMedia::getRank));
         return medias;
     }

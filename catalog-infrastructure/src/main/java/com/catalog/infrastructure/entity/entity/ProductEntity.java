@@ -110,6 +110,9 @@ public class ProductEntity implements Serializable {
 
     public void addVariant(ProductVariantEntity productVariantEntity) {
         productVariantEntity.setProduct(this);
+        if (this.merchantId != null) {
+            productVariantEntity.setMerchantId(this.merchantId);
+        }
         productVariants.add(productVariantEntity);
     }
 
