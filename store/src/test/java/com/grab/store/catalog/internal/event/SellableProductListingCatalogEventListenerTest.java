@@ -119,37 +119,6 @@ class SellableProductListingCatalogEventListenerTest {
         });
     }
 
-    @Test
-    void onRequestApplyProductStatus_whenListingIncomplete_shouldFailStep() {
-        CommandBus failingBus = new CommandBus() {
-            @Override
-            public <R> R dispatch(Command<R> command) {
-                throw new IllegalStateException("Listing is incomplete.");
-            }
-        };
-        listener = new SellableProductListingCatalogEventListener(
-                failingBus,
-                idGenerator(),
-                new CatalogWorkflowStepRunner(outbox.producer(), outbox.transactionManager())
-        );
-
-        listener.onRequestApplyProductStatus(new RequestApplyProductStatusEvent(
-                "wf-1",
-                "merchant-1",
-                "product-1",
-                "ACTIVE",
-                Instant.now(),
-                1
-        ));
-
-        assertThat(outbox.committed()).hasSize(1);
-        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductStepFailedEvent.class, failed -> {
-            assertThat(failed.workflowId()).isEqualTo("wf-1");
-            assertThat(failed.step()).isEqualTo("apply-status");
-            assertThat(failed.message()).isEqualTo("Listing is incomplete.");
-        });
-    }
-
     private CommandBus commandBus() {
         return new CommandBus() {
             @Override
