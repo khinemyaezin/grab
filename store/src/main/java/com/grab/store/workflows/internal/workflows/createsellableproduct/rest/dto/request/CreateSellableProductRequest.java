@@ -16,6 +16,9 @@ public record CreateSellableProductRequest(
         @Valid List<VariantType> variantTypes,
         @Valid List<InventoryLine> inventoryLines,
         @Valid @NotEmpty List<PricingLine> pricingLines,
+        @Valid List<PublicationLine> publicationLines,
+        @Valid List<Media> medias,
+        @Valid List<Description> descriptions,
         String idempotencyKey
 ) {
 
@@ -24,8 +27,12 @@ public record CreateSellableProductRequest(
             @NotBlank String categoryId,
             String condition,
             String slug,
+            String status,
             @Valid List<Variant> variants
     ) {
+        public Product(String name, String categoryId, String condition, String slug, List<Variant> variants) {
+            this(name, categoryId, condition, slug, null, variants);
+        }
     }
 
     public record VariantType(
@@ -82,6 +89,28 @@ public record CreateSellableProductRequest(
             @NotBlank String value,
             String operator,
             Integer priority
+    ) {
+    }
+
+    public record PublicationLine(
+            @NotBlank String sku,
+            @NotBlank String salesChannelId
+    ) {
+    }
+
+    public record Media(
+            String id,
+            @NotBlank String storageKey,
+            String contentType,
+            Integer rank
+    ) {
+    }
+
+    public record Description(
+            String id,
+            @NotBlank String name,
+            String title,
+            @NotBlank String description
     ) {
     }
 }

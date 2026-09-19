@@ -12,8 +12,21 @@ public record UpdateProductCommand(
         Id categoryId,
         String condition,
         String slug,
-        VariantSync variantSync
+        VariantSync variantSync,
+        String status
 ) implements Command<UpdateProductResult> {
+
+    public UpdateProductCommand(
+            Id merchantId,
+            Id productId,
+            String name,
+            Id categoryId,
+            String condition,
+            String slug,
+            VariantSync variantSync
+    ) {
+        this(merchantId, productId, name, categoryId, condition, slug, variantSync, null);
+    }
 
     public enum VariantSyncIntent {
         LEAVE_AS_IS,

@@ -10,6 +10,12 @@ import com.grab.store.workflows.events.InventoryItemSyncedEvent;
 import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.events.PriceSetDeletedEvent;
 import com.grab.store.workflows.events.ProductAssertedEvent;
+import com.grab.store.workflows.events.ProductDescriptionsReplacedEvent;
+import com.grab.store.workflows.events.ProductMediaReplacedEvent;
+import com.grab.store.workflows.events.ProductStatusAppliedEvent;
+import com.grab.store.workflows.events.RequestApplyProductStatusEvent;
+import com.grab.store.workflows.events.RequestReplaceProductDescriptionsEvent;
+import com.grab.store.workflows.events.RequestReplaceProductMediaEvent;
 import com.grab.store.workflows.events.ProductPublishedToChannelEvent;
 import com.grab.store.workflows.events.ProductUnpublishedFromChannelEvent;
 import com.grab.store.workflows.events.RequestAssertChannelEvent;
@@ -40,6 +46,9 @@ public final class UpdateSellableProductDefinition implements WorkflowProcess<Up
             UpdateSellableProductWorkflowNames.WORKFLOW_NAME,
             UpdateSellableProductContext.class,
             new UpdateProductStep(),
+            new ReplaceMediasStep(),
+            new ReplaceDescriptionsStep(),
+            new ApplyStatusStep(),
             new SyncVariantPricesStep(),
             new SyncInventoryItemStep(),
             new AssertChannelStep(),
@@ -84,6 +93,116 @@ public final class UpdateSellableProductDefinition implements WorkflowProcess<Up
         @Override
         public Object checkpointOutput(UpdateSellableProductContext context) {
             return context.productId();
+        }
+    }
+
+    private static final class ReplaceMediasStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_REPLACE_MEDIAS;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            return List.of(new RequestReplaceProductMediaEvent(
+                    workflowId,
+                    context.merchantId(),
+                    context.productId(),
+                    context.medias().stream()
+                            .map(media -> new RequestReplaceProductMediaEvent.Media(
+                                    media.id(),
+                                    media.storageKey(),
+                                    media.contentType(),
+                                    media.rank()
+                            ))
+                            .toList(),
+                    Instant.now(),
+                    EVENT_VERSION
+            ));
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (signal.event() instanceof ProductMediaReplacedEvent) {
+                return context.withMediasReplaced();
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldReplaceMedias() || context.mediasReplaced();
+        }
+    }
+
+    private static final class ReplaceDescriptionsStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_REPLACE_DESCRIPTIONS;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            return List.of(new RequestReplaceProductDescriptionsEvent(
+                    workflowId,
+                    context.merchantId(),
+                    context.productId(),
+                    context.descriptions().stream()
+                            .map(description -> new RequestReplaceProductDescriptionsEvent.Description(
+                                    description.id(),
+                                    description.name(),
+                                    description.title(),
+                                    description.description()
+                            ))
+                            .toList(),
+                    Instant.now(),
+                    EVENT_VERSION
+            ));
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (signal.event() instanceof ProductDescriptionsReplacedEvent) {
+                return context.withDescriptionsReplaced();
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldReplaceDescriptions() || context.descriptionsReplaced();
+        }
+    }
+
+    private static final class ApplyStatusStep implements StepDefinition<UpdateSellableProductContext> {
+        @Override
+        public String name() {
+            return UpdateSellableProductWorkflowNames.STEP_APPLY_STATUS;
+        }
+
+        @Override
+        public List<Event> onEnter(String workflowId, UpdateSellableProductContext context) {
+            return List.of(new RequestApplyProductStatusEvent(
+                    workflowId,
+                    context.merchantId(),
+                    context.productId(),
+                    context.product().status(),
+                    Instant.now(),
+                    EVENT_VERSION
+            ));
+        }
+
+        @Override
+        public UpdateSellableProductContext onSignal(UpdateSellableProductContext context, InboundSignal signal) {
+            if (signal.event() instanceof ProductStatusAppliedEvent) {
+                return context.withStatusApplied();
+            }
+            return context;
+        }
+
+        @Override
+        public boolean isComplete(UpdateSellableProductContext context) {
+            return !context.shouldApplyStatus() || context.statusApplied();
         }
     }
 
@@ -608,6 +727,7 @@ public final class UpdateSellableProductDefinition implements WorkflowProcess<Up
                 product.categoryId(),
                 product.condition(),
                 product.slug(),
+                product.status(),
                 requestSync,
                 Instant.now(),
                 EVENT_VERSION

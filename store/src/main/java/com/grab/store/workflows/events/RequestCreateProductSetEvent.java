@@ -19,8 +19,12 @@ public record RequestCreateProductSetEvent(
             String categoryId,
             String condition,
             String slug,
+            String status,
             List<Variant> variants
     ) {
+        public Product(String name, String categoryId, String condition, String slug, List<Variant> variants) {
+            this(name, categoryId, condition, slug, null, variants);
+        }
     }
 
     public record VariantType(

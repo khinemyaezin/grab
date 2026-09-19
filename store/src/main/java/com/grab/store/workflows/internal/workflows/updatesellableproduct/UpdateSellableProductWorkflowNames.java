@@ -4,6 +4,9 @@ public final class UpdateSellableProductWorkflowNames {
 
     public static final String WORKFLOW_NAME = "update-sellable-product";
     public static final String STEP_UPDATE_PRODUCT = "update-product";
+    public static final String STEP_REPLACE_MEDIAS = "replace-medias";
+    public static final String STEP_REPLACE_DESCRIPTIONS = "replace-descriptions";
+    public static final String STEP_APPLY_STATUS = "apply-status";
     public static final String STEP_SYNC_VARIANT_PRICES = "sync-variant-prices";
     public static final String STEP_SYNC_INVENTORY_ITEM = "sync-inventory-item";
     public static final String STEP_ASSERT_CHANNEL = "assert-channel";

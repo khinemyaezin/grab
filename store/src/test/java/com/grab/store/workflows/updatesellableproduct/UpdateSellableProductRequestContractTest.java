@@ -326,6 +326,19 @@ class UpdateSellableProductRequestContractTest {
     }
 
     @Test
+    void deserialize_optionalStatus_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1", "status": "ACTIVE" }
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(request.product().status()).isEqualTo("ACTIVE");
+        assertThat(validator.validate(request)).isEmpty();
+    }
+
+    @Test
     void deserialize_publicationLines_shouldBeValid() throws Exception {
         UpdateSellableProductRequest request = json.readValue("""
                 {
@@ -406,6 +419,44 @@ class UpdateSellableProductRequestContractTest {
 
         assertThat(propertyPaths(validator.validate(request)))
                 .anyMatch(path -> path.contains("unpublishLines") && path.contains("salesChannelId"));
+    }
+
+    @Test
+    void omittedListing_shouldBeNull() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" }
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.medias()).isNull();
+        assertThat(request.descriptions()).isNull();
+    }
+
+    @Test
+    void presentListing_shouldDeserializeMediasAndDescriptions() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" },
+                  "medias": [
+                    { "id": "media-1", "storageKey": "staged/hero.jpg", "contentType": "image/jpeg", "rank": 0 }
+                  ],
+                  "descriptions": [
+                    { "id": "desc-1", "name": "overview", "title": "Overview", "description": "A cotton shirt" }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.medias()).containsExactly(
+                new UpdateSellableProductRequest.Media("media-1", "staged/hero.jpg", "image/jpeg", 0)
+        );
+        assertThat(request.descriptions()).containsExactly(
+                new UpdateSellableProductRequest.Description("desc-1", "overview", "Overview", "A cotton shirt")
+        );
     }
 
     private Set<String> propertyPaths(Set<ConstraintViolation<UpdateSellableProductRequest>> violations) {

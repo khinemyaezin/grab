@@ -18,14 +18,20 @@ import com.grab.store.workflows.events.InventorySyncOp;
 import com.grab.store.workflows.events.InventorySyncPayload;
 import com.grab.store.workflows.events.PriceSetDeletedEvent;
 import com.grab.store.workflows.events.ProductAssertedEvent;
+import com.grab.store.workflows.events.ProductDescriptionsReplacedEvent;
+import com.grab.store.workflows.events.ProductMediaReplacedEvent;
 import com.grab.store.workflows.events.ProductPublishedToChannelEvent;
+import com.grab.store.workflows.events.ProductStatusAppliedEvent;
 import com.grab.store.workflows.events.ProductUnpublishedFromChannelEvent;
 import com.grab.store.workflows.events.PublishProductStepFailedEvent;
+import com.grab.store.workflows.events.RequestApplyProductStatusEvent;
 import com.grab.store.workflows.events.RequestAssertChannelEvent;
 import com.grab.store.workflows.events.RequestAssertProductEvent;
 import com.grab.store.workflows.events.RequestCheckChannelStockPathEvent;
 import com.grab.store.workflows.events.RequestDeletePriceSetCompensationEvent;
 import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;
+import com.grab.store.workflows.events.RequestReplaceProductDescriptionsEvent;
+import com.grab.store.workflows.events.RequestReplaceProductMediaEvent;
 import com.grab.store.workflows.events.RequestSyncInventoryItemEvent;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
 import com.grab.store.workflows.events.RequestUnpublishProductCompensationEvent;
@@ -107,6 +113,28 @@ class UpdateSellableProductDefinitionTest {
         assertThat(request.workflowId()).isEqualTo(instance.id());
         assertThat(request.productId()).isEqualTo("product-1");
         assertThat(request.name()).isEqualTo("Shirt");
+        assertThat(request.status()).isNull();
+    }
+
+    @Test
+    void start_whenStatusActive_shouldForwardStatusOnUpdateProductRequest() {
+        UpdateSellableProductContext.Product product = new UpdateSellableProductContext.Product(
+                "Shirt",
+                "cat-1",
+                "NEW",
+                "shirt",
+                "ACTIVE",
+                new UpdateSellableProductContext.VariantSync(
+                        "LEAVE_AS_IS",
+                        List.of(new UpdateSellableProductContext.Variant("SKU-1", "", List.of())),
+                        List.of()
+                )
+        );
+        WorkflowInstance instance = engine.start(definition, sampleContext(product), "idem-status");
+
+        RequestUpdateProductSetEvent request = (RequestUpdateProductSetEvent) published.getFirst();
+        assertThat(instance.currentStep()).contains(UpdateSellableProductWorkflowNames.STEP_UPDATE_PRODUCT);
+        assertThat(request.status()).isEqualTo("ACTIVE");
     }
 
     @Test
@@ -898,6 +926,160 @@ class UpdateSellableProductDefinitionTest {
         assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal
                 && "FAILED".equals(terminal.status())
                 && terminal.partiallyApplied());
+    }
+
+    @Test
+    void omittedListing_shouldSkipReplaceAndAdvanceToPrices() {
+        UpdateSellableProductContext context = sampleContext();
+        WorkflowInstance started = engine.start(definition, context, null);
+        published.clear();
+
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-1"),
+                List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"))
+        )));
+
+        assertThat(published).noneMatch(e -> e instanceof RequestReplaceProductMediaEvent
+                || e instanceof RequestReplaceProductDescriptionsEvent
+                || e instanceof RequestApplyProductStatusEvent);
+        assertThat(published.getFirst()).isInstanceOf(RequestSyncVariantPriceEvent.class);
+        WorkflowInstance afterProduct = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(afterProduct.currentStep()).contains(UpdateSellableProductWorkflowNames.STEP_SYNC_VARIANT_PRICES);
+    }
+
+    @Test
+    void presentListingThenActive_shouldReplaceThenApplyStatusThenPublish() {
+        UpdateSellableProductContext.Product product = new UpdateSellableProductContext.Product(
+                "Shirt",
+                "cat-1",
+                "NEW",
+                "shirt",
+                "ACTIVE",
+                new UpdateSellableProductContext.VariantSync(
+                        "LEAVE_AS_IS",
+                        List.of(new UpdateSellableProductContext.Variant("SKU-1", "", List.of())),
+                        List.of()
+                )
+        );
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                product,
+                List.of(),
+                List.of(),
+                List.of(new UpdateSellableProductContext.PublicationLine("SKU-1", null, "web-1")),
+                List.of(),
+                List.of(new UpdateSellableProductContext.MediaLine(
+                        null,
+                        "staged/hero.jpg",
+                        "image/jpeg",
+                        0
+                )),
+                List.of(new UpdateSellableProductContext.DescriptionLine(
+                        null,
+                        "overview",
+                        "Overview",
+                        "A cotton shirt"
+                ))
+        );
+        WorkflowInstance started = engine.start(definition, context, null);
+        published.clear();
+
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-1"),
+                List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"))
+        )));
+
+        assertThat(published.getFirst()).isInstanceOfSatisfying(RequestReplaceProductMediaEvent.class, event ->
+                assertThat(event.medias().getFirst().storageKey()).isEqualTo("staged/hero.jpg")
+        );
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_REPLACE_MEDIAS,
+                new ProductMediaReplacedEvent(started.id(), "product-1", Instant.now(), 1),
+                "product-media-replaced:product-1"
+        ));
+        assertThat(published.getFirst()).isInstanceOf(RequestReplaceProductDescriptionsEvent.class);
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_REPLACE_DESCRIPTIONS,
+                new ProductDescriptionsReplacedEvent(started.id(), "product-1", Instant.now(), 1),
+                "product-descriptions-replaced:product-1"
+        ));
+        assertThat(published.getFirst()).isInstanceOfSatisfying(RequestApplyProductStatusEvent.class, event ->
+                assertThat(event.status()).isEqualTo("ACTIVE")
+        );
+        published.clear();
+
+        engine.onSignal(InboundSignal.completion(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_APPLY_STATUS,
+                new ProductStatusAppliedEvent(started.id(), "product-1", "ACTIVE", Instant.now(), 1),
+                "product-status-applied:product-1:ACTIVE"
+        ));
+        assertThat(published).allMatch(RequestAssertChannelEvent.class::isInstance);
+    }
+
+    @Test
+    void applyStatusFailed_shouldFailWorkflowWithoutSwallowing() {
+        UpdateSellableProductContext.Product product = new UpdateSellableProductContext.Product(
+                "Shirt",
+                "cat-1",
+                "NEW",
+                "shirt",
+                "ACTIVE",
+                new UpdateSellableProductContext.VariantSync(
+                        "LEAVE_AS_IS",
+                        List.of(new UpdateSellableProductContext.Variant("SKU-1", "", List.of())),
+                        List.of()
+                )
+        );
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                product,
+                List.of(),
+                List.of()
+        );
+        WorkflowInstance started = engine.start(definition, context, null);
+        engine.onSignal(InboundSignal.of(productUpdated(
+                started.id(),
+                List.of("SKU-1"),
+                List.of(new SellableProductProductUpdatedEvent.VariantRef("variant-1", "SKU-1"))
+        )));
+        published.clear();
+
+        engine.onSignal(InboundSignal.failure(
+                started.id(),
+                UpdateSellableProductWorkflowNames.STEP_APPLY_STATUS,
+                new SellableProductStepFailedEvent(
+                        started.id(),
+                        UpdateSellableProductWorkflowNames.STEP_APPLY_STATUS,
+                        "Listing is incomplete.",
+                        Instant.now(),
+                        1
+                ),
+                "failed:apply-status:Listing is incomplete."
+        ));
+
+        WorkflowInstance failed = workflowStore.findById(started.id()).orElseThrow();
+        assertThat(failed.status()).isEqualTo(WorkflowStatus.FAILED);
+        assertThat(published).noneMatch(RequestWritePublicationEvent.class::isInstance);
+        assertThat(published).anyMatch(e -> e instanceof WorkflowTerminalUiEvent terminal
+                && "FAILED".equals(terminal.status())
+                && "Listing is incomplete.".equals(terminal.errorMessage()));
     }
 
     private UpdateSellableProductContext readContext(WorkflowInstance instance) {

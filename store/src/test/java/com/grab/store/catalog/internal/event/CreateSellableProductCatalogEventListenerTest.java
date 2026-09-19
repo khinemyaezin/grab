@@ -42,7 +42,8 @@ class CreateSellableProductCatalogEventListenerTest {
                 if (command instanceof CreateProductSetCommand) {
                     return (R) new CreateProductSetResult(
                             "product-1",
-                            List.of(new CreateProductSetResult.VariantRef("variant-1", "SKU-1"))
+                            List.of(new CreateProductSetResult.VariantRef("variant-1", "SKU-1")),
+                            "DRAFT"
                     );
                 }
                 return null;
@@ -76,6 +77,7 @@ class CreateSellableProductCatalogEventListenerTest {
                         "cat-1",
                         "NEW",
                         "shirt",
+                        "ACTIVE",
                         List.of(new RequestCreateProductSetEvent.Variant("SKU-1", List.of()))
                 ),
                 List.of(),
@@ -86,11 +88,14 @@ class CreateSellableProductCatalogEventListenerTest {
         listener.onRequestCreateProductSet(event);
 
         assertThat(dispatched).hasSize(1);
-        assertThat(dispatched.getFirst()).isInstanceOf(CreateProductSetCommand.class);
+        assertThat(dispatched.getFirst()).isInstanceOfSatisfying(CreateProductSetCommand.class, command ->
+                assertThat(command.product().status()).isEqualTo("ACTIVE")
+        );
         assertThat(outbox.committed()).hasSize(1);
         assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductProductCreatedEvent.class, created -> {
             assertThat(created.workflowId()).isEqualTo("wf-1");
             assertThat(created.productId()).isEqualTo("product-1");
+            assertThat(created.status()).isEqualTo("DRAFT");
             assertThat(created.skus()).containsExactly("SKU-1");
             assertThat(created.variants()).containsExactly(
                     new SellableProductProductCreatedEvent.VariantRef("variant-1", "SKU-1")
