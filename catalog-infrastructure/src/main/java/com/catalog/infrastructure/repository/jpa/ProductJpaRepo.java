@@ -26,7 +26,7 @@ public interface ProductJpaRepo extends EntityRepository<ProductEntity, Long>, J
     @Query("""
             SELECT CASE WHEN COUNT(v) > 0 THEN true ELSE false END
             FROM ProductVariantEntity v
-            WHERE v.product.merchantId = :merchantId
+            WHERE v.merchantId = :merchantId
               AND LOWER(v.sku) = LOWER(:sku)
               AND (:excludeVariantUuid IS NULL OR v.uuid <> :excludeVariantUuid)
             """)
