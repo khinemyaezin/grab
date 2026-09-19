@@ -38,6 +38,7 @@ public class GetProductModelAssembler
             if (currentStatus == ProductStatus.DRAFT) {
                 entity.add(linkTo(methodOn(ProductController.class).publish(response.id(), null)).withRel("publish-product"));
                 entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));
+                entity.add(WorkflowApiLinks.updateSellableProductLink());
             } else if (currentStatus == ProductStatus.ACTIVE) {
                 entity.add(linkTo(methodOn(ProductController.class).suspend(response.id(), null)).withRel("suspend-product"));
                 entity.add(linkTo(methodOn(ProductController.class).deleteProduct(response.id())).withRel("delete-product"));

@@ -13,10 +13,38 @@ public record RequestUpdateProductSetEvent(
         String categoryId,
         String condition,
         String slug,
+        String status,
         VariantSync variantSync,
         Instant occurredAt,
         int version
 ) implements Event {
+
+    public RequestUpdateProductSetEvent(
+            String workflowId,
+            String merchantId,
+            String productId,
+            String name,
+            String categoryId,
+            String condition,
+            String slug,
+            VariantSync variantSync,
+            Instant occurredAt,
+            int version
+    ) {
+        this(
+                workflowId,
+                merchantId,
+                productId,
+                name,
+                categoryId,
+                condition,
+                slug,
+                null,
+                variantSync,
+                occurredAt,
+                version
+        );
+    }
 
     public enum VariantSyncIntent {
         LEAVE_AS_IS,

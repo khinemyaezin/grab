@@ -26,8 +26,13 @@ public record CreateProductSetCommand(
             Id categoryId,
             String condition,
             String slug,
+            String status,
             List<Variant> variants
-    ) {}
+    ) {
+        public Product(String name, Id categoryId, String condition, String slug, List<Variant> variants) {
+            this(name, categoryId, condition, slug, null, variants);
+        }
+    }
 
     public record Description(
             String name,

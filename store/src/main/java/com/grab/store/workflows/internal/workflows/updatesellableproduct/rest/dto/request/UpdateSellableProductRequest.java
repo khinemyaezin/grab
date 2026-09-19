@@ -19,6 +19,8 @@ public record UpdateSellableProductRequest(
         @Valid List<PricingLine> pricingLines,
         @Valid List<PublicationLine> publicationLines,
         @Valid List<PublicationLine> unpublishLines,
+        @Valid List<Media> medias,
+        @Valid List<Description> descriptions,
         String idempotencyKey
 ) {
 
@@ -27,6 +29,7 @@ public record UpdateSellableProductRequest(
             @NotBlank String categoryId,
             String condition,
             String slug,
+            String status,
             @Valid VariantSync variantSync
     ) {
     }
@@ -140,6 +143,22 @@ public record UpdateSellableProductRequest(
     public record PublicationLine(
             @NotBlank String sku,
             @NotBlank String salesChannelId
+    ) {
+    }
+
+    public record Media(
+            String id,
+            @NotBlank String storageKey,
+            String contentType,
+            Integer rank
+    ) {
+    }
+
+    public record Description(
+            String id,
+            @NotBlank String name,
+            String title,
+            @NotBlank String description
     ) {
     }
 }

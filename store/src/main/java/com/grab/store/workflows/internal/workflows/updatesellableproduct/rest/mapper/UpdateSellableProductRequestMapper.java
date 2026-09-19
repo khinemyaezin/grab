@@ -33,6 +33,12 @@ public abstract class UpdateSellableProductRequestMapper {
         List<UpdateSellableProductContext.PublicationLine> unpublishLines = request.unpublishLines() == null
                 ? List.of()
                 : request.unpublishLines().stream().map(this::toContextPublicationLine).toList();
+        List<UpdateSellableProductContext.MediaLine> medias = request.medias() == null
+                ? null
+                : request.medias().stream().map(this::toContextMedia).toList();
+        List<UpdateSellableProductContext.DescriptionLine> descriptions = request.descriptions() == null
+                ? null
+                : request.descriptions().stream().map(this::toContextDescription).toList();
         return UpdateSellableProductContext.createContext(
                 merchantId,
                 createdBy,
@@ -43,7 +49,9 @@ public abstract class UpdateSellableProductRequestMapper {
                 inventoryLines,
                 pricingLines,
                 publicationLines,
-                unpublishLines
+                unpublishLines,
+                medias,
+                descriptions
         );
     }
 
@@ -104,6 +112,12 @@ public abstract class UpdateSellableProductRequestMapper {
 
     protected abstract UpdateSellableProductContext.PublicationLine toContextPublicationLine(
             UpdateSellableProductRequest.PublicationLine publicationLine
+    );
+
+    protected abstract UpdateSellableProductContext.MediaLine toContextMedia(UpdateSellableProductRequest.Media media);
+
+    protected abstract UpdateSellableProductContext.DescriptionLine toContextDescription(
+            UpdateSellableProductRequest.Description description
     );
 
     protected abstract InventorySyncPayload.CreateStock toCreateStock(UpdateSellableProductRequest.CreateStock create);

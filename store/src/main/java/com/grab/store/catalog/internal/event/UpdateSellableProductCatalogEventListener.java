@@ -85,7 +85,8 @@ public class UpdateSellableProductCatalogEventListener {
                 categoryId,
                 event.condition(),
                 event.slug(),
-                variantSync
+                variantSync,
+                event.status()
         );
     }
 

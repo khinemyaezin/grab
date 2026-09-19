@@ -35,7 +35,12 @@ public record UpdateSellableProductContext(
         Set<String> compensatedPublicationKeys,
         List<PublicationLine> unpublishLines,
         List<PublicationPair> unpublishedPublications,
-        Set<String> compensatedUnpublishKeys
+        Set<String> compensatedUnpublishKeys,
+        List<MediaLine> medias,
+        List<DescriptionLine> descriptions,
+        boolean mediasReplaced,
+        boolean descriptionsReplaced,
+        boolean statusApplied
 ) {
 
     public UpdateSellableProductContext {
@@ -64,6 +69,12 @@ public record UpdateSellableProductContext(
         compensatedUnpublishKeys = compensatedUnpublishKeys == null
                 ? Set.of()
                 : Set.copyOf(compensatedUnpublishKeys);
+        if (medias != null) {
+            medias = List.copyOf(medias);
+        }
+        if (descriptions != null) {
+            descriptions = List.copyOf(descriptions);
+        }
     }
 
     public static UpdateSellableProductContext createContext(
@@ -126,6 +137,36 @@ public record UpdateSellableProductContext(
             List<PublicationLine> publicationLines,
             List<PublicationLine> unpublishLines
     ) {
+        return createContext(
+                merchantId,
+                createdBy,
+                scopeKey,
+                scopeId,
+                productId,
+                product,
+                inventoryLines,
+                pricingLines,
+                publicationLines,
+                unpublishLines,
+                null,
+                null
+        );
+    }
+
+    public static UpdateSellableProductContext createContext(
+            String merchantId,
+            String createdBy,
+            String scopeKey,
+            String scopeId,
+            String productId,
+            Product product,
+            List<InventoryLine> inventoryLines,
+            List<PricingLine> pricingLines,
+            List<PublicationLine> publicationLines,
+            List<PublicationLine> unpublishLines,
+            List<MediaLine> medias,
+            List<DescriptionLine> descriptions
+    ) {
         return new UpdateSellableProductContext(
                 merchantId,
                 createdBy,
@@ -151,7 +192,12 @@ public record UpdateSellableProductContext(
                 Set.of(),
                 unpublishLines,
                 List.of(),
-                Set.of()
+                Set.of(),
+                medias,
+                descriptions,
+                false,
+                false,
+                false
         );
     }
 
@@ -717,7 +763,132 @@ public record UpdateSellableProductContext(
                 newCompensatedPublicationKeys,
                 newUnpublishLines,
                 newUnpublishedPublications,
-                newCompensatedUnpublishKeys
+                newCompensatedUnpublishKeys,
+                medias,
+                descriptions,
+                mediasReplaced,
+                descriptionsReplaced,
+                statusApplied
+        );
+    }
+
+    @JsonIgnore
+    public boolean shouldReplaceMedias() {
+        return medias != null;
+    }
+
+    @JsonIgnore
+    public boolean shouldReplaceDescriptions() {
+        return descriptions != null;
+    }
+
+    @JsonIgnore
+    public boolean shouldApplyStatus() {
+        return product != null && product.status() != null && !product.status().isBlank();
+    }
+
+    public UpdateSellableProductContext withMediasReplaced() {
+        return new UpdateSellableProductContext(
+                merchantId,
+                createdBy,
+                scopeKey,
+                scopeId,
+                productId,
+                product,
+                inventoryLines,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys,
+                unpublishLines,
+                unpublishedPublications,
+                compensatedUnpublishKeys,
+                medias,
+                descriptions,
+                true,
+                descriptionsReplaced,
+                statusApplied
+        );
+    }
+
+    public UpdateSellableProductContext withDescriptionsReplaced() {
+        return new UpdateSellableProductContext(
+                merchantId,
+                createdBy,
+                scopeKey,
+                scopeId,
+                productId,
+                product,
+                inventoryLines,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys,
+                unpublishLines,
+                unpublishedPublications,
+                compensatedUnpublishKeys,
+                medias,
+                descriptions,
+                mediasReplaced,
+                true,
+                statusApplied
+        );
+    }
+
+    public UpdateSellableProductContext withStatusApplied() {
+        return new UpdateSellableProductContext(
+                merchantId,
+                createdBy,
+                scopeKey,
+                scopeId,
+                productId,
+                product,
+                inventoryLines,
+                pricingLines,
+                publicationLines,
+                variantRefs,
+                pricePairs,
+                createdPriceSetIds,
+                inventoryItemIds,
+                createdInventoryItemIds,
+                productUpdated,
+                compensatedPriceSetIds,
+                assertedChannelIds,
+                productAsserted,
+                stockPathCheckedChannelIds,
+                missingRouteChannelIds,
+                writtenPublications,
+                compensatedPublicationKeys,
+                unpublishLines,
+                unpublishedPublications,
+                compensatedUnpublishKeys,
+                medias,
+                descriptions,
+                mediasReplaced,
+                descriptionsReplaced,
+                true
         );
     }
 
@@ -726,8 +897,12 @@ public record UpdateSellableProductContext(
             String categoryId,
             String condition,
             String slug,
+            String status,
             VariantSync variantSync
     ) {
+        public Product(String name, String categoryId, String condition, String slug, VariantSync variantSync) {
+            this(name, categoryId, condition, slug, null, variantSync);
+        }
     }
 
     public record VariantSync(
@@ -843,5 +1018,21 @@ public record UpdateSellableProductContext(
     }
 
     public record PublicationPair(String variantId, String sku, String salesChannelId) {
+    }
+
+    public record MediaLine(
+            String id,
+            String storageKey,
+            String contentType,
+            Integer rank
+    ) {
+    }
+
+    public record DescriptionLine(
+            String id,
+            String name,
+            String title,
+            String description
+    ) {
     }
 }

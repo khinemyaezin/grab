@@ -64,7 +64,9 @@ class UpdateSellableProductCatalogEventListenerTest {
         listener.onRequestUpdateProductSet(sampleEvent());
 
         assertThat(dispatched).hasSize(1);
-        assertThat(dispatched.getFirst()).isInstanceOf(UpdateProductCommand.class);
+        assertThat(dispatched.getFirst()).isInstanceOfSatisfying(UpdateProductCommand.class, command -> {
+            assertThat(command.status()).isNull();
+        });
         assertThat(outbox.committed()).hasSize(1);
         assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(SellableProductProductUpdatedEvent.class, updated -> {
             assertThat(updated.workflowId()).isEqualTo("wf-1");
@@ -97,6 +99,31 @@ class UpdateSellableProductCatalogEventListenerTest {
             assertThat(failed.workflowId()).isEqualTo("wf-1");
             assertThat(failed.step()).isEqualTo("update-product");
             assertThat(failed.message()).isEqualTo("boom");
+        });
+    }
+
+    @Test
+    void onRequestUpdateProductSet_shouldForwardStatusOntoCommand() {
+        listener.onRequestUpdateProductSet(new RequestUpdateProductSetEvent(
+                "wf-1",
+                "merchant-1",
+                "product-1",
+                "Shirt",
+                "cat-1",
+                "NEW",
+                "shirt",
+                "ACTIVE",
+                new RequestUpdateProductSetEvent.VariantSync(
+                        RequestUpdateProductSetEvent.VariantSyncIntent.LEAVE_AS_IS,
+                        List.of(),
+                        List.of()
+                ),
+                Instant.now(),
+                1
+        ));
+
+        assertThat(dispatched.getFirst()).isInstanceOfSatisfying(UpdateProductCommand.class, command -> {
+            assertThat(command.status()).isEqualTo("ACTIVE");
         });
     }
 

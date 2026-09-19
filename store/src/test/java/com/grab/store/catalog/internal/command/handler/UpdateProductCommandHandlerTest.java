@@ -1,7 +1,9 @@
 package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
+import com.catalog.domain.aggregate.Description;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductMedia;
 import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.repository.CategoryRepository;
 import com.catalog.domain.repository.ProductRepository;
@@ -117,6 +119,55 @@ class UpdateProductCommandHandlerTest {
         assertThat(result.categoryId()).isEqualTo(NEW_CATEGORY_ID);
         assertThat(result.status()).isEqualTo(ProductStatus.DRAFT.name());
         assertThat(result.slug()).isEqualTo("new-name");
+    }
+
+    @Test
+    void handle_whenStatusActive_leavesDraftUntilApplyStatus() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Product existing = publishableProduct(productId, categoryId, variantId);
+        stubProductAndCategory(productId, categoryId, existing);
+
+        UpdateProductCommand command = new UpdateProductCommand(
+                productId,
+                productId,
+                "Old Name",
+                categoryId,
+                null,
+                null,
+                null,
+                "ACTIVE"
+        );
+        UpdateProductResult result = handler.handle(command);
+
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(productCaptor.getValue().getStatus()).isEqualTo(ProductStatus.DRAFT);
+        assertThat(result.status()).isEqualTo(ProductStatus.DRAFT.name());
+    }
+
+    @Test
+    void handle_whenStatusOmitted_leavesDraft() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        Id variantId = new CommonId(VARIANT_ID);
+        Product existing = publishableProduct(productId, categoryId, variantId);
+        stubProductAndCategory(productId, categoryId, existing);
+
+        UpdateProductCommand command = new UpdateProductCommand(
+                productId,
+                productId,
+                "Old Name",
+                categoryId,
+                null,
+                null,
+                null
+        );
+        UpdateProductResult result = handler.handle(command);
+
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(productCaptor.getValue().getStatus()).isEqualTo(ProductStatus.DRAFT);
+        assertThat(result.status()).isEqualTo(ProductStatus.DRAFT.name());
     }
 
     @Test
@@ -273,6 +324,34 @@ class UpdateProductCommandHandlerTest {
         product.addVariant(ProductVariant.create(
                 variantId,
                 sku,
+                List.of(new ProductVariation(
+                        new CommonId(StandaloneVariationFactory.OPTION_ID),
+                        new CommonId(StandaloneVariationFactory.TYPE_ID)
+                ))
+        ));
+        return product;
+    }
+
+    private Product publishableProduct(Id productId, Id categoryId, Id variantId) {
+        Product product = Product.create(
+                productId,
+                productId,
+                "Old Name",
+                categoryId,
+                null,
+                null,
+                List.of(Description.create(new CommonId("desc-1"), "Default", "Title", "A description")),
+                List.of(new ProductMedia(
+                        new CommonId("media-1"),
+                        "merchants/m/products/p/1.jpg",
+                        "http://minio/1.jpg",
+                        "image/jpeg",
+                        0
+                ))
+        );
+        product.addVariant(ProductVariant.create(
+                variantId,
+                STANDALONE_SKU,
                 List.of(new ProductVariation(
                         new CommonId(StandaloneVariationFactory.OPTION_ID),
                         new CommonId(StandaloneVariationFactory.TYPE_ID)

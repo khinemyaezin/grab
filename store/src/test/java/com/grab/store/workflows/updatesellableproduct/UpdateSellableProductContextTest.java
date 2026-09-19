@@ -221,6 +221,50 @@ class UpdateSellableProductContextTest {
         ).createdPriceSetIds()).hasSize(1);
     }
 
+    @Test
+    void omittedListing_shouldSkipReplaceAndBlankStatusShouldSkipApply() {
+        UpdateSellableProductContext omitted = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                product(),
+                List.of(),
+                List.of()
+        );
+
+        assertThat(omitted.shouldReplaceMedias()).isFalse();
+        assertThat(omitted.shouldReplaceDescriptions()).isFalse();
+        assertThat(omitted.shouldApplyStatus()).isFalse();
+
+        UpdateSellableProductContext present = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                new UpdateSellableProductContext.Product(
+                        "Shirt",
+                        "cat-1",
+                        "NEW",
+                        "shirt",
+                        "ACTIVE",
+                        null
+                ),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
+
+        assertThat(present.shouldReplaceMedias()).isTrue();
+        assertThat(present.shouldReplaceDescriptions()).isTrue();
+        assertThat(present.shouldApplyStatus()).isTrue();
+    }
+
     private static UpdateSellableProductContext.Product product() {
         return new UpdateSellableProductContext.Product("Shirt", "cat-1", "NEW", "shirt", null);
     }

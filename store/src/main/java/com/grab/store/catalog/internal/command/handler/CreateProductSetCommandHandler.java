@@ -73,7 +73,11 @@ public class CreateProductSetCommandHandler implements CommandHandler<CreateProd
                         variant.getSku()
                 ))
                 .toList();
-        return new CreateProductSetResult(product.getId().getValue(), variantRefs);
+        return new CreateProductSetResult(
+                product.getId().getValue(),
+                variantRefs,
+                product.getStatus() == null ? null : product.getStatus().name()
+        );
     }
 
     @Override

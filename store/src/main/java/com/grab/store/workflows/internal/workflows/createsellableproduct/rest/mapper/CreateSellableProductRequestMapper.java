@@ -32,6 +32,17 @@ public abstract class CreateSellableProductRequestMapper {
                 : request.pricingLines().stream()
                 .map(this::toContextPricingLine)
                 .toList();
+        List<CreateSellableProductContext.PublicationLine> publicationLines = request.publicationLines() == null
+                ? List.of()
+                : request.publicationLines().stream()
+                .map(this::toContextPublicationLine)
+                .toList();
+        List<CreateSellableProductContext.MediaLine> medias = request.medias() == null
+                ? null
+                : request.medias().stream().map(this::toContextMedia).toList();
+        List<CreateSellableProductContext.DescriptionLine> descriptions = request.descriptions() == null
+                ? null
+                : request.descriptions().stream().map(this::toContextDescription).toList();
         return CreateSellableProductContext.createContext(
                 merchantId,
                 createdBy,
@@ -40,7 +51,10 @@ public abstract class CreateSellableProductRequestMapper {
                 product,
                 variantTypes,
                 inventoryLines,
-                pricingLines
+                pricingLines,
+                publicationLines,
+                medias,
+                descriptions
         );
     }
 
@@ -73,4 +87,14 @@ public abstract class CreateSellableProductRequestMapper {
     protected abstract CreateSellableProductContext.InventoryLine toContextInventoryLine(CreateSellableProductRequest.InventoryLine inventoryLine);
 
     protected abstract CreateSellableProductContext.PricingLine toContextPricingLine(CreateSellableProductRequest.PricingLine pricingLine);
+
+    protected abstract CreateSellableProductContext.PublicationLine toContextPublicationLine(
+            CreateSellableProductRequest.PublicationLine publicationLine
+    );
+
+    protected abstract CreateSellableProductContext.MediaLine toContextMedia(CreateSellableProductRequest.Media media);
+
+    protected abstract CreateSellableProductContext.DescriptionLine toContextDescription(
+            CreateSellableProductRequest.Description description
+    );
 }

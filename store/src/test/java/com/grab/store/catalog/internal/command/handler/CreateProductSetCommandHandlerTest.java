@@ -2,6 +2,7 @@ package com.grab.store.catalog.internal.command.handler;
 
 import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.aggregate.Product;
+import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.event.ProductVariantAddedEvent;
 import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.service.SkuGenerator;
@@ -9,6 +10,7 @@ import com.catalog.domain.service.MatrixCombinationService;
 import com.catalog.domain.service.MatrixCombinationSynchronizer;
 import com.catalog.domain.service.MatrixKeyGenerator;
 import com.catalog.domain.service.dto.VariantOptionSelection;
+import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.domain.repository.CategoryRepository;
@@ -320,5 +322,38 @@ class CreateProductSetCommandHandlerTest {
                     assertThat(typed.getMessageSource().code()).isEqualTo("cat.service.variant.sku_already_exists");
                     assertThat(typed.getMessageSource().kind()).isEqualTo(ErrorCategory.CONFLICT);
                 });
+    }
+
+    @Test
+    void handle_requestedActive_staysDraftUntilApplyStatus() {
+        Id productId = new CommonId(PRODUCT_ID);
+        Id categoryId = new CommonId(CATEGORY_ID);
+        Id generatedVariantId = new CommonId(VARIANT_ID);
+
+        CreateProductSetCommand command = new CreateProductSetCommand(
+                categoryId,
+                new CreateProductSetCommand.Product(
+                        "Simple Product",
+                        categoryId,
+                        null,
+                        null,
+                        "ACTIVE",
+                        List.of()
+                ),
+                List.of()
+        );
+
+        when(categoryRepository.find(categoryId)).thenReturn(Optional.of(Category.createRoot(categoryId, "Category")));
+        when(uniqueSlugResolver.resolve(categoryId, null, "Simple Product", null)).thenReturn("simple-product");
+        when(idGenerator.generateId()).thenReturn(productId, generatedVariantId);
+        when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0, String.class)));
+        when(skuGenerator.generate(any())).thenReturn("SMP");
+        when(productRepository.isSkuTaken(eq(categoryId), eq("SMP"), isNull())).thenReturn(false);
+
+        CreateProductSetResult result = handler.handle(command);
+
+        verify(productRepository).save(productCaptor.capture());
+        assertThat(productCaptor.getValue().getStatus()).isEqualTo(ProductStatus.DRAFT);
+        assertThat(result.status()).isEqualTo("DRAFT");
     }
 }

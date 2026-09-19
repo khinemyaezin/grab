@@ -102,6 +102,52 @@ class CreateSellableProductRequestContractTest {
     }
 
     @Test
+    void optionalStatusAndPublicationLines_shouldDeserialize() throws Exception {
+        CreateSellableProductRequest request = json.readValue("""
+                {
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "status": "ACTIVE",
+                    "variants": [{ "sku": "SKU-1", "variations": [], "manageInventory": false }]
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-1", "currencyCode": "USD", "amount": 19.99 }
+                  ],
+                  "publicationLines": [
+                    { "sku": "SKU-1", "salesChannelId": "web-1" }
+                  ]
+                }
+                """, CreateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.product().status()).isEqualTo("ACTIVE");
+        assertThat(request.publicationLines()).containsExactly(
+                new CreateSellableProductRequest.PublicationLine("SKU-1", "web-1")
+        );
+    }
+
+    @Test
+    void omittedStatusAndPublicationLines_shouldBeNull() throws Exception {
+        CreateSellableProductRequest request = json.readValue("""
+                {
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variants": [{ "sku": "SKU-1", "variations": [], "manageInventory": false }]
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-1", "currencyCode": "USD", "amount": 19.99 }
+                  ]
+                }
+                """, CreateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.product().status()).isNull();
+        assertThat(request.publicationLines()).isNull();
+    }
+
+    @Test
     void variantWithoutPricingLine_shouldFail() throws Exception {
         CreateSellableProductRequest request = json.readValue("""
                 {
@@ -117,6 +163,78 @@ class CreateSellableProductRequestContractTest {
                 """, CreateSellableProductRequest.class);
 
         assertThat(propertyPaths(validator.validate(request))).isNotEmpty();
+    }
+
+    @Test
+    void omittedListing_shouldBeNull() throws Exception {
+        CreateSellableProductRequest request = json.readValue("""
+                {
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variants": [{ "sku": "SKU-1", "variations": [], "manageInventory": false }]
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-1", "currencyCode": "USD", "amount": 19.99 }
+                  ]
+                }
+                """, CreateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.medias()).isNull();
+        assertThat(request.descriptions()).isNull();
+    }
+
+    @Test
+    void presentListing_shouldDeserializeMediasAndDescriptions() throws Exception {
+        CreateSellableProductRequest request = json.readValue("""
+                {
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variants": [{ "sku": "SKU-1", "variations": [], "manageInventory": false }]
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-1", "currencyCode": "USD", "amount": 19.99 }
+                  ],
+                  "medias": [
+                    { "storageKey": "staged/hero.jpg", "contentType": "image/jpeg", "rank": 0 }
+                  ],
+                  "descriptions": [
+                    { "name": "overview", "title": "Overview", "description": "A cotton shirt" }
+                  ]
+                }
+                """, CreateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.medias()).containsExactly(
+                new CreateSellableProductRequest.Media(null, "staged/hero.jpg", "image/jpeg", 0)
+        );
+        assertThat(request.descriptions()).containsExactly(
+                new CreateSellableProductRequest.Description(null, "overview", "Overview", "A cotton shirt")
+        );
+    }
+
+    @Test
+    void emptyListing_shouldDeserializeAsEmptyLists() throws Exception {
+        CreateSellableProductRequest request = json.readValue("""
+                {
+                  "product": {
+                    "name": "Shirt",
+                    "categoryId": "cat-1",
+                    "variants": [{ "sku": "SKU-1", "variations": [], "manageInventory": false }]
+                  },
+                  "pricingLines": [
+                    { "sku": "SKU-1", "currencyCode": "USD", "amount": 19.99 }
+                  ],
+                  "medias": [],
+                  "descriptions": []
+                }
+                """, CreateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.medias()).isEmpty();
+        assertThat(request.descriptions()).isEmpty();
     }
 
     private Set<String> propertyPaths(Set<ConstraintViolation<CreateSellableProductRequest>> violations) {

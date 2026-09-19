@@ -25,6 +25,9 @@ class GetProductModelAssemblerTest {
                 .contains("/products/prod-1/media");
         assertThat(model.getRequiredLink("replace-product-descriptions").getHref())
                 .contains("/products/prod-1/descriptions");
+        assertThat(model.getLink("update-sellable-product")).isPresent();
+        assertThat(model.getRequiredLink("update-sellable-product").getHref())
+                .contains("/workflows/update-sellable-product");
     }
 
     @Test

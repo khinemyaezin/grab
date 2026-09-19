@@ -96,6 +96,7 @@ public class CreateSellableProductCatalogEventListener {
                 result.productId(),
                 skus,
                 variants,
+                result.status(),
                 Instant.now(),
                 EVENT_VERSION
         ));
@@ -151,6 +152,7 @@ public class CreateSellableProductCatalogEventListener {
                         idGenerator.convertIdFrom(product.categoryId()),
                         product.condition(),
                         product.slug(),
+                        product.status(),
                         variants
                 ),
                 variantTypes
