@@ -9,9 +9,13 @@ import java.util.Objects;
 
 public final class ProductPublicationPolicy {
 
+    public boolean isPublishable(Product product) {
+        return Objects.requireNonNull(product, "product is required").getStatus() == ProductStatus.ACTIVE;
+    }
+
     public void requirePublishable(Product product) {
         Product required = Objects.requireNonNull(product, "product is required");
-        if (required.getStatus() != ProductStatus.ACTIVE) {
+        if (!isPublishable(required)) {
             throw new CatalogDomainValidationException(
                     new CatalogDomainError.ProductNotPublishable(required.getStatus().name()),
                     "Product must be ACTIVE to publish to a sales channel"

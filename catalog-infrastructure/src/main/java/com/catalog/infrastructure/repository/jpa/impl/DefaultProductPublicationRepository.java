@@ -4,9 +4,11 @@ import com.catalog.domain.aggregate.ProductPublication;
 import com.catalog.domain.repository.ProductPublicationRepository;
 import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductPublicationEntity;
+import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.mapper.jpa.ProductPublicationJpaAssembler;
 import com.catalog.infrastructure.repository.jpa.ProductJpaRepo;
 import com.catalog.infrastructure.repository.jpa.ProductPublicationJpaRepository;
+import com.catalog.infrastructure.repository.jpa.ProductVariantJpaRepo;
 import com.grab.framework.domain.Event;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
@@ -20,23 +22,39 @@ import java.util.Optional;
 public class DefaultProductPublicationRepository implements ProductPublicationRepository {
 
     private final ProductPublicationJpaRepository jpaRepository;
+    private final ProductVariantJpaRepo variantJpaRepo;
     private final ProductJpaRepo productJpaRepo;
     private final ProductPublicationJpaAssembler mapper;
     private final DomainEventProducer domainEventProducer;
     private final PersistenceExecutor executor;
 
     @Override
-    public Optional<ProductPublication> find(Id productId, Id salesChannelId) {
+    public Optional<ProductPublication> find(Id variantId, Id salesChannelId) {
         return executor.query("ProductPublication", () -> {
-            Optional<ProductEntity> product = productJpaRepo.findByUuid(productId.getValue());
-            if (product.isEmpty()) {
+            Optional<ProductVariantEntity> variant = variantJpaRepo.findByUuid(variantId.getValue());
+            if (variant.isEmpty()) {
                 return Optional.empty();
             }
-            ProductEntity productEntity = product.get();
-            Optional<ProductPublicationEntity> entity = jpaRepository.findByProductIdAndSalesChannelId(
-                    productEntity.getId(),
+            ProductVariantEntity variantEntity = variant.get();
+            Optional<ProductPublicationEntity> entity = jpaRepository.findByVariantIdAndSalesChannelId(
+                    variantEntity.getId(),
                     salesChannelId.getValue());
-            return entity.map(publicationEntity -> mapper.toFullDomainGraph(publicationEntity, productEntity));
+            return entity.map(publicationEntity -> mapper.toFullDomainGraph(publicationEntity, variantEntity));
+        });
+    }
+
+    @Override
+    public List<ProductPublication> findByVariantId(Id variantId) {
+        return executor.query("ProductPublication", () -> {
+            Optional<ProductVariantEntity> variant = variantJpaRepo.findByUuid(variantId.getValue());
+            if (variant.isEmpty()) {
+                return List.of();
+            }
+            ProductVariantEntity variantEntity = variant.get();
+            List<ProductPublicationEntity> entities = jpaRepository.findByVariantId(variantEntity.getId());
+            return entities.stream()
+                    .map(entity -> mapper.toFullDomainGraph(entity, variantEntity))
+                    .toList();
         });
     }
 
@@ -50,21 +68,21 @@ public class DefaultProductPublicationRepository implements ProductPublicationRe
             ProductEntity productEntity = product.get();
             List<ProductPublicationEntity> entities = jpaRepository.findByProductId(productEntity.getId());
             return entities.stream()
-                    .map(entity -> mapper.toFullDomainGraph(entity, productEntity))
+                    .map(this::toDomain)
                     .toList();
         });
     }
 
     @Override
-    public boolean exists(Id productId, Id salesChannelId) {
+    public boolean exists(Id variantId, Id salesChannelId) {
         return executor.query("ProductPublication", () -> {
-            Optional<ProductEntity> product = productJpaRepo.findByUuid(productId.getValue());
-            if (product.isEmpty()) {
+            Optional<ProductVariantEntity> variant = variantJpaRepo.findByUuid(variantId.getValue());
+            if (variant.isEmpty()) {
                 return false;
             }
-            ProductEntity productEntity = product.get();
-            return jpaRepository.existsByProductIdAndSalesChannelId(
-                    productEntity.getId(),
+            ProductVariantEntity variantEntity = variant.get();
+            return jpaRepository.existsByVariantIdAndSalesChannelId(
+                    variantEntity.getId(),
                     salesChannelId.getValue());
         });
     }
@@ -72,15 +90,15 @@ public class DefaultProductPublicationRepository implements ProductPublicationRe
     @Override
     public void save(ProductPublication publication) {
         executor.command("ProductPublication", () -> {
-            ProductEntity product = productJpaRepo.findByUuid(publication.getProductId().getValue())
-                    .orElseThrow(() -> new IllegalStateException("Product not found for publication"));
-            Optional<ProductPublicationEntity> existingEntity = jpaRepository.findByProductIdAndSalesChannelId(
-                    product.getId(),
+            ProductVariantEntity variant = variantJpaRepo.findByUuid(publication.getVariantId().getValue())
+                    .orElseThrow(() -> new IllegalStateException("Variant not found for publication"));
+            Optional<ProductPublicationEntity> existingEntity = jpaRepository.findByVariantIdAndSalesChannelId(
+                    variant.getId(),
                     publication.getSalesChannelId().getValue());
             ProductPublicationEntity entity = mapper.buildFullEntityGraph(
                     publication,
                     existingEntity.orElse(null),
-                    product);
+                    variant);
             jpaRepository.save(entity);
             List<Event> events = publication.pullEvents();
             domainEventProducer.produce(
@@ -94,10 +112,10 @@ public class DefaultProductPublicationRepository implements ProductPublicationRe
     @Override
     public void delete(ProductPublication publication) {
         executor.command("ProductPublication", () -> {
-            Optional<ProductEntity> product = productJpaRepo.findByUuid(publication.getProductId().getValue());
-            product.ifPresent(productEntity -> {
-                Optional<ProductPublicationEntity> entity = jpaRepository.findByProductIdAndSalesChannelId(
-                        productEntity.getId(),
+            Optional<ProductVariantEntity> variant = variantJpaRepo.findByUuid(publication.getVariantId().getValue());
+            variant.ifPresent(variantEntity -> {
+                Optional<ProductPublicationEntity> entity = jpaRepository.findByVariantIdAndSalesChannelId(
+                        variantEntity.getId(),
                         publication.getSalesChannelId().getValue());
                 entity.ifPresent(jpaRepository::delete);
             });
@@ -108,5 +126,11 @@ public class DefaultProductPublicationRepository implements ProductPublicationRe
                     events);
             return null;
         });
+    }
+
+    private ProductPublication toDomain(ProductPublicationEntity entity) {
+        ProductVariantEntity variant = variantJpaRepo.findById(entity.getVariantId())
+                .orElseThrow(() -> new IllegalStateException("Variant not found for publication"));
+        return mapper.toFullDomainGraph(entity, variant);
     }
 }

@@ -312,6 +312,102 @@ class UpdateSellableProductRequestContractTest {
                 .anyMatch(path -> path.contains("inventoryLines") && path.contains("sku"));
     }
 
+    @Test
+    void deserialize_withoutPublicationLines_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" }
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(request.publicationLines()).isNull();
+        assertThat(validator.validate(request)).isEmpty();
+    }
+
+    @Test
+    void deserialize_publicationLines_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" },
+                  "publicationLines": [
+                    { "sku": "SKU-1", "salesChannelId": "web-1" },
+                    { "sku": "SKU-2", "salesChannelId": "pos-1" }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.publicationLines()).hasSize(2);
+        assertThat(request.publicationLines().getFirst().sku()).isEqualTo("SKU-1");
+        assertThat(request.publicationLines().getFirst().salesChannelId()).isEqualTo("web-1");
+    }
+
+    @Test
+    void validate_publicationLineMissingChannel_shouldFail() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" },
+                  "publicationLines": [
+                    { "sku": "SKU-1" }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request)))
+                .anyMatch(path -> path.contains("publicationLines") && path.contains("salesChannelId"));
+    }
+
+    @Test
+    void deserialize_withoutUnpublishLines_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" }
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(request.unpublishLines()).isNull();
+        assertThat(validator.validate(request)).isEmpty();
+    }
+
+    @Test
+    void deserialize_unpublishLines_shouldBeValid() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" },
+                  "unpublishLines": [
+                    { "sku": "SKU-1", "salesChannelId": "web-1" },
+                    { "sku": "SKU-2", "salesChannelId": "pos-1" }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.unpublishLines()).hasSize(2);
+        assertThat(request.unpublishLines().getFirst().sku()).isEqualTo("SKU-1");
+        assertThat(request.unpublishLines().getFirst().salesChannelId()).isEqualTo("web-1");
+    }
+
+    @Test
+    void validate_unpublishLineMissingChannel_shouldFail() throws Exception {
+        UpdateSellableProductRequest request = json.readValue("""
+                {
+                  "productId": "prod-1",
+                  "product": { "name": "Shirt", "categoryId": "cat-1" },
+                  "unpublishLines": [
+                    { "sku": "SKU-1" }
+                  ]
+                }
+                """, UpdateSellableProductRequest.class);
+
+        assertThat(propertyPaths(validator.validate(request)))
+                .anyMatch(path -> path.contains("unpublishLines") && path.contains("salesChannelId"));
+    }
+
     private Set<String> propertyPaths(Set<ConstraintViolation<UpdateSellableProductRequest>> violations) {
         return violations.stream()
                 .map(violation -> violation.getPropertyPath().toString())

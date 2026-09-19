@@ -1,19 +1,19 @@
 package com.catalog.infrastructure.mapper.jpa;
 
 import com.catalog.domain.aggregate.ProductPublication;
-import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductPublicationEntity;
+import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 
 public interface ProductPublicationJpaAssembler {
 
     ProductPublicationEntity buildFullEntityGraph(
             ProductPublication publication,
             ProductPublicationEntity entity,
-            ProductEntity product
+            ProductVariantEntity variant
     );
 
     ProductPublication toFullDomainGraph(
             ProductPublicationEntity entity,
-            ProductEntity product
+            ProductVariantEntity variant
     );
 }

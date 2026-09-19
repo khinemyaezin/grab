@@ -45,6 +45,7 @@ public class ProductController {
     private final RestoreVariantModelAssembler restoreVariantModelAssembler;
     private final SyncVariantsModelAssembler syncVariantsModelAssembler;
     private final GetVariantModelAssembler getVariantModelAssembler;
+    private final ProductPublicationModelAssembler productPublicationModelAssembler;
 
     @GetMapping(value = "/{productId}")
     public ResponseEntity<EntityModel<GetProductResponse>> getProduct(@PathVariable String productId) {
@@ -246,6 +247,14 @@ public class ProductController {
             @RequestBody(required = false) ProductModerationRequest request) {
         ProductModerationResponse response = productCommandService.moderateProduct(productId, "RESTORE", request);
         return ResponseEntity.ok(toProductCommandModel(response));
+    }
+
+    @PostMapping(value = "/{productId}/channels/unpublish")
+    public ResponseEntity<EntityModel<ProductPublicationResponse>> unpublishFromChannel(
+            @PathVariable String productId,
+            @Valid @RequestBody UnpublishProductFromChannelRequest request) {
+        ProductPublicationResponse response = productCommandService.unpublishFromChannel(productId, request);
+        return ResponseEntity.ok(productPublicationModelAssembler.toModel(response));
     }
 
     @PostMapping(value = "/bulk/upsert")

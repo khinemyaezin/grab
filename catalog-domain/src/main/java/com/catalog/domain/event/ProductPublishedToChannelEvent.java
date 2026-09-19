@@ -4,7 +4,7 @@ import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 
 public record ProductPublishedToChannelEvent(
-        Id productId,
+        Id variantId,
         Id salesChannelId
 ) implements Event {
 }

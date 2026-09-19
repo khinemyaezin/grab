@@ -76,7 +76,7 @@ public class MerchantInfraConfig {
     }
 
     @Bean
-    MerchantOutboxEventProcessor processor(
+    MerchantOutboxEventProcessor merchantOutboxEventProcessor(
             @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store,
             @Qualifier("merchantOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("merchantOutboxEventDispatcher") OutboxEventDispatcher dispatcher,

@@ -14,7 +14,7 @@ import com.grab.store.pricing.internal.command.PriceListResult;
 import com.grab.store.pricing.internal.command.PricePreferenceResult;
 import com.grab.store.pricing.internal.command.PriceRuleInput;
 import com.grab.store.pricing.internal.command.PriceSetResult;
-import com.grab.store.pricing.queries.CalculatedPriceSetResult;
+import com.grab.store.pricing.internal.query.CalculatedPriceSetResult;
 
 import java.util.List;
 

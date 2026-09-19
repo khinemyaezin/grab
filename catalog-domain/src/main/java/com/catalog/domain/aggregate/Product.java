@@ -438,6 +438,12 @@ public class Product extends AggregateRoot<Id> {
     }
 
     public void ensurePublishable() {
+        if (this.descriptions.isEmpty() || this.medias.isEmpty()) {
+            throw new CatalogDomainValidationException(
+                    new CatalogDomainError.ListingIncomplete(),
+                    "Listing is incomplete."
+            );
+        }
         if (this.getActiveVariants().isEmpty()) {
             throw new CatalogDomainValidationException(
                     new CatalogDomainError.ProductActivationRequiresActiveVariants(),

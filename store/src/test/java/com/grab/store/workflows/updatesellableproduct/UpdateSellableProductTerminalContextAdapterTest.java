@@ -47,4 +47,25 @@ class UpdateSellableProductTerminalContextAdapterTest {
 
         assertThat(adapter.from(context).partiallyApplied()).isTrue();
     }
+
+    @Test
+    void from_whenPublicationWritten_shouldMarkPartial() {
+        UpdateSellableProductContext context = UpdateSellableProductContext.createContext(
+                "merchant-1",
+                "actor-1",
+                "MERCHANT_ACCOUNT",
+                "merchant-1",
+                "product-1",
+                new UpdateSellableProductContext.Product("Shirt", "cat-1", "NEW", "shirt", null),
+                List.of(),
+                List.of(),
+                List.of(new UpdateSellableProductContext.PublicationLine("SKU-1", "variant-1", "web-1"))
+        ).withPublicationWritten(new UpdateSellableProductContext.PublicationPair(
+                "variant-1",
+                "SKU-1",
+                "web-1"
+        ));
+
+        assertThat(adapter.from(context).partiallyApplied()).isTrue();
+    }
 }

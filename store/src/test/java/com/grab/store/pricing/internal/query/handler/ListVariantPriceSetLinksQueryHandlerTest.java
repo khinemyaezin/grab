@@ -1,7 +1,7 @@
 package com.grab.store.pricing.internal.query.handler;
 
-import com.grab.store.pricing.queries.ListVariantPriceSetLinksQuery;
-import com.grab.store.pricing.queries.VariantPriceSetLinkResult;
+import com.grab.store.pricing.internal.query.ListVariantPriceSetLinksQuery;
+import com.grab.store.pricing.internal.query.VariantPriceSetLinkResult;
 import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkQueryRepository;
 import com.pricing.infrastructure.view.VariantPriceSetLinkView;
 import org.junit.jupiter.api.BeforeEach;

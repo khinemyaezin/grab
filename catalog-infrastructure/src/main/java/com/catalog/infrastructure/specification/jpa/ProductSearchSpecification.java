@@ -7,6 +7,7 @@ import com.catalog.infrastructure.entity.entity.ProductEntity;
 import com.catalog.infrastructure.entity.entity.ProductPublicationEntity;
 import com.catalog.infrastructure.entity.entity.ProductVariantEntity;
 import com.catalog.infrastructure.entity.meta.ProductEntity_;
+import com.catalog.infrastructure.entity.meta.ProductPublicationEntity_;
 import com.catalog.infrastructure.entity.meta.ProductVariantEntity_;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
 import com.catalog.infrastructure.view.ProductPublicationView;
@@ -131,14 +132,17 @@ public class ProductSearchSpecification {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<ProductPublicationView> query = cb.createQuery(ProductPublicationView.class);
         Root<ProductPublicationEntity> publication = query.from(ProductPublicationEntity.class);
+        Root<ProductVariantEntity> variant = query.from(ProductVariantEntity.class);
         Root<ProductEntity> product = query.from(ProductEntity.class);
         query.select(cb.construct(
                 ProductPublicationView.class,
                 product.get(ProductEntity_.UUID),
-                publication.get("salesChannelId")
+                variant.get(ProductVariantEntity_.UUID),
+                publication.get(ProductPublicationEntity_.SALES_CHANNEL_ID)
         ));
         query.where(
-                cb.equal(product.get(ProductEntity_.ID), publication.get("productId")),
+                cb.equal(variant.get(ProductVariantEntity_.ID), publication.get(ProductPublicationEntity_.VARIANT_ID)),
+                cb.equal(variant.get(ProductVariantEntity_.PRODUCT), product),
                 product.get(ProductEntity_.UUID).in(productIds)
         );
         return entityManager.createQuery(query).getResultList();
@@ -268,10 +272,12 @@ public class ProductSearchSpecification {
     ) {
         Subquery<Integer> subquery = query.subquery(Integer.class);
         Root<ProductPublicationEntity> publication = subquery.from(ProductPublicationEntity.class);
+        Root<ProductVariantEntity> variant = subquery.from(ProductVariantEntity.class);
         subquery.select(cb.literal(1));
         subquery.where(
-                cb.equal(publication.get("productId"), product.get(ProductEntity_.ID)),
-                cb.equal(publication.get("salesChannelId"), salesChannelId)
+                cb.equal(publication.get(ProductPublicationEntity_.VARIANT_ID), variant.get(ProductVariantEntity_.ID)),
+                cb.equal(variant.get(ProductVariantEntity_.PRODUCT), product),
+                cb.equal(publication.get(ProductPublicationEntity_.SALES_CHANNEL_ID), salesChannelId)
         );
         return cb.exists(subquery);
     }

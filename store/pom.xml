@@ -19,6 +19,7 @@
         <identity-infrastructure.version>0.0.1</identity-infrastructure.version>
         <merchant-infrastructure.version>0.0.1</merchant-infrastructure.version>
         <pricing-infrastructure.version>0.0.1</pricing-infrastructure.version>
+        <sales-channel-infrastructure.version>0.0.1</sales-channel-infrastructure.version>
         <workflow-infrastructure.version>0.0.1</workflow-infrastructure.version>
     </properties>
 
@@ -102,6 +103,11 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>pricing-infrastructure</artifactId>
             <version>${pricing-infrastructure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>sales-channel-infrastructure</artifactId>
+            <version>${sales-channel-infrastructure.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>

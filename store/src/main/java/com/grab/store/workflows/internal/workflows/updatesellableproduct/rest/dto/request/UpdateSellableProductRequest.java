@@ -17,6 +17,8 @@ public record UpdateSellableProductRequest(
         @Valid @NotNull Product product,
         @Valid List<InventoryLine> inventoryLines,
         @Valid List<PricingLine> pricingLines,
+        @Valid List<PublicationLine> publicationLines,
+        @Valid List<PublicationLine> unpublishLines,
         String idempotencyKey
 ) {
 
@@ -132,6 +134,12 @@ public record UpdateSellableProductRequest(
             @NotBlank String value,
             String operator,
             Integer priority
+    ) {
+    }
+
+    public record PublicationLine(
+            @NotBlank String sku,
+            @NotBlank String salesChannelId
     ) {
     }
 }

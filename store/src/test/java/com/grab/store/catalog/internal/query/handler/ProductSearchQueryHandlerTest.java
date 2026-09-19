@@ -5,6 +5,7 @@ import com.catalog.infrastructure.repository.jpa.ProductQueryRepository;
 import com.catalog.infrastructure.specification.jpa.ProductSearchCriteria;
 import com.catalog.infrastructure.view.CategoryView;
 import com.catalog.infrastructure.view.ProductHeroMediaView;
+import com.catalog.infrastructure.view.ProductPublicationView;
 import com.catalog.infrastructure.view.ProductView;
 import com.grab.framework.storage.FileStoragePort;
 import com.grab.store.catalog.internal.query.ProductSearchQuery;
@@ -79,5 +80,32 @@ class ProductSearchQueryHandlerTest {
         assertThat(page.getContent().get(1).thumbnail()).isNull();
 
         verify(productQueryRepository).findHeroMediasByProductIds(eq(List.of("prod-1", "prod-2")));
+    }
+
+    @Test
+    void handle_deduplicatesProductLevelSalesChannelIds() {
+        ProductView product = new ProductView("prod-1", "Shirt", "ACTIVE", "shirt", "cat-1");
+        PageRequest pageable = PageRequest.of(0, 10);
+        when(productQueryRepository.search(any(ProductSearchCriteria.class), any()))
+                .thenReturn(new PageImpl<>(List.of(product), pageable, 1));
+        when(categoryRepository.findViewByIds(List.of("cat-1")))
+                .thenReturn(List.of(new CategoryView("cat-1", "Apparel", null, true, true, true)));
+        when(productQueryRepository.findHeroMediasByProductIds(List.of("prod-1")))
+                .thenReturn(List.of());
+        when(productQueryRepository.findPublicationsByProductIds(List.of("prod-1")))
+                .thenReturn(List.of(
+                        new ProductPublicationView("prod-1", "var-1", "channel-1"),
+                        new ProductPublicationView("prod-1", "var-2", "channel-1"),
+                        new ProductPublicationView("prod-1", "var-2", "channel-2")
+                ));
+
+        Page<ProductSearchResult> page = handler.handle(new ProductSearchQuery(
+                "merchant-1", null, null, null, null, pageable
+        ));
+
+        assertThat(page.getContent().getFirst().publications()).containsExactly(
+                new ProductSearchResult.Publication("channel-1"),
+                new ProductSearchResult.Publication("channel-2")
+        );
     }
 }
