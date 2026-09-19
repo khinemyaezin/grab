@@ -41,7 +41,14 @@ public class PublishProductToChannelCommandHandler
                     false
             );
         }
-        productPublicationPolicy.requirePublishable(product);
+        if (!productPublicationPolicy.isPublishable(product)) {
+            return new PublishProductToChannelResult(
+                    command.productId().getValue(),
+                    command.variantId().getValue(),
+                    command.salesChannelId().getValue(),
+                    false
+            );
+        }
         ProductPublication publication = ProductPublication.publish(
                 command.variantId(),
                 command.salesChannelId(),

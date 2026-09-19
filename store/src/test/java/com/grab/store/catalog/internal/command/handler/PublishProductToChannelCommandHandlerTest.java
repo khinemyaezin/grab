@@ -3,7 +3,6 @@ package com.grab.store.catalog.internal.command.handler;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductPublication;
 import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.repository.ProductPublicationRepository;
 import com.catalog.domain.repository.ProductRepository;
 import com.catalog.domain.valueobject.ProductStatus;
@@ -74,14 +73,16 @@ class PublishProductToChannelCommandHandlerTest {
     }
 
     @Test
-    void handle_whenProductNotActive_throws() {
+    void handle_whenProductNotActive_skipsWrite() {
         when(productRepository.find(new CommonId("prod-1"), new CommonId("merchant-1")))
                 .thenReturn(Optional.of(product(ProductStatus.DRAFT)));
         when(productPublicationRepository.exists(new CommonId("var-1"), new CommonId("channel-1")))
                 .thenReturn(false);
 
-        assertThatThrownBy(() -> handler.handle(command()))
-                .isInstanceOf(CatalogDomainValidationException.class);
+        PublishProductToChannelResult result = handler.handle(command());
+
+        assertThat(result.written()).isFalse();
+        assertThat(result.variantId()).isEqualTo("var-1");
         verify(productPublicationRepository, never()).save(org.mockito.ArgumentMatchers.any());
     }
 

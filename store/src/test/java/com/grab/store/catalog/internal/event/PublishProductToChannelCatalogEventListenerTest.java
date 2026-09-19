@@ -58,8 +58,20 @@ class PublishProductToChannelCatalogEventListenerTest {
     }
 
     @Test
-    void onRequestAssertProduct_whenNotPublishable_shouldFail() {
+    void onRequestAssertProduct_whenInactive_shouldSucceed() {
         nextQueryResult = new CheckProductPublishableResult(true, true, false);
+
+        listener.onRequestAssertProduct(new RequestAssertProductEvent(
+                "wf-1", "merchant-1", "prod-1", Instant.now(), 1
+        ));
+
+        assertThat(outbox.committed()).hasSize(1);
+        assertThat(outbox.committed().getFirst()).isInstanceOf(ProductAssertedEvent.class);
+    }
+
+    @Test
+    void onRequestAssertProduct_whenMissing_shouldFail() {
+        nextQueryResult = CheckProductPublishableResult.missing();
 
         listener.onRequestAssertProduct(new RequestAssertProductEvent(
                 "wf-1", "merchant-1", "prod-1", Instant.now(), 1
@@ -67,7 +79,21 @@ class PublishProductToChannelCatalogEventListenerTest {
 
         assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(PublishProductStepFailedEvent.class, failed -> {
             assertThat(failed.step()).isEqualTo("assert-product");
-            assertThat(failed.message()).contains("ACTIVE");
+            assertThat(failed.message()).contains("not found");
+        });
+    }
+
+    @Test
+    void onRequestAssertProduct_whenUnowned_shouldFail() {
+        nextQueryResult = new CheckProductPublishableResult(true, false, true);
+
+        listener.onRequestAssertProduct(new RequestAssertProductEvent(
+                "wf-1", "merchant-1", "prod-1", Instant.now(), 1
+        ));
+
+        assertThat(outbox.committed().getFirst()).isInstanceOfSatisfying(PublishProductStepFailedEvent.class, failed -> {
+            assertThat(failed.step()).isEqualTo("assert-product");
+            assertThat(failed.message()).contains("does not own");
         });
     }
 

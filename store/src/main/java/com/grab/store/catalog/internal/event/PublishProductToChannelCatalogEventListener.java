@@ -122,7 +122,7 @@ public class PublishProductToChannelCatalogEventListener {
                 event.productId(),
                 event.merchantId()
         ));
-        if (!result.publishable()) {
+        if (!result.found() || !result.owned()) {
             throw new IllegalStateException(failureMessage(result));
         }
         return List.of(new ProductAssertedEvent(
@@ -171,9 +171,6 @@ public class PublishProductToChannelCatalogEventListener {
         if (!result.found()) {
             return "Product not found";
         }
-        if (!result.owned()) {
-            return "Merchant does not own this product";
-        }
-        return "Product must be ACTIVE to publish to a sales channel";
+        return "Merchant does not own this product";
     }
 }

@@ -9,12 +9,23 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ProductPublicationPolicyTest {
 
     private final ProductPublicationPolicy policy = new ProductPublicationPolicy();
+
+    @Test
+    void isPublishable_isTrueForActiveProduct() {
+        assertThat(policy.isPublishable(product(ProductStatus.ACTIVE))).isTrue();
+    }
+
+    @Test
+    void isPublishable_isFalseForNonActiveProduct() {
+        assertThat(policy.isPublishable(product(ProductStatus.DRAFT))).isFalse();
+    }
 
     @Test
     void requirePublishable_allowsActiveProduct() {
