@@ -3,8 +3,7 @@ package com.catalog.application.service;
 import com.catalog.application.port.inbound.UpsertMerchantAvailabilityUseCase;
 
 import com.catalog.application.port.outbound.MerchantAvailabilityPort;
-import com.catalog.application.command.UpsertMerchantAvailabilityCommand;
-import lombok.RequiredArgsConstructor;
+import com.catalog.application.model.write.UpsertMerchantAvailabilityCommand;
 
 @lombok.RequiredArgsConstructor
 public class UpsertMerchantAvailabilityService implements UpsertMerchantAvailabilityUseCase {

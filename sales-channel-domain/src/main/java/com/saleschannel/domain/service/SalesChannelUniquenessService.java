@@ -3,7 +3,7 @@ package com.saleschannel.domain.service;
 import com.grab.framework.id.Id;
 import com.saleschannel.domain.exception.SalesChannelDomainError;
 import com.saleschannel.domain.exception.SalesChannelDomainException;
-import com.saleschannel.domain.repository.SalesChannelRepository;
+import com.saleschannel.domain.port.outbound.SalesChannelRepository;
 
 import java.util.Objects;
 

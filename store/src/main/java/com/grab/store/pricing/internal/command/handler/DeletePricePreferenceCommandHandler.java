@@ -1,33 +1,22 @@
 package com.grab.store.pricing.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
-import com.grab.store.pricing.internal.command.DeletePricePreferenceCommand;
-import com.grab.store.pricing.internal.config.PricingEnabled;
 import com.grab.store.pricing.internal.config.PricingTransactional;
-import com.grab.store.pricing.internal.exception.PricingServiceError;
-import com.grab.store.pricing.internal.exception.PricingServiceException;
-import com.pricing.domain.repository.PricePreferenceRepository;
+import com.pricing.application.model.write.DeletePricePreferenceCommand;
+import com.pricing.application.port.inbound.DeletePricePreferenceUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
-@PricingEnabled
 @RequiredArgsConstructor
-public class DeletePricePreferenceCommandHandler
-        implements CommandHandler<DeletePricePreferenceCommand, Void> {
+public class DeletePricePreferenceCommandHandler implements CommandHandler<DeletePricePreferenceCommand, Void> {
 
-    private final PricePreferenceRepository pricePreferenceRepository;
+    private final DeletePricePreferenceUseCase deletePricePreferenceUseCase;
 
     @Override
     @PricingTransactional
     public Void handle(DeletePricePreferenceCommand command) {
-        pricePreferenceRepository.findById(command.pricePreferenceId())
-                .orElseThrow(() -> new PricingServiceException(
-                        new PricingServiceError.PricePreferenceNotFound(command.pricePreferenceId().getValue()),
-                        "Price preference not found"
-                ));
-        pricePreferenceRepository.delete(command.pricePreferenceId());
-        return null;
+        return deletePricePreferenceUseCase.execute(command);
     }
 
     @Override

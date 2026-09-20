@@ -1,8 +1,7 @@
 package com.catalog.adapter.persistence.repository;
 
 import com.catalog.adapter.persistence.entity.CategoryEntity;
-import com.catalog.adapter.persistence.repository.EntityRepository;
-import com.catalog.application.readmodel.CategoryView;
+import com.catalog.application.model.read.CategoryView;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,7 +23,7 @@ public interface CategoryJpaRepo extends EntityRepository<CategoryEntity, Long>,
     List<String> findAncestorUuidsFromLeaf(@Param("categoryUuid") String categoryUuid);
 
     @Query("""
-            select new com.catalog.application.readmodel.CategoryView(
+            select new com.catalog.application.model.read.CategoryView(
                 c.uuid,
                 c.name,
                 p.uuid,

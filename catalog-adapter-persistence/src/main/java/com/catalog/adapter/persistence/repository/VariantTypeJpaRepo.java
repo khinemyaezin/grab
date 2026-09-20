@@ -1,8 +1,7 @@
 package com.catalog.adapter.persistence.repository;
 
 import com.catalog.adapter.persistence.entity.VariantTypeEntity;
-import com.catalog.adapter.persistence.repository.EntityRepository;
-import com.catalog.application.readmodel.VariantTypeView;
+import com.catalog.application.model.read.VariantTypeView;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,7 +21,7 @@ public interface VariantTypeJpaRepo extends EntityRepository<VariantTypeEntity, 
     Optional<VariantTypeEntity> findByUuidWithOptions(@Param("uuid") String uuid);
 
     @Query("""
-        select new com.catalog.application.readmodel.VariantTypeView(
+        select new com.catalog.application.model.read.VariantTypeView(
             vo.uuid,
             vo.name
         )

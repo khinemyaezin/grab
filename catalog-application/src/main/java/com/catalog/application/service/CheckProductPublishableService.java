@@ -1,30 +1,25 @@
 package com.catalog.application.service;
 
 import com.catalog.application.port.inbound.CheckProductPublishableUseCase;
-
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.port.outbound.ProductRepository;
-import com.catalog.domain.valueobject.ProductStatus;
-import com.grab.framework.id.IdGenerator;
-import com.catalog.application.query.CheckProductPublishableQuery;
-import com.catalog.application.query.CheckProductPublishableResult;
+import com.catalog.application.port.outbound.ProductQueryPort;
+import com.catalog.application.model.read.CheckProductPublishableQuery;
+import com.catalog.application.model.read.CheckProductPublishableResult;
 import lombok.RequiredArgsConstructor;
 
-@lombok.RequiredArgsConstructor
+@RequiredArgsConstructor
 public class CheckProductPublishableService implements CheckProductPublishableUseCase {
 
-    private final ProductRepository productRepository;
-    private final IdGenerator idGenerator;
+    private final ProductQueryPort productQueryPort;
 
-        public CheckProductPublishableResult execute(CheckProductPublishableQuery query) {
-        return productRepository.find(idGenerator.convertIdFrom(query.productId()))
-                .map(product -> toResult(product, query.merchantId()))
+    public CheckProductPublishableResult execute(CheckProductPublishableQuery query) {
+        return productQueryPort.findByIdAndMerchantId(query.productId(), query.merchantId())
+                .map(view -> toResult(view.merchantId(), view.status(), query.merchantId()))
                 .orElseGet(CheckProductPublishableResult::missing);
     }
 
-    private CheckProductPublishableResult toResult(Product product, String merchantId) {
-        boolean owned = product.getMerchantId() != null && product.getMerchantId().getValue().equals(merchantId);
-        boolean active = product.getStatus() == ProductStatus.ACTIVE;
+    private CheckProductPublishableResult toResult(String productMerchantId, String status, String merchantId) {
+        boolean owned = productMerchantId != null && productMerchantId.equals(merchantId);
+        boolean active = "ACTIVE".equals(status);
         return new CheckProductPublishableResult(true, owned, active);
     }
 }

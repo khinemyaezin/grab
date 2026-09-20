@@ -1,6 +1,6 @@
 package com.catalog.application.port.outbound;
 
-import com.catalog.application.readmodel.VariantTypeView;
+import com.catalog.application.model.read.VariantTypeView;
 
 import java.util.List;
 

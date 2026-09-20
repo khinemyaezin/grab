@@ -9,11 +9,11 @@ import com.catalog.adapter.persistence.entity.ProductVariantEntity;
 import com.catalog.adapter.persistence.entity.meta.ProductEntity_;
 import com.catalog.adapter.persistence.entity.meta.ProductPublicationEntity_;
 import com.catalog.adapter.persistence.entity.meta.ProductVariantEntity_;
-import com.catalog.application.readmodel.ProductSearchCriteria;
-import com.catalog.application.readmodel.ProductHeroMediaView;
-import com.catalog.application.readmodel.ProductPublicationView;
-import com.catalog.application.readmodel.ProductVariantRefView;
-import com.catalog.application.readmodel.ProductView;
+import com.catalog.application.model.read.ProductSearchCriteria;
+import com.catalog.application.model.read.ProductHeroMediaView;
+import com.catalog.application.model.read.ProductPublicationView;
+import com.catalog.application.model.read.ProductVariantRefView;
+import com.catalog.application.model.read.ProductView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
@@ -27,6 +27,7 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public class ProductSearchSpecification {
 
@@ -34,6 +35,32 @@ public class ProductSearchSpecification {
 
     public ProductSearchSpecification(EntityManager entityManager) {
         this.entityManager = entityManager;
+    }
+
+    public Optional<ProductView> findByIdAndMerchantId(String productId, String merchantId) {
+        if (!StringUtils.hasLength(productId) || !StringUtils.hasLength(merchantId)) {
+            return Optional.empty();
+        }
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<ProductView> dataQuery = cb.createQuery(ProductView.class);
+        Root<ProductEntity> product = dataQuery.from(ProductEntity.class);
+        dataQuery.select(cb.construct(
+                ProductView.class,
+                product.get(ProductEntity_.UUID),
+                product.get(ProductEntity_.NAME),
+                product.get(ProductEntity_.STATUS),
+                product.get(ProductEntity_.SLUG),
+                product.get(ProductEntity_.CATEGORY_ENTITY),
+                product.get(ProductEntity_.MERCHANT_ID),
+                product.get(ProductEntity_.FEATURED),
+                product.get(ProductEntity_.LISTING_CONDITION)
+        ));
+        dataQuery.where(
+                cb.equal(product.get(ProductEntity_.UUID), productId),
+                cb.equal(product.get(ProductEntity_.MERCHANT_ID), merchantId)
+        );
+        List<ProductView> results = entityManager.createQuery(dataQuery).setMaxResults(1).getResultList();
+        return results.stream().findFirst();
     }
 
     public Page<ProductView> search(ProductSearchCriteria criteria, Pageable pageable) {

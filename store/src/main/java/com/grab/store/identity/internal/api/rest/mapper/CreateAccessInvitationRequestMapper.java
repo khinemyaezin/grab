@@ -3,8 +3,8 @@ package com.grab.store.identity.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.identity.internal.api.rest.dto.request.CreateAccessInvitationRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.AccessInvitationResponse;
-import com.grab.store.identity.internal.command.AccessInvitationResult;
-import com.grab.store.identity.internal.command.CreateAccessInvitationCommand;
+import com.identity.application.model.write.AccessInvitationResult;
+import com.identity.application.model.write.CreateAccessInvitationCommand;
 import org.mapstruct.Mapper;
 
 import java.util.Set;

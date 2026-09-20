@@ -8,7 +8,9 @@ import lombok.Setter;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Entity
@@ -50,13 +52,13 @@ public class ProductEntity implements Serializable {
 
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, fetch = FetchType.LAZY)
     @JoinTable(name = "product_media", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "media_id"))
-    private List<MediaEntity> medias = new ArrayList<>();
+    private Set<MediaEntity> medias = new LinkedHashSet<>();
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "product", orphanRemoval = true)
-    private List<ProductDescriptionEntity> descriptions = new ArrayList<>();
+    private Set<ProductDescriptionEntity> descriptions = new LinkedHashSet<>();
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "product", orphanRemoval = true)
-    private List<ProductVariantEntity> productVariants = new ArrayList<>();
+    private Set<ProductVariantEntity> productVariants = new LinkedHashSet<>();
 
     @Setter
     @Enumerated(EnumType.STRING)

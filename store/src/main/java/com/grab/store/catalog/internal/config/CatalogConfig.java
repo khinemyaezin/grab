@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.config;
 
 import com.catalog.adapter.persistence.config.CatalogPersistenceConfig;
-import com.grab.storage.infrastructure.StorageInfraConfig;
+import com.grab.storage.adapter.s3.StorageInfraConfig;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 

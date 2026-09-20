@@ -13,8 +13,8 @@ import com.grab.store.inventory.internal.api.rest.service.AuthenticatedInventory
 import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAccess;
 import com.grab.store.inventory.internal.api.rest.service.LocationCommandService;
 import com.grab.store.inventory.internal.api.rest.service.LocationQueryService;
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.application.exception.InventoryServiceError;
+import com.inventory.application.exception.InventoryServiceException;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
 import com.inventory.domain.enums.LocationType;
 import org.junit.jupiter.api.BeforeEach;

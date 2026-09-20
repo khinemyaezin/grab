@@ -5,9 +5,9 @@ import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.merchant.internal.api.rest.dto.request.MerchantLifecycleRequest;
 import com.grab.store.merchant.internal.api.rest.mapper.ChangeMerchantLifecycleRequestMapper;
-import com.grab.store.merchant.internal.command.ChangeMerchantLifecycleCommand;
-import com.grab.store.merchant.internal.command.ChangeMerchantLifecycleCommand.Action;
-import com.grab.store.merchant.internal.command.MerchantAccountResult;
+import com.merchant.application.model.write.ChangeMerchantLifecycleCommand;
+import com.merchant.application.model.write.ChangeMerchantLifecycleCommand.Action;
+import com.merchant.application.model.write.MerchantAccountResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicReference;

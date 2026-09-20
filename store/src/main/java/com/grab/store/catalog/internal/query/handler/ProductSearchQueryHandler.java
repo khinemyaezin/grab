@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.application.port.inbound.ProductSearchUseCase;
-import com.catalog.application.query.ProductSearchQuery;
-import com.catalog.application.query.ProductSearchResult;
+import com.catalog.application.model.read.ProductSearchQuery;
+import com.catalog.application.model.read.ProductSearchResult;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import lombok.RequiredArgsConstructor;

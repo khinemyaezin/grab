@@ -3,13 +3,12 @@ package com.catalog.application.service;
 import com.catalog.application.port.inbound.GetCategoryLeafNodesByNameUseCase;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.readmodel.CategoryView;
+import com.catalog.application.model.read.CategoryView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.query.CategoryLeavesResult;
-import com.catalog.application.query.CategoryResult;
-import com.catalog.application.query.GetCategoryLeafNodesByNameQuery;
-import lombok.RequiredArgsConstructor;
+import com.catalog.application.model.read.CategoryLeavesResult;
+import com.catalog.application.model.read.CategoryResult;
+import com.catalog.application.model.read.GetCategoryLeafNodesByNameQuery;
 
 @lombok.RequiredArgsConstructor
 public class GetCategoryLeafNodesByNameService implements GetCategoryLeafNodesByNameUseCase {

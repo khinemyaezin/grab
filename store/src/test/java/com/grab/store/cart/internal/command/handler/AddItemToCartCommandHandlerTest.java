@@ -4,7 +4,7 @@ import com.cart.domain.aggregate.Cart;
 import com.cart.domain.enums.CartStatus;
 import com.cart.domain.exception.CartDomainError;
 import com.cart.domain.exception.CartDomainException;
-import com.cart.domain.repository.CartRepository;
+import com.cart.domain.port.outbound.CartRepository;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;

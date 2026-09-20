@@ -1,8 +1,8 @@
 package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.store.identity.internal.api.rest.dto.response.RoleResponse;
-import com.grab.store.identity.internal.command.ManageAuthorityCommand;
-import com.grab.store.identity.internal.command.RoleResult;
+import com.identity.application.model.write.ManageAuthorityCommand;
+import com.identity.application.model.write.RoleResult;
 import org.mapstruct.Mapper;
 import com.grab.framework.mapper.IdMapper;
 

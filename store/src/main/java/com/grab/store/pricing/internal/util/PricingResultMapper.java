@@ -10,11 +10,11 @@ import com.pricing.domain.enums.PriceRuleOperator;
 import com.pricing.domain.policy.CalculatedPriceSet;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.pricing.internal.command.PriceListResult;
-import com.grab.store.pricing.internal.command.PricePreferenceResult;
-import com.grab.store.pricing.internal.command.PriceRuleInput;
-import com.grab.store.pricing.internal.command.PriceSetResult;
-import com.grab.store.pricing.internal.query.CalculatedPriceSetResult;
+import com.pricing.application.model.write.PriceListResult;
+import com.pricing.application.model.write.PricePreferenceResult;
+import com.pricing.application.model.write.PriceRuleInput;
+import com.pricing.application.model.write.PriceSetResult;
+import com.pricing.application.model.read.CalculatedPriceSetResult;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.SetVariantMediaCommand;
-import com.catalog.application.command.SetVariantMediaResult;
+import com.catalog.application.model.write.SetVariantMediaCommand;
+import com.catalog.application.model.write.SetVariantMediaResult;
 import com.catalog.application.port.inbound.SetVariantMediaUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

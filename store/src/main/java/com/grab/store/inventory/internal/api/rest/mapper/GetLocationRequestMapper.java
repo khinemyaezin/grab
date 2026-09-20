@@ -3,8 +3,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationAddressResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
-import com.grab.store.inventory.internal.query.GetLocationQuery;
-import com.grab.store.inventory.internal.query.GetLocationResult;
+import com.inventory.application.model.read.GetLocationQuery;
+import com.inventory.application.model.read.GetLocationResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

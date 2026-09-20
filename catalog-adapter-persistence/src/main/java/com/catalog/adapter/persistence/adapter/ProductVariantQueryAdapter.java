@@ -1,9 +1,9 @@
 package com.catalog.adapter.persistence.adapter;
 
 import com.catalog.application.port.outbound.ProductVariantQueryPort;
-import com.catalog.application.readmodel.ProductSearchCriteria;
+import com.catalog.application.model.read.ProductSearchCriteria;
 import com.catalog.adapter.persistence.specification.ProductVariantSearchSpecification;
-import com.catalog.application.readmodel.ProductVariantView;
+import com.catalog.application.model.read.ProductVariantView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;

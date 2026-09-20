@@ -3,11 +3,11 @@ package com.catalog.adapter.persistence.specification;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.catalog.adapter.persistence.entity.*;
 import com.catalog.adapter.persistence.repository.config.ProductRepositoryTestConfig;
-import com.catalog.application.readmodel.ProductSearchCriteria;
-import com.catalog.application.readmodel.ProductHeroMediaView;
-import com.catalog.application.readmodel.ProductPublicationView;
-import com.catalog.application.readmodel.ProductVariantRefView;
-import com.catalog.application.readmodel.ProductView;
+import com.catalog.application.model.read.ProductSearchCriteria;
+import com.catalog.application.model.read.ProductHeroMediaView;
+import com.catalog.application.model.read.ProductPublicationView;
+import com.catalog.application.model.read.ProductVariantRefView;
+import com.catalog.application.model.read.ProductView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -258,10 +258,10 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
     void search_withSalesChannelId_returnsOnlyProductsPublishedToThatChannel() {
         ProductEntity websiteOnly = persistProduct("Website Only Shirt", "cat-ch",
                 variant("WEB-SKU", "ACTIVE"));
-        persistPublication(websiteOnly.getProductVariants().getFirst(), "website-1");
+        persistPublication(websiteOnly.getProductVariants().iterator().next(), "website-1");
         ProductEntity marketplaceOnly = persistProduct("Marketplace Only Shirt", "cat-ch",
                 variant("MKT-SKU", "ACTIVE"));
-        persistPublication(marketplaceOnly.getProductVariants().getFirst(), "marketplace-1");
+        persistPublication(marketplaceOnly.getProductVariants().iterator().next(), "marketplace-1");
         entityManager.flush();
         entityManager.clear();
 
@@ -296,7 +296,7 @@ class ProductSearchSpecificationTest extends ProductRepositoryTestConfig {
     void findPublicationsByProductIds_returnsVariantAndChannelIdsFromPublicationTable() {
         ProductEntity product = persistProduct("Published Shirt", "cat-pub",
                 variant("PUB-SKU", "ACTIVE"));
-        ProductVariantEntity variant = product.getProductVariants().getFirst();
+        ProductVariantEntity variant = product.getProductVariants().iterator().next();
         persistPublication(variant, "website-1");
         persistPublication(variant, "marketplace-1");
         entityManager.flush();

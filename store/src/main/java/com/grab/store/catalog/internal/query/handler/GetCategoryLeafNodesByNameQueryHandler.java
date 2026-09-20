@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.application.port.inbound.GetCategoryLeafNodesByNameUseCase;
-import com.catalog.application.query.CategoryLeavesResult;
-import com.catalog.application.query.GetCategoryLeafNodesByNameQuery;
+import com.catalog.application.model.read.CategoryLeavesResult;
+import com.catalog.application.model.read.GetCategoryLeafNodesByNameQuery;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import lombok.RequiredArgsConstructor;

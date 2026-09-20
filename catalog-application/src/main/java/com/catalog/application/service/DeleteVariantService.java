@@ -5,15 +5,12 @@ import com.catalog.application.port.inbound.DeleteVariantUseCase;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
-import com.catalog.application.command.DeleteVariantCommand;
-import com.catalog.application.command.DeleteVariantResult;
+import com.catalog.application.model.write.DeleteVariantCommand;
+import com.catalog.application.model.write.DeleteVariantResult;
 import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.port.outbound.ProductRepository;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
-import java.util.Set;
 
 @lombok.RequiredArgsConstructor
 public class DeleteVariantService implements DeleteVariantUseCase {

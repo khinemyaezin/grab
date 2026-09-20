@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.CreateProductSetCommand;
-import com.catalog.application.command.CreateProductSetResult;
+import com.catalog.application.model.write.CreateProductSetCommand;
+import com.catalog.application.model.write.CreateProductSetResult;
 import com.catalog.application.port.inbound.CreateProductSetUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

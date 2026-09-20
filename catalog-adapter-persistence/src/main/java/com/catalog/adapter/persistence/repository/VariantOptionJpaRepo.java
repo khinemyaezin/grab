@@ -1,7 +1,7 @@
 package com.catalog.adapter.persistence.repository;
 
 import com.catalog.adapter.persistence.entity.VariantOptionEntity;
-import com.catalog.application.readmodel.VariantOptionView;
+import com.catalog.application.model.read.VariantOptionView;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +13,7 @@ public interface VariantOptionJpaRepo extends JpaRepository<VariantOptionEntity,
     Optional<VariantOptionEntity> findByUuid(String uuid);
 
     @Query("""
-        select new com.catalog.application.readmodel.VariantOptionView(
+        select new com.catalog.application.model.read.VariantOptionView(
             vo.uuid,
             vo.name,
             vt.uuid,
@@ -26,7 +26,7 @@ public interface VariantOptionJpaRepo extends JpaRepository<VariantOptionEntity,
     List<VariantOptionView> findAllByUuidIn(@Param("uuids") List<String> uuids);
 
     @Query("""
-        select new com.catalog.application.readmodel.VariantOptionView(
+        select new com.catalog.application.model.read.VariantOptionView(
             vo.uuid,
             vo.name,
             vt.uuid,

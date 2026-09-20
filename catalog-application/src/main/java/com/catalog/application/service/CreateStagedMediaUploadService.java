@@ -10,9 +10,8 @@ import com.grab.framework.storage.FileStoragePort;
 import com.grab.framework.storage.PresignedUpload;
 import com.grab.framework.storage.StorageAccess;
 import com.grab.framework.storage.UploadRequest;
-import com.catalog.application.command.CreateStagedMediaUploadCommand;
-import com.catalog.application.service.MediaUploadValidator;
-import com.catalog.application.command.ProductMediaUploadResult;
+import com.catalog.application.model.write.CreateStagedMediaUploadCommand;
+import com.catalog.application.model.write.ProductMediaUploadResult;
 
 @RequiredArgsConstructor
 public class CreateStagedMediaUploadService implements CreateStagedMediaUploadUseCase {

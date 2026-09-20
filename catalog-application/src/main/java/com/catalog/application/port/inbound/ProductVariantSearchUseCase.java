@@ -1,7 +1,7 @@
 package com.catalog.application.port.inbound;
 
-import com.catalog.application.query.ProductVariantSummaryQuery;
-import com.catalog.application.query.ProductVariantSummaryResult;
+import com.catalog.application.model.read.ProductVariantSummaryQuery;
+import com.catalog.application.model.read.ProductVariantSummaryResult;
 import org.springframework.data.domain.Page;
 
 public interface ProductVariantSearchUseCase {

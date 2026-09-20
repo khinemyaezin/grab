@@ -22,8 +22,8 @@ import com.grab.store.inventory.internal.api.rest.service.ResolvedInventoryAcces
 import com.grab.store.inventory.internal.api.rest.service.InventoryCommandService;
 import com.grab.store.inventory.internal.api.rest.service.InventoryQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.application.exception.InventoryServiceError;
+import com.inventory.application.exception.InventoryServiceException;
 import com.inventory.domain.enums.AdjustmentReason;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.enums.StockMovementType;

@@ -2,7 +2,6 @@ package com.grab.store.saleschannel.internal.query;
 
 import com.grab.store.saleschannel.internal.config.SalesChannelReadTransactional;
 import com.grab.store.saleschannel.query.SalesChannelQueryPort;
-import com.saleschannel.infrastructure.repository.jpa.SalesChannelQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -11,12 +10,12 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class SalesChannelQueryPortAdapter implements SalesChannelQueryPort {
-    private final SalesChannelQueryRepository salesChannelQueryRepository;
+    private final com.saleschannel.application.port.outbound.SalesChannelQueryPort salesChannelQueryPort;
 
     @Override
     @SalesChannelReadTransactional
     public Optional<SalesChannelSlice> find(String salesChannelId) {
-        return salesChannelQueryRepository.findById(salesChannelId)
+        return salesChannelQueryPort.findById(salesChannelId)
                 .map(view -> new SalesChannelSlice(
                         view.id(),
                         view.type() == null ? null : view.type().name(),

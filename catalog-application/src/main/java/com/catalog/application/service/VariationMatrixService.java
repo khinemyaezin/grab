@@ -14,9 +14,8 @@ import com.catalog.domain.valueobject.ProductVariation;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.query.VariationMatrixQuery;
-import com.catalog.application.query.VariationMatrixResult;
-import lombok.RequiredArgsConstructor;
+import com.catalog.application.model.read.VariationMatrixQuery;
+import com.catalog.application.model.read.VariationMatrixResult;
 
 import java.util.*;
 

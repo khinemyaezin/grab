@@ -7,7 +7,7 @@ import com.grab.store.pricing.internal.api.rest.dto.request.CalculatePricesReque
 import com.grab.store.pricing.internal.api.rest.dto.response.CalculatedPriceSetResponse;
 import com.grab.store.pricing.internal.api.rest.mapper.CalculatePricesRequestMapper;
 import com.grab.store.pricing.internal.config.PricingEnabled;
-import com.grab.store.pricing.internal.query.CalculatedPriceSetResult;
+import com.pricing.application.model.read.CalculatedPriceSetResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -13,11 +13,10 @@ import com.grab.framework.id.impl.CommonId;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.storage.FileStoragePort;
-import com.catalog.application.command.ProductMediaResult;
-import com.catalog.application.command.ReplaceProductMediaCommand;
+import com.catalog.application.model.write.ProductMediaResult;
+import com.catalog.application.model.write.ReplaceProductMediaCommand;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -16,13 +16,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <catalog-application.version>0.0.1</catalog-application.version>
         <catalog-adapter-persistence.version>0.0.1</catalog-adapter-persistence.version>
-        <inventory-infrastructure.version>0.0.1</inventory-infrastructure.version>
-        <identity-infrastructure.version>0.0.1</identity-infrastructure.version>
-        <merchant-infrastructure.version>0.0.1</merchant-infrastructure.version>
-        <pricing-infrastructure.version>0.0.1</pricing-infrastructure.version>
-        <sales-channel-infrastructure.version>0.0.1</sales-channel-infrastructure.version>
+        <inventory-application.version>0.0.1</inventory-application.version>
+        <inventory-adapter-persistence.version>0.0.1</inventory-adapter-persistence.version>
+        <identity-adapter-persistence.version>0.0.1</identity-adapter-persistence.version>
+        <identity-application.version>0.0.1</identity-application.version>
+        <merchant-application.version>0.0.1</merchant-application.version>
+        <merchant-adapter-persistence.version>0.0.1</merchant-adapter-persistence.version>
+        <pricing-adapter-persistence.version>0.0.1</pricing-adapter-persistence.version>
+        <pricing-application.version>0.0.1</pricing-application.version>
+        <sales-channel-application.version>0.0.1</sales-channel-application.version>
+        <sales-channel-adapter-persistence.version>0.0.1</sales-channel-adapter-persistence.version>
         <storefront-query-infrastructure.version>0.0.1</storefront-query-infrastructure.version>
-        <cart-infrastructure.version>0.0.1</cart-infrastructure.version>
+        <cart-adapter-persistence.version>0.0.1</cart-adapter-persistence.version>
         <workflow-infrastructure.version>0.0.1</workflow-infrastructure.version>
     </properties>
 
@@ -94,28 +99,53 @@
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>inventory-infrastructure</artifactId>
-            <version>${inventory-infrastructure.version}</version>
+            <artifactId>inventory-application</artifactId>
+            <version>${inventory-application.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>identity-infrastructure</artifactId>
-            <version>${identity-infrastructure.version}</version>
+            <artifactId>inventory-adapter-persistence</artifactId>
+            <version>${inventory-adapter-persistence.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>merchant-infrastructure</artifactId>
-            <version>${merchant-infrastructure.version}</version>
+            <artifactId>identity-application</artifactId>
+            <version>${identity-application.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>pricing-infrastructure</artifactId>
-            <version>${pricing-infrastructure.version}</version>
+            <artifactId>identity-adapter-persistence</artifactId>
+            <version>${identity-adapter-persistence.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>sales-channel-infrastructure</artifactId>
-            <version>${sales-channel-infrastructure.version}</version>
+            <artifactId>merchant-application</artifactId>
+            <version>${merchant-application.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>merchant-adapter-persistence</artifactId>
+            <version>${merchant-adapter-persistence.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>pricing-application</artifactId>
+            <version>${pricing-application.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>pricing-adapter-persistence</artifactId>
+            <version>${pricing-adapter-persistence.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>sales-channel-application</artifactId>
+            <version>${sales-channel-application.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>sales-channel-adapter-persistence</artifactId>
+            <version>${sales-channel-adapter-persistence.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
@@ -124,8 +154,8 @@
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>cart-infrastructure</artifactId>
-            <version>${cart-infrastructure.version}</version>
+            <artifactId>cart-adapter-persistence</artifactId>
+            <version>${cart-adapter-persistence.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
@@ -166,7 +196,7 @@
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>storage-infrastructure</artifactId>
+            <artifactId>storage-adapter-s3</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

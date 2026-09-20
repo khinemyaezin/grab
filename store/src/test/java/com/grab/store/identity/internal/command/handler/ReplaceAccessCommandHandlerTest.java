@@ -4,8 +4,9 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.framework.security.AccessContext;
-import com.grab.store.identity.internal.command.ReplaceAccessCommand;
-import com.grab.store.identity.internal.exception.IdentityServiceException;
+import com.identity.application.service.ReplaceAccessService;
+import com.identity.application.model.write.ReplaceAccessCommand;
+import com.identity.application.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
@@ -13,10 +14,10 @@ import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.enums.UserStatus;
 import com.identity.domain.policy.AccessPlacementPolicy;
 import com.identity.domain.policy.AccessPlacementPolicyResolver;
-import com.identity.domain.repository.AccessAssignmentRepository;
-import com.identity.domain.repository.PlatformRepository;
-import com.identity.domain.repository.SessionStore;
-import com.identity.domain.repository.UserRepository;
+import com.identity.domain.port.outbound.AccessAssignmentRepository;
+import com.identity.domain.port.outbound.PlatformRepository;
+import com.identity.domain.port.outbound.SessionStore;
+import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.SessionDetails;
@@ -33,7 +34,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class ReplaceAccessCommandHandlerTest {
+class ReplaceAccessServiceTest {
     private static final String PREVIOUS_ROLE = "REVIEWER";
     private static final String REPLACEMENT_ROLE = "APPROVER";
 
@@ -42,7 +43,7 @@ class ReplaceAccessCommandHandlerTest {
     private final RecordingAssignments assignments = new RecordingAssignments();
     private final RecordingSessionStore sessions = new RecordingSessionStore();
 
-    private ReplaceAccessCommandHandler handler;
+    private ReplaceAccessService handler;
 
     @BeforeEach
     void setUp() {
@@ -57,7 +58,7 @@ class ReplaceAccessCommandHandlerTest {
 
     @Test
     void handle_withValidCommand_shouldCreateReplacementAccess() {
-        var result = handler.handle(command());
+        var result = handler.execute(command());
 
         assertThat(result.id()).isEqualTo("replacement-assignment");
         assertThat(result.roleCode()).isEqualTo(REPLACEMENT_ROLE);
@@ -74,7 +75,7 @@ class ReplaceAccessCommandHandlerTest {
         );
         assignments.current.add(previous);
 
-        handler.handle(command());
+        handler.execute(command());
 
         assertThat(previous.getStatus()).isEqualTo(AccessAssignmentStatus.REVOKED);
         assertThat(assignments.saved).contains(previous);
@@ -91,7 +92,7 @@ class ReplaceAccessCommandHandlerTest {
         );
         assignments.current.add(existing);
 
-        var result = handler.handle(command());
+        var result = handler.execute(command());
 
         assertThat(result.id()).isEqualTo("existing-replacement");
         assertThat(assignments.saved).isEmpty();
@@ -108,7 +109,7 @@ class ReplaceAccessCommandHandlerTest {
         );
         assignments.current.add(suspended);
 
-        var result = handler.handle(command());
+        var result = handler.execute(command());
 
         assertThat(suspended.getStatus()).isEqualTo(AccessAssignmentStatus.REVOKED);
         assertThat(result.id()).isEqualTo("replacement-assignment");
@@ -128,7 +129,7 @@ class ReplaceAccessCommandHandlerTest {
         );
         assignments.current.add(expired);
 
-        var result = handler.handle(command());
+        var result = handler.execute(command());
 
         assertThat(expired.getStatus()).isEqualTo(AccessAssignmentStatus.EXPIRED);
         assertThat(result.id()).isEqualTo("replacement-assignment");
@@ -141,7 +142,7 @@ class ReplaceAccessCommandHandlerTest {
     void handle_withUnknownUser_shouldFailBeforeLookingUpPlatform() {
         users.user = null;
 
-        assertThatThrownBy(() -> handler.handle(command()))
+        assertThatThrownBy(() -> handler.execute(command()))
                 .isInstanceOf(IdentityServiceException.class);
 
         assertThat(platforms.findCalled).isFalse();
@@ -151,7 +152,7 @@ class ReplaceAccessCommandHandlerTest {
     void handle_withUnknownPlatform_shouldFailBeforeChangingAccess() {
         platforms.platform = null;
 
-        assertThatThrownBy(() -> handler.handle(command()))
+        assertThatThrownBy(() -> handler.execute(command()))
                 .isInstanceOf(IdentityServiceException.class);
 
         assertThat(assignments.saved).isEmpty();
@@ -161,17 +162,17 @@ class ReplaceAccessCommandHandlerTest {
     void handle_withoutPlacementPolicy_shouldRejectReplacementRole() {
         handler = handlerWithPolicies(List.of());
 
-        assertThatThrownBy(() -> handler.handle(command()))
+        assertThatThrownBy(() -> handler.execute(command()))
                 .isInstanceOf(IdentityServiceException.class)
                 .hasMessage("Access placement policy not found");
 
         assertThat(assignments.saved).isEmpty();
     }
 
-    private ReplaceAccessCommandHandler handlerWithPolicies(
+    private ReplaceAccessService handlerWithPolicies(
             List<AccessPlacementPolicy> policies
     ) {
-        return new ReplaceAccessCommandHandler(
+        return new ReplaceAccessService(
                 users,
                 platforms,
                 assignments,

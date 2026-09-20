@@ -4,7 +4,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.inventory.domain.aggregate.InventoryItem;
-import com.inventory.domain.repository.InventoryRepository;
+import com.inventory.domain.port.outbound.InventoryRepository;
 import com.inventory.domain.service.ReorderService;
 import lombok.AllArgsConstructor;
 

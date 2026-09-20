@@ -1,8 +1,8 @@
 package com.grab.store.inventory.internal.api.rest.service;
 
 import com.grab.framework.security.AccessContext;
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.application.exception.InventoryServiceError;
+import com.inventory.application.exception.InventoryServiceException;
 import com.grab.store.shared.security.PlatformScopes;
 import com.grab.store.shared.security.ScopeResolverHelper;
 import com.grab.store.shared.security.SecurityPrincipal;

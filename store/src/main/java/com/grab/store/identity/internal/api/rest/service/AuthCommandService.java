@@ -5,7 +5,7 @@ import com.grab.store.identity.internal.api.rest.dto.request.*;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
 import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
 import com.grab.store.identity.internal.api.rest.mapper.*;
-import com.grab.store.identity.internal.command.*;
+import com.identity.application.model.write.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -6,12 +6,10 @@ import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.port.outbound.CategoryRepository;
 import com.catalog.domain.port.outbound.ProductRepository;
-import com.catalog.application.command.ModerateProductCommand;
-import com.catalog.application.command.ModerateProductResult;
+import com.catalog.application.model.write.ModerateProductCommand;
+import com.catalog.application.model.write.ModerateProductResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.service.CatalogPolicyValidator;
-import lombok.RequiredArgsConstructor;
 
 @lombok.RequiredArgsConstructor
 public class ModerateProductService implements ModerateProductUseCase {

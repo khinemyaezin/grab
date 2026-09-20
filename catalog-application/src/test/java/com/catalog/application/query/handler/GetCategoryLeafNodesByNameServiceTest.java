@@ -3,9 +3,9 @@ package com.catalog.application.query.handler;
 import com.catalog.application.service.GetCategoryLeafNodesByNameService;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.readmodel.CategoryView;
-import com.catalog.application.query.CategoryLeavesResult;
-import com.catalog.application.query.GetCategoryLeafNodesByNameQuery;
+import com.catalog.application.model.read.CategoryView;
+import com.catalog.application.model.read.CategoryLeavesResult;
+import com.catalog.application.model.read.GetCategoryLeafNodesByNameQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

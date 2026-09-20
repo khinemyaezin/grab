@@ -4,9 +4,9 @@ import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.TransferInventoryRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.TransferInventoryResponse;
-import com.grab.store.inventory.internal.command.InventoryItemResult;
-import com.grab.store.inventory.internal.command.TransferInventoryCommand;
-import com.grab.store.inventory.internal.command.TransferInventoryResult;
+import com.inventory.application.model.write.InventoryItemResult;
+import com.inventory.application.model.write.TransferInventoryCommand;
+import com.inventory.application.model.write.TransferInventoryResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

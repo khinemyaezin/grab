@@ -4,16 +4,16 @@ import com.catalog.application.port.inbound.ProductSearchUseCase;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
 import com.catalog.application.port.outbound.ProductQueryPort;
-import com.catalog.application.readmodel.ProductSearchCriteria;
-import com.catalog.application.readmodel.CategoryView;
-import com.catalog.application.readmodel.ProductHeroMediaView;
-import com.catalog.application.readmodel.ProductPublicationView;
-import com.catalog.application.readmodel.ProductView;
+import com.catalog.application.model.read.ProductSearchCriteria;
+import com.catalog.application.model.read.CategoryView;
+import com.catalog.application.model.read.ProductHeroMediaView;
+import com.catalog.application.model.read.ProductPublicationView;
+import com.catalog.application.model.read.ProductView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.storage.FileStoragePort;
-import com.catalog.application.query.ProductSearchQuery;
-import com.catalog.application.query.ProductSearchResult;
+import com.catalog.application.model.read.ProductSearchQuery;
+import com.catalog.application.model.read.ProductSearchResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 

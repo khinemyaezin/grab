@@ -19,11 +19,12 @@ Keep one modular monolith. Classify **every** Maven module as kernel, full hexag
 
 **Key changes:**
 - Four layout recipes (full hex, lite hex, platform adapter, projector) applied to the whole tree — not a catalog-only redesign.
-- `CommandHandler` / `QueryHandler` are inbound ports. No parallel `*UseCase` interfaces.
-- Driven ports (write repos in domain; query/hierarchy/audit ports in application, or in domain for lite BCs) are never defined in infrastructure.
+- **Driving ports** are `{bc}-application.port.inbound.*UseCase` (`execute` with application Command/Query records). HTTP and sagas still enter through `CommandBus` / `QueryBus`; they do not inject use cases directly.
+- **CQRS adapters** are store `CommandHandler` / `QueryHandler` (transaction boundary + routing only; delegate to `*UseCase.execute(...)`). No parallel HTTP `*UseCase` API.
+- Driven ports (write repos in `domain.port.outbound`; query/audit ports in application for full hex, or in domain for lite BCs) are never defined in infrastructure.
 - REST, HATEOAS, security filters, and Modulith modules stay in `store`.
 - Workflow stays a **three-layer platform kit** (`framework.workflow` → `workflow-infrastructure` → `store/workflows`). No `workflow-domain` or `workflow-application`.
-- `{bc}-infrastructure` keeps its name (outbound adapter). No `*-adapter-rest` jars.
+- Full-hex persistence Maven modules are **`{bc}-adapter-persistence`** (`com.{bc}.adapter.persistence`, `{Bc}PersistenceConfig`). Platform kits keep `*-infrastructure`. No `*-adapter-rest` jars.
 
 **What stays the same:**  
 One `EcommerceApplication`. In-process CQRS buses. Per-module datasources, transaction managers, and outbox. Spring Modulith `allowedDependencies` and named interfaces (`api`, `events`, `query`). Domain aggregates and write-repository interfaces stay in `{bc}-domain`. Cross-context collaboration stays events + named query ports — never aggregate navigation.
@@ -63,9 +64,10 @@ The “bounded context” of this ADR is the **commerce platform as a modular mo
 | Business term | Domain type / value | Meaning |
 |---------------|---------------------|---------|
 | Bounded context | Modulith package in `store` plus its Maven jars | One business language and consistency boundary (catalog, inventory, …) |
-| Full hex context | `{bc}-domain` + `{bc}-application` + `{bc}-infrastructure` | Large BC: use cases leave `store` |
-| Lite hex context | `{bc}-domain` + `{bc}-infrastructure` | Small BC: handlers may stay in `store` |
-| Driving port | `CommandHandler` / `QueryHandler` | Inbound use-case contract; HTTP and sagas enter through the bus |
+| Full hex context | `{bc}-domain` + `{bc}-application` + `{bc}-adapter-persistence` | Use cases in application; CQRS + wiring in store |
+| Lite hex context | `{bc}-domain` + `{bc}-adapter-persistence` | Handlers stay in store until promoted |
+| Driving port | `{bc}-application.port.inbound.*UseCase` | Business operation; wired in store `{Bc}UseCaseConfig` |
+| CQRS adapter | Store `CommandHandler` / `QueryHandler` | Bus routing + `@{Bc}Transactional`; delegates to use case |
 | Driven port | repository / query port / `FileStoragePort` / `WorkflowStore` | Outbound contract implemented by an adapter |
 | Composition root | `store` | Wires adapters, exposes HTTP, hosts Modulith modules |
 | Named interface | `::{api,events,query}` | The only types another Modulith module may import |
@@ -222,7 +224,7 @@ classDiagram
 | Storefront Query | Catalog, Pricing, Inventory, Sales Channel | events + query ports | Projects `BuyableOffer`; not a write BC |
 | Workflows | Catalog, Inventory, Pricing, Sales Channel | named events | Orchestrates; never writes those aggregates itself |
 | Any write BC | Own outbox | composition | Domain events persisted in the same module transaction |
-| Any write BC | Storage | driven port | `FileStoragePort` in framework; S3 adapter in `storage-infrastructure` |
+| Any write BC | Storage | driven port | `FileStoragePort` in framework; S3 adapter in `storage-adapter-s3` |
 | `store` | All of the above | composition | HTTP + wiring + Modulith |
 
 #### Why Each Property Exists
@@ -254,23 +256,24 @@ classDiagram
 | `catalog-application` | Catalog commands/queries/handlers and catalog driven ports that are not write repos |
 | `catalog-adapter-persistence` | Catalog persistence adapter: JPA (`com.catalog.adapter.persistence`), nested-set, catalog outbox; wired via `CatalogPersistenceConfig` |
 | `inventory-domain` | Stock, locations, zones, bins, channel routes |
-| `inventory-application` | Inventory use cases and query ports |
-| `inventory-infrastructure` | Inventory JPA and outbox |
+| `inventory-application` | Inventory use cases and query ports (Phase 2) |
+| `inventory-adapter-persistence` | Inventory JPA and outbox (`com.inventory.adapter.persistence`) |
 | `identity-domain` | Users, roles, assignments, invitations, platforms |
-| `identity-application` | Identity use cases; password/token ports stay domain-facing |
-| `identity-infrastructure` | Identity JPA / session store adapters |
+| `identity-application` | Identity use cases and query ports (Phase 2) |
+| `identity-adapter-persistence` | Identity JPA / session store adapters |
 | `merchant-domain` | Merchant accounts and storefronts |
-| `merchant-application` | Merchant use cases and query ports |
-| `merchant-infrastructure` | Merchant JPA and outbox |
+| `merchant-application` | Merchant use cases and query ports (Phase 2) |
+| `merchant-adapter-persistence` | Merchant JPA and outbox |
 | `pricing-domain` | Price sets, lists, preferences |
-| `pricing-application` | Pricing use cases and quote ports |
-| `pricing-infrastructure` | Pricing JPA and outbox |
+| `pricing-application` | Pricing use cases and quote ports (Phase 2) |
+| `pricing-adapter-persistence` | Pricing JPA and outbox |
 | `sales-channel-domain` | Sales channel identity |
-| `sales-channel-infrastructure` | Channel JPA (lite: no application jar) |
+| `sales-channel-application` | Sales channel use cases and query ports |
+| `sales-channel-adapter-persistence` | Channel JPA and outbox (`com.saleschannel.adapter.persistence`) |
 | `cart-domain` | Buyer cart |
-| `cart-infrastructure` | Cart JPA (lite) |
+| `cart-adapter-persistence` | Cart JPA (lite) |
 | `storefront-query-infrastructure` | `BuyableOffer` table |
-| `storage-infrastructure` | S3 adapter for `FileStoragePort` |
+| `storage-adapter-s3` | S3 adapter for `FileStoragePort` |
 | `outbox-infrastructure` | Shared JPA outbox implementation used by BC infra modules |
 | `workflow-infrastructure` | Workflow instance/correlation/signal log + workflow outbox |
 | `store` | Composition root, REST, Modulith, security, saga definitions |
@@ -350,12 +353,13 @@ stateDiagram-v2
 | Saga listener | `store/{bc}/internal/event` | On workflow event → `CommandBus` | `*CatalogEventListener` |
 | Composition / datasource | `store/{module}/internal/config` | `@Import` jars, TM, Flyway | `*Config`, `*ModuleDataSourceConfig` |
 | Shared kernel of the app | `store/shared` | Buses, security filters, SSE, tracing | `CqrsConfiguration` |
-| Handler | `{bc}-application` (full) or `store` (lite) | Transaction + orchestration | `*CommandHandler` |
-| Query / extra driven ports | `{bc}-application.port.outbound` (full) or `{bc}-domain.port` (lite) | Read models, hierarchy, audit | `*QueryPort` |
-| Domain | `{bc}-domain` | Aggregates, write repos, policies | `*Repository` |
-| Persistence adapter | `{bc}-infrastructure` | JPA, outbox, implements ports | `*Adapter`, `*InfraConfig` |
+| Handler | `store/.../{module}/internal/command/handler` and `query/handler` (full hex) | CQRS adapter: `@{Bc}Transactional`, delegates to `*UseCase` |
+| Use case | `{bc}-application` (`port/inbound`, `service/`) | Orchestration; Spring-free except `Page`/`Pageable` |
+| Query / extra driven ports | `{bc}-application.port.outbound` (full) or `{bc}-domain.port.outbound` (lite) | Read models; `*QueryPort` |
+| Domain | `{bc}-domain` | Aggregates, policies; write ports in `port/outbound` |
+| Persistence adapter | `{bc}-adapter-persistence` | JPA, outbox, `*Adapter`, `{Bc}PersistenceConfig` |
 | Workflow engine | `framework.workflow` + `workflow-infrastructure` | Durable process manager | `EventDrivenWorkflowEngine` |
-| Object storage | `framework.storage` + `storage-infrastructure` | Presigned upload/download | `S3FileStorageAdapter` |
+| Object storage | `framework.storage` + `storage-adapter-s3` | Presigned upload/download | `S3FileStorageAdapter` |
 
 #### Target tree — `store` (composition root)
 
@@ -396,55 +400,59 @@ store/.../{module}/
     └── config/                      # *Config @Import, datasource, security configurer
 ```
 
-Lite BCs keep `internal/command` and `internal/query` **until** they are promoted. Full hex BCs delete those packages after handlers move.
+Lite BCs keep `internal/command` and `internal/query` (handlers + orchestration) until promoted to full hex.
+
+Full hex BCs **keep** `internal/command/handler` and `internal/query/handler` in `store` as thin CQRS adapters; command/query **records** live in `{bc}-application`.
 
 #### Target tree — full hexagonal BC
 
-Applies to **catalog, inventory, identity, pricing, merchant**. Same recipe; `{bc}` and `com.{bc}` change.
+Applies to **catalog (done), inventory, identity, pricing, merchant**. Same recipe; `{bc}` and `com.{bc}` change.
 
 ```
 {bc}-domain/src/main/java/com/{bc}/domain/
-├── aggregate/
-├── valueobject/   (and/or enums/)
-├── event/
-├── exception/
-├── policy/
-├── specification/           # if used
+├── aggregate/ valueobject/ event/ exception/ policy/ specification/
 ├── service/                 # domain services + impl/ (no I/O)
-└── repository/              # write ports only
+└── port/outbound/           # write repositories (identity: SessionStore too)
 
 {bc}-application/src/main/java/com/{bc}/application/
-├── command/                 # Command + Result records
-│   └── handler/             # CommandHandler implementations
-├── query/                   # Query + Result records
-│   └── handler/
-├── port/outbound/           # query, hierarchy, audit, projections
-├── readmodel/               # records formerly infrastructure views
-├── service/                 # UniqueSlug-style helpers, policy validators
-└── config/                  # *ApplicationConfig, @*Transactional
+├── command/                 # *Command + *Result; implements Command<R>
+├── query/                   # *Query + *Result; implements Query<R>
+├── port/inbound/            # *UseCase
+├── port/outbound/           # *QueryPort and other driven ports
+├── service/                 # *Service implements *UseCase; helpers
+└── readmodel/               # views + search criteria
+# no config/ in application; no Spring except Page/Pageable on ports
 
-{bc}-infrastructure/src/main/java/com/{bc}/infrastructure/
-├── configuration/           # *InfraConfig: JPA adapters, outbox — no domain @Bean list
-├── entity/
-├── mapper/
-├── repository/jpa/          # Spring Data + adapter classes implementing ports
-├── specification/           # JPA Criteria only
-├── outbox/
-└── workflow/                # WorkflowStepRunner adapter if the BC signals sagas
+{bc}-adapter-persistence/src/main/java/com/{bc}/adapter/persistence/
+├── config/                  # {Bc}PersistenceConfig
+├── entity/ mapper/ repository/ specification/ adapter/ outbox/ workflow/
 ```
 
-`store` `@Import`s `{Bc}ApplicationConfig` and `{Bc}InfraConfig`. Boot does not scan `com.{bc}` unless told to; application config `@ComponentScan`s `com.{bc}.application`.
+**Store (full hex module):**
 
-**Catalog (reference, migrated):** Maven module `catalog-adapter-persistence` (not `catalog-infrastructure`); packages under `com.catalog.adapter.persistence` with `CatalogPersistenceConfig`. Domain write ports are in `com.catalog.domain.port.outbound` (not `domain/repository`). Application query driven ports are named `*QueryPort`. Inbound driving ports are `*UseCase` in `catalog-application`; `CommandHandler` / `QueryHandler` live in `store` and delegate to use cases. Application layer is Spring-free except Spring Data `Page` / `Pageable`. `CatalogConfig` imports `CatalogUseCaseConfig` + persistence; REST stays in `store`.
+```
+store/.../{module}/internal/
+├── command/handler/         # thin CommandHandler -> UseCase.execute
+├── query/handler/           # thin QueryHandler -> UseCase.execute
+├── config/                  # {Bc}Config @Import {Bc}UseCaseConfig + {Bc}PersistenceConfig
+│                            # {Bc}Transactional, {Bc}UseCaseConfig (@Bean use cases)
+├── api/rest/ event/ ...
+```
+
+`store` REST `*CommandService` / `*QueryService` and saga listeners use **only** `CommandBus` / `QueryBus`.
+
+#### Platform reference — catalog (Phase 1 complete)
+
+Catalog follows the trees above: `catalog-adapter-persistence`, `CatalogUseCaseConfig`, `CatalogPersistenceConfig`, domain `port/outbound`, application `*QueryPort` and `*UseCase`.
 
 #### Target tree — lite hexagonal BC
 
-Applies to **sales-channel** and **cart**.
+Applies to **cart** (sales-channel promoted to full hex).
 
 ```
-{bc}-domain/          # aggregates, write repos, query ports (com.{bc}.domain.port)
-{bc}-infrastructure/  # JPA adapters implementing those ports
-store/.../{module}/   # REST + handlers remain here until promotion
+{bc}-domain/          # aggregates; port/outbound write (+ query ports for lite)
+{bc}-adapter-persistence/  # JPA adapters
+store/.../{module}/   # REST + command/query handlers remain here until full hex promotion
 ```
 
 Promote to full hex when command/query handlers become a cluster (roughly more than a handful of orchestrations).
@@ -467,8 +475,8 @@ framework/src/main/java/com/grab/framework/
 
 logger-slf4j/                # LoggerProvider implementation
 
-storage-infrastructure/
-└── com.grab.storage.infrastructure/
+storage-adapter-s3/
+└── com.grab.storage.adapter.s3/
     ├── S3FileStorageAdapter
     └── StorageInfraConfig
 
@@ -586,7 +594,7 @@ flowchart TB
     FW[framework]
     Log[logger-slf4j]
     Outbox[outbox-infrastructure]
-    Storage[storage-infrastructure]
+    Storage[storage-adapter-s3]
     WfInf[workflow-infrastructure]
     Store[store]
 
@@ -639,13 +647,13 @@ flowchart TB
     PrI --> Outbox
 
     ScD[sales-channel-domain]
-    ScI[sales-channel-infrastructure]
+    ScI[sales-channel-adapter-persistence]
     ScD --> FW
     ScI --> ScD
     ScI --> Outbox
 
     CartD[cart-domain]
-    CartI[cart-infrastructure]
+    CartI[cart-adapter-persistence]
     CartD --> FW
     CartI --> CartD
 
@@ -739,7 +747,7 @@ flowchart LR
     Workflows --> Shared
 ```
 
-`storage-infrastructure` and `outbox-infrastructure` are not Modulith modules; they are pulled in by composition and BC infra.
+`storage-adapter-s3` and `outbox-infrastructure` are not Modulith modules; they are pulled in by composition and BC infra.
 
 #### Data / Command Flow
 
@@ -830,15 +838,16 @@ sequenceDiagram
 ## 5. What Needs to Change
 
 **New components/modules to build:**
-- `{bc}-application` for catalog, inventory, identity, pricing, merchant
-- Outbound ports + adapters for query/hierarchy/audit/projections currently declared in infrastructure
-- `{Bc}ApplicationConfig` + component scan per full BC
+- `{bc}-application` for inventory, identity, pricing, merchant (catalog and sales-channel done)
+- `{bc}-adapter-persistence` renaming from `{bc}-infrastructure` for migrated BCs
+- Outbound `*QueryPort` in application; inbound `*UseCase` + `*Service`
+- `{Bc}UseCaseConfig` + `{Bc}PersistenceConfig` wired from store `{Bc}Config`
 
 **Changes to existing systems:**
-- `store/pom.xml` depends on each `{bc}-application` and `{bc}-infrastructure`
-- `{bc}-infrastructure` depends on `{bc}-application` (full hex) and drops domain `@Bean` factories
-- Handlers and command/query types move out of `store` for full hex BCs
-- Query ports in sales-channel/cart move into domain (lite)
+- `store/pom.xml` depends on each `{bc}-application` and `{bc}-adapter-persistence`
+- `{bc}-adapter-persistence` depends on `{bc}-application` (full hex) and drops domain `@Bean` factories from persistence config
+- Command/query **records** move to `{bc}-application`; orchestration in `*Service`; store keeps thin handlers
+- Query ports in cart move into `domain.port.outbound` (lite); sales-channel query ports live in `sales-channel-application`
 - Supercede [ADR-001](../dev/system/ADR_001-System_architecture.md) §2 (application-in-store)
 - Update `.agent/rules/architecture/layered-cqrs.md` locations
 - Do **not** add `workflow-application`, `workflow-domain`, `storefront-query-domain`, or `*-adapter-rest`
@@ -852,9 +861,9 @@ sequenceDiagram
 
 ## 6. Implementation Plan
 
-- **Phase 1 — Catalog full hex:** ports, then handlers, then purity (reference cut).
+- **Phase 1 — Catalog full hex:** complete (UseCase in application, CQRS in store, `catalog-adapter-persistence`).
 - **Phase 2 — Copy the recipe:** inventory → identity → pricing → merchant, one context per milestone.
-- **Phase 3 — Lite + platform:** move sales-channel and cart query ports into domain; leave workflow, storage, outbox, storefront-query on the trees in this ADR.
+- **Phase 3 — Lite:** cart `adapter-persistence` + domain ports; handlers stay in store. Sales-channel follows full hex (domain + application + adapter-persistence).
 
 ---
 

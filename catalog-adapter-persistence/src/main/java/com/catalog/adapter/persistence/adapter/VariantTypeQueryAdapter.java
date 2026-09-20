@@ -2,7 +2,7 @@ package com.catalog.adapter.persistence.adapter;
 
 import com.catalog.adapter.persistence.repository.VariantTypeJpaRepo;
 import com.catalog.application.port.outbound.VariantTypeQueryPort;
-import com.catalog.application.readmodel.VariantTypeView;
+import com.catalog.application.model.read.VariantTypeView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;

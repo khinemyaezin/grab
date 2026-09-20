@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.PublishProductToChannelCommand;
-import com.catalog.application.command.PublishProductToChannelResult;
+import com.catalog.application.model.write.PublishProductToChannelCommand;
+import com.catalog.application.model.write.PublishProductToChannelResult;
 import com.catalog.application.port.inbound.PublishProductToChannelUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

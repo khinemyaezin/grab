@@ -2,6 +2,7 @@ package com.catalog.adapter.persistence.repository;
 
 import com.catalog.adapter.persistence.entity.ProductEntity;
 import com.catalog.adapter.persistence.repository.EntityRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,27 @@ public interface ProductJpaRepo extends EntityRepository<ProductEntity, Long>, J
     Optional<ProductEntity> findByUuid(@Param("uuid") String uuid);
 
     Optional<ProductEntity> findByUuidAndMerchantId(@Param("uuid") String uuid, @Param("merchantId") String merchantId);
+
+    @EntityGraph(attributePaths = {
+            "descriptions",
+            "medias",
+            "productVariants",
+            "productVariants.productVariations",
+            "productVariants.medias"
+    })
+    Optional<ProductEntity> findDetailedByUuidAndMerchantId(
+            @Param("uuid") String uuid,
+            @Param("merchantId") String merchantId
+    );
+
+    @EntityGraph(attributePaths = {
+            "descriptions",
+            "medias",
+            "productVariants",
+            "productVariants.productVariations",
+            "productVariants.medias"
+    })
+    Optional<ProductEntity> findDetailedBySlug(@Param("slug") String slug);
 
     Optional<ProductEntity> findBySlug(@Param("slug") String slug);
 

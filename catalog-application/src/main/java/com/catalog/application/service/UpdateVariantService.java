@@ -9,11 +9,10 @@ import com.catalog.domain.valueobject.ProductVariantStatus;
 import com.grab.framework.id.Id;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.command.UpdateVariantCommand;
-import com.catalog.application.command.UpdateVariantResult;
+import com.catalog.application.model.write.UpdateVariantCommand;
+import com.catalog.application.model.write.UpdateVariantResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 

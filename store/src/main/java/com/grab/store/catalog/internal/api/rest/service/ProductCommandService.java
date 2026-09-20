@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.catalog.application.model.write.*;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.id.IdGenerator;
@@ -10,9 +11,8 @@ import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductStatusDtoMapper;
-import com.catalog.application.command.*;
-import com.catalog.application.query.ListProductPublicationsQuery;
-import com.catalog.application.query.ProductPublicationItem;
+import com.catalog.application.model.read.ListProductPublicationsQuery;
+import com.catalog.application.model.read.ProductPublicationItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

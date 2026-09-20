@@ -2,8 +2,8 @@ package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.identity.internal.api.rest.dto.response.AccessContextResponse;
-import com.grab.store.identity.internal.query.AccessContextResult;
-import com.grab.store.identity.internal.query.ListAccessContextsQuery;
+import com.identity.application.model.read.AccessContextResult;
+import com.identity.application.model.read.ListAccessContextsQuery;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

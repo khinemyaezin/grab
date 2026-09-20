@@ -3,11 +3,11 @@ package com.catalog.application.query.handler;
 import com.catalog.application.service.GetCategoryChildrenService;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.readmodel.CategoryChildrenView;
-import com.catalog.application.readmodel.CategoryView;
+import com.catalog.application.model.read.CategoryChildrenView;
+import com.catalog.application.model.read.CategoryView;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.query.CategoryChildrenResult;
-import com.catalog.application.query.GetCategoryChildrenQuery;
+import com.catalog.application.model.read.CategoryChildrenResult;
+import com.catalog.application.model.read.GetCategoryChildrenQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

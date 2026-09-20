@@ -8,7 +8,7 @@ import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
-import com.identity.domain.repository.SessionStore;
+import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.service.TokenPair;
 import com.identity.domain.valueobject.SessionDetails;
 import io.jsonwebtoken.Jwts;

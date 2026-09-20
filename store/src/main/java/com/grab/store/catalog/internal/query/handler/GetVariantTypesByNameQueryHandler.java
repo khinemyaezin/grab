@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.application.port.inbound.GetVariantTypesByNameUseCase;
-import com.catalog.application.query.GetVariantTypesByNameQuery;
-import com.catalog.application.query.VariantTypeResult;
+import com.catalog.application.model.read.GetVariantTypesByNameQuery;
+import com.catalog.application.model.read.VariantTypeResult;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import lombok.RequiredArgsConstructor;

@@ -1,15 +1,17 @@
 package com.grab.store.inventory.internal.query.handler;
 
+import com.inventory.application.service.GetInventorySummaryService;
+
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.inventory.internal.query.GetInventorySummaryQuery;
-import com.grab.store.inventory.internal.query.GetInventorySummaryResult;
-import com.inventory.infrastructure.repository.jpa.InventoryQueryRepository;
-import com.inventory.infrastructure.view.CountBucketView;
-import com.inventory.infrastructure.view.InventoryQuantityTotalsView;
-import com.inventory.infrastructure.view.InventoryStatusBreakdownView;
-import com.inventory.infrastructure.view.InventoryStockHealthBreakdownView;
-import com.inventory.infrastructure.view.InventorySummaryScopeView;
-import com.inventory.infrastructure.view.InventorySummaryView;
+import com.inventory.application.model.read.GetInventorySummaryQuery;
+import com.inventory.application.model.read.GetInventorySummaryResult;
+import com.inventory.application.port.outbound.InventoryQueryPort;
+import com.inventory.application.model.read.CountBucketView;
+import com.inventory.application.model.read.InventoryQuantityTotalsView;
+import com.inventory.application.model.read.InventoryStatusBreakdownView;
+import com.inventory.application.model.read.InventoryStockHealthBreakdownView;
+import com.inventory.application.model.read.InventorySummaryScopeView;
+import com.inventory.application.model.read.InventorySummaryView;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,13 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class GetInventorySummaryQueryHandlerTest {
+class GetInventorySummaryServiceTest {
 
     @Mock
-    private InventoryQueryRepository inventoryQueryRepository;
+    private InventoryQueryPort inventoryQueryPort;
 
     @InjectMocks
-    private GetInventorySummaryQueryHandler handler;
+    private GetInventorySummaryService handler;
 
     @Test
     void handle_withCounts_shouldComputePercentsRoundedToTwoDecimals() {
@@ -48,9 +50,9 @@ class GetInventorySummaryQueryHandlerTest {
                 ),
                 new InventoryQuantityTotalsView(5000, 200, 100, 50, 4750)
         );
-        when(inventoryQueryRepository.summarize("seller-1", "loc-1")).thenReturn(view);
+        when(inventoryQueryPort.summarize("seller-1", "loc-1")).thenReturn(view);
 
-        GetInventorySummaryResult result = handler.handle(
+        GetInventorySummaryResult result = handler.execute(
                 new GetInventorySummaryQuery(new CommonId("seller-1"), new CommonId("loc-1"))
         );
 
@@ -86,9 +88,9 @@ class GetInventorySummaryQueryHandlerTest {
                 ),
                 new InventoryQuantityTotalsView(0, 0, 0, 0, 0)
         );
-        when(inventoryQueryRepository.summarize("seller-1", null)).thenReturn(view);
+        when(inventoryQueryPort.summarize("seller-1", null)).thenReturn(view);
 
-        GetInventorySummaryResult result = handler.handle(
+        GetInventorySummaryResult result = handler.execute(
                 new GetInventorySummaryQuery(new CommonId("seller-1"), null)
         );
 

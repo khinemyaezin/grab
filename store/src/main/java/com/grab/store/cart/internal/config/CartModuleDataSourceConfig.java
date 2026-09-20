@@ -20,9 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@ComponentScan(basePackages = "com.cart.infrastructure")
+@ComponentScan(basePackages = "com.cart.adapter.persistence")
 @EnableJpaRepositories(
-        basePackages = "com.cart.infrastructure.repository.jpa",
+        basePackages = "com.cart.adapter.persistence.repository.jpa",
         entityManagerFactoryRef = "cartEntityManagerFactory",
         transactionManagerRef = "cartTransactionManager"
 )
@@ -55,7 +55,7 @@ public class CartModuleDataSourceConfig {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setJpaVendorAdapter(vendorAdapter);
-        factory.setPackagesToScan("com.cart.infrastructure");
+        factory.setPackagesToScan("com.cart.adapter.persistence");
         factory.setDataSource(dataSource);
         factory.setPersistenceUnitName("cart");
         factory.setJpaPropertyMap(hibernateProperties());

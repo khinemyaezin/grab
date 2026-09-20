@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.api.rest.mapper;
 
 import com.grab.store.catalog.internal.api.rest.dto.response.CategoryChildrenResponse;
-import com.catalog.application.query.CategoryChildrenResult;
+import com.catalog.application.model.read.CategoryChildrenResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = CategoryDtoMapper.class)

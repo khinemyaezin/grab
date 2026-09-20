@@ -2,8 +2,8 @@ package com.grab.store.pricing.internal.api.rest.mapper;
 
 import com.grab.store.pricing.internal.api.rest.dto.request.ListVariantPriceSetLinksRequest;
 import com.grab.store.pricing.internal.api.rest.dto.response.VariantPriceSetLinkResponse;
-import com.grab.store.pricing.internal.query.ListVariantPriceSetLinksQuery;
-import com.grab.store.pricing.internal.query.VariantPriceSetLinkResult;
+import com.pricing.application.model.read.ListVariantPriceSetLinksQuery;
+import com.pricing.application.model.read.VariantPriceSetLinkResult;
 import org.mapstruct.Mapper;
 
 import java.util.List;

@@ -2,12 +2,13 @@ package com.grab.store.pricing.internal.command.handler;
 
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentCommand;
-import com.grab.store.pricing.internal.command.CreateVariantPriceAssignmentResult;
+import com.pricing.application.model.write.CreateVariantPriceAssignmentCommand;
+import com.pricing.application.model.write.CreateVariantPriceAssignmentResult;
+import com.pricing.application.service.CreateVariantPriceAssignmentService;
 import com.pricing.domain.aggregate.PriceSet;
-import com.pricing.domain.repository.PriceSetRepository;
-import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkRepository;
-import com.pricing.infrastructure.view.VariantPriceSetLinkView;
+import com.pricing.domain.port.outbound.PriceSetRepository;
+import com.pricing.domain.port.outbound.VariantPriceSetLinkRepository;
+import com.pricing.domain.valueobject.VariantPriceSetLink;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class CreateVariantPriceAssignmentCommandHandlerTest {
+class CreateVariantPriceAssignmentServiceTest {
 
     @Mock
     private PriceSetRepository priceSetRepository;
@@ -32,7 +33,7 @@ class CreateVariantPriceAssignmentCommandHandlerTest {
     private VariantPriceSetLinkRepository variantPriceSetLinkRepository;
 
     private IdGenerator idGenerator;
-    private CreateVariantPriceAssignmentCommandHandler handler;
+    private CreateVariantPriceAssignmentService service;
 
     @BeforeEach
     void setUp() {
@@ -49,7 +50,7 @@ class CreateVariantPriceAssignmentCommandHandlerTest {
                 return new CommonId(id);
             }
         };
-        handler = new CreateVariantPriceAssignmentCommandHandler(
+        service = new CreateVariantPriceAssignmentService(
                 priceSetRepository,
                 variantPriceSetLinkRepository,
                 idGenerator
@@ -57,10 +58,10 @@ class CreateVariantPriceAssignmentCommandHandlerTest {
     }
 
     @Test
-    void handle_shouldCreatePriceSetSaveLinkAndReturnPriceSetId() {
+    void execute_shouldCreatePriceSetSaveLinkAndReturnPriceSetId() {
         when(priceSetRepository.save(any(PriceSet.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreateVariantPriceAssignmentResult result = handler.handle(new CreateVariantPriceAssignmentCommand(
+        CreateVariantPriceAssignmentResult result = service.execute(new CreateVariantPriceAssignmentCommand(
                 "variant-1",
                 "product-1",
                 "SKU-1",
@@ -83,9 +84,9 @@ class CreateVariantPriceAssignmentCommandHandlerTest {
         assertThat(savedPriceSet.getPrices().getFirst().getAmount().value()).isEqualByComparingTo("19.99");
         assertThat(savedPriceSet.getPrices().getFirst().getCurrencyCode().value()).isEqualTo("usd");
 
-        ArgumentCaptor<VariantPriceSetLinkView> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLinkView.class);
+        ArgumentCaptor<VariantPriceSetLink> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLink.class);
         verify(variantPriceSetLinkRepository).save(linkCaptor.capture());
-        VariantPriceSetLinkView savedLink = linkCaptor.getValue();
+        VariantPriceSetLink savedLink = linkCaptor.getValue();
         assertThat(savedLink.variantId()).isEqualTo("variant-1");
         assertThat(savedLink.priceSetId()).isEqualTo("id-1");
         assertThat(savedLink.productId()).isEqualTo("product-1");

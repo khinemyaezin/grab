@@ -20,9 +20,15 @@ import java.util.Map;
 import java.util.HashMap;
 
 @Configuration
-@ComponentScan("com.identity.infrastructure")
+@ComponentScan(
+        basePackages = "com.identity.adapter.persistence.mapper",
+        includeFilters = @ComponentScan.Filter(
+                type = FilterType.REGEX,
+                pattern = ".*MapperImpl"
+        )
+)
 @EnableJpaRepositories(
-        basePackages = "com.identity.infrastructure.repository.jpa",
+        basePackages = "com.identity.adapter.persistence.repository.jpa",
         entityManagerFactoryRef = "identityEntityManagerFactory",
         transactionManagerRef = "identityTransactionManager")
 public class IdentityDataSourceConfig {
@@ -42,7 +48,7 @@ public class IdentityDataSourceConfig {
     LocalContainerEntityManagerFactoryBean emf(@Qualifier("identityDataSource") DataSource ds, Environment env) {
         var f = new LocalContainerEntityManagerFactoryBean();
         f.setDataSource(ds);
-        f.setPackagesToScan("com.identity.infrastructure.entity", "com.identity.infrastructure.outbox");
+        f.setPackagesToScan("com.identity.adapter.persistence.entity", "com.identity.adapter.persistence.outbox");
         f.setPersistenceUnitName("identity");
         f.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         f.setJpaPropertyMap(

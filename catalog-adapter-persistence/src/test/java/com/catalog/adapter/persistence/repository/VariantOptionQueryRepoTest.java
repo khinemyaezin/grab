@@ -3,7 +3,7 @@ package com.catalog.adapter.persistence.repository;
 import com.catalog.adapter.persistence.entity.VariantOptionEntity;
 import com.catalog.adapter.persistence.entity.VariantTypeEntity;
 import com.catalog.adapter.persistence.repository.config.VariationRepositoryTestConfig;
-import com.catalog.application.readmodel.VariantOptionView;
+import com.catalog.application.model.read.VariantOptionView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

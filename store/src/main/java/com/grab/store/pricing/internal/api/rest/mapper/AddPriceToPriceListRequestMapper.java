@@ -3,8 +3,8 @@ package com.grab.store.pricing.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.pricing.internal.api.rest.dto.request.AddPriceListPriceRequest;
 import com.grab.store.pricing.internal.api.rest.dto.response.PriceListResponse;
-import com.grab.store.pricing.internal.command.AddPriceToPriceListCommand;
-import com.grab.store.pricing.internal.command.PriceListResult;
+import com.pricing.application.model.write.AddPriceToPriceListCommand;
+import com.pricing.application.model.write.PriceListResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

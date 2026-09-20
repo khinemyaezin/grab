@@ -2,13 +2,13 @@ package com.grab.store.pricing.internal.event;
 
 import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.store.pricing.internal.command.UpdateVariantPriceCommand;
-import com.grab.store.pricing.internal.command.UpdateVariantPriceResult;
+import com.pricing.application.model.write.UpdateVariantPriceCommand;
+import com.pricing.application.model.write.UpdateVariantPriceResult;
 import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.RequestSyncVariantPriceEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import com.grab.store.workflows.events.VariantPriceSyncedEvent;
-import com.pricing.infrastructure.workflow.PricingWorkflowStepRunner;
+import com.pricing.adapter.persistence.workflow.PricingWorkflowStepRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

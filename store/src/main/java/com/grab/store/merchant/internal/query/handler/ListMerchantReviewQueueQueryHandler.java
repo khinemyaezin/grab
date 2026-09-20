@@ -1,29 +1,24 @@
 package com.grab.store.merchant.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.store.merchant.internal.command.MerchantAccountResult;
-import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.grab.store.merchant.internal.config.MerchantReadTransactional;
-import com.grab.store.merchant.internal.query.ListMerchantReviewQueueQuery;
-import com.merchant.domain.aggregate.MerchantAccount;
-import com.merchant.domain.repository.MerchantAccountRepository;
+import com.merchant.application.model.write.MerchantAccountResult;
+import com.merchant.application.port.inbound.ListMerchantReviewQueueUseCase;
+import com.merchant.application.model.read.ListMerchantReviewQueueQuery;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
-@MerchantEnabled
 @RequiredArgsConstructor
-public class ListMerchantReviewQueueQueryHandler
-        implements QueryHandler<ListMerchantReviewQueueQuery, List<MerchantAccountResult>> {
-    private final MerchantAccountRepository merchants;
+public class ListMerchantReviewQueueQueryHandler implements QueryHandler<ListMerchantReviewQueueQuery, List<MerchantAccountResult>> {
+
+    private final ListMerchantReviewQueueUseCase listMerchantReviewQueueUseCase;
 
     @Override
     @MerchantReadTransactional
     public List<MerchantAccountResult> handle(ListMerchantReviewQueueQuery query) {
-        List<MerchantAccount> accounts = merchants.findByStatus(query.status());
-        return accounts.stream().map(MerchantAccountResult::from).toList();
+        return listMerchantReviewQueueUseCase.execute(query);
     }
 
     @Override

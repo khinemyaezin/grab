@@ -5,10 +5,10 @@ import com.grab.store.inventory.internal.api.rest.dto.request.AllocateStockReque
 import com.grab.store.inventory.internal.api.rest.dto.request.DeallocateStockRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.AllocateStockResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.DeallocateStockResponse;
-import com.grab.store.inventory.internal.command.AllocateStockCommand;
-import com.grab.store.inventory.internal.command.AllocateStockResult;
-import com.grab.store.inventory.internal.command.DeallocateStockCommand;
-import com.grab.store.inventory.internal.command.DeallocateStockResult;
+import com.inventory.application.model.write.AllocateStockCommand;
+import com.inventory.application.model.write.AllocateStockResult;
+import com.inventory.application.model.write.DeallocateStockCommand;
+import com.inventory.application.model.write.DeallocateStockResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

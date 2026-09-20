@@ -1,33 +1,23 @@
 package com.grab.store.pricing.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.store.pricing.internal.command.PriceSetResult;
-import com.grab.store.pricing.internal.config.PricingEnabled;
 import com.grab.store.pricing.internal.config.PricingReadTransactional;
-import com.grab.store.pricing.internal.exception.PricingServiceError;
-import com.grab.store.pricing.internal.exception.PricingServiceException;
-import com.grab.store.pricing.internal.query.GetPriceSetQuery;
-import com.grab.store.pricing.internal.util.PricingResultMapper;
-import com.pricing.domain.repository.PriceSetRepository;
+import com.pricing.application.model.write.PriceSetResult;
+import com.pricing.application.port.inbound.GetPriceSetUseCase;
+import com.pricing.application.model.read.GetPriceSetQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
-@PricingEnabled
 @RequiredArgsConstructor
 public class GetPriceSetQueryHandler implements QueryHandler<GetPriceSetQuery, PriceSetResult> {
 
-    private final PriceSetRepository priceSetRepository;
+    private final GetPriceSetUseCase getPriceSetUseCase;
 
     @Override
     @PricingReadTransactional
     public PriceSetResult handle(GetPriceSetQuery query) {
-        return priceSetRepository.findById(query.priceSetId())
-                .map(PricingResultMapper::toPriceSetResult)
-                .orElseThrow(() -> new PricingServiceException(
-                        new PricingServiceError.PriceSetNotFound(query.priceSetId().getValue()),
-                        "Price set not found"
-                ));
+        return getPriceSetUseCase.execute(query);
     }
 
     @Override

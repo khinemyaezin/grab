@@ -3,8 +3,8 @@ package com.grab.store.merchant.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.merchant.internal.api.rest.dto.request.CreateStorefrontRequest;
 import com.grab.store.merchant.internal.api.rest.dto.response.StorefrontResponse;
-import com.grab.store.merchant.internal.command.CreateStorefrontCommand;
-import com.grab.store.merchant.internal.command.StorefrontResult;
+import com.merchant.application.model.write.CreateStorefrontCommand;
+import com.merchant.application.model.write.StorefrontResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

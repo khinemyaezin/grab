@@ -3,8 +3,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchZoneRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
-import com.grab.store.inventory.internal.query.SearchZonesQuery;
-import com.grab.store.inventory.internal.query.SearchZonesResult;
+import com.inventory.application.model.read.SearchZonesQuery;
+import com.inventory.application.model.read.SearchZonesResult;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Pageable;
 

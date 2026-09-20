@@ -2,8 +2,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.BinResponse;
-import com.grab.store.inventory.internal.command.BinResult;
-import com.grab.store.inventory.internal.command.DeactivateBinCommand;
+import com.inventory.application.model.write.BinResult;
+import com.inventory.application.model.write.DeactivateBinCommand;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

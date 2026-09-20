@@ -2,8 +2,8 @@ package com.grab.store.catalog.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteVariantResponse;
-import com.catalog.application.command.DeleteVariantCommand;
-import com.catalog.application.command.DeleteVariantResult;
+import com.catalog.application.model.write.DeleteVariantCommand;
+import com.catalog.application.model.write.DeleteVariantResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

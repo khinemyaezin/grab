@@ -1,18 +1,10 @@
 package com.grab.store.inventory.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
-import com.inventory.domain.aggregate.InventoryItem;
-import com.inventory.domain.aggregate.Location;
-import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.domain.repository.LocationRepository;
-import com.inventory.domain.valueobject.ReorderConfig;
-import com.grab.store.inventory.internal.command.InventoryItemResult;
-import com.grab.store.inventory.internal.command.InventoryItemResults;
-import com.grab.store.inventory.internal.command.UpdateReorderConfigCommand;
 import com.grab.store.inventory.internal.config.InventoryTransactional;
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
-import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
+import com.inventory.application.model.write.InventoryItemResult;
+import com.inventory.application.model.write.UpdateReorderConfigCommand;
+import com.inventory.application.port.inbound.UpdateReorderConfigUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -20,37 +12,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UpdateReorderConfigCommandHandler implements CommandHandler<UpdateReorderConfigCommand, InventoryItemResult> {
 
-    private final InventoryRepository inventoryRepository;
-    private final LocationRepository locationRepository;
-    private final InventoryLocationAccessPolicy locationAccessPolicy;
+    private final UpdateReorderConfigUseCase updateReorderConfigUseCase;
 
     @Override
     @InventoryTransactional
     public InventoryItemResult handle(UpdateReorderConfigCommand command) {
-        InventoryItem item = requireAccessibleItem(command.inventoryItemId(), command.scopeKey(), command.scopeId());
-        item.updateReorderConfig(new ReorderConfig(
-                command.safetyStock(),
-                command.reorderPoint(),
-                command.reorderQuantity(),
-                command.maxStock()
-        ));
-        inventoryRepository.save(item);
-        return InventoryItemResults.from(item);
+        return updateReorderConfigUseCase.execute(command);
     }
 
     @Override
     public Class<UpdateReorderConfigCommand> getCommandType() {
         return UpdateReorderConfigCommand.class;
-    }
-
-    private InventoryItem requireAccessibleItem(com.grab.framework.id.Id inventoryItemId, String scopeKey, String scopeId) {
-        InventoryItem item = inventoryRepository.findById(inventoryItemId)
-                .orElseThrow(() -> new InventoryServiceException(
-                        new InventoryServiceError.InventoryNotFound(inventoryItemId.getValue())));
-        Location location = locationRepository.findById(item.getLocationId())
-                .orElseThrow(() -> new InventoryServiceException(
-                        new InventoryServiceError.LocationNotFound(item.getLocationId().getValue())));
-        locationAccessPolicy.requireAccess(scopeKey, scopeId, location);
-        return item;
     }
 }

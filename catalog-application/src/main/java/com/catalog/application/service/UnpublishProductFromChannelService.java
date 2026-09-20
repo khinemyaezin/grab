@@ -6,11 +6,10 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.aggregate.ProductPublication;
 import com.catalog.domain.port.outbound.ProductPublicationRepository;
 import com.catalog.domain.port.outbound.ProductRepository;
-import com.catalog.application.command.UnpublishProductFromChannelCommand;
-import com.catalog.application.command.UnpublishProductFromChannelResult;
+import com.catalog.application.model.write.UnpublishProductFromChannelCommand;
+import com.catalog.application.model.write.UnpublishProductFromChannelResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 

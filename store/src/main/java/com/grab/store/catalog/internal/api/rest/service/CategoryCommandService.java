@@ -7,10 +7,10 @@ import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.api.rest.dto.request.SaveCategoryRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.DeleteCategoryResponse;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveCategoryDtoMapper;
-import com.catalog.application.command.DeleteCategoryCommand;
-import com.catalog.application.command.DeleteCategoryResult;
-import com.catalog.application.command.SaveCategoryCommand;
-import com.catalog.application.command.SaveCategoryResult;
+import com.catalog.application.model.write.DeleteCategoryCommand;
+import com.catalog.application.model.write.DeleteCategoryResult;
+import com.catalog.application.model.write.SaveCategoryCommand;
+import com.catalog.application.model.write.SaveCategoryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

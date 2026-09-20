@@ -9,12 +9,10 @@ import com.catalog.domain.port.outbound.ProductRepository;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.command.UpdateProductStatusCommand;
-import com.catalog.application.command.UpdateProductStatusResult;
+import com.catalog.application.model.write.UpdateProductStatusCommand;
+import com.catalog.application.model.write.UpdateProductStatusResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.service.CatalogPolicyValidator;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 

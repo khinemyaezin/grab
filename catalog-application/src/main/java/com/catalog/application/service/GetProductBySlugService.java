@@ -1,24 +1,19 @@
 package com.catalog.application.service;
 
-import com.catalog.application.port.inbound.GetProductBySlugUseCase;
-
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.port.outbound.ProductRepository;
-import com.catalog.domain.valueobject.ProductVariation;
-import com.catalog.application.port.outbound.MerchantAvailabilityPort;
-import com.catalog.application.port.outbound.VariantOptionQueryPort;
-import com.catalog.application.readmodel.VariantOptionView;
-import com.grab.framework.id.Id;
-import com.grab.framework.id.IdGenerator;
-import com.grab.framework.logger.Logger;
-import com.grab.framework.logger.Loggers;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.query.GetProductBySlugQuery;
-import com.catalog.application.query.GetProductBySlugResult;
-import com.catalog.application.query.ProductMediaQueryMapper;
-import com.catalog.application.service.ParentChildTransformer;
+import com.catalog.application.port.inbound.GetProductBySlugUseCase;
+import com.catalog.application.port.outbound.MerchantAvailabilityPort;
+import com.catalog.application.port.outbound.ProductQueryPort;
+import com.catalog.application.port.outbound.VariantOptionQueryPort;
+import com.catalog.application.model.read.GetProductBySlugQuery;
+import com.catalog.application.model.read.GetProductBySlugResult;
+import com.catalog.application.model.read.ProductDetailView;
+import com.catalog.application.model.read.VariantOptionView;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
+import com.grab.framework.logger.Loggers;
+import com.grab.framework.logger.Logger;
 import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
@@ -27,33 +22,33 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@lombok.RequiredArgsConstructor
+@RequiredArgsConstructor
 public class GetProductBySlugService implements GetProductBySlugUseCase {
 
     private static final Logger log = Loggers.getLogger(GetProductBySlugService.class);
 
-    private final ProductRepository productRepository;
-    private final VariantOptionQueryPort variantOptionQueryRepository;
+    private final ProductQueryPort productQueryPort;
+    private final VariantOptionQueryPort variantOptionQueryPort;
     private final MerchantAvailabilityPort merchantAvailabilityPort;
+    private final ProductMediaConverter productMediaConverter;
     private final IdGenerator idGenerator;
-    private final ProductMediaQueryMapper productMediaQueryMapper;
 
-        public GetProductBySlugResult execute(GetProductBySlugQuery query) {
+    public GetProductBySlugResult execute(GetProductBySlugQuery query) {
         log.debug("Handling GetProductBySlugQuery for slug: {}", query.slug());
 
-        Product product = productRepository.findBySlug(query.slug())
+        ProductDetailView product = productQueryPort.findDetailBySlug(query.slug())
                 .orElseThrow(() -> new CatalogServiceException(
                         new CatalogServiceError.ProductNotFoundBySlug(query.slug())
                 ));
 
-        if (!product.isVisibleOnStorefront()) {
+        if (!product.visibleOnStorefront()) {
             throw new CatalogServiceException(
                     new CatalogServiceError.ProductNotFoundBySlug(query.slug())
             );
         }
 
         MerchantAvailabilityPort.MerchantAvailabilitySlice availability = merchantAvailabilityPort
-                .findByMerchantId(product.getMerchantId().getValue())
+                .findByMerchantId(product.merchantId())
                 .orElse(null);
         if (availability == null || !"ACTIVE".equals(availability.status())) {
             throw new CatalogServiceException(
@@ -64,48 +59,39 @@ public class GetProductBySlugService implements GetProductBySlugUseCase {
         return mapToSlugResult(product, availability.merchantType());
     }
 
-    public GetProductBySlugResult mapToSlugResult(Product product, String merchantType) {
-        List<ProductVariation> allVariations = product.getVariants().stream()
-                .flatMap(v -> v.getVariations().stream())
-                .toList();
-
-        List<String> optionIds = allVariations.stream()
-                .map(v -> v.getOptionId().getValue())
+    private GetProductBySlugResult mapToSlugResult(ProductDetailView product, String merchantType) {
+        List<String> optionIds = product.variants().stream()
+                .flatMap(v -> v.variations().stream())
+                .map(ProductDetailView.VariationView::optionId)
                 .distinct()
                 .toList();
 
-        List<VariantOptionView> optionViews = fetchVariantOptions(optionIds);
-
-        List<GetProductBySlugResult.Variant> variants = mapToSlugResultVariant(product.getVariants(), optionViews);
-
+        List<VariantOptionView> optionViews = variantOptionQueryPort.findAllByUuidIn(optionIds);
+        List<GetProductBySlugResult.Variant> variants = mapToSlugResultVariant(product.variants(), optionViews);
         List<GetProductBySlugResult.VariantType> variantTypes = extractSlugVariantTypes(optionViews);
 
         return new GetProductBySlugResult(
-                product.getId().getValue(),
-                product.getName(),
-                product.getCategoryId().getValue(),
-                product.getMerchantId().getValue(),
+                product.id(),
+                product.name(),
+                product.categoryId(),
+                product.merchantId(),
                 merchantType,
-                product.getListingCondition() == null ? null : product.getListingCondition().name(),
-                product.getStatus().name(),
-                product.getSlug(),
-                product.isFeatured(),
-                product.getDescriptions().stream()
+                product.listingCondition(),
+                product.status().name(),
+                product.slug(),
+                product.featured(),
+                product.descriptions().stream()
                         .map(description -> new GetProductBySlugResult.Description(
-                                description.getId() == null ? null : description.getId().getValue(),
-                                description.getName(),
-                                description.getTitle(),
-                                description.getDescription()
+                                description.id(),
+                                description.name(),
+                                description.title(),
+                                description.description()
                         ))
                         .toList(),
-                productMediaQueryMapper.toGetProductBySlugMedias(product.getMedias()),
+                productMediaConverter.toGetProductBySlugMediasFromViews(product.medias()),
                 variants,
                 variantTypes
         );
-    }
-
-    private List<VariantOptionView> fetchVariantOptions(List<String> optionIds) {
-        return variantOptionQueryRepository.findAllByUuidIn(optionIds);
     }
 
     private List<GetProductBySlugResult.VariantType> extractSlugVariantTypes(List<VariantOptionView> optionViews) {
@@ -123,36 +109,41 @@ public class GetProductBySlugService implements GetProductBySlugUseCase {
         return transformer.apply(optionViews);
     }
 
-    private List<GetProductBySlugResult.Variant> mapToSlugResultVariant(List<ProductVariant> variantList, List<VariantOptionView> optionViews) {
+    private List<GetProductBySlugResult.Variant> mapToSlugResultVariant(
+            List<ProductDetailView.VariantView> variantList,
+            List<VariantOptionView> optionViews
+    ) {
         Map<String, VariantOptionView> variationMapByOptionId = optionViews.stream()
-                .collect(Collectors.toMap(
-                        VariantOptionView::optionId,
-                        Function.identity()));
+                .collect(Collectors.toMap(VariantOptionView::optionId, Function.identity()));
         List<GetProductBySlugResult.Variant> result = new ArrayList<>(variantList.size());
 
-        for(ProductVariant variant : variantList) {
+        for (ProductDetailView.VariantView variant : variantList) {
             List<GetProductBySlugResult.Variation> variations = new ArrayList<>();
-            for(ProductVariation productVariation : variant.getVariations()) {
-                VariantOptionView variantOptionView = variationMapByOptionId.get(productVariation.getOptionId().getValue());
-                GetProductBySlugResult.Variation variation = new GetProductBySlugResult.Variation(
+            for (ProductDetailView.VariationView productVariation : variant.variations()) {
+                if (StandaloneVariationFactory.isStandAloneVariation(productVariation.optionId())) {
+                    continue;
+                }
+                VariantOptionView variantOptionView = variationMapByOptionId.get(productVariation.optionId());
+                if (variantOptionView == null) {
+                    continue;
+                }
+                variations.add(new GetProductBySlugResult.Variation(
                         variantOptionView.optionId(),
                         variantOptionView.optionName(),
                         variantOptionView.typeId(),
                         variantOptionView.typeName()
-                );
-                variations.add(variation);
+                ));
             }
 
-            GetProductBySlugResult.Variant resultVariant = new GetProductBySlugResult.Variant(
-                    variant.getId().getValue(),
-                    variant.getSku(),
-                    variant.getStatus().name(),
+            result.add(new GetProductBySlugResult.Variant(
+                    variant.id(),
+                    variant.sku(),
+                    variant.status(),
                     variations,
-                    variant.isManageInventory(),
-                    variant.getMediaIds().stream().map(Id::getValue).toList(),
-                    variant.getThumbnailMediaId() == null ? null : variant.getThumbnailMediaId().getValue()
-            );
-            result.add(resultVariant);
+                    variant.manageInventory(),
+                    variant.mediaIds(),
+                    variant.thumbnailMediaId()
+            ));
         }
         return result;
     }

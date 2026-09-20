@@ -4,13 +4,13 @@ import com.catalog.application.port.inbound.ProductVariantSearchUseCase;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
 import com.catalog.application.port.outbound.ProductVariantQueryPort;
-import com.catalog.application.readmodel.ProductSearchCriteria;
-import com.catalog.application.readmodel.CategoryView;
-import com.catalog.application.readmodel.ProductVariantView;
+import com.catalog.application.model.read.ProductSearchCriteria;
+import com.catalog.application.model.read.CategoryView;
+import com.catalog.application.model.read.ProductVariantView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.query.ProductVariantSummaryQuery;
-import com.catalog.application.query.ProductVariantSummaryResult;
+import com.catalog.application.model.read.ProductVariantSummaryQuery;
+import com.catalog.application.model.read.ProductVariantSummaryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 

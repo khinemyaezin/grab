@@ -2,6 +2,8 @@ package com.grab.store.cart.internal.command;
 
 import com.cart.domain.aggregate.Cart;
 import com.cart.domain.entity.CartLine;
+import com.cart.domain.readmodel.CartLineView;
+import com.cart.domain.readmodel.CartView;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +31,20 @@ public record CartResult(
     ) {
     }
 
+    public static CartResult from(CartView cart, boolean priceAdjusted) {
+        return new CartResult(
+                cart.cartId(),
+                cart.guestToken(),
+                cart.salesChannelId(),
+                cart.channelType(),
+                cart.regionId(),
+                cart.currencyCode(),
+                cart.status().name(),
+                cart.lines().stream().map(CartResult::toLine).toList(),
+                priceAdjusted
+        );
+    }
+
     public static CartResult from(Cart cart, boolean priceAdjusted) {
         return new CartResult(
                 cart.getId().getValue(),
@@ -40,6 +56,19 @@ public record CartResult(
                 cart.getStatus().name(),
                 cart.getLines().stream().map(CartResult::toLine).toList(),
                 priceAdjusted
+        );
+    }
+
+    private static CartLineResult toLine(CartLineView line) {
+        return new CartLineResult(
+                line.lineId(),
+                line.variantId(),
+                line.productId(),
+                line.sellerId(),
+                line.title(),
+                line.sku(),
+                line.unitPrice(),
+                line.quantity()
         );
     }
 

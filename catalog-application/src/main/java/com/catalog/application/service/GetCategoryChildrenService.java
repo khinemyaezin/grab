@@ -6,14 +6,13 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.readmodel.CategoryChildrenView;
-import com.catalog.application.readmodel.CategoryView;
+import com.catalog.application.model.read.CategoryChildrenView;
+import com.catalog.application.model.read.CategoryView;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.query.CategoryChildrenResult;
-import com.catalog.application.query.CategoryResult;
-import com.catalog.application.query.GetCategoryChildrenQuery;
-import lombok.RequiredArgsConstructor;
+import com.catalog.application.model.read.CategoryChildrenResult;
+import com.catalog.application.model.read.CategoryResult;
+import com.catalog.application.model.read.GetCategoryChildrenQuery;
 
 @lombok.RequiredArgsConstructor
 public class GetCategoryChildrenService implements GetCategoryChildrenUseCase {

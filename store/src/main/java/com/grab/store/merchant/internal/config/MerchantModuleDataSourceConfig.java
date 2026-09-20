@@ -18,9 +18,15 @@ import java.util.Map;
 
 @Configuration
 @ConditionalOnProperty(prefix = "merchant", name = "enabled", havingValue = "true")
-@ComponentScan("com.merchant.infrastructure")
+@ComponentScan(
+        basePackages = "com.merchant.adapter.persistence.mapper",
+        includeFilters = @ComponentScan.Filter(
+                type = FilterType.REGEX,
+                pattern = ".*MapperImpl"
+        )
+)
 @EnableJpaRepositories(
-        basePackages = "com.merchant.infrastructure.repository.jpa",
+        basePackages = "com.merchant.adapter.persistence.repository.jpa",
         entityManagerFactoryRef = "merchantEntityManagerFactory",
         transactionManagerRef = "merchantTransactionManager"
 )
@@ -48,7 +54,7 @@ public class MerchantModuleDataSourceConfig {
             Environment environment) {
         var factory = new LocalContainerEntityManagerFactoryBean();
         factory.setDataSource(dataSource);
-        factory.setPackagesToScan("com.merchant.infrastructure.entity", "com.merchant.infrastructure.outbox");
+        factory.setPackagesToScan("com.merchant.adapter.persistence.entity", "com.merchant.adapter.persistence.outbox");
         factory.setPersistenceUnitName("merchant");
         factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         factory.setJpaPropertyMap(Map.of(

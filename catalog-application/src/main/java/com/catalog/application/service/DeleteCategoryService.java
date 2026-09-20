@@ -10,11 +10,10 @@ import com.catalog.application.port.outbound.CategoryHierarchyPort;
 import com.catalog.domain.port.outbound.CategoryRepository;
 import com.catalog.domain.port.outbound.ProductRepository;
 import com.grab.framework.id.Id;
-import com.catalog.application.command.DeleteCategoryCommand;
-import com.catalog.application.command.DeleteCategoryResult;
+import com.catalog.application.model.write.DeleteCategoryCommand;
+import com.catalog.application.model.write.DeleteCategoryResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 import java.util.Set;

@@ -4,7 +4,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.merchant.domain.aggregate.Storefront;
 import com.merchant.domain.exception.MerchantDomainException;
-import com.merchant.domain.repository.StorefrontRepository;
+import com.merchant.domain.port.outbound.StorefrontRepository;
 import com.merchant.domain.valueobject.StorefrontSlug;
 import org.junit.jupiter.api.Test;
 

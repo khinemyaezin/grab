@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.ModerateProductCommand;
-import com.catalog.application.command.ModerateProductResult;
+import com.catalog.application.model.write.ModerateProductCommand;
+import com.catalog.application.model.write.ModerateProductResult;
 import com.catalog.application.port.inbound.ModerateProductUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

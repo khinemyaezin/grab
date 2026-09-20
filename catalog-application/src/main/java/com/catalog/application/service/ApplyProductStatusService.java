@@ -7,11 +7,10 @@ import com.catalog.domain.port.outbound.ProductRepository;
 import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.command.ApplyProductStatusCommand;
-import com.catalog.application.command.ApplyProductStatusResult;
+import com.catalog.application.model.write.ApplyProductStatusCommand;
+import com.catalog.application.model.write.ApplyProductStatusResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 @lombok.RequiredArgsConstructor
 public class ApplyProductStatusService implements ApplyProductStatusUseCase {

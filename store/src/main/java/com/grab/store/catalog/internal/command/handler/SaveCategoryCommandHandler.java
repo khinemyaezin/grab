@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.SaveCategoryCommand;
-import com.catalog.application.command.SaveCategoryResult;
+import com.catalog.application.model.write.SaveCategoryCommand;
+import com.catalog.application.model.write.SaveCategoryResult;
 import com.catalog.application.port.inbound.SaveCategoryUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

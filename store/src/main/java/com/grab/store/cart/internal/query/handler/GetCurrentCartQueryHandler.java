@@ -1,9 +1,8 @@
 package com.grab.store.cart.internal.query.handler;
 
 import com.cart.domain.enums.CartStatus;
-import com.cart.domain.repository.CartRepository;
+import com.cart.domain.port.outbound.CartQueryPort;
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.framework.id.IdGenerator;
 import com.grab.store.cart.internal.command.CartResult;
 import com.grab.store.cart.internal.config.CartTransactional;
 import com.grab.store.cart.internal.exception.CartServiceError;
@@ -15,8 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class GetCurrentCartQueryHandler implements QueryHandler<GetCurrentCartQuery, CartResult> {
-    private final CartRepository carts;
-    private final IdGenerator ids;
+    private final CartQueryPort cartQueryPort;
 
     @Override
     @CartTransactional(readOnly = true)
@@ -28,10 +26,10 @@ public class GetCurrentCartQueryHandler implements QueryHandler<GetCurrentCartQu
             throw new CartServiceException(new CartServiceError.SalesChannelRequired(), "Sales channel is required");
         }
         String regionId = query.regionId() == null || query.regionId().isBlank() ? "default" : query.regionId();
-        return carts.findOpenByGuestToken(
+        return cartQueryPort.findOpenByGuestToken(
                 query.guestToken(),
-                ids.convertIdFrom(query.salesChannelId()),
-                ids.convertIdFrom(regionId),
+                query.salesChannelId(),
+                regionId,
                 CartStatus.OPEN
         ).map(cart -> CartResult.from(cart, false)).orElseThrow(() -> new CartServiceException(
                 new CartServiceError.CartNotFound(query.guestToken(), query.salesChannelId()),

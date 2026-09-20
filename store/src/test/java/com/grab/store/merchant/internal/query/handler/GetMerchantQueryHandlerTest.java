@@ -1,56 +1,84 @@
 package com.grab.store.merchant.internal.query.handler;
 
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.merchant.internal.query.GetMerchantQuery;
-import com.grab.store.merchant.support.MerchantAccountRepositoryStub;
-import com.merchant.domain.aggregate.MerchantAccount;
+import com.merchant.application.exception.MerchantServiceException;
+import com.merchant.application.port.outbound.MerchantAccountQueryPort;
+import com.merchant.application.model.read.GetMerchantQuery;
+import com.merchant.application.model.read.MerchantAccountView;
+import com.merchant.application.service.GetMerchantService;
+import com.merchant.domain.enums.MerchantStatus;
 import com.merchant.domain.enums.MerchantType;
-import com.merchant.domain.exception.MerchantDomainException;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-class GetMerchantQueryHandlerTest {
+class GetMerchantServiceTest {
     @Test
-    void handle_withDifferentApplicantAndNoReviewerAccess_shouldRejectAccess() {
+    void execute_withDifferentApplicantAndNoReviewerAccess_shouldRejectAccess() {
         CommonId merchantId = new CommonId("merchant-1");
-        MerchantAccount merchant = MerchantAccount.startDraft(
-                merchantId,
-                new CommonId("applicant-1"),
-                MerchantType.FIRST_PARTY_RETAILER,
-                "Acme Store",
-                Instant.parse("2026-06-28T00:00:00Z")
-        );
-        MerchantAccountRepositoryStub merchants = new MerchantAccountRepositoryStub();
-        merchants.save(merchant);
-        GetMerchantQueryHandler handler = new GetMerchantQueryHandler(merchants);
+        MerchantAccountQueryPort merchants = mock(MerchantAccountQueryPort.class);
+        when(merchants.findById("merchant-1")).thenReturn(Optional.of(view(
+                "merchant-1",
+                "applicant-1",
+                "Acme Store"
+        )));
+        GetMerchantService service = new GetMerchantService(merchants);
         GetMerchantQuery query = new GetMerchantQuery(
                 merchantId, new CommonId("applicant-2"), false, false);
 
-        assertThatThrownBy(() -> handler.handle(query))
-                .isInstanceOf(MerchantDomainException.class);
+        assertThatThrownBy(() -> service.execute(query))
+                .isInstanceOf(MerchantServiceException.class);
     }
 
     @Test
-    void handle_withMatchingScopedAccess_shouldReturnMerchant() {
+    void execute_withMatchingScopedAccess_shouldReturnMerchant() {
         CommonId merchantId = new CommonId("merchant-1");
-        MerchantAccount merchant = MerchantAccount.startDraft(
-                merchantId,
-                new CommonId("applicant-1"),
-                MerchantType.FIRST_PARTY_RETAILER,
-                "Acme Store",
-                Instant.parse("2026-06-28T00:00:00Z")
-        );
-        MerchantAccountRepositoryStub merchants = new MerchantAccountRepositoryStub();
-        merchants.save(merchant);
-        GetMerchantQueryHandler handler = new GetMerchantQueryHandler(merchants);
+        MerchantAccountQueryPort merchants = mock(MerchantAccountQueryPort.class);
+        when(merchants.findById("merchant-1")).thenReturn(Optional.of(view(
+                "merchant-1",
+                "applicant-1",
+                "Acme Store"
+        )));
+        GetMerchantService service = new GetMerchantService(merchants);
         GetMerchantQuery query = new GetMerchantQuery(
                 merchantId, new CommonId("staff-1"), false, true);
 
-        var result = handler.handle(query);
+        var result = service.execute(query);
 
         assertThat(result.merchantId()).isEqualTo("merchant-1");
+    }
+
+    private MerchantAccountView view(String merchantId, String applicantUserId, String displayName) {
+        Instant now = Instant.parse("2026-06-28T00:00:00Z");
+        return new MerchantAccountView(
+                merchantId,
+                applicantUserId,
+                MerchantType.FIRST_PARTY_RETAILER,
+                displayName,
+                displayName,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                MerchantStatus.DRAFT,
+                null,
+                null,
+                null,
+                now,
+                now,
+                0L
+        );
     }
 }

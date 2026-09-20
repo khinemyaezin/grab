@@ -3,8 +3,8 @@ package com.grab.store.identity.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.security.AccessContext;
 import com.grab.store.identity.internal.api.rest.dto.response.CurrentUserProfileResponse;
-import com.grab.store.identity.internal.query.GetUserProfileQuery;
-import com.grab.store.identity.internal.query.GetUserProfileResult;
+import com.identity.application.model.read.GetUserProfileQuery;
+import com.identity.application.model.read.GetUserProfileResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

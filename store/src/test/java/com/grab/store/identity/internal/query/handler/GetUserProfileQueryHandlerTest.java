@@ -1,10 +1,11 @@
 package com.grab.store.identity.internal.query.handler;
 
 import com.grab.framework.id.Id;
-import com.grab.store.identity.internal.query.GetUserProfileQuery;
-import com.grab.store.identity.internal.query.GetUserProfileResult;
-import com.identity.infrastructure.repository.jpa.UserQueryRepository;
-import com.identity.infrastructure.view.UserAssignmentView;
+import com.identity.application.model.read.GetUserProfileQuery;
+import com.identity.application.model.read.GetUserProfileResult;
+import com.identity.application.service.GetUserProfileService;
+import com.identity.application.port.outbound.UserQueryPort;
+import com.identity.application.model.read.UserAssignmentView;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,13 +18,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class GetUserProfileQueryHandlerTest {
+class GetUserProfileServiceTest {
 
     @Mock
-    private UserQueryRepository repository;
+    private UserQueryPort userQueryPort;
 
     @InjectMocks
-    private GetUserProfileQueryHandler handler;
+    private GetUserProfileService handler;
 
     @Test
     void shouldReturnUser_withMultipleAssignments() {
@@ -57,8 +58,8 @@ class GetUserProfileQueryHandlerTest {
                 "ACTIVE"
         );
 
-        when(repository.queryUserAndByUserId(userIdString)).thenReturn(Arrays.asList(view1, view2));
-        GetUserProfileResult result = handler.handle(query);
+        when(userQueryPort.queryUserAndByUserId(userIdString)).thenReturn(Arrays.asList(view1, view2));
+        GetUserProfileResult result = handler.execute(query);
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(userIdString);

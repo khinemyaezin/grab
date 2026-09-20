@@ -2,7 +2,7 @@ package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.store.identity.internal.api.rest.dto.request.LoginRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.AuthResponse;
-import com.grab.store.identity.internal.command.*;
+import com.identity.application.model.write.*;
 import org.mapstruct.Mapper;
 
 import com.grab.framework.mapper.IdMapper;

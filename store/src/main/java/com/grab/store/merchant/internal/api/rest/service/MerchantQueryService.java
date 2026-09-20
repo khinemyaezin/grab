@@ -9,9 +9,9 @@ import com.grab.store.merchant.internal.api.rest.mapper.GetFirstPartyRetailerApp
 import com.grab.store.merchant.internal.api.rest.mapper.GetMerchantRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.ListMerchantReviewQueueRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.ListMyMerchantsRequestMapper;
-import com.grab.store.merchant.internal.command.MerchantAccountResult;
+import com.merchant.application.model.write.MerchantAccountResult;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
-import com.grab.store.merchant.internal.query.*;
+import com.merchant.application.model.read.*;
 import com.grab.store.shared.security.SecurityPrincipal;
 import com.grab.store.merchant.internal.api.rest.config.MerchantAuthorityCodes;
 import com.merchant.domain.enums.MerchantStatus;

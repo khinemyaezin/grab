@@ -8,8 +8,8 @@ import com.grab.store.merchant.internal.api.rest.dto.response.StorefrontResponse
 import com.grab.store.merchant.internal.api.rest.service.AuthenticatedMerchantScopeResolver;
 import com.grab.store.merchant.internal.api.rest.service.StorefrontCommandService;
 import com.grab.store.merchant.internal.api.rest.service.StorefrontQueryService;
-import com.grab.store.merchant.internal.exception.MerchantServiceError;
-import com.grab.store.merchant.internal.exception.MerchantServiceException;
+import com.merchant.application.exception.MerchantServiceError;
+import com.merchant.application.exception.MerchantServiceException;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
 import com.merchant.domain.exception.MerchantDomainError;
 import com.merchant.domain.exception.MerchantDomainException;

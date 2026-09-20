@@ -13,25 +13,30 @@
     <modules>
         <module>framework</module>
         <module>logger-slf4j</module>
-        <module>storage-infrastructure</module>
+        <module>storage-adapter-s3</module>
         <module>outbox-infrastructure</module>
         <module>workflow-infrastructure</module>
         <module>catalog-domain</module>
         <module>catalog-application</module>
         <module>catalog-adapter-persistence</module>
         <module>inventory-domain</module>
-        <module>inventory-infrastructure</module>
+        <module>inventory-application</module>
+        <module>inventory-adapter-persistence</module>
         <module>identity-domain</module>
-        <module>identity-infrastructure</module>
+        <module>identity-application</module>
+        <module>identity-adapter-persistence</module>
         <module>merchant-domain</module>
-        <module>merchant-infrastructure</module>
+        <module>merchant-application</module>
+        <module>merchant-adapter-persistence</module>
         <module>pricing-domain</module>
-        <module>pricing-infrastructure</module>
+        <module>pricing-application</module>
+        <module>pricing-adapter-persistence</module>
         <module>sales-channel-domain</module>
-        <module>sales-channel-infrastructure</module>
+        <module>sales-channel-application</module>
+        <module>sales-channel-adapter-persistence</module>
         <module>storefront-query-infrastructure</module>
         <module>cart-domain</module>
-        <module>cart-infrastructure</module>
+        <module>cart-adapter-persistence</module>
         <module>store</module>
     </modules>
 
@@ -67,6 +72,7 @@
         <hibernate-validator.version>8.0.0.Final</hibernate-validator.version>
         <jjwt.version>0.12.5</jjwt.version>
         <aws-sdk.version>2.29.45</aws-sdk.version>
+        <testcontainer.version>1.20.3</testcontainer.version>
     </properties>
 
     <dependencyManagement>
@@ -151,6 +157,13 @@
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
                 <version>${aws-sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainer.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

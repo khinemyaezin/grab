@@ -2,8 +2,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
-import com.grab.store.inventory.internal.command.InventoryReservationResult;
-import com.grab.store.inventory.internal.command.ReleaseReservationCommand;
+import com.inventory.application.model.write.InventoryReservationResult;
+import com.inventory.application.model.write.ReleaseReservationCommand;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

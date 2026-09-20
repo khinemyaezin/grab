@@ -14,9 +14,9 @@ import com.grab.store.pricing.internal.api.rest.mapper.AddPriceToPriceListReques
 import com.grab.store.pricing.internal.api.rest.mapper.CreatePriceListRequestMapper;
 import com.grab.store.pricing.internal.api.rest.mapper.ReplacePriceListRulesRequestMapper;
 import com.grab.store.pricing.internal.api.rest.mapper.UpdatePriceListRequestMapper;
-import com.grab.store.pricing.internal.command.DeletePriceListCommand;
-import com.grab.store.pricing.internal.command.PriceListResult;
-import com.grab.store.pricing.internal.command.RemovePriceFromPriceListCommand;
+import com.pricing.application.model.write.DeletePriceListCommand;
+import com.pricing.application.model.write.PriceListResult;
+import com.pricing.application.model.write.RemovePriceFromPriceListCommand;
 import com.grab.store.pricing.internal.config.PricingEnabled;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

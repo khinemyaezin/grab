@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.application.port.inbound.ProductVariantSearchUseCase;
-import com.catalog.application.query.ProductVariantSummaryQuery;
-import com.catalog.application.query.ProductVariantSummaryResult;
+import com.catalog.application.model.read.ProductVariantSummaryQuery;
+import com.catalog.application.model.read.ProductVariantSummaryResult;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import lombok.RequiredArgsConstructor;

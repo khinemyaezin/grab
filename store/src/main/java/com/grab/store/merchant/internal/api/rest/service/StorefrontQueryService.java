@@ -3,7 +3,7 @@ package com.grab.store.merchant.internal.api.rest.service;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.store.merchant.internal.api.rest.dto.response.StorefrontResponse;
 import com.grab.store.merchant.internal.api.rest.mapper.StorefrontQueryRequestMapper;
-import com.grab.store.merchant.internal.command.StorefrontResult;
+import com.merchant.application.model.write.StorefrontResult;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

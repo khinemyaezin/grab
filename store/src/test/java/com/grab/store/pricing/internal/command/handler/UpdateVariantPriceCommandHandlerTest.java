@@ -2,15 +2,16 @@ package com.grab.store.pricing.internal.command.handler;
 
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.pricing.internal.command.UpdateVariantPriceCommand;
-import com.grab.store.pricing.internal.command.UpdateVariantPriceResult;
+import com.pricing.application.model.write.UpdateVariantPriceCommand;
+import com.pricing.application.model.write.UpdateVariantPriceResult;
+import com.pricing.application.service.UpdateVariantPriceService;
 import com.pricing.domain.aggregate.PriceSet;
 import com.pricing.domain.entity.Price;
-import com.pricing.domain.repository.PriceSetRepository;
+import com.pricing.domain.port.outbound.PriceSetRepository;
+import com.pricing.domain.port.outbound.VariantPriceSetLinkRepository;
 import com.pricing.domain.valueobject.CurrencyCode;
 import com.pricing.domain.valueobject.MoneyAmount;
-import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkRepository;
-import com.pricing.infrastructure.view.VariantPriceSetLinkView;
+import com.pricing.domain.valueobject.VariantPriceSetLink;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class UpdateVariantPriceCommandHandlerTest {
+class UpdateVariantPriceServiceTest {
 
     @Mock
     private PriceSetRepository priceSetRepository;
@@ -37,7 +38,7 @@ class UpdateVariantPriceCommandHandlerTest {
     private VariantPriceSetLinkRepository variantPriceSetLinkRepository;
 
     private IdGenerator idGenerator;
-    private UpdateVariantPriceCommandHandler handler;
+    private UpdateVariantPriceService service;
 
     @BeforeEach
     void setUp() {
@@ -54,7 +55,7 @@ class UpdateVariantPriceCommandHandlerTest {
                 return new CommonId(id);
             }
         };
-        handler = new UpdateVariantPriceCommandHandler(
+        service = new UpdateVariantPriceService(
                 priceSetRepository,
                 variantPriceSetLinkRepository,
                 idGenerator
@@ -62,11 +63,11 @@ class UpdateVariantPriceCommandHandlerTest {
     }
 
     @Test
-    void handle_whenLinkMissing_shouldCreatePriceSetAndLink() {
+    void execute_whenLinkMissing_shouldCreatePriceSetAndLink() {
         when(variantPriceSetLinkRepository.findByVariantId("variant-1")).thenReturn(Optional.empty());
         when(priceSetRepository.save(any(PriceSet.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UpdateVariantPriceResult result = handler.handle(command("SKU-1", "USD", "19.99", null, null));
+        UpdateVariantPriceResult result = service.execute(command("SKU-1", "USD", "19.99", null, null));
 
         assertThat(result.priceSetId()).isEqualTo("id-1");
         assertThat(result.priceId()).isEqualTo("id-2");
@@ -79,9 +80,9 @@ class UpdateVariantPriceCommandHandlerTest {
         assertThat(savedPriceSet.getPrices().getFirst().getAmount().value()).isEqualByComparingTo("19.99");
         assertThat(savedPriceSet.getPrices().getFirst().getCurrencyCode().value()).isEqualTo("usd");
 
-        ArgumentCaptor<VariantPriceSetLinkView> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLinkView.class);
+        ArgumentCaptor<VariantPriceSetLink> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLink.class);
         verify(variantPriceSetLinkRepository).save(linkCaptor.capture());
-        VariantPriceSetLinkView savedLink = linkCaptor.getValue();
+        VariantPriceSetLink savedLink = linkCaptor.getValue();
         assertThat(savedLink.variantId()).isEqualTo("variant-1");
         assertThat(savedLink.priceSetId()).isEqualTo("id-1");
         assertThat(savedLink.productId()).isEqualTo("product-1");
@@ -90,7 +91,7 @@ class UpdateVariantPriceCommandHandlerTest {
     }
 
     @Test
-    void handle_whenLinkFound_shouldUpdatePriceSetAndSku() {
+    void execute_whenLinkFound_shouldUpdatePriceSetAndSku() {
         Instant createdAt = Instant.parse("2026-01-01T00:00:00Z");
         PriceSet priceSet = existingPriceSet("price-set-1", "price-1", "usd", "10.00", createdAt);
         when(variantPriceSetLinkRepository.findByVariantId("variant-1")).thenReturn(Optional.of(
@@ -99,7 +100,7 @@ class UpdateVariantPriceCommandHandlerTest {
         when(priceSetRepository.findById(any())).thenReturn(Optional.of(priceSet));
         when(priceSetRepository.save(any(PriceSet.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UpdateVariantPriceResult result = handler.handle(command("NEW-SKU", "USD", "12.00", null, null));
+        UpdateVariantPriceResult result = service.execute(command("NEW-SKU", "USD", "12.00", null, null));
 
         assertThat(result.priceSetId()).isEqualTo("price-set-1");
         assertThat(result.priceId()).isEqualTo("price-1");
@@ -111,16 +112,16 @@ class UpdateVariantPriceCommandHandlerTest {
         assertThat(savedPriceSet.getPrices()).hasSize(1);
         assertThat(savedPriceSet.getPrices().getFirst().getAmount().value()).isEqualByComparingTo("12.00");
 
-        ArgumentCaptor<VariantPriceSetLinkView> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLinkView.class);
+        ArgumentCaptor<VariantPriceSetLink> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLink.class);
         verify(variantPriceSetLinkRepository).save(linkCaptor.capture());
-        VariantPriceSetLinkView savedLink = linkCaptor.getValue();
+        VariantPriceSetLink savedLink = linkCaptor.getValue();
         assertThat(savedLink.sku()).isEqualTo("NEW-SKU");
         assertThat(savedLink.priceSetId()).isEqualTo("price-set-1");
         assertThat(savedLink.createdAt()).isEqualTo(createdAt);
     }
 
     @Test
-    void handle_whenExistingCurrencyMatches_shouldReplaceAmount() {
+    void execute_whenExistingCurrencyMatches_shouldReplaceAmount() {
         Instant createdAt = Instant.parse("2026-01-01T00:00:00Z");
         PriceSet priceSet = existingPriceSet("price-set-1", "price-1", "usd", "10.00", createdAt);
         when(variantPriceSetLinkRepository.findByVariantId("variant-1")).thenReturn(Optional.of(
@@ -129,7 +130,7 @@ class UpdateVariantPriceCommandHandlerTest {
         when(priceSetRepository.findById(any())).thenReturn(Optional.of(priceSet));
         when(priceSetRepository.save(any(PriceSet.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UpdateVariantPriceResult result = handler.handle(command("SKU-1", "USD", "25.00", null, null));
+        UpdateVariantPriceResult result = service.execute(command("SKU-1", "USD", "25.00", null, null));
 
         assertThat(result.priceSetCreated()).isFalse();
         assertThat(result.priceId()).isEqualTo("price-1");
@@ -141,7 +142,7 @@ class UpdateVariantPriceCommandHandlerTest {
     }
 
     @Test
-    void handle_whenNewCurrency_shouldAddPrice() {
+    void execute_whenNewCurrency_shouldAddPrice() {
         Instant createdAt = Instant.parse("2026-01-01T00:00:00Z");
         PriceSet priceSet = existingPriceSet("price-set-1", "price-1", "usd", "10.00", createdAt);
         when(variantPriceSetLinkRepository.findByVariantId("variant-1")).thenReturn(Optional.of(
@@ -150,7 +151,7 @@ class UpdateVariantPriceCommandHandlerTest {
         when(priceSetRepository.findById(any())).thenReturn(Optional.of(priceSet));
         when(priceSetRepository.save(any(PriceSet.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UpdateVariantPriceResult result = handler.handle(command("SKU-1", "MMK", "15000", null, null));
+        UpdateVariantPriceResult result = service.execute(command("SKU-1", "MMK", "15000", null, null));
 
         assertThat(result.priceSetCreated()).isFalse();
         assertThat(result.priceId()).isEqualTo("id-1");
@@ -165,7 +166,7 @@ class UpdateVariantPriceCommandHandlerTest {
     }
 
     @Test
-    void handle_whenOrphanLink_shouldCreatePriceSetAndRewriteLink() {
+    void execute_whenOrphanLink_shouldCreatePriceSetAndRewriteLink() {
         Instant createdAt = Instant.parse("2026-01-01T00:00:00Z");
         when(variantPriceSetLinkRepository.findByVariantId("variant-1")).thenReturn(Optional.of(
                 existingLink("SKU-1", createdAt)
@@ -173,13 +174,13 @@ class UpdateVariantPriceCommandHandlerTest {
         when(priceSetRepository.findById(any())).thenReturn(Optional.empty());
         when(priceSetRepository.save(any(PriceSet.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UpdateVariantPriceResult result = handler.handle(command("SKU-1", "USD", "19.99", null, null));
+        UpdateVariantPriceResult result = service.execute(command("SKU-1", "USD", "19.99", null, null));
 
         assertThat(result.priceSetCreated()).isTrue();
         assertThat(result.priceSetId()).isEqualTo("id-1");
         assertThat(result.priceId()).isEqualTo("id-2");
 
-        ArgumentCaptor<VariantPriceSetLinkView> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLinkView.class);
+        ArgumentCaptor<VariantPriceSetLink> linkCaptor = ArgumentCaptor.forClass(VariantPriceSetLink.class);
         verify(variantPriceSetLinkRepository).save(linkCaptor.capture());
         assertThat(linkCaptor.getValue().priceSetId()).isEqualTo("id-1");
         assertThat(linkCaptor.getValue().sku()).isEqualTo("SKU-1");
@@ -228,8 +229,8 @@ class UpdateVariantPriceCommandHandlerTest {
         return priceSet;
     }
 
-    private VariantPriceSetLinkView existingLink(String sku, Instant createdAt) {
-        return new VariantPriceSetLinkView(
+    private VariantPriceSetLink existingLink(String sku, Instant createdAt) {
+        return new VariantPriceSetLink(
                 "variant-1",
                 "price-set-1",
                 "product-1",

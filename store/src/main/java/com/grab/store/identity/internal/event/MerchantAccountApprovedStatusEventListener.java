@@ -5,7 +5,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.identity.internal.command.ReplaceAccessCommand;
+import com.identity.application.model.write.ReplaceAccessCommand;
 import com.grab.store.identity.internal.policy.MerchantApprovalAccessPolicy;
 import com.grab.store.merchant.events.MerchantApprovedIntegrationEvent;
 import lombok.RequiredArgsConstructor;

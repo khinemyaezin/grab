@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.UpdateProductStatusCommand;
-import com.catalog.application.command.UpdateProductStatusResult;
+import com.catalog.application.model.write.UpdateProductStatusCommand;
+import com.catalog.application.model.write.UpdateProductStatusResult;
 import com.catalog.application.port.inbound.UpdateProductStatusUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

@@ -1,7 +1,7 @@
 package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
-import com.grab.store.inventory.internal.command.DeleteLocationCommand;
+import com.inventory.application.model.write.DeleteLocationCommand;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

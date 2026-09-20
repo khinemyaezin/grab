@@ -6,7 +6,7 @@ import com.grab.store.shared.security.IdentityResolverClient;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.service.IdentityLookupPort;
+import com.identity.application.port.outbound.IdentityLookupPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

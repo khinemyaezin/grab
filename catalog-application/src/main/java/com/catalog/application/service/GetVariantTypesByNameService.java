@@ -3,12 +3,11 @@ package com.catalog.application.service;
 import com.catalog.application.port.inbound.GetVariantTypesByNameUseCase;
 
 import com.catalog.application.port.outbound.VariantTypeQueryPort;
-import com.catalog.application.readmodel.VariantTypeView;
+import com.catalog.application.model.read.VariantTypeView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.query.GetVariantTypesByNameQuery;
-import com.catalog.application.query.VariantTypeResult;
-import lombok.RequiredArgsConstructor;
+import com.catalog.application.model.read.GetVariantTypesByNameQuery;
+import com.catalog.application.model.read.VariantTypeResult;
 
 import java.util.List;
 

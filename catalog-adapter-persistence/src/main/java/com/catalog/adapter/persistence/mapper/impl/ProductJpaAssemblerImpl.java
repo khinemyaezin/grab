@@ -274,7 +274,7 @@ public class ProductJpaAssemblerImpl implements ProductJpaAssembler {
         return productMapper.toDomain(productJpaEntity, productVariants, productMedias);
     }
 
-    private List<ProductMedia> toProductMedias(List<MediaEntity> mediaEntities) {
+    private List<ProductMedia> toProductMedias(Collection<MediaEntity> mediaEntities) {
         if (mediaEntities == null || mediaEntities.isEmpty()) {
             return List.of();
         }

@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.application.port.inbound.VariationMatrixUseCase;
-import com.catalog.application.query.VariationMatrixQuery;
-import com.catalog.application.query.VariationMatrixResult;
+import com.catalog.application.model.read.VariationMatrixQuery;
+import com.catalog.application.model.read.VariationMatrixResult;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import lombok.RequiredArgsConstructor;

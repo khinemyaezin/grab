@@ -6,12 +6,11 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.readmodel.CategoryNodeView;
+import com.catalog.application.model.read.CategoryNodeView;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.query.CategoryNodeResult;
-import com.catalog.application.query.GetCategoryTreeQuery;
-import lombok.RequiredArgsConstructor;
+import com.catalog.application.model.read.CategoryNodeResult;
+import com.catalog.application.model.read.GetCategoryTreeQuery;
 
 @lombok.RequiredArgsConstructor
 public class GetCategoryTreeService implements GetCategoryTreeUseCase {

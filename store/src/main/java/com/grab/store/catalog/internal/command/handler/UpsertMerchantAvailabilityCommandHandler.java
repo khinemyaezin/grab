@@ -1,6 +1,6 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.UpsertMerchantAvailabilityCommand;
+import com.catalog.application.model.write.UpsertMerchantAvailabilityCommand;
 import com.catalog.application.port.inbound.UpsertMerchantAvailabilityUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

@@ -6,7 +6,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
-import com.grab.store.pricing.internal.command.DeletePriceSetForDeletedVariantCommand;
+import com.pricing.application.model.write.DeletePriceSetForDeletedVariantCommand;
 import com.grab.store.pricing.internal.config.PricingEnabled;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;

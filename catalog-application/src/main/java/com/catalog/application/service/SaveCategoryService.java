@@ -9,11 +9,10 @@ import com.catalog.domain.aggregate.Category;
 import com.catalog.domain.port.outbound.CategoryRepository;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.catalog.application.command.SaveCategoryCommand;
-import com.catalog.application.command.SaveCategoryResult;
+import com.catalog.application.model.write.SaveCategoryCommand;
+import com.catalog.application.model.write.SaveCategoryResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 @lombok.RequiredArgsConstructor
 public class SaveCategoryService implements SaveCategoryUseCase {

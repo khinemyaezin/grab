@@ -2,8 +2,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryReservationResponse;
-import com.grab.store.inventory.internal.query.GetInventoryReservationsQuery;
-import com.grab.store.inventory.internal.query.GetInventoryReservationsResult;
+import com.inventory.application.model.read.GetInventoryReservationsQuery;
+import com.inventory.application.model.read.GetInventoryReservationsResult;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Pageable;
 

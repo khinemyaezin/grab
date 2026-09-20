@@ -7,11 +7,10 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.port.outbound.ProductRepository;
 import com.catalog.domain.service.ProductMediaService;
 import com.grab.framework.id.Id;
-import com.catalog.application.command.SetVariantMediaCommand;
-import com.catalog.application.command.SetVariantMediaResult;
+import com.catalog.application.model.write.SetVariantMediaCommand;
+import com.catalog.application.model.write.SetVariantMediaResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 @lombok.RequiredArgsConstructor
 public class SetVariantMediaService implements SetVariantMediaUseCase {

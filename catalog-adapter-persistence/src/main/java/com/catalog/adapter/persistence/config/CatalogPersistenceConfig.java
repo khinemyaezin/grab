@@ -229,9 +229,10 @@ public class CatalogPersistenceConfig {
     @Bean
     public ProductQueryPort productQueryRepository(
             ProductSearchSpecification productSearchSpecification,
+            ProductJpaRepo productJpaRepo,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new ProductQueryAdapter(productSearchSpecification, executor);
+        return new ProductQueryAdapter(productSearchSpecification, productJpaRepo, executor);
     }
 
     @Bean

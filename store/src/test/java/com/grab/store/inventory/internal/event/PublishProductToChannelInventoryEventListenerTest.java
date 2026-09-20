@@ -2,12 +2,12 @@ package com.grab.store.inventory.internal.event;
 
 import com.grab.framework.cqrs.query.Query;
 import com.grab.framework.cqrs.query.QueryBus;
-import com.grab.store.inventory.internal.query.CheckChannelStockPathQuery;
-import com.grab.store.inventory.internal.query.CheckChannelStockPathResult;
+import com.inventory.application.model.read.CheckChannelStockPathQuery;
+import com.inventory.application.model.read.CheckChannelStockPathResult;
 import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.RequestCheckChannelStockPathEvent;
 import com.grab.store.workflows.events.StockPathCheckedEvent;
-import com.inventory.infrastructure.workflow.InventoryWorkflowStepRunner;
+import com.inventory.adapter.persistence.workflow.InventoryWorkflowStepRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

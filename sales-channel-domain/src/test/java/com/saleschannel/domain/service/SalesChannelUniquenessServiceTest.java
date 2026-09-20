@@ -2,7 +2,7 @@ package com.saleschannel.domain.service;
 
 import com.grab.framework.id.impl.CommonId;
 import com.saleschannel.domain.exception.SalesChannelDomainException;
-import com.saleschannel.domain.repository.SalesChannelRepository;
+import com.saleschannel.domain.port.outbound.SalesChannelRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

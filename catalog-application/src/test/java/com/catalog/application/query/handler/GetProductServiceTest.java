@@ -1,28 +1,21 @@
 package com.catalog.application.query.handler;
 
-import com.catalog.application.service.GetProductService;
-
-import com.catalog.domain.aggregate.Description;
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.aggregate.ProductMedia;
-import com.catalog.domain.aggregate.ProductVariant;
-import com.catalog.domain.port.outbound.ProductRepository;
-import com.catalog.domain.service.MatrixKeyGenerator;
-import com.catalog.domain.valueobject.ProductStatus;
-import com.catalog.domain.valueobject.ProductVariantStatus;
-import com.catalog.domain.valueobject.ProductVariation;
 import com.catalog.application.port.outbound.CategoryQueryPort;
 import com.catalog.application.port.outbound.ProductQueryPort;
 import com.catalog.application.port.outbound.VariantOptionQueryPort;
-import com.catalog.application.readmodel.ProductPublicationView;
+import com.catalog.application.model.read.GetProductQuery;
+import com.catalog.application.model.read.GetProductResult;
+import com.catalog.application.service.ProductMediaConverter;
+import com.catalog.application.model.read.ProductDetailView;
+import com.catalog.application.model.read.ProductPublicationView;
+import com.catalog.application.service.GetProductService;
+import com.catalog.application.service.StandaloneVariationFactory;
+import com.catalog.domain.service.MatrixKeyGenerator;
+import com.catalog.domain.valueobject.ProductStatus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.framework.storage.FileStoragePort;
-import com.catalog.application.query.GetProductQuery;
-import com.catalog.application.query.GetProductResult;
-import com.catalog.application.query.ProductMediaQueryMapper;
-import com.catalog.application.service.StandaloneVariationFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,13 +34,11 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class GetProductServiceTest {
     @Mock
-    private ProductRepository productRepository;
+    private ProductQueryPort productQueryPort;
     @Mock
-    private ProductQueryPort productQueryRepository;
+    private VariantOptionQueryPort variantOptionQueryPort;
     @Mock
-    private VariantOptionQueryPort variantOptionQueryRepository;
-    @Mock
-    private CategoryQueryPort categoryQueryRepository;
+    private CategoryQueryPort categoryQueryPort;
     @Mock
     private IdGenerator idGenerator;
     @Mock
@@ -59,13 +50,13 @@ class GetProductServiceTest {
 
     @BeforeEach
     void setUp() {
-        getProductService = new GetProductService(productRepository,
-                productQueryRepository,
-                variantOptionQueryRepository,
+        getProductService = new GetProductService(
+                productQueryPort,
+                variantOptionQueryPort,
                 idGenerator,
-                categoryQueryRepository,
+                categoryQueryPort,
                 matrixKeyGenerator,
-                new ProductMediaQueryMapper(fileStoragePort));
+                new ProductMediaConverter(fileStoragePort));
     }
 
     @Test
@@ -74,35 +65,22 @@ class GetProductServiceTest {
         Id variantId = new CommonId();
         GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
 
-        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+        when(variantOptionQueryPort.findAllByUuidIn(anyList()))
                 .thenReturn(Collections.emptyList());
         when(idGenerator.convertIdFrom(anyString()))
                 .thenAnswer(invocationOnMock ->
                         new CommonId(invocationOnMock.getArgument(0)));
+        when(matrixKeyGenerator.generateKey(anyList())).thenReturn("standalone");
 
-        List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
-        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
-                new Product(
-                        productId,
-                        productId,
-                        "",
-                        new CommonId(),
-                        null,
-                        ProductStatus.ACTIVE,
-                        null,
-                        null,
-                        null,
-                        List.of(
-                                new ProductVariant(
-                                        variantId,
-                                        "STANDALONE",
-                                        ProductVariantStatus.ACTIVE,
-                                        standAloneVariation,
-                                        true,
-                                        List.of(),
-                                        null
-                                )
-                        )
+        when(productQueryPort.findDetailByIdAndMerchantId(productId.getValue(), productId.getValue()))
+                .thenReturn(Optional.of(minimalDetail(
+                        productId.getValue(),
+                        variantId.getValue(),
+                        "STANDALONE",
+                        List.of(new ProductDetailView.VariationView(
+                                StandaloneVariationFactory.OPTION_ID,
+                                StandaloneVariationFactory.TYPE_ID
+                        ))
                 )));
 
         GetProductResult result = getProductService.execute(query);
@@ -124,37 +102,19 @@ class GetProductServiceTest {
         Id variantId = new CommonId();
         GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
 
-        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+        when(variantOptionQueryPort.findAllByUuidIn(anyList()))
                 .thenReturn(Collections.emptyList());
         when(idGenerator.convertIdFrom(anyString()))
                 .thenAnswer(invocationOnMock ->
                         new CommonId(invocationOnMock.getArgument(0)));
+        when(matrixKeyGenerator.generateKey(anyList())).thenReturn("custom");
 
-        List<ProductVariation> customVariation = List.of(
-                new ProductVariation(new CommonId(), new CommonId()));
-
-        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
-                new Product(
-                        productId,
-                        productId,
-                        "",
-                        new CommonId(),
-                        null,
-                        ProductStatus.ACTIVE,
-                        null,
-                        null,
-                        null,
-                        List.of(
-                                new ProductVariant(
-                                        variantId,
-                                        "CUSTOM_VARIATION",
-                                        ProductVariantStatus.ACTIVE,
-                                        customVariation,
-                                        true,
-                                        List.of(),
-                                        null
-                                )
-                        )
+        when(productQueryPort.findDetailByIdAndMerchantId(productId.getValue(), productId.getValue()))
+                .thenReturn(Optional.of(minimalDetail(
+                        productId.getValue(),
+                        variantId.getValue(),
+                        "CUSTOM_VARIATION",
+                        List.of(new ProductDetailView.VariationView("opt-1", "type-1"))
                 )));
 
         GetProductResult result = getProductService.execute(query);
@@ -174,52 +134,54 @@ class GetProductServiceTest {
         String secondaryKey = "merchants/m/products/prod-1/side.jpg";
         String heroKey = "merchants/m/products/prod-1/hero.jpg";
 
-        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+        when(variantOptionQueryPort.findAllByUuidIn(anyList()))
                 .thenReturn(Collections.emptyList());
         when(idGenerator.convertIdFrom(anyString()))
                 .thenAnswer(invocationOnMock ->
                         new CommonId(invocationOnMock.getArgument(0)));
         when(fileStoragePort.resolvePublicUrl(anyString())).thenAnswer(invocation ->
                 "http://localhost:8333/grab-media/" + invocation.getArgument(0));
+        when(matrixKeyGenerator.generateKey(anyList())).thenReturn("standalone");
 
-        List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
-        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
-                new Product(
-                        productId,
-                        productId,
+        when(productQueryPort.findDetailByIdAndMerchantId(productId.getValue(), productId.getValue()))
+                .thenReturn(Optional.of(new ProductDetailView(
+                        productId.getValue(),
                         "Shirt",
-                        new CommonId(),
-                        null,
+                        productId.getValue(),
                         ProductStatus.ACTIVE,
+                        "shirt",
                         null,
                         null,
+                        false,
+                        List.of(),
                         List.of(
-                                new ProductMedia(
-                                        new CommonId("media-2"),
+                                new ProductDetailView.MediaView(
+                                        "media-2",
                                         secondaryKey,
-                                        "stale-url",
+                                        null,
                                         "image/jpeg",
                                         1
                                 ),
-                                new ProductMedia(
-                                        new CommonId("media-1"),
+                                new ProductDetailView.MediaView(
+                                        "media-1",
                                         heroKey,
-                                        "stale-url",
+                                        null,
                                         "image/jpeg",
                                         0
                                 )
                         ),
-                        List.of(
-                                new ProductVariant(
-                                        variantId,
-                                        "STANDALONE",
-                                        ProductVariantStatus.ACTIVE,
-                                        standAloneVariation,
-                                        true,
-                                        List.of(new CommonId("media-1")),
-                                        new CommonId("media-1")
-                                )
-                        )
+                        List.of(new ProductDetailView.VariantView(
+                                variantId.getValue(),
+                                "STANDALONE",
+                                "ACTIVE",
+                                true,
+                                List.of("media-1"),
+                                "media-1",
+                                List.of(new ProductDetailView.VariationView(
+                                        StandaloneVariationFactory.OPTION_ID,
+                                        StandaloneVariationFactory.TYPE_ID
+                                ))
+                        ))
                 )));
 
         GetProductResult result = getProductService.execute(query);
@@ -252,42 +214,42 @@ class GetProductServiceTest {
         Id variantId = new CommonId("var-1");
         GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
 
-        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+        when(variantOptionQueryPort.findAllByUuidIn(anyList()))
                 .thenReturn(Collections.emptyList());
         when(idGenerator.convertIdFrom(anyString()))
                 .thenAnswer(invocationOnMock ->
                         new CommonId(invocationOnMock.getArgument(0)));
+        when(matrixKeyGenerator.generateKey(anyList())).thenReturn("standalone");
 
-        List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
-        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
-                new Product(
-                        productId,
-                        productId,
+        when(productQueryPort.findDetailByIdAndMerchantId(productId.getValue(), productId.getValue()))
+                .thenReturn(Optional.of(new ProductDetailView(
+                        productId.getValue(),
                         "Shirt",
-                        new CommonId(),
-                        null,
+                        productId.getValue(),
                         ProductStatus.ACTIVE,
+                        "shirt",
                         null,
-                        List.of(
-                                new Description(
-                                        new CommonId("desc-1"),
-                                        "overview",
-                                        "Overview",
-                                        "Soft cotton shirt"
-                                )
-                        ),
                         null,
-                        List.of(
-                                new ProductVariant(
-                                        variantId,
-                                        "STANDALONE",
-                                        ProductVariantStatus.ACTIVE,
-                                        standAloneVariation,
-                                        true,
-                                        List.of(),
-                                        null
-                                )
-                        )
+                        false,
+                        List.of(new ProductDetailView.DescriptionView(
+                                "desc-1",
+                                "overview",
+                                "Overview",
+                                "Soft cotton shirt"
+                        )),
+                        List.of(),
+                        List.of(new ProductDetailView.VariantView(
+                                variantId.getValue(),
+                                "STANDALONE",
+                                "ACTIVE",
+                                true,
+                                List.of(),
+                                null,
+                                List.of(new ProductDetailView.VariationView(
+                                        StandaloneVariationFactory.OPTION_ID,
+                                        StandaloneVariationFactory.TYPE_ID
+                                ))
+                        ))
                 )));
 
         GetProductResult result = getProductService.execute(query);
@@ -308,12 +270,13 @@ class GetProductServiceTest {
         Id variantId = new CommonId("var-1");
         GetProductQuery query = new GetProductQuery(productId.getValue(), productId.getValue());
 
-        when(variantOptionQueryRepository.findAllByUuidIn(anyList()))
+        when(variantOptionQueryPort.findAllByUuidIn(anyList()))
                 .thenReturn(Collections.emptyList());
         when(idGenerator.convertIdFrom(anyString()))
                 .thenAnswer(invocationOnMock ->
                         new CommonId(invocationOnMock.getArgument(0)));
-        when(productQueryRepository.findPublicationsByProductIds(List.of(productId.getValue())))
+        when(matrixKeyGenerator.generateKey(anyList())).thenReturn("standalone");
+        when(productQueryPort.findPublicationsByProductIds(List.of(productId.getValue())))
                 .thenReturn(List.of(
                         new ProductPublicationView(
                                 productId.getValue(),
@@ -322,29 +285,15 @@ class GetProductServiceTest {
                         )
                 ));
 
-        List<ProductVariation> standAloneVariation = StandaloneVariationFactory.create(idGenerator);
-        when(productRepository.find(productId, productId)).thenReturn(Optional.of(
-                new Product(
-                        productId,
-                        productId,
-                        "Shirt",
-                        new CommonId(),
-                        null,
-                        ProductStatus.ACTIVE,
-                        null,
-                        null,
-                        null,
-                        List.of(
-                                new ProductVariant(
-                                        variantId,
-                                        "STANDALONE",
-                                        ProductVariantStatus.ACTIVE,
-                                        standAloneVariation,
-                                        true,
-                                        List.of(),
-                                        null
-                                )
-                        )
+        when(productQueryPort.findDetailByIdAndMerchantId(productId.getValue(), productId.getValue()))
+                .thenReturn(Optional.of(minimalDetail(
+                        productId.getValue(),
+                        variantId.getValue(),
+                        "STANDALONE",
+                        List.of(new ProductDetailView.VariationView(
+                                StandaloneVariationFactory.OPTION_ID,
+                                StandaloneVariationFactory.TYPE_ID
+                        ))
                 )));
 
         GetProductResult result = getProductService.execute(query);
@@ -354,4 +303,32 @@ class GetProductServiceTest {
                 .containsExactly(new GetProductResult.Publication("channel-1"));
     }
 
+    private ProductDetailView minimalDetail(
+            String productId,
+            String variantId,
+            String sku,
+            List<ProductDetailView.VariationView> variations
+    ) {
+        return new ProductDetailView(
+                productId,
+                "",
+                productId,
+                ProductStatus.ACTIVE,
+                null,
+                null,
+                null,
+                false,
+                List.of(),
+                List.of(),
+                List.of(new ProductDetailView.VariantView(
+                        variantId,
+                        sku,
+                        "ACTIVE",
+                        true,
+                        List.of(),
+                        null,
+                        variations
+                ))
+        );
+    }
 }

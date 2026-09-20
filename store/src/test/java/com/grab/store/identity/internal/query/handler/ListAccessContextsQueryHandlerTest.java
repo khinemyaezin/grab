@@ -1,14 +1,12 @@
 package com.grab.store.identity.internal.query.handler;
 
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.identity.internal.query.ListAccessContextsQuery;
-import com.identity.domain.aggregate.AccessAssignment;
+import com.identity.application.port.outbound.AccessAssignmentQueryPort;
+import com.identity.application.port.outbound.MerchantViewQueryPort;
+import com.identity.application.model.read.ListAccessContextsQuery;
+import com.identity.application.model.read.AccessAssignmentView;
+import com.identity.application.service.ListAccessContextsService;
 import com.identity.domain.enums.AccessAssignmentStatus;
-import com.identity.domain.repository.AccessAssignmentRepository;
-import com.identity.domain.valueobject.AccessScope;
-import com.identity.domain.valueobject.ScopeKey;
-import com.identity.infrastructure.repository.jpa.MerchantViewJpaRepository;
-import com.identity.infrastructure.view.MerchantView;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -23,26 +21,27 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ListAccessContextsQueryHandlerTest {
+class ListAccessContextsServiceTest {
 
     @Mock
-    private AccessAssignmentRepository assignments;
+    private AccessAssignmentQueryPort assignments;
     @Mock
-    private MerchantViewJpaRepository merchantViewRepository;
+    private MerchantViewQueryPort merchantViewQueryPort;
 
     @Test
     void handle_shouldGroupRolesByPlatformAndScope() {
         CommonId userId = new CommonId("user-1");
         when(assignments.findEffectiveByUserAndPlatform(
-                eq(userId), eq("SELLER_PORTAL"), any(Instant.class)
+                eq("user-1"), eq("SELLER_PORTAL"), any(Instant.class)
         )).thenReturn(List.of(
                 assignment("assignment-1", "MERCHANT_OWNER", "merchant-1"),
                 assignment("assignment-2", "STORE_MANAGER", "merchant-1"),
                 assignment("assignment-3", "MERCHANT_OWNER", "merchant-2")
         ));
+        when(merchantViewQueryPort.findAllByScopeIdIn(any())).thenReturn(List.of());
 
-        var results = new ListAccessContextsQueryHandler(assignments, merchantViewRepository)
-                .handle(new ListAccessContextsQuery(userId, "SELLER_PORTAL"));
+        var results = new ListAccessContextsService(assignments, merchantViewQueryPort)
+                .execute(new ListAccessContextsQuery(userId, "SELLER_PORTAL"));
 
         assertThat(results).hasSize(2);
         assertThat(results.getFirst().assignmentId()).isEqualTo("assignment-1");
@@ -53,16 +52,18 @@ class ListAccessContextsQueryHandlerTest {
         assertThat(results.get(1).roleCodes()).containsExactly("MERCHANT_OWNER");
     }
 
-    private AccessAssignment assignment(String id, String roleCode, String scopeId) {
+    private AccessAssignmentView assignment(String id, String roleCode, String scopeId) {
         Instant now = Instant.now();
-        return new AccessAssignment(
-                new CommonId(id),
-                new CommonId("user-1"),
+        return new AccessAssignmentView(
+                id,
+                "user-1",
                 "SELLER_PORTAL",
                 roleCode,
-                new AccessScope(new ScopeKey("merchant.account"), scopeId),
+                "merchant.account",
+                scopeId,
                 AccessAssignmentStatus.ACTIVE,
-                new CommonId("admin-1"),
+                AccessAssignmentStatus.ACTIVE,
+                "admin-1",
                 now,
                 now,
                 null

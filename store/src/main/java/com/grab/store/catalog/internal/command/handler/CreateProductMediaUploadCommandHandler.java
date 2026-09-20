@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.CreateProductMediaUploadCommand;
-import com.catalog.application.command.ProductMediaUploadResult;
+import com.catalog.application.model.write.CreateProductMediaUploadCommand;
+import com.catalog.application.model.write.ProductMediaUploadResult;
 import com.catalog.application.port.inbound.CreateProductMediaUploadUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;

@@ -2,7 +2,7 @@ package com.grab.store.inventory.internal.policy.impl;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.application.exception.InventoryServiceException;
 import com.grab.store.shared.security.PlatformScopes;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.enums.LocationType;

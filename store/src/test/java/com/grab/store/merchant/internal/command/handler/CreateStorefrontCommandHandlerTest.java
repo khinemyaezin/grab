@@ -3,14 +3,15 @@ package com.grab.store.merchant.internal.command.handler;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.merchant.internal.command.CreateStorefrontCommand;
+import com.merchant.application.model.write.CreateStorefrontCommand;
+import com.merchant.application.service.CreateStorefrontService;
 import com.grab.store.merchant.support.MerchantAccountRepositoryStub;
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.aggregate.Storefront;
 import com.merchant.domain.enums.MerchantType;
 import com.merchant.domain.enums.StorefrontStatus;
 import com.merchant.domain.exception.MerchantDomainException;
-import com.merchant.domain.repository.StorefrontRepository;
+import com.merchant.domain.port.outbound.StorefrontRepository;
 import com.merchant.domain.service.StorefrontProvisioningService;
 import com.merchant.domain.service.StorefrontSlugPolicy;
 import com.merchant.domain.valueobject.BusinessRegistration;
@@ -28,17 +29,17 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class CreateStorefrontCommandHandlerTest {
+class CreateStorefrontServiceTest {
     private final Instant now = Instant.parse("2026-09-17T00:00:00Z");
 
     @Test
-    void handle_whenMerchantIsOperational_shouldCreateDraft() {
+    void execute_whenMerchantIsOperational_shouldCreateDraft() {
         MerchantAccountRepositoryStub merchants = new MerchantAccountRepositoryStub();
         merchants.save(operationalMerchant());
         StorefrontRepositoryStub storefronts = new StorefrontRepositoryStub();
-        CreateStorefrontCommandHandler handler = handler(merchants, storefronts);
+        CreateStorefrontService service = service(merchants, storefronts);
 
-        var result = handler.handle(new CreateStorefrontCommand(
+        var result = service.execute(new CreateStorefrontCommand(
                 new CommonId("merchant-1"), "Main Shop", "main-shop"));
 
         assertThat(result.status()).isEqualTo(StorefrontStatus.DRAFT.name());
@@ -47,23 +48,23 @@ class CreateStorefrontCommandHandlerTest {
     }
 
     @Test
-    void handle_whenSlugTaken_shouldReject() {
+    void execute_whenSlugTaken_shouldReject() {
         MerchantAccountRepositoryStub merchants = new MerchantAccountRepositoryStub();
         merchants.save(operationalMerchant());
         StorefrontRepositoryStub storefronts = new StorefrontRepositoryStub();
         storefronts.slugTaken = true;
-        CreateStorefrontCommandHandler handler = handler(merchants, storefronts);
+        CreateStorefrontService service = service(merchants, storefronts);
 
-        assertThatThrownBy(() -> handler.handle(new CreateStorefrontCommand(
+        assertThatThrownBy(() -> service.execute(new CreateStorefrontCommand(
                 new CommonId("merchant-1"), "Main Shop", "main-shop")))
                 .isInstanceOf(MerchantDomainException.class);
     }
 
-    private CreateStorefrontCommandHandler handler(
+    private CreateStorefrontService service(
             MerchantAccountRepositoryStub merchants,
             StorefrontRepositoryStub storefronts
     ) {
-        return new CreateStorefrontCommandHandler(
+        return new CreateStorefrontService(
                 merchants,
                 storefronts,
                 new StorefrontProvisioningService(),

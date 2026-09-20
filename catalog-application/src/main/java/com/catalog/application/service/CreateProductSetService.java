@@ -19,15 +19,11 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.catalog.application.command.CreateProductSetCommand;
-import com.catalog.application.command.CreateProductSetResult;
+import com.catalog.application.model.write.CreateProductSetCommand;
+import com.catalog.application.model.write.CreateProductSetResult;
 import com.catalog.application.exception.CatalogCommandHandlerError;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.service.CatalogPolicyValidator;
-import com.catalog.application.service.StandaloneVariationFactory;
-import com.catalog.application.service.UniqueSlugResolver;
-import lombok.RequiredArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;

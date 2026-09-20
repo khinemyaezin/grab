@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.DeleteProductCommand;
-import com.catalog.application.command.DeleteProductResult;
+import com.catalog.application.model.write.DeleteProductCommand;
+import com.catalog.application.model.write.DeleteProductResult;
 import com.catalog.application.port.inbound.DeleteProductUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

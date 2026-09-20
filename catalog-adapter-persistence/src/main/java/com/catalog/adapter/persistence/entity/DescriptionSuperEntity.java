@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 @Getter
 @Setter
@@ -25,4 +26,17 @@ public class DescriptionSuperEntity implements Serializable {
     private String title;
 
     private String description;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DescriptionSuperEntity that)) return false;
+        return uuid != null && Objects.equals(uuid, that.uuid);
+    }
+
+    @Override
+    public int hashCode() {
+        return uuid != null ? Objects.hash(uuid) : super.hashCode();
+    }
+
 }

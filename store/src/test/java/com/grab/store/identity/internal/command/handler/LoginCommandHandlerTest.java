@@ -1,16 +1,17 @@
 package com.grab.store.identity.internal.command.handler;
 
+import com.identity.application.service.LoginService;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.framework.security.AuthenticatedActor;
 import com.grab.framework.security.ExternalPrincipal;
 import com.grab.framework.security.PlatformIdentityResolver;
-import com.grab.store.identity.internal.command.LoginCommand;
-import com.grab.store.identity.internal.exception.IdentityServiceException;
+import com.identity.application.model.write.LoginCommand;
+import com.identity.application.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
-import com.identity.domain.repository.AccessAssignmentRepository;
-import com.identity.domain.repository.UserRepository;
+import com.identity.domain.port.outbound.AccessAssignmentRepository;
+import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.domain.service.TokenLifeCycle;
 import com.identity.domain.service.TokenPair;
@@ -36,7 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class LoginCommandHandlerTest {
+class LoginServiceTest {
     @Mock
     private UserRepository users;
     @Mock
@@ -48,12 +49,12 @@ class LoginCommandHandlerTest {
     @Mock
     private PlatformIdentityResolver identities;
 
-    private LoginCommandHandler handler;
+    private LoginService handler;
     private User user;
 
     @BeforeEach
     void setUp() {
-        handler = new LoginCommandHandler(
+        handler = new LoginService(
                 users,
                 assignments,
                 passwords,
@@ -87,7 +88,7 @@ class LoginCommandHandlerTest {
         });
         when(tokens.issue(org.mockito.ArgumentMatchers.any())).thenReturn(new TokenPair("access", "refresh", 60000,false));
 
-        var result = handler.handle(new LoginCommand(
+        var result = handler.execute(new LoginCommand(
                 "customer@example.com", "Password123!", "SELLER_PORTAL"
         ));
 
@@ -122,7 +123,7 @@ class LoginCommandHandlerTest {
         when(tokens.issue(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new TokenPair("selection-access", "selection-refresh", 60000, false));
 
-        var result = handler.handle(new LoginCommand(
+        var result = handler.execute(new LoginCommand(
                 "customer@example.com", "Password123!", "SELLER_PORTAL"
         ));
 
@@ -154,7 +155,7 @@ class LoginCommandHandlerTest {
         when(tokens.issue(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new TokenPair("access", "refresh", 60000, false));
 
-        var result = handler.handle(new LoginCommand(
+        var result = handler.execute(new LoginCommand(
                 "customer@example.com", "Password123!", "SELLER_PORTAL"
         ));
 

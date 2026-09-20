@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.event;
 
 import com.grab.framework.cqrs.command.CommandBus;
-import com.catalog.application.command.UpsertMerchantAvailabilityCommand;
+import com.catalog.application.model.write.UpsertMerchantAvailabilityCommand;
 import com.grab.store.merchant.events.MerchantApprovedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantClosedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantReactivatedIntegrationEvent;

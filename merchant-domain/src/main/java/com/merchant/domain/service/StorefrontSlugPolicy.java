@@ -3,7 +3,7 @@ package com.merchant.domain.service;
 import com.grab.framework.id.Id;
 import com.merchant.domain.exception.MerchantDomainError;
 import com.merchant.domain.exception.MerchantDomainException;
-import com.merchant.domain.repository.StorefrontRepository;
+import com.merchant.domain.port.outbound.StorefrontRepository;
 import com.merchant.domain.valueobject.StorefrontSlug;
 
 import java.util.Objects;

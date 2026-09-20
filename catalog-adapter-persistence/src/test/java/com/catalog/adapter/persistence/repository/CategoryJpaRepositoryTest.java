@@ -2,7 +2,7 @@ package com.catalog.adapter.persistence.repository;
 
 import com.catalog.adapter.persistence.entity.CategoryEntity;
 import com.catalog.adapter.persistence.repository.config.CategoryRepositoryTestConfig;
-import com.catalog.application.readmodel.CategoryView;
+import com.catalog.application.model.read.CategoryView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

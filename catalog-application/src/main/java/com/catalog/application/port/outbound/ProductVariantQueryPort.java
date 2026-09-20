@@ -1,7 +1,7 @@
 package com.catalog.application.port.outbound;
 
-import com.catalog.application.readmodel.ProductSearchCriteria;
-import com.catalog.application.readmodel.ProductVariantView;
+import com.catalog.application.model.read.ProductSearchCriteria;
+import com.catalog.application.model.read.ProductVariantView;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

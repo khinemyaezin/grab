@@ -4,7 +4,7 @@ import com.grab.store.merchant.events.MerchantClosedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantSuspendedIntegrationEvent;
 import com.grab.store.merchant.events.StorefrontStatusChangedIntegrationEvent;
 import com.grab.store.shared.security.PlatformScopes;
-import com.identity.domain.repository.SessionStore;
+import com.identity.domain.port.outbound.SessionStore;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

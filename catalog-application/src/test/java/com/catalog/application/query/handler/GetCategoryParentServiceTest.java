@@ -3,10 +3,10 @@ package com.catalog.application.query.handler;
 import com.catalog.application.service.GetCategoryParentService;
 
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.readmodel.CategoryView;
+import com.catalog.application.model.read.CategoryView;
 import com.catalog.application.exception.CatalogServiceException;
-import com.catalog.application.query.CategoryResult;
-import com.catalog.application.query.GetCategoryParentQuery;
+import com.catalog.application.model.read.CategoryResult;
+import com.catalog.application.model.read.GetCategoryParentQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

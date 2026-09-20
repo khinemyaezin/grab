@@ -5,11 +5,10 @@ import com.catalog.application.port.inbound.DeleteProductUseCase;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
-import com.catalog.application.command.DeleteProductCommand;
-import com.catalog.application.command.DeleteProductResult;
+import com.catalog.application.model.write.DeleteProductCommand;
+import com.catalog.application.model.write.DeleteProductResult;
 import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.port.outbound.ProductRepository;
-import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
 

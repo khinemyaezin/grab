@@ -1,16 +1,18 @@
 package com.grab.store.inventory.internal.command.handler;
 
+import com.inventory.application.service.ExpireExpiredReservationsService;
+
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.entity.InventoryReservation;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.enums.InventoryReservationStatus;
-import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.domain.repository.InventoryReservationRepository;
-import com.inventory.domain.repository.StockMovementRepository;
-import com.grab.store.inventory.internal.command.ExpireExpiredReservationsCommand;
-import com.grab.store.inventory.internal.command.ExpireExpiredReservationsResult;
+import com.inventory.domain.port.outbound.InventoryRepository;
+import com.inventory.domain.port.outbound.InventoryReservationRepository;
+import com.inventory.domain.port.outbound.StockMovementRepository;
+import com.inventory.application.model.write.ExpireExpiredReservationsCommand;
+import com.inventory.application.model.write.ExpireExpiredReservationsResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ExpireExpiredReservationsCommandHandlerTest {
+class ExpireExpiredReservationsServiceTest {
 
     @Mock
     private InventoryReservationRepository inventoryReservationRepository;
@@ -41,11 +43,11 @@ class ExpireExpiredReservationsCommandHandlerTest {
     @Mock
     private IdGenerator idGenerator;
 
-    private ExpireExpiredReservationsCommandHandler handler;
+    private ExpireExpiredReservationsService handler;
 
     @BeforeEach
     void setUp() {
-        handler = new ExpireExpiredReservationsCommandHandler(
+        handler = new ExpireExpiredReservationsService(
                 inventoryReservationRepository,
                 inventoryRepository,
                 stockMovementRepository,
@@ -71,7 +73,7 @@ class ExpireExpiredReservationsCommandHandlerTest {
         when(inventoryReservationRepository.findExpiredActive(asOf, 50)).thenReturn(List.of(reservation));
         when(inventoryRepository.findById(itemId)).thenReturn(Optional.of(item));
 
-        ExpireExpiredReservationsResult result = handler.handle(
+        ExpireExpiredReservationsResult result = handler.execute(
                 new ExpireExpiredReservationsCommand(asOf, 50, actorId));
 
         assertThat(result.scanned()).isEqualTo(1);
@@ -94,7 +96,7 @@ class ExpireExpiredReservationsCommandHandlerTest {
         when(inventoryReservationRepository.findExpiredActive(asOf, 10)).thenReturn(List.of(reservation));
         when(inventoryRepository.findById(itemId)).thenReturn(Optional.empty());
 
-        ExpireExpiredReservationsResult result = handler.handle(
+        ExpireExpiredReservationsResult result = handler.execute(
                 new ExpireExpiredReservationsCommand(asOf, 10, actorId));
 
         assertThat(result.expired()).isEqualTo(1);

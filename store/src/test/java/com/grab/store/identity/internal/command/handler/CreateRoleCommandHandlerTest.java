@@ -3,12 +3,13 @@ package com.grab.store.identity.internal.command.handler;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.identity.internal.command.CreateRoleCommand;
+import com.identity.application.service.CreateRoleService;
+import com.identity.application.model.write.CreateRoleCommand;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.Role;
-import com.identity.domain.repository.AuthorityRepository;
-import com.identity.domain.repository.PlatformRepository;
-import com.identity.domain.repository.RoleRepository;
+import com.identity.domain.port.outbound.AuthorityRepository;
+import com.identity.domain.port.outbound.PlatformRepository;
+import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +21,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CreateRoleCommandHandlerTest {
+class CreateRoleServiceTest {
     @Test
     void handle_withSupportedPlatformAuthorities_shouldCreateAndBindCustomRole() {
         InMemoryRoleRepository roles = new InMemoryRoleRepository();
@@ -29,7 +30,7 @@ class CreateRoleCommandHandlerTest {
                 "MERCHANT_PROFILE_READ",
                 "MERCHANT_PROFILE_WRITE"
         ));
-        CreateRoleCommandHandler handler = new CreateRoleCommandHandler(
+        CreateRoleService handler = new CreateRoleService(
                 roles,
                 platforms,
                 new RoleAdministrationPolicy(authorities),
@@ -43,7 +44,7 @@ class CreateRoleCommandHandlerTest {
                 Set.of("MERCHANT_PROFILE_READ", "MERCHANT_PROFILE_WRITE")
         );
 
-        var result = handler.handle(command);
+        var result = handler.execute(command);
 
         assertThat(result.kind()).isEqualTo("CUSTOM");
         assertThat(result.platformCodes()).containsExactly("SELLER_PORTAL");

@@ -7,11 +7,10 @@ import com.catalog.domain.aggregate.ProductPublication;
 import com.catalog.domain.policy.ProductPublicationPolicy;
 import com.catalog.domain.port.outbound.ProductPublicationRepository;
 import com.catalog.domain.port.outbound.ProductRepository;
-import com.catalog.application.command.PublishProductToChannelCommand;
-import com.catalog.application.command.PublishProductToChannelResult;
+import com.catalog.application.model.write.PublishProductToChannelCommand;
+import com.catalog.application.model.write.PublishProductToChannelResult;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 

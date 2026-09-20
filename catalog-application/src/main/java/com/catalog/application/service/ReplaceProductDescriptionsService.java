@@ -7,12 +7,11 @@ import com.catalog.domain.aggregate.Product;
 import com.catalog.domain.port.outbound.ProductRepository;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.catalog.application.command.GetProductPayload;
-import com.catalog.application.command.ProductDescriptionsResult;
-import com.catalog.application.command.ReplaceProductDescriptionsCommand;
+import com.catalog.application.model.write.GetProductPayload;
+import com.catalog.application.model.write.ProductDescriptionsResult;
+import com.catalog.application.model.write.ReplaceProductDescriptionsCommand;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
-import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 

@@ -4,8 +4,8 @@ import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.CreateLocationRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationAddressResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
-import com.grab.store.inventory.internal.command.CreateLocationCommand;
-import com.grab.store.inventory.internal.command.LocationResult;
+import com.inventory.application.model.write.CreateLocationCommand;
+import com.inventory.application.model.write.LocationResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

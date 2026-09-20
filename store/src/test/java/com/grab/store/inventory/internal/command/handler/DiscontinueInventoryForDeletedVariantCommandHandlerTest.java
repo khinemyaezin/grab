@@ -1,11 +1,13 @@
 package com.grab.store.inventory.internal.command.handler;
 
+import com.inventory.application.service.DiscontinueInventoryForDeletedVariantService;
+
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.inventory.internal.command.DiscontinueInventoryForDeletedVariantCommand;
-import com.grab.store.inventory.internal.command.DiscontinueInventoryForDeletedVariantResult;
+import com.inventory.application.model.write.DiscontinueInventoryForDeletedVariantCommand;
+import com.inventory.application.model.write.DiscontinueInventoryForDeletedVariantResult;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.enums.InventoryStatus;
-import com.inventory.domain.repository.InventoryRepository;
+import com.inventory.domain.port.outbound.InventoryRepository;
 import com.inventory.domain.valueobject.InventoryQuantity;
 import com.inventory.domain.valueobject.ReorderConfig;
 import org.junit.jupiter.api.Test;
@@ -25,13 +27,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class DiscontinueInventoryForDeletedVariantCommandHandlerTest {
+class DiscontinueInventoryForDeletedVariantServiceTest {
 
     @Mock
     private InventoryRepository inventoryRepository;
 
     @InjectMocks
-    private DiscontinueInventoryForDeletedVariantCommandHandler handler;
+    private DiscontinueInventoryForDeletedVariantService handler;
 
     @Test
     void handle_discontinuesEligibleItemsAndSkipsAlreadyDiscontinued() {
@@ -41,7 +43,7 @@ class DiscontinueInventoryForDeletedVariantCommandHandlerTest {
         when(inventoryRepository.findByProductVariantId(new CommonId("variant-1")))
                 .thenReturn(List.of(active, discontinued, suspended));
 
-        DiscontinueInventoryForDeletedVariantResult result = handler.handle(
+        DiscontinueInventoryForDeletedVariantResult result = handler.execute(
                 new DiscontinueInventoryForDeletedVariantCommand(new CommonId("variant-1"))
         );
 
@@ -63,7 +65,7 @@ class DiscontinueInventoryForDeletedVariantCommandHandlerTest {
         when(inventoryRepository.findByProductVariantId(new CommonId("variant-1")))
                 .thenReturn(List.of());
 
-        DiscontinueInventoryForDeletedVariantResult result = handler.handle(
+        DiscontinueInventoryForDeletedVariantResult result = handler.execute(
                 new DiscontinueInventoryForDeletedVariantCommand(new CommonId("variant-1"))
         );
 

@@ -2,7 +2,7 @@ package com.grab.store.storefrontquery.internal.api.rest.controller;
 
 import com.grab.store.storefrontquery.internal.api.rest.assembler.BuyableOfferModelAssembler;
 import com.grab.store.storefrontquery.internal.api.rest.dto.response.BuyableOfferResponse;
-import com.grab.store.storefrontquery.internal.api.rest.service.StorefrontQueryService;
+import com.grab.store.storefrontquery.internal.api.rest.service.StorefrontService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/storefront-query/products")
 @RequiredArgsConstructor
 public class StorefrontProductController {
-    private final StorefrontQueryService storefrontQueryService;
+    private final StorefrontService storefrontQueryService;
     private final BuyableOfferModelAssembler assembler;
     private final PagedResourcesAssembler<BuyableOfferResponse> pagedAssembler;
 

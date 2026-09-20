@@ -4,7 +4,7 @@ import com.grab.store.merchant.internal.api.rest.dto.request.MerchantLifecycleRe
 import com.grab.store.merchant.internal.api.rest.dto.response.MerchantResponse;
 import com.grab.store.merchant.internal.api.rest.service.MerchantCommandService;
 import com.grab.store.merchant.internal.api.rest.service.MerchantQueryService;
-import com.grab.store.merchant.internal.command.ChangeMerchantLifecycleCommand.Action;
+import com.merchant.application.model.write.ChangeMerchantLifecycleCommand.Action;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.grab.store.shared.security.SecurityPrincipal;
 import com.merchant.domain.enums.MerchantStatus;

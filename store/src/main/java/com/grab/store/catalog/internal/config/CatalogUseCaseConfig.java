@@ -2,7 +2,7 @@ package com.grab.store.catalog.internal.config;
 
 import com.catalog.application.port.inbound.*;
 import com.catalog.application.port.outbound.*;
-import com.catalog.application.query.ProductMediaQueryMapper;
+import com.catalog.application.service.ProductMediaConverter;
 import com.catalog.application.service.*;
 import com.catalog.domain.port.outbound.*;
 import com.catalog.domain.service.*;
@@ -72,8 +72,8 @@ public class CatalogUseCaseConfig {
     }
 
     @Bean
-    public ProductMediaQueryMapper productMediaQueryMapper(FileStoragePort fileStoragePort) {
-        return new ProductMediaQueryMapper(fileStoragePort);
+    public ProductMediaConverter productMediaQueryMapper(FileStoragePort fileStoragePort) {
+        return new ProductMediaConverter(fileStoragePort);
     }
 
     @Bean
@@ -81,8 +81,8 @@ public class CatalogUseCaseConfig {
         return new ApplyProductStatusService(productRepository);
     }
     @Bean
-    public CheckProductPublishableUseCase checkProductPublishableUseCase(ProductRepository productRepository, IdGenerator idGenerator) {
-        return new CheckProductPublishableService(productRepository, idGenerator);
+    public CheckProductPublishableUseCase checkProductPublishableUseCase(ProductQueryPort productQueryPort) {
+        return new CheckProductPublishableService(productQueryPort);
     }
     @Bean
     public CreateProductMediaUploadUseCase createProductMediaUploadUseCase(ProductRepository productRepository, FileStoragePort fileStoragePort, IdGenerator idGenerator, MediaUploadValidator mediaUploadValidator) {
@@ -121,40 +121,40 @@ public class CatalogUseCaseConfig {
         return new GetCategoryParentService(categoryQueryRepository);
     }
     @Bean
-    public GetCategoryUseCase getCategoryUseCase(CategoryRepository categoryRepository, IdGenerator idGenerator) {
-        return new GetCategoryService(categoryRepository, idGenerator);
+    public GetCategoryUseCase getCategoryUseCase(CategoryQueryPort categoryQueryRepository) {
+        return new GetCategoryService(categoryQueryRepository);
     }
     @Bean
     public GetCategoryTreeUseCase getCategoryTreeUseCase(CategoryQueryPort categoryQueryRepository) {
         return new GetCategoryTreeService(categoryQueryRepository);
     }
     @Bean
-    public GetProductAuditUseCase getProductAuditUseCase(ProductAuditPort productAuditPort, ProductRepository productRepository, IdGenerator idGenerator) {
-        return new GetProductAuditService(productAuditPort, productRepository, idGenerator);
+    public GetProductAuditUseCase getProductAuditUseCase(ProductAuditPort productAuditPort, ProductQueryPort productQueryPort) {
+        return new GetProductAuditService(productAuditPort, productQueryPort);
     }
     @Bean
-    public GetProductBySlugUseCase getProductBySlugUseCase(ProductRepository productRepository, VariantOptionQueryPort variantOptionQueryRepository, MerchantAvailabilityPort merchantAvailabilityPort, IdGenerator idGenerator, ProductMediaQueryMapper productMediaQueryMapper) {
-        return new GetProductBySlugService(productRepository, variantOptionQueryRepository, merchantAvailabilityPort, idGenerator, productMediaQueryMapper);
+    public GetProductBySlugUseCase getProductBySlugUseCase(ProductQueryPort productQueryPort, VariantOptionQueryPort variantOptionQueryRepository, MerchantAvailabilityPort merchantAvailabilityPort, IdGenerator idGenerator, ProductMediaConverter productMediaConverter) {
+        return new GetProductBySlugService(productQueryPort, variantOptionQueryRepository, merchantAvailabilityPort, productMediaConverter, idGenerator);
     }
     @Bean
-    public GetProductUseCase getProductUseCase(ProductRepository productRepository, ProductQueryPort productQueryRepository, VariantOptionQueryPort variantOptionQueryRepository, IdGenerator idGenerator, CategoryQueryPort categoryQueryRepository, MatrixKeyGenerator matrixKeyGenerator, ProductMediaQueryMapper productMediaQueryMapper) {
-        return new GetProductService(productRepository, productQueryRepository, variantOptionQueryRepository, idGenerator, categoryQueryRepository, matrixKeyGenerator, productMediaQueryMapper);
+    public GetProductUseCase getProductUseCase(ProductQueryPort productQueryRepository, VariantOptionQueryPort variantOptionQueryRepository, IdGenerator idGenerator, CategoryQueryPort categoryQueryRepository, MatrixKeyGenerator matrixKeyGenerator, ProductMediaConverter productMediaConverter) {
+        return new GetProductService(productQueryRepository, variantOptionQueryRepository, idGenerator, categoryQueryRepository, matrixKeyGenerator, productMediaConverter);
     }
     @Bean
     public GetVariantOptionsByNameUseCase getVariantOptionsByNameUseCase(VariantOptionQueryPort variantOptionQueryRepository) {
         return new GetVariantOptionsByNameService(variantOptionQueryRepository);
     }
     @Bean
-    public GetVariantUseCase getVariantUseCase(ProductRepository productRepository, VariantOptionQueryPort variantOptionQueryRepository, IdGenerator idGenerator, MatrixKeyGenerator matrixKeyGenerator) {
-        return new GetVariantService(productRepository, variantOptionQueryRepository, idGenerator, matrixKeyGenerator);
+    public GetVariantUseCase getVariantUseCase(ProductQueryPort productQueryPort, VariantOptionQueryPort variantOptionQueryRepository, IdGenerator idGenerator, MatrixKeyGenerator matrixKeyGenerator) {
+        return new GetVariantService(productQueryPort, variantOptionQueryRepository, idGenerator, matrixKeyGenerator);
     }
     @Bean
     public GetVariantTypesByNameUseCase getVariantTypesByNameUseCase(VariantTypeQueryPort variantTypeQueryRepository) {
         return new GetVariantTypesByNameService(variantTypeQueryRepository);
     }
     @Bean
-    public ListProductPublicationsUseCase listProductPublicationsUseCase(ProductRepository productRepository, ProductQueryPort productQueryRepository, IdGenerator idGenerator) {
-        return new ListProductPublicationsService(productRepository, productQueryRepository, idGenerator);
+    public ListProductPublicationsUseCase listProductPublicationsUseCase(ProductQueryPort productQueryRepository) {
+        return new ListProductPublicationsService(productQueryRepository);
     }
     @Bean
     public ModerateProductUseCase moderateProductUseCase(ProductRepository productRepository, CategoryRepository categoryRepository) {

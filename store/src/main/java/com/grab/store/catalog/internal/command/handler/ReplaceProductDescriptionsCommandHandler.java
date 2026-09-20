@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.ProductDescriptionsResult;
-import com.catalog.application.command.ReplaceProductDescriptionsCommand;
+import com.catalog.application.model.write.ProductDescriptionsResult;
+import com.catalog.application.model.write.ReplaceProductDescriptionsCommand;
 import com.catalog.application.port.inbound.ReplaceProductDescriptionsUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

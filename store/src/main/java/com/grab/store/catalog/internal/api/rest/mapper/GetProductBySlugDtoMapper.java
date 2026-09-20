@@ -2,7 +2,7 @@ package com.grab.store.catalog.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.dto.response.GetProductBySlugResponse;
-import com.catalog.application.query.GetProductBySlugResult;
+import com.catalog.application.model.read.GetProductBySlugResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

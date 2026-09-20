@@ -42,7 +42,7 @@ public class ProductVariantEntity {
     private ProductEntity product;
 
     @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductVariationEntity> productVariations = new ArrayList<>();
+    private Set<ProductVariationEntity> productVariations = new LinkedHashSet<>();
 
     @Setter
     @Column(name = "thumbnail_media_uuid")
@@ -53,13 +53,13 @@ public class ProductVariantEntity {
             name = "product_variant_media",
             joinColumns = @JoinColumn(name = "variant_id"),
             inverseJoinColumns = @JoinColumn(name = "media_id"))
-    private List<MediaEntity> medias = new ArrayList<>();
+    private Set<MediaEntity> medias = new LinkedHashSet<>();
 
     @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "productVariant")
-    private List<ProductVariantDescriptionEntity> descriptions = new ArrayList<>();
+    private Set<ProductVariantDescriptionEntity> descriptions = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<ProductFeatureEntity> productFeatures = new ArrayList<>();
+    private Set<ProductFeatureEntity> productFeatures = new LinkedHashSet<>();
 
     public void addProductVariation(ProductVariationEntity entity) {
         entity.setProductVariant(this);

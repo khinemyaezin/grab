@@ -130,7 +130,7 @@ class ProductJpaAssemblerImplTest {
         ProductEntity result = assembler.buildFullEntityGraph(product, existingEntity);
 
         assertThat(result.getMedias()).hasSize(1);
-        MediaEntity mergedMedia = result.getMedias().getFirst();
+        MediaEntity mergedMedia = result.getMedias().iterator().next();
         assertThat(mergedMedia).isSameAs(existingMedia);
         assertThat(mergedMedia.getId()).isEqualTo(21L);
         assertThat(mergedMedia.getUuid()).isEqualTo("3001");
@@ -186,9 +186,10 @@ class ProductJpaAssemblerImplTest {
         assertThat(mergedV1.getId()).isEqualTo(31L);
         assertThat(mergedV1.getSku()).isEqualTo("SKU-001-UPDATED");
         assertThat(mergedV1.getProductVariations()).hasSize(1);
-        assertThat(mergedV1.getProductVariations().getFirst().getId().getVariantOptionUuid()).isEqualTo("blue");
-        assertThat(mergedV1.getProductVariations().getFirst().getId().getVariantTypeUuid()).isEqualTo("color");
-        assertThat(mergedV1.getProductVariations().getFirst().getProductVariant()).isSameAs(mergedV1);
+        ProductVariationEntity variation = mergedV1.getProductVariations().iterator().next();
+        assertThat(variation.getId().getVariantOptionUuid()).isEqualTo("blue");
+        assertThat(variation.getId().getVariantTypeUuid()).isEqualTo("color");
+        assertThat(variation.getProductVariant()).isSameAs(mergedV1);
 
         ProductVariantEntity addedV3 = findVariant(result, "v3");
         assertThat(addedV3.getId()).isNull();

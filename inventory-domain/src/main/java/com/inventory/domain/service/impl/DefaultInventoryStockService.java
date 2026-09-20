@@ -6,8 +6,8 @@ import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.enums.AdjustmentReason;
 import com.inventory.domain.enums.StockMovementType;
-import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.domain.repository.StockMovementRepository;
+import com.inventory.domain.port.outbound.InventoryRepository;
+import com.inventory.domain.port.outbound.StockMovementRepository;
 import com.inventory.domain.service.InventoryStockService;
 import lombok.RequiredArgsConstructor;
 

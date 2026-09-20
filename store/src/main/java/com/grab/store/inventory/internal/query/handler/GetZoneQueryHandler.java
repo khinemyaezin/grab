@@ -1,13 +1,10 @@
 package com.grab.store.inventory.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.inventory.domain.aggregate.Zone;
-import com.inventory.domain.repository.ZoneRepository;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
-import com.grab.store.inventory.internal.query.GetZoneQuery;
-import com.grab.store.inventory.internal.query.GetZoneResult;
+import com.inventory.application.port.inbound.GetZoneUseCase;
+import com.inventory.application.model.read.GetZoneQuery;
+import com.inventory.application.model.read.GetZoneResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -15,23 +12,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GetZoneQueryHandler implements QueryHandler<GetZoneQuery, GetZoneResult> {
 
-    private final ZoneRepository zoneRepository;
+    private final GetZoneUseCase getZoneUseCase;
 
     @Override
     @InventoryReadTransactional
     public GetZoneResult handle(GetZoneQuery query) {
-        Zone zone = zoneRepository.findById(query.zoneId())
-                .orElseThrow(() -> new InventoryServiceException(
-                        new InventoryServiceError.ZoneNotFound(query.zoneId().getValue())));
-
-        return new GetZoneResult(
-                zone.getId(),
-                zone.getLocationId(),
-                zone.getCode(),
-                zone.getName(),
-                zone.getType().name(),
-                zone.isActive()
-        );
+        return getZoneUseCase.execute(query);
     }
 
     @Override

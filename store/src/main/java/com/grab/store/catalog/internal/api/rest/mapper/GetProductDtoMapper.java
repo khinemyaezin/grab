@@ -2,7 +2,7 @@ package com.grab.store.catalog.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.dto.response.GetProductResponse;
-import com.catalog.application.query.GetProductResult;
+import com.catalog.application.model.read.GetProductResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

@@ -8,8 +8,8 @@ import com.catalog.domain.aggregate.ProductVariant;
 import com.catalog.domain.exception.CatalogDomainValidationException;
 import com.catalog.domain.service.impl.DefaultProductMediaService;
 import com.grab.framework.id.impl.CommonId;
-import com.catalog.application.command.SetVariantMediaCommand;
-import com.catalog.application.command.SetVariantMediaResult;
+import com.catalog.application.model.write.SetVariantMediaCommand;
+import com.catalog.application.model.write.SetVariantMediaResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

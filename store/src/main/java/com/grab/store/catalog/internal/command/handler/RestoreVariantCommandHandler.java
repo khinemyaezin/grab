@@ -1,7 +1,7 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.application.command.RestoreVariantCommand;
-import com.catalog.application.command.RestoreVariantResult;
+import com.catalog.application.model.write.RestoreVariantCommand;
+import com.catalog.application.model.write.RestoreVariantResult;
 import com.catalog.application.port.inbound.RestoreVariantUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.catalog.internal.config.CatalogTransactional;

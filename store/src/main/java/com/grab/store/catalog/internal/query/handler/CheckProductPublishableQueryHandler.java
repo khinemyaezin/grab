@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.query.handler;
 
 import com.catalog.application.port.inbound.CheckProductPublishableUseCase;
-import com.catalog.application.query.CheckProductPublishableQuery;
-import com.catalog.application.query.CheckProductPublishableResult;
+import com.catalog.application.model.read.CheckProductPublishableQuery;
+import com.catalog.application.model.read.CheckProductPublishableResult;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import lombok.RequiredArgsConstructor;

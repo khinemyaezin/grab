@@ -1,8 +1,8 @@
 package com.catalog.application.port.outbound;
 
-import com.catalog.application.readmodel.CategoryChildrenView;
-import com.catalog.application.readmodel.CategoryNodeView;
-import com.catalog.application.readmodel.CategoryView;
+import com.catalog.application.model.read.CategoryChildrenView;
+import com.catalog.application.model.read.CategoryNodeView;
+import com.catalog.application.model.read.CategoryView;
 
 import java.util.List;
 import java.util.Optional;

@@ -5,7 +5,7 @@ import com.cart.domain.entity.CartLine;
 import com.cart.domain.enums.CartStatus;
 import com.cart.domain.exception.CartDomainError;
 import com.cart.domain.exception.CartDomainException;
-import com.cart.domain.repository.CartRepository;
+import com.cart.domain.port.outbound.CartRepository;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.id.IdGenerator;
 import com.grab.store.cart.internal.command.AddItemToCartCommand;

@@ -2,8 +2,8 @@ package com.grab.store.merchant.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.merchant.internal.api.rest.dto.response.GetC2CApplicationResponse;
-import com.grab.store.merchant.internal.query.GetC2CApplicationQuery;
-import com.grab.store.merchant.internal.query.GetC2CApplicationResult;
+import com.merchant.application.model.read.GetC2CApplicationQuery;
+import com.merchant.application.model.read.GetC2CApplicationResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

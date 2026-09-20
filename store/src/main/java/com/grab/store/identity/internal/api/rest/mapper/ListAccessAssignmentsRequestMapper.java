@@ -2,8 +2,8 @@ package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.identity.internal.api.rest.dto.response.AccessAssignmentResponse;
-import com.grab.store.identity.internal.command.AccessAssignmentResult;
-import com.grab.store.identity.internal.query.ListAccessAssignmentsQuery;
+import com.identity.application.model.write.AccessAssignmentResult;
+import com.identity.application.model.read.ListAccessAssignmentsQuery;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
