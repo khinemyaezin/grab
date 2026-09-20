@@ -1,13 +1,13 @@
 package com.grab.store.catalog.internal.event;
 
-import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
+import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.catalog.internal.command.UpdateVariantCommand;
-import com.grab.store.catalog.internal.command.UpdateVariantResult;
+import com.catalog.application.command.UpdateVariantCommand;
+import com.catalog.application.command.UpdateVariantResult;
 import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.RequestUpdateVariantEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;

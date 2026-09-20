@@ -1,16 +1,10 @@
 package com.grab.store.catalog.internal.command.handler;
 
-import com.catalog.domain.aggregate.Category;
-import com.catalog.domain.aggregate.Product;
-import com.catalog.domain.repository.CategoryRepository;
-import com.catalog.domain.repository.ProductRepository;
+import com.catalog.application.command.ModerateProductCommand;
+import com.catalog.application.command.ModerateProductResult;
+import com.catalog.application.port.inbound.ModerateProductUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
-import com.grab.store.catalog.internal.command.ModerateProductCommand;
-import com.grab.store.catalog.internal.command.ModerateProductResult;
 import com.grab.store.catalog.internal.config.CatalogTransactional;
-import com.grab.store.catalog.internal.exception.CatalogServiceError;
-import com.grab.store.catalog.internal.exception.CatalogServiceException;
-import com.grab.store.catalog.internal.service.CatalogPolicyValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,55 +12,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ModerateProductCommandHandler implements CommandHandler<ModerateProductCommand, ModerateProductResult> {
 
-    private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
+    private final ModerateProductUseCase moderateProductUseCase;
 
     @Override
     @CatalogTransactional
     public ModerateProductResult handle(ModerateProductCommand command) {
-        Product product = productRepository.find(command.productId())
-                .orElseThrow(() -> new CatalogServiceException(
-                        new CatalogServiceError.ProductNotFound(command.productId().getValue())
-                ));
-
-        Category category = categoryRepository.find(product.getCategoryId())
-                .orElseThrow(() -> new CatalogServiceException(
-                        new CatalogServiceError.CategoryNotFound(product.getCategoryId().getValue())
-                ));
-
-        String oldStatus = product.getStatus().name();
-        Action action = Action.valueOf(command.action());
-
-        switch (action) {
-            case PUBLISH -> {
-                CatalogPolicyValidator.validateCategoryPolicy(category);
-                product.publish();
-            }
-            case SUSPEND -> product.suspend(command.reason());
-            case RESTORE -> {
-                CatalogPolicyValidator.validateCategoryPolicy(category);
-                product.restore();
-            }
-        }
-
-        productRepository.save(product);
-        return new ModerateProductResult(
-                product.getId().getValue(),
-                action.name(),
-                oldStatus,
-                product.getStatus().name(),
-                command.reason()
-        );
+        return moderateProductUseCase.execute(command);
     }
 
     @Override
     public Class<ModerateProductCommand> getCommandType() {
         return ModerateProductCommand.class;
-    }
-
-    private enum Action {
-        PUBLISH,
-        SUSPEND,
-        RESTORE
     }
 }

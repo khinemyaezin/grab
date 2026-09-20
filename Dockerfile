@@ -13,7 +13,8 @@ COPY framework/pom.xml framework/
 COPY outbox-infrastructure/pom.xml outbox-infrastructure/
 
 COPY catalog-domain/pom.xml catalog-domain/
-COPY catalog-infrastructure/pom.xml catalog-infrastructure/
+COPY catalog-application/pom.xml catalog-application/
+COPY catalog-adapter-persistence/pom.xml catalog-adapter-persistence/
 
 COPY inventory-domain/pom.xml inventory-domain/
 COPY inventory-infrastructure/pom.xml inventory-infrastructure/
@@ -44,7 +45,8 @@ COPY framework/src framework/src
 COPY outbox-infrastructure/src outbox-infrastructure/src
 
 COPY catalog-domain/src catalog-domain/src
-COPY catalog-infrastructure/src catalog-infrastructure/src
+COPY catalog-application/src catalog-application/src
+COPY catalog-adapter-persistence/src catalog-adapter-persistence/src
 
 COPY inventory-domain/src inventory-domain/src
 COPY inventory-infrastructure/src inventory-infrastructure/src

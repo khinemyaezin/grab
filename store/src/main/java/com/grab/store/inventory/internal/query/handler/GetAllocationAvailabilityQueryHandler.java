@@ -1,6 +1,7 @@
 package com.grab.store.inventory.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.framework.id.IdGenerator;
 import com.inventory.domain.service.InventoryAllocationService;
 import com.inventory.infrastructure.entity.ProductVariantViewEntity;
 import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
@@ -16,6 +17,7 @@ public class GetAllocationAvailabilityQueryHandler
 
     private final InventoryAllocationService inventoryAllocationService;
     private final ProductVariantViewJpaRepository productVariantViewJpaRepository;
+    private final IdGenerator idGenerator;
 
     @Override
     public GetAllocationAvailabilityResult handle(GetAllocationAvailabilityQuery query) {
@@ -24,10 +26,11 @@ public class GetAllocationAvailabilityQueryHandler
             int available = requested > 0 ? requested : 1;
             return new GetAllocationAvailabilityResult(query.sku(), available, true, requested);
         }
-        int available = inventoryAllocationService.getAvailableForAllocation(query.sku());
-        boolean canAllocate = query.quantity() == null
-                ? available > 0
-                : inventoryAllocationService.canAllocate(query.sku(), query.quantity());
+        int available = inventoryAllocationService.getAvailableForAllocation(
+                query.sku(),
+                query.salesChannelId() == null ? null : idGenerator.convertIdFrom(query.salesChannelId())
+        );
+        boolean canAllocate = query.quantity() == null ? available > 0 : available >= query.quantity();
         return new GetAllocationAvailabilityResult(query.sku(), available, canAllocate, requested);
     }
 

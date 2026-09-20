@@ -10,9 +10,9 @@ import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductStatusDtoMapper;
-import com.grab.store.catalog.internal.command.*;
-import com.grab.store.catalog.internal.query.ListProductPublicationsQuery;
-import com.grab.store.catalog.internal.query.ProductPublicationItem;
+import com.catalog.application.command.*;
+import com.catalog.application.query.ListProductPublicationsQuery;
+import com.catalog.application.query.ProductPublicationItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

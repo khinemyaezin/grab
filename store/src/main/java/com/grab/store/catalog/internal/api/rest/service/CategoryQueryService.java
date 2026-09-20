@@ -11,7 +11,7 @@ import com.grab.store.catalog.internal.api.rest.mapper.CategoryChildrenDtoMapper
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryLeavesDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.CategoryNodeDtoMapper;
-import com.grab.store.catalog.internal.query.*;
+import com.catalog.application.query.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

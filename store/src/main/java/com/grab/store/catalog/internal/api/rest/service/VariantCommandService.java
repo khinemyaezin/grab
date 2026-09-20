@@ -16,7 +16,7 @@ import com.grab.store.catalog.internal.api.rest.mapper.DeleteVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.RestoreVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.SyncVariantsDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateVariantDtoMapper;
-import com.grab.store.catalog.internal.command.*;
+import com.catalog.application.command.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

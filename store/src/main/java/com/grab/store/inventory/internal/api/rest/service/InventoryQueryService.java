@@ -89,8 +89,8 @@ public class InventoryQueryService {
         return queryBus.dispatch(query);
     }
 
-    public AllocationAvailabilityResponse getAllocationAvailability(String sku, Integer quantity) {
-        GetAllocationAvailabilityResult result = queryBus.dispatch(new GetAllocationAvailabilityQuery(sku, quantity));
+    public AllocationAvailabilityResponse getAllocationAvailability(String sku, Integer quantity, String salesChannelId) {
+        GetAllocationAvailabilityResult result = queryBus.dispatch(new GetAllocationAvailabilityQuery(sku, quantity, salesChannelId));
         return new AllocationAvailabilityResponse(
                 result.sku(),
                 result.availableQuantity(),

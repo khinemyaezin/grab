@@ -8,8 +8,8 @@ import com.grab.store.catalog.internal.api.rest.dto.request.ProductVariantSearch
 import com.grab.store.catalog.internal.api.rest.dto.request.VariationMatrixRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
-import com.grab.store.catalog.internal.query.*;
-import com.grab.store.catalog.internal.query.GetProductBySlugResult;
+import com.catalog.application.query.*;
+import com.catalog.application.query.GetProductBySlugResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

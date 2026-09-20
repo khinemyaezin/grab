@@ -8,4 +8,6 @@ import java.util.List;
 public interface VariantPriceSetLinkQueryRepository {
 
     List<VariantPriceSetLinkView> findByVariantIds(Collection<String> variantIds);
+
+    List<VariantPriceSetLinkView> findByPriceSetId(String priceSetId);
 }

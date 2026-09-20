@@ -1,0 +1,62 @@
+package com.catalog.application.command;
+
+import com.grab.framework.id.Id;
+import com.grab.framework.cqrs.command.Command;
+
+import java.util.List;
+
+public record CreateProductSetCommand(
+        Id merchantId,
+        Product product,
+        List<VariantType> variantTypes
+) implements Command<CreateProductSetResult> {
+
+    public record VariantType(
+            String typeId,
+            List<VariantOption> options
+    ){}
+
+    public record VariantOption(
+            String optionId
+    ) {}
+
+
+    public record Product(
+            String name,
+            Id categoryId,
+            String condition,
+            String slug,
+            String status,
+            List<Variant> variants
+    ) {
+        public Product(String name, Id categoryId, String condition, String slug, List<Variant> variants) {
+            this(name, categoryId, condition, slug, null, variants);
+        }
+    }
+
+    public record Description(
+            String name,
+            String title,
+            String description
+    ) {}
+
+    public record Media(
+            String type,
+            String path
+    ) {}
+
+    public record Variant(
+            String sku,
+            List<Variation> variations,
+            Boolean manageInventory
+    ) {
+        public Variant(String sku, List<Variation> variations) {
+            this(sku, variations, null);
+        }
+    }
+
+    public record Variation(
+            Id optionId,
+            Id typeId
+    ) {}
+} 

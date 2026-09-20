@@ -179,6 +179,50 @@ pricing:
       workers: ${PRICING_OUTBOX_HOT_QUEUE_WORKERS:2}
       capacity: ${PRICING_OUTBOX_HOT_QUEUE_CAPACITY:1000}
       drain-timeout-ms: ${PRICING_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+storefrontquery:
+  display-currency: ${STOREFRONTQUERY_DISPLAY_CURRENCY:MMK}
+  rebuild:
+    on-startup: ${STOREFRONTQUERY_REBUILD_ON_STARTUP:false}
+  datasource:
+    url: ${STOREFRONTQUERY_DATASOURCE_URL:jdbc:postgresql://localhost:5432/storefrontquery}
+    username: ${STOREFRONTQUERY_DATASOURCE_USERNAME:admin}
+    password: ${STOREFRONTQUERY_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${STOREFRONTQUERY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${STOREFRONTQUERY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${STOREFRONTQUERY_JPA_DDL_AUTO:update}
+      show_sql: ${STOREFRONTQUERY_JPA_SHOW_SQL:false}
+      format_sql: ${STOREFRONTQUERY_JPA_FORMAT_SQL:false}
+
+cart:
+  datasource:
+    url: ${CART_DATASOURCE_URL:jdbc:postgresql://localhost:5432/cart}
+    username: ${CART_DATASOURCE_USERNAME:admin}
+    password: ${CART_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${CART_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${CART_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${CART_JPA_DDL_AUTO:update}
+      show_sql: ${CART_JPA_SHOW_SQL:false}
+      format_sql: ${CART_JPA_FORMAT_SQL:false}
+  outbox:
+    fixed-delay-ms: ${CART_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${CART_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${CART_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${CART_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${CART_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${CART_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${CART_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${CART_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${CART_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${CART_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
 workflows:
   seed:
     enabled: ${WORKFLOW_SEED_ENABLED:true}

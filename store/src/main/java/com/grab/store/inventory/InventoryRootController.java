@@ -59,7 +59,7 @@ public class InventoryRootController {
                 .deallocate(null, null))
                 .withRel("deallocate-stock"));
         model.add(linkTo(methodOn(AllocationController.class)
-                .availability(null, null))
+                .availability(null, null, null))
                 .withRel("allocation-availability"));
         model.add(linkTo(methodOn(ReorderSuggestionController.class)
                 .list(null, null, null))

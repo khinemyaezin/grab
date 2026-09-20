@@ -29,6 +29,9 @@ class GetAllocationAvailabilityQueryHandlerTest {
     @Mock
     private ProductVariantViewJpaRepository productVariantViewJpaRepository;
 
+    @Mock
+    private com.grab.framework.id.IdGenerator idGenerator;
+
     @InjectMocks
     private GetAllocationAvailabilityQueryHandler handler;
 
@@ -44,7 +47,7 @@ class GetAllocationAvailabilityQueryHandlerTest {
 
         assertThat(result.canAllocate()).isTrue();
         assertThat(result.availableQuantity()).isEqualTo(3);
-        verify(inventoryAllocationService, never()).getAvailableForAllocation("SKU-DIGITAL");
+        verify(inventoryAllocationService, never()).getAvailableForAllocation("SKU-DIGITAL", null);
     }
 
     @Test
@@ -53,8 +56,7 @@ class GetAllocationAvailabilityQueryHandlerTest {
         when(view.isManageInventory()).thenReturn(true);
         when(productVariantViewJpaRepository.findBySkuAndStatus("SKU-1", ProductVariantViewEntity.STATUS_ACTIVE))
                 .thenReturn(Optional.of(view));
-        when(inventoryAllocationService.getAvailableForAllocation("SKU-1")).thenReturn(4);
-        when(inventoryAllocationService.canAllocate("SKU-1", 2)).thenReturn(true);
+        when(inventoryAllocationService.getAvailableForAllocation("SKU-1", null)).thenReturn(4);
 
         GetAllocationAvailabilityResult result = handler.handle(new GetAllocationAvailabilityQuery("SKU-1", 2));
 

@@ -9,10 +9,12 @@ Load when adding or changing an HTTP use case, command/query flow, or layer resp
 | Controller | `store/.../api/rest/controller/` | HTTP in/out. Delegates to services. Returns `ResponseEntity<EntityModel<T>>` or `ResponseEntity<PagedModel<EntityModel<T>>>`. No business logic. |
 | Service | `store/.../api/rest/service/` | Orchestrates DTO to Command/Query mapping, dispatches via bus, maps result to DTO. No repository access. No business rules. |
 | Mapper | `store/.../api/rest/mapper/` | MapStruct abstract class: DTO to Command/Query/Result. |
-| Handler | `store/.../command/handler/` or `store/.../query/handler/` | Owns the transaction boundary. Command handlers use domain `{Domain}Repository`. Query handlers use `{Domain}QueryRepository` for reads/search. Delegates business rules to aggregates/policies, returns Result. `@Component`. |
+| Handler | `store/.../{module}/internal/command/handler/` and `query/handler/` for **catalog** (other full-hex BCs: same target; lite BCs may keep handlers in `store` until promoted) | CQRS adapter only: `CommandHandler` / `QueryHandler` + `@CatalogTransactional` / `@CatalogReadTransactional`, delegates to `*UseCase.execute(...)`. REST and sagas still use `CommandBus` / `QueryBus`. |
+| Use case | `catalog-application/port/inbound/*UseCase` + `catalog-application/service/*Service` | Spring-free orchestration (no `@Component` / `@Transactional`). Command/Query/Result records stay in application and implement framework `Command` / `Query`. **Exception:** Spring Data `Page` / `Pageable` on search ports until a later mapping. Wired via `CatalogUseCaseConfig` in `store`. |
 | Policy | `{name}-domain/.../policy/` or `store/.../policy/` | Encodes business rules. See `domain/policies.md`. |
 | Domain | `{name}-domain/` | Pure domain. Framework-agnostic. |
-| Infrastructure | `{name}-infrastructure/` | JPA and persistence concerns. |
+| Application | `{name}-application/` | Commands, queries, handlers, outbound ports, read models (full hex contexts). |
+| Infrastructure | `{name}-infrastructure/` (catalog: **`catalog-adapter-persistence`**, root package `com.catalog.adapter.persistence`, `CatalogPersistenceConfig`) | JPA adapters implementing domain and application ports; outbox. Catalog domain **write** ports live in `com.catalog.domain.port.outbound`; application read ports are `*QueryPort` in `catalog-application`. |
 
 ## CQRS data flow
 

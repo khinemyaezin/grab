@@ -1,6 +1,9 @@
 package com.grab.store.catalog.internal.event;
 
 import com.catalog.domain.event.ProductDeletedEvent;
+import com.catalog.domain.event.ProductPublishedToChannelEvent;
+import com.catalog.domain.event.ProductStatusChangedEvent;
+import com.catalog.domain.event.ProductUnpublishedFromChannelEvent;
 import com.catalog.domain.event.ProductUpdatedEvent;
 import com.catalog.domain.event.ProductVariantAddedEvent;
 import com.catalog.domain.event.ProductVariantChangeEvent;
@@ -9,6 +12,9 @@ import com.catalog.domain.event.ProductVariantRestoredEvent;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
 import com.grab.store.catalog.events.ProductNameChangedIntegrationEvent;
+import com.grab.store.catalog.events.ProductPublishedToChannelIntegrationEvent;
+import com.grab.store.catalog.events.ProductStatusChangedIntegrationEvent;
+import com.grab.store.catalog.events.ProductUnpublishedFromChannelIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantRestoredIntegrationEvent;
@@ -99,6 +105,40 @@ class CatalogIntegrationEventPublisherTest {
         assertThat(published.get()).isInstanceOfSatisfying(ProductDeletedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantIds()).containsExactly("variant-1", "variant-2");
+        });
+    }
+
+    @Test
+    void handleProductPublishedToChannel_shouldPublishIntegrationEvent() {
+        publisher.handleProductPublishedToChannel(new ProductPublishedToChannelEvent(
+                new CommonId("variant-1"), new CommonId("channel-1")));
+
+        assertThat(published.get()).isInstanceOfSatisfying(ProductPublishedToChannelIntegrationEvent.class, event -> {
+            assertThat(event.variantId()).isEqualTo("variant-1");
+            assertThat(event.salesChannelId()).isEqualTo("channel-1");
+        });
+    }
+
+    @Test
+    void handleProductUnpublishedFromChannel_shouldPublishIntegrationEvent() {
+        publisher.handleProductUnpublishedFromChannel(new ProductUnpublishedFromChannelEvent(
+                new CommonId("variant-1"), new CommonId("channel-1")));
+
+        assertThat(published.get()).isInstanceOfSatisfying(ProductUnpublishedFromChannelIntegrationEvent.class, event -> {
+            assertThat(event.variantId()).isEqualTo("variant-1");
+            assertThat(event.salesChannelId()).isEqualTo("channel-1");
+        });
+    }
+
+    @Test
+    void handleProductStatusChanged_shouldPublishIntegrationEvent() {
+        publisher.handleProductStatusChanged(new ProductStatusChangedEvent(
+                new CommonId("product-1"), "DRAFT", "ACTIVE"));
+
+        assertThat(published.get()).isInstanceOfSatisfying(ProductStatusChangedIntegrationEvent.class, event -> {
+            assertThat(event.productId()).isEqualTo("product-1");
+            assertThat(event.oldStatus()).isEqualTo("DRAFT");
+            assertThat(event.newStatus()).isEqualTo("ACTIVE");
         });
     }
 }

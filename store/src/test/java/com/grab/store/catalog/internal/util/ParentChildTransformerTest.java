@@ -1,6 +1,6 @@
 package com.grab.store.catalog.internal.util;
 
-import com.grab.store.catalog.internal.service.ParentChildTransformer;
+import com.catalog.application.service.ParentChildTransformer;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

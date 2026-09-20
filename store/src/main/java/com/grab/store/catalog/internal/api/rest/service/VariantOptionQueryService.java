@@ -5,8 +5,8 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.store.catalog.internal.api.rest.dto.response.VariantOptionResponse;
 import com.grab.store.catalog.internal.api.rest.mapper.VariantOptionDtoMapper;
-import com.grab.store.catalog.internal.query.GetVariantOptionsByNameQuery;
-import com.grab.store.catalog.internal.query.VariantOptionResult;
+import com.catalog.application.query.GetVariantOptionsByNameQuery;
+import com.catalog.application.query.VariantOptionResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

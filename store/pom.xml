@@ -14,12 +14,15 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <catalog-infrastructure.version>0.0.1</catalog-infrastructure.version>
+        <catalog-application.version>0.0.1</catalog-application.version>
+        <catalog-adapter-persistence.version>0.0.1</catalog-adapter-persistence.version>
         <inventory-infrastructure.version>0.0.1</inventory-infrastructure.version>
         <identity-infrastructure.version>0.0.1</identity-infrastructure.version>
         <merchant-infrastructure.version>0.0.1</merchant-infrastructure.version>
         <pricing-infrastructure.version>0.0.1</pricing-infrastructure.version>
         <sales-channel-infrastructure.version>0.0.1</sales-channel-infrastructure.version>
+        <storefront-query-infrastructure.version>0.0.1</storefront-query-infrastructure.version>
+        <cart-infrastructure.version>0.0.1</cart-infrastructure.version>
         <workflow-infrastructure.version>0.0.1</workflow-infrastructure.version>
     </properties>
 
@@ -81,8 +84,13 @@
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>catalog-infrastructure</artifactId>
-            <version>${catalog-infrastructure.version}</version>
+            <artifactId>catalog-application</artifactId>
+            <version>${catalog-application.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>catalog-adapter-persistence</artifactId>
+            <version>${catalog-adapter-persistence.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
@@ -108,6 +116,16 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>sales-channel-infrastructure</artifactId>
             <version>${sales-channel-infrastructure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>storefront-query-infrastructure</artifactId>
+            <version>${storefront-query-infrastructure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>cart-infrastructure</artifactId>
+            <version>${cart-infrastructure.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>

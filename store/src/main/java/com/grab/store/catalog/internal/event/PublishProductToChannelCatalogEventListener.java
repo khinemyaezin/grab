@@ -1,16 +1,16 @@
 package com.grab.store.catalog.internal.event;
 
-import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
+import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.domain.Event;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.catalog.internal.command.PublishProductToChannelCommand;
-import com.grab.store.catalog.internal.command.UnpublishProductFromChannelCommand;
-import com.grab.store.catalog.internal.query.CheckProductPublishableQuery;
-import com.grab.store.catalog.internal.query.CheckProductPublishableResult;
+import com.catalog.application.command.PublishProductToChannelCommand;
+import com.catalog.application.command.UnpublishProductFromChannelCommand;
+import com.catalog.application.query.CheckProductPublishableQuery;
+import com.catalog.application.query.CheckProductPublishableResult;
 import com.grab.store.workflows.events.ProductAssertedEvent;
 import com.grab.store.workflows.events.ProductPublishedToChannelEvent;
 import com.grab.store.workflows.events.ProductUnpublishedFromChannelEvent;

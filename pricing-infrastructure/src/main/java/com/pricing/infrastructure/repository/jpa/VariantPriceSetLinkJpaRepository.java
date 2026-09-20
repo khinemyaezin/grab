@@ -10,5 +10,7 @@ public interface VariantPriceSetLinkJpaRepository extends JpaRepository<VariantP
 
     List<VariantPriceSetLinkEntity> findByVariantIdIn(Collection<String> variantIds);
 
+    List<VariantPriceSetLinkEntity> findByPriceSetId(String priceSetId);
+
     void deleteByPriceSetId(String priceSetId);
 }

@@ -24,6 +24,14 @@ public class DefaultVariantPriceSetLinkQueryRepository implements VariantPriceSe
                         .toList());
     }
 
+    @Override
+    public List<VariantPriceSetLinkView> findByPriceSetId(String priceSetId) {
+        return executor.query("VariantPriceSetLink", () ->
+                jpaRepository.findByPriceSetId(priceSetId).stream()
+                        .map(this::toView)
+                        .toList());
+    }
+
     private VariantPriceSetLinkView toView(VariantPriceSetLinkEntity entity) {
         return new VariantPriceSetLinkView(
                 entity.getVariantId(),

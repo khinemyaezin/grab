@@ -97,7 +97,7 @@ class AllocationControllerTest {
     @Test
     void availability_shouldReturnOk() throws Exception {
         AllocationAvailabilityResponse response = new AllocationAvailabilityResponse("SKU-1", 10, true, 2);
-        when(inventoryQueryService.getAllocationAvailability(eq("SKU-1"), eq(2))).thenReturn(response);
+        when(inventoryQueryService.getAllocationAvailability(eq("SKU-1"), eq(2), nullable(String.class))).thenReturn(response);
         when(allocationModelAssembler.toAvailabilityModel(response)).thenReturn(EntityModel.of(response));
 
         mockMvc.perform(get("/api/v1/inventory/allocations/availability")
@@ -111,7 +111,7 @@ class AllocationControllerTest {
     @Test
     void availability_withoutQuantity_shouldPassNull() throws Exception {
         AllocationAvailabilityResponse response = new AllocationAvailabilityResponse("SKU-1", 5, true, 0);
-        when(inventoryQueryService.getAllocationAvailability(eq("SKU-1"), nullable(Integer.class))).thenReturn(response);
+        when(inventoryQueryService.getAllocationAvailability(eq("SKU-1"), nullable(Integer.class), nullable(String.class))).thenReturn(response);
         when(allocationModelAssembler.toAvailabilityModel(response)).thenReturn(EntityModel.of(response));
 
         mockMvc.perform(get("/api/v1/inventory/allocations/availability").param("sku", "SKU-1"))
