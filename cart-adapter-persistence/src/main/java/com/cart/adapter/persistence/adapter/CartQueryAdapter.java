@@ -4,9 +4,9 @@ import com.cart.adapter.persistence.entity.CartEntity;
 import com.cart.adapter.persistence.entity.CartLineEntity;
 import com.cart.adapter.persistence.repository.jpa.CartJpaRepository;
 import com.cart.domain.enums.CartStatus;
-import com.cart.domain.port.outbound.CartQueryPort;
-import com.cart.domain.readmodel.CartLineView;
-import com.cart.domain.readmodel.CartView;
+import com.cart.application.port.outbound.CartQueryPort;
+import com.cart.application.model.read.CartLineView;
+import com.cart.application.model.read.CartView;
 import com.grab.framework.support.PersistenceExecutor;
 import lombok.RequiredArgsConstructor;
 

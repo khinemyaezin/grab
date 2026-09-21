@@ -36,6 +36,7 @@
         <module>sales-channel-adapter-persistence</module>
         <module>storefront-query-infrastructure</module>
         <module>cart-domain</module>
+        <module>cart-application</module>
         <module>cart-adapter-persistence</module>
         <module>store</module>
     </modules>

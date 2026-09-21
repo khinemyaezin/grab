@@ -17,5 +17,5 @@ Load when creating or changing REST controllers.
 
 - Put business logic in the controller. Delegate everything to services.
 - Inject or invoke `CommandBus` or `QueryBus` directly. Controllers must go through services.
-- Inject or call handlers or repositories (domain or infrastructure).
+- Inject or call handlers, use cases, ports, repositories, or adapters.
 - Call `XxxCommandService` from a GET endpoint or `XxxQueryService` from a state-mutating endpoint.

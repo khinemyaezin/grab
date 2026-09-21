@@ -27,6 +27,7 @@
         <sales-channel-application.version>0.0.1</sales-channel-application.version>
         <sales-channel-adapter-persistence.version>0.0.1</sales-channel-adapter-persistence.version>
         <storefront-query-infrastructure.version>0.0.1</storefront-query-infrastructure.version>
+        <cart-application.version>0.0.1</cart-application.version>
         <cart-adapter-persistence.version>0.0.1</cart-adapter-persistence.version>
         <workflow-infrastructure.version>0.0.1</workflow-infrastructure.version>
     </properties>
@@ -151,6 +152,11 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>storefront-query-infrastructure</artifactId>
             <version>${storefront-query-infrastructure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>cart-application</artifactId>
+            <version>${cart-application.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>

@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CatalogBuyabilityQueryPort {
-    Optional<CatalogVariantSlice> findVariant(String variantId);
+    Optional<CatalogVariantSlice> findPublished(String variantId, String salesChannelId);
 
-    boolean isPublished(String variantId, String salesChannelId);
+    Optional<CatalogVariantSlice> findVariant(String variantId);
 
     List<String> variantIdsForProduct(String productId);
 

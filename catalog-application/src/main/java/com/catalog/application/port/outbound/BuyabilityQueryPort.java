@@ -5,6 +5,8 @@ import java.util.Optional;
 
 public interface BuyabilityQueryPort {
 
+    Optional<VariantSlice> findPublished(String variantId, String salesChannelId);
+
     Optional<VariantSlice> findVariant(String variantId);
 
     boolean isPublished(String variantId, String salesChannelId);

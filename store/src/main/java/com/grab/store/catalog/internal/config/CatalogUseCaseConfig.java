@@ -216,4 +216,29 @@ public class CatalogUseCaseConfig {
     public VariationMatrixUseCase variationMatrixUseCase(MatrixCombinationService matrixCombinationService, MatrixKeyGenerator matrixKeyGenerator, IdGenerator idGenerator, VariationMatrixMatcher matcher) {
         return new VariationMatrixService(matrixCombinationService, matrixKeyGenerator, idGenerator, matcher);
     }
+
+    @Bean
+    public FindPublishedVariantUseCase findPublishedVariantUseCase(BuyabilityQueryPort buyabilityQueryPort) {
+        return new FindPublishedVariantService(buyabilityQueryPort);
+    }
+
+    @Bean
+    public FindCatalogVariantSliceUseCase findCatalogVariantSliceUseCase(BuyabilityQueryPort buyabilityQueryPort) {
+        return new FindCatalogVariantSliceService(buyabilityQueryPort);
+    }
+
+    @Bean
+    public ListCatalogPublicationsUseCase listCatalogPublicationsUseCase(BuyabilityQueryPort buyabilityQueryPort) {
+        return new ListCatalogPublicationsService(buyabilityQueryPort);
+    }
+
+    @Bean
+    public ListVariantIdsForProductUseCase listVariantIdsForProductUseCase(BuyabilityQueryPort buyabilityQueryPort) {
+        return new ListVariantIdsForProductService(buyabilityQueryPort);
+    }
+
+    @Bean
+    public ListSalesChannelIdsForVariantUseCase listSalesChannelIdsForVariantUseCase(BuyabilityQueryPort buyabilityQueryPort) {
+        return new ListSalesChannelIdsForVariantService(buyabilityQueryPort);
+    }
 }

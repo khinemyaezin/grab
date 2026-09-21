@@ -17,14 +17,14 @@ public class GetAllocationAvailabilityService implements GetAllocationAvailabili
         int requested = query.quantity() == null ? 0 : query.quantity();
         if (isUntracked(query.sku())) {
             int available = requested > 0 ? requested : 1;
-            return new GetAllocationAvailabilityResult(query.sku(), available, true, requested);
+            return new GetAllocationAvailabilityResult(query.sku(), available, true, requested, true);
         }
         int available = inventoryQueryPort.sumAvailableForAllocation(
                 query.sku(),
                 query.salesChannelId()
         );
         boolean canAllocate = query.quantity() == null ? available > 0 : available >= query.quantity();
-        return new GetAllocationAvailabilityResult(query.sku(), available, canAllocate, requested);
+        return new GetAllocationAvailabilityResult(query.sku(), available, canAllocate, requested, false);
     }
 
     public Class<GetAllocationAvailabilityQuery> getQueryType() {

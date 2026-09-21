@@ -1,6 +1,6 @@
 package com.cart.adapter.persistence.config;
 
-import com.cart.domain.port.outbound.CartQueryPort;
+import com.cart.application.port.outbound.CartQueryPort;
 import com.cart.domain.port.outbound.CartRepository;
 import com.cart.adapter.persistence.adapter.CartPersistenceExecutor;
 import com.cart.adapter.persistence.adapter.CartQueryAdapter;
