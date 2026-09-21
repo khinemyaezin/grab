@@ -4,6 +4,8 @@ import com.identity.domain.policy.AccessPlacementPolicy;
 import com.identity.domain.policy.AccessPlacementPolicyResolver;
 import com.identity.domain.policy.RegistrationAccessPolicyResolver;
 import com.identity.domain.policy.impl.MerchantOwnerAccessPlacementPolicy;
+import com.identity.domain.policy.impl.CustomerAppUserRegistrationAccessPolicy;
+import com.identity.domain.policy.impl.CustomerAppUserRegistrationAccessPolicy;
 import com.identity.domain.policy.impl.SellerPlatformUserRegistrationAccessPolicy;
 import com.identity.domain.policy.RegistrationAccessPolicy;
 import org.springframework.context.annotation.Bean;
@@ -14,8 +16,18 @@ import java.util.List;
 @Configuration
 public class IdentityDomainConfig {
     @Bean
-    public SellerPlatformUserRegistrationAccessPolicy registrationAccessPolicy() {
+    public SellerPlatformUserRegistrationAccessPolicy sellerRegistrationAccessPolicy() {
         return new SellerPlatformUserRegistrationAccessPolicy();
+    }
+
+    @Bean
+    public CustomerAppUserRegistrationAccessPolicy customerAppRegistrationAccessPolicy() {
+        return new CustomerAppUserRegistrationAccessPolicy();
+    }
+
+    @Bean
+    public CustomerAppUserRegistrationAccessPolicy customerAppUserRegistrationAccessPolicy() {
+        return new CustomerAppUserRegistrationAccessPolicy();
     }
 
     @Bean
