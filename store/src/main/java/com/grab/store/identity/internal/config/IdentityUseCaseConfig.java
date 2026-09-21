@@ -4,6 +4,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.identity.application.port.inbound.*;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
+import com.identity.application.port.outbound.IdentityLookupPort;
 import com.identity.application.port.outbound.MerchantViewQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
@@ -205,5 +206,10 @@ public class IdentityUseCaseConfig {
             TokenLifeCycle tokenLifeCycle
     ) {
         return new SwitchAccessContextService(users, assignments, identityResolver, tokenLifeCycle);
+    }
+
+    @Bean
+    public IdentityLookupUseCase identityLookupUseCase(IdentityLookupPort identityLookupPort) {
+        return new IdentityLookupService(identityLookupPort);
     }
 }

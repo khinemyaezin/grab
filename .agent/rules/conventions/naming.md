@@ -16,11 +16,16 @@ Load when naming a new type, package, or test method.
 | Model Assembler (per-operation) | `{Action}{Entity}ModelAssembler` |
 | Domain Policy | `{Capability}Policy` under `{name}-domain/.../policy/` |
 | Application Policy | `{Capability}Policy` under `store/.../{module}/internal/policy/` |
-| Domain write repository | `{Domain}Repository` (domain) / `Default{Domain}Repository` (infra impl) |
-| Query repository | `{Domain}QueryRepository` / `Default{Domain}QueryRepository` |
+| Inbound use case port | `{Action}{Entity}UseCase` under `{name}-application/.../port/inbound/` |
+| Use case service | `{Action}{Entity}Service` under `{name}-application/.../service/` |
+| Domain write repository port | `{Domain}Repository` under `{name}-domain/.../port/outbound/` |
+| Application query port | `{Domain}QueryPort` under `{name}-application/.../port/outbound/` |
+| Persistence write adapter | `{Domain}RepositoryAdapter` under `{name}-adapter-persistence/.../adapter/` |
+| Persistence query adapter | `{Domain}QueryAdapter` under `{name}-adapter-persistence/.../adapter/` |
+| Persistence executor | `{Domain}PersistenceExecutor` under `{name}-adapter-persistence/.../adapter/` |
 | Spring Data JPA | `{Domain}JpaRepository` |
 | Query specification | `{Domain}*Specification` (or `{Domain}SearchCriteria` + criteria helper) under `specification/jpa/` |
-| Read view | `{Domain}View` / `{Domain}Summary` under `view/` |
+| Read view | `{Domain}View` / `{Domain}Summary` under `{name}-application/.../model/read/` |
 | API Root | `ApiRootController` |
 | Bounded Context Root | `{Context}RootController` |
 | Modulith named interface package (events) | `{module}.events` + `@NamedInterface("events")` |

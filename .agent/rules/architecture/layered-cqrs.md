@@ -16,7 +16,7 @@ Load when adding or changing an HTTP use case, command/query flow, or layer resp
 | Application | `{name}-application/` | Commands, queries, inbound/outbound ports, read models, use case services (full hex). |
 | Persistence adapter | `{bc}-adapter-persistence` | JPA, outbox, `*Adapter` port impls, `{Bc}PersistenceConfig`. Package `com.{bc}.adapter.persistence`. |
 
-Lite BC (cart): handlers and orchestration may stay in `store`; query ports live in `domain/port/outbound`; persistence jar is still `{bc}-adapter-persistence`. Sales-channel is full hex like catalog.
+Cart is full hex like catalog and sales-channel (`cart-domain`, `cart-application`, `cart-adapter-persistence`, thin handlers in `store`).
 
 ## CQRS data flow
 
@@ -30,5 +30,6 @@ Lite BC (cart): handlers and orchestration may stay in `store`; query ports live
 - **CommandService Cannot Query**: `CommandService` MUST NOT inject, invoke, or dispatch via `QueryBus`, nor call `QueryService`. It handles writes only. Any aggregate state required for command processing must be retrieved inside the **use case** via its domain repository, or provided via the request DTO.
 - **QueryService Cannot Mutate**: `QueryService` MUST NOT inject, invoke, or dispatch via `CommandBus`, nor call `CommandService`. It is strictly read-only and side-effect free.
 - **No Cross-Service Invocations**: `CommandService` and `QueryService` must never inject or call one another.
-- **Controller Delegation**: Controllers bridge HTTP to services by delegating write operations (POST, PUT, PATCH, DELETE) to `CommandService` and read operations (GET) to `QueryService`. Controllers MUST NOT inject `CommandBus`, `QueryBus`, handlers, or repositories directly.
+- **Controller Delegation**: Controllers bridge HTTP to services by delegating write operations (POST, PUT, PATCH, DELETE) to `CommandService` and read operations (GET) to `QueryService`. Controllers MUST NOT inject `CommandBus`, `QueryBus`, handlers, use cases, ports, or adapters directly.
 - **Query handlers read via query ports**: Query use cases and `QueryHandler` classes MUST NOT inject domain write `*Repository` ports or call domain services that load aggregates. Reads go through `*QueryPort` (or lite BC query ports in `{bc}-domain.port.outbound`) returning views/projections.
+- **Modulith `{module}::query` named interfaces**: Adapters under `store/.../{module}/internal/.../query/` (or `internal/api/query/`) that implement published `{module}::query` ports MUST delegate to inbound `*UseCase` only. They MUST NOT inject application outbound `*QueryPort` or dispatch `QueryBus`. Passthrough use cases are OK. Future gRPC/HTTP servers call the same use cases. Cross-module consumers (cart, storefront projectors) stay thin mappers on the named interface; one business question = one named-interface method.

@@ -271,7 +271,8 @@ classDiagram
 | `sales-channel-application` | Sales channel use cases and query ports |
 | `sales-channel-adapter-persistence` | Channel JPA and outbox (`com.saleschannel.adapter.persistence`) |
 | `cart-domain` | Buyer cart |
-| `cart-adapter-persistence` | Cart JPA (lite) |
+| `cart-application` | Cart use cases, query/ACL ports, read models |
+| `cart-adapter-persistence` | Cart JPA and outbox |
 | `storefront-query-infrastructure` | `BuyableOffer` table |
 | `storage-adapter-s3` | S3 adapter for `FileStoragePort` |
 | `outbox-infrastructure` | Shared JPA outbox implementation used by BC infra modules |
@@ -406,7 +407,7 @@ Full hex BCs **keep** `internal/command/handler` and `internal/query/handler` in
 
 #### Target tree — full hexagonal BC
 
-Applies to **catalog (done), inventory, identity, pricing, merchant**. Same recipe; `{bc}` and `com.{bc}` change.
+Applies to **catalog, inventory, identity, pricing, merchant, cart, sales-channel**. Same recipe; `{bc}` and `com.{bc}` change.
 
 ```
 {bc}-domain/src/main/java/com/{bc}/domain/
@@ -447,12 +448,12 @@ Catalog follows the trees above: `catalog-adapter-persistence`, `CatalogUseCaseC
 
 #### Target tree — lite hexagonal BC
 
-Applies to **cart** (sales-channel promoted to full hex).
+Applies to bounded contexts that have not yet gained an application jar (none of the commerce write BCs listed above remain lite-only).
 
 ```
-{bc}-domain/          # aggregates; port/outbound write (+ query ports for lite)
-{bc}-adapter-persistence/  # JPA adapters
-store/.../{module}/   # REST + command/query handlers remain here until full hex promotion
+{bc}-domain/          # aggregates; port/outbound write repositories only
+{bc}-adapter-persistence/  # JPA adapters (optional until promotion)
+store/.../{module}/   # REST + fat command/query handlers until full hex promotion
 ```
 
 Promote to full hex when command/query handlers become a cluster (roughly more than a handful of orchestrations).
@@ -847,7 +848,7 @@ sequenceDiagram
 - `store/pom.xml` depends on each `{bc}-application` and `{bc}-adapter-persistence`
 - `{bc}-adapter-persistence` depends on `{bc}-application` (full hex) and drops domain `@Bean` factories from persistence config
 - Command/query **records** move to `{bc}-application`; orchestration in `*Service`; store keeps thin handlers
-- Query ports in cart move into `domain.port.outbound` (lite); sales-channel query ports live in `sales-channel-application`
+- Cart query and ACL ports live in `cart-application`; sales-channel query ports live in `sales-channel-application`
 - Supercede [ADR-001](../dev/system/ADR_001-System_architecture.md) §2 (application-in-store)
 - Update `.agent/rules/architecture/layered-cqrs.md` locations
 - Do **not** add `workflow-application`, `workflow-domain`, `storefront-query-domain`, or `*-adapter-rest`

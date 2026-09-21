@@ -24,4 +24,10 @@ public interface ProductPublicationJpaRepository
               AND variant.product.id = :productId
             """)
     List<ProductPublicationEntity> findByProductId(@Param("productId") Long productId);
+
+    @Query("""
+            SELECT v.uuid, pub.salesChannelId FROM ProductPublicationEntity pub
+            JOIN ProductVariantEntity v ON v.id = pub.variantId
+            """)
+    List<Object[]> findAllPublicationVariantUuids();
 }

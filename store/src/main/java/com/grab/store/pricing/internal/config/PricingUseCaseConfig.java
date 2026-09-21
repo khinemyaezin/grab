@@ -194,4 +194,20 @@ public class PricingUseCaseConfig {
     ) {
         return new UpdateVariantPriceService(priceSetRepository, variantPriceSetLinkRepository, idGenerator);
     }
+
+    @Bean
+    public QuoteVariantPriceUseCase quoteVariantPriceUseCase(
+            VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort,
+            CalculatePricesUseCase calculatePricesUseCase,
+            IdGenerator idGenerator
+    ) {
+        return new QuoteVariantPriceService(variantPriceSetLinkQueryPort, calculatePricesUseCase, idGenerator);
+    }
+
+    @Bean
+    public ListVariantIdsForPriceSetUseCase listVariantIdsForPriceSetUseCase(
+            VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort
+    ) {
+        return new ListVariantIdsForPriceSetService(variantPriceSetLinkQueryPort);
+    }
 }

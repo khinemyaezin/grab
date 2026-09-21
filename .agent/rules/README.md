@@ -14,7 +14,7 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 | Application | `application/` | Controllers, services, mappers, commands, queries, handlers |
 | API | `api/` | DTOs, HATEOAS, HAL config |
 | Domain | `domain/` | Aggregates, domain events, policies |
-| Infrastructure | `infrastructure/` | JPA mapping, write/query repositories, specifications |
+| Infrastructure & Adapters | `infrastructure/` | JPA mapping, persistence adapters, specifications, storage adapters |
 | Platform | `platform/` | Errors, transactions, events, logging |
 | Conventions | `conventions/` | Naming, coding style |
 
@@ -47,7 +47,7 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 
 Verify all of the following before producing or changing code.
 
-1. Controller delegates writes to CommandService and reads to QueryService. No inline logic, no direct bus or repository injection.
+1. Controller delegates writes to CommandService and reads to QueryService. No inline logic, no direct bus, port, or repository injection.
 2. MapStruct mapper abstract class exists per Command/Query operation, annotated with `@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)`.
 3. Command/Query records use `Id` for identifiers, not `String`.
 4. Handlers are `@Component` implementing `CommandHandler`/`QueryHandler` with the module transactional annotations.
@@ -65,9 +65,9 @@ Verify all of the following before producing or changing code.
 16. Intermediate variables are extracted. No nested function invocations.
 17. No business logic in handlers. Aggregate or policy owns business rules.
 18. A handler does not call another handler. Cascading work goes through `CommandBus`/`QueryBus`, usually from event listeners.
-19. Only handlers inject/use repositories. Never services, controllers, mappers, assemblers, or policies.
-20. Write path: command handler to domain `{Domain}Repository`. Query list/search to `{Domain}QueryRepository`, not `JpaRepository`.
-21. Paged search uses a specification class injected into the query repository impl. Results are view records.
+19. Only handlers and use cases inject/use ports and repositories. Never services, controllers, mappers, assemblers, or policies.
+20. Write path: command handler/use case to domain write port `{Domain}Repository`. Query list/search to application query port `{Domain}QueryPort` (implemented by `{Domain}QueryAdapter`), not `JpaRepository`.
+21. Paged search uses a specification class injected into the query adapter. Results are application view records (`{Domain}View`), not JPA entities.
 22. Cross-module events use named interfaces (`{module}::events`). Consuming modules list them in `allowedDependencies`.
 23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks`. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding. No proxying owner list/search.
 24. `shared` remains `@ApplicationModule(type = OPEN)`.

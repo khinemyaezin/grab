@@ -4,6 +4,7 @@ public record GetAllocationAvailabilityResult(
         String sku,
         int availableQuantity,
         boolean canAllocate,
-        int requestedQuantity
+        int requestedQuantity,
+        boolean untracked
 ) {
 }

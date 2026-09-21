@@ -39,6 +39,7 @@ COPY sales-channel-adapter-persistence/pom.xml sales-channel-adapter-persistence
 COPY storefront-query-infrastructure/pom.xml storefront-query-infrastructure/
 
 COPY cart-domain/pom.xml cart-domain/
+COPY cart-application/pom.xml cart-application/
 COPY cart-adapter-persistence/pom.xml cart-adapter-persistence/
 
 COPY workflow-infrastructure/pom.xml workflow-infrastructure/
@@ -81,6 +82,7 @@ COPY sales-channel-adapter-persistence/src sales-channel-adapter-persistence/src
 COPY storefront-query-infrastructure/src storefront-query-infrastructure/src
 
 COPY cart-domain/src cart-domain/src
+COPY cart-application/src cart-application/src
 COPY cart-adapter-persistence/src cart-adapter-persistence/src
 
 COPY workflow-infrastructure/src workflow-infrastructure/src

@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>cart-domain</artifactId>
+            <artifactId>cart-application</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

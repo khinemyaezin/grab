@@ -2,7 +2,7 @@ package com.grab.store.cart.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.store.cart.internal.api.rest.dto.response.CartResponse;
-import com.grab.store.cart.internal.query.GetCurrentCartQuery;
+import com.cart.application.model.read.GetCurrentCartQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

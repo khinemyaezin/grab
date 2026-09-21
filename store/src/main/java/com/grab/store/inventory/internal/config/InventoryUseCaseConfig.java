@@ -150,6 +150,10 @@ public class InventoryUseCaseConfig {
         return new GetAllocationAvailabilityService(inventoryQueryPort, productVariantViewQueryPort);
     }
     @Bean
+    public ListSkusAtLocationUseCase listSkusAtLocationUseCase(InventoryQueryPort inventoryQueryPort) {
+        return new ListSkusAtLocationService(inventoryQueryPort);
+    }
+    @Bean
     public GetBinLocationIdUseCase getBinLocationIdUseCase(BinQueryPort binQueryPort, ZoneQueryPort zoneQueryPort) {
         return new GetBinLocationIdService(binQueryPort, zoneQueryPort);
     }

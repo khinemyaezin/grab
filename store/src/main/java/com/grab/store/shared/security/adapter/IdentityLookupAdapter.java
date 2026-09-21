@@ -2,14 +2,13 @@ package com.grab.store.shared.security.adapter;
 
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
+import com.grab.store.identity.query.IdentityLookupQuery;
 import com.grab.store.shared.security.IdentityResolverClient;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.application.port.outbound.IdentityLookupPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.Set;
@@ -17,13 +16,13 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class IdentityLookupAdapter implements IdentityResolverClient {
-    private final IdentityLookupPort resolver;
+
+    private final IdentityLookupQuery identityLookupQuery;
 
     @Override
-    @Transactional(transactionManager = "identityTransactionManager", readOnly = true)
     public Optional<AuthenticatedActor> resolveByPlatformUser(String issuer, String userId, AccessContext ctx) {
         try {
-            return resolver.resolveByPlatformUserId(issuer, userId, ctx);
+            return identityLookupQuery.resolveByPlatformUserId(issuer, userId, ctx);
         } catch (IdentityDomainValidationException ex) {
             throw translateException(ex);
         }
@@ -32,7 +31,7 @@ public class IdentityLookupAdapter implements IdentityResolverClient {
     @Override
     public Optional<AuthenticatedActor> resolveByExternalIdentity(String issuer, String subject, Set<String> entitlements, AccessContext ctx) {
         try {
-            return resolver.resolveByExternalIdentity(issuer, subject, entitlements, ctx);
+            return identityLookupQuery.resolveByExternalIdentity(issuer, subject, entitlements, ctx);
         } catch (IdentityDomainValidationException ex) {
             throw translateException(ex);
         }

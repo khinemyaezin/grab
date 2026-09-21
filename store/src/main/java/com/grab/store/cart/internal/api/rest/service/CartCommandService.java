@@ -3,8 +3,8 @@ package com.grab.store.cart.internal.api.rest.service;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.store.cart.internal.api.rest.dto.request.AddItemToCartRequest;
 import com.grab.store.cart.internal.api.rest.dto.response.CartResponse;
-import com.grab.store.cart.internal.command.AddItemToCartCommand;
-import com.grab.store.cart.internal.command.CartResult;
+import com.cart.application.model.read.CartResult;
+import com.cart.application.model.write.AddItemToCartCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

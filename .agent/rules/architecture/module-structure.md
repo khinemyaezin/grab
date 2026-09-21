@@ -4,16 +4,25 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
 
 ## Layout
 
-- Module layout: `{name}-domain/` then `{name}-infrastructure/` then `store/`
-- Dependency direction:
-  - `framework` <- `domain` <- `infrastructure` <- `store`
+- Module layout per bounded context:
+  - Domain: `{name}-domain/`
+  - Application: `{name}-application/`
+  - Persistence Adapter: `{name}-adapter-persistence/`
+  - Infrastructure & Adapters: `storage-adapter-s3/`, `outbox-infrastructure/`, `workflow-infrastructure/`, `logger-slf4j/`
+  - Web & Application Assembly: `store/`
+- Dependency direction (Hexagonal / Ports & Adapters):
+  - `framework` <- `{name}-domain`
+  - `{name}-domain` <- `{name}-application`
+  - `{name}-domain` + `{name}-application` <- `{name}-adapter-persistence`
+  - `{name}-application` + `{name}-adapter-persistence` <- `store`
   - `framework` <- `outbox-infrastructure` <- `store`
   - `framework` <- `workflow-infrastructure` <- `store`
   - `framework` <- `logger-slf4j` <- `store`
+  - `framework` <- `storage-adapter-s3` <- `store`
 
 ## Spring Modulith
 
-- Each bounded context has an `@ApplicationModule(allowedDependencies = "shared")` marker class, for example `CatalogModule`, `InventoryModule`.
+- Each bounded context has an `@ApplicationModule(allowedDependencies = "shared")` marker class in `store`, for example `CatalogModule`, `InventoryModule`.
 - `shared` is OPEN: `@ApplicationModule(type = ApplicationModule.Type.OPEN)` on `com.grab.store.shared` (`package-info.java`).
 - Internal package goes under `internal/`.
 - Cross-module communication is via domain/integration events and published named interfaces only. No direct method calls into another module's `internal/` packages.
@@ -25,6 +34,9 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
 
 ## Layer contents
 
-- Domain (`{name}-domain/`): no Spring, JPA, or MapStruct annotations. Contains aggregates, entities, value objects, events, repository interfaces, domain services, domain policies.
-- Infrastructure (`{name}-infrastructure/`): JPA entities, JPA-to-domain mappers (MapStruct), repository implementations, outbox event producers.
-- Application (`store/`): controllers, services, command/query handlers, mappers, assemblers, event listeners, application policies.
+- Domain (`{name}-domain/`): Pure domain logic. No Spring, JPA, or MapStruct annotations. Contains aggregates, entities, value objects, domain events, domain policies, and outbound write repository ports (`port/outbound/{Domain}Repository`).
+- Application (`{name}-application/`): Inbound use case ports (`port/inbound/*UseCase`), use case services (`service/*Service`), outbound query ports (`port/outbound/*QueryPort`), application commands/queries, and read views (`model/read/*View`).
+- Persistence Adapter (`{name}-adapter-persistence/`): Outbound persistence adapters (`adapter/*RepositoryAdapter`, `adapter/*QueryAdapter`, `adapter/*PersistenceExecutor`), JPA entities, Spring Data JPA repositories (`repository/jpa/*JpaRepository`), specifications (`specification/jpa/`), mappers/assemblers (`mapper/`), outbox producers/processors (`outbox/`), and Spring bean configuration (`config/*PersistenceConfig`).
+- Storage Adapter (`storage-adapter-s3/`): Outbound file storage adapter implementing `FileStoragePort` using AWS S3 / MinIO.
+- Web & App Assembly (`store/`): REST controllers, request/response DTOs, mappers, HATEOAS model assemblers, CQRS command/query handlers delegating to use cases, event listeners, application policies, and application configuration.
+

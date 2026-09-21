@@ -3,7 +3,6 @@ package com.catalog.adapter.persistence.adapter;
 import com.catalog.application.port.outbound.BuyabilityQueryPort;
 import com.catalog.domain.port.outbound.ProductPublicationRepository;
 import com.catalog.adapter.persistence.entity.ProductEntity;
-import com.catalog.adapter.persistence.entity.ProductPublicationEntity;
 import com.catalog.adapter.persistence.entity.ProductVariantEntity;
 import com.catalog.adapter.persistence.repository.ProductPublicationJpaRepository;
 import com.catalog.adapter.persistence.repository.ProductVariantJpaRepo;
@@ -20,6 +19,12 @@ public class BuyabilityQueryAdapter implements BuyabilityQueryPort {
     private final ProductPublicationRepository productPublicationRepository;
     private final ProductPublicationJpaRepository productPublicationJpaRepository;
     private final IdGenerator idGenerator;
+
+    @Override
+    public Optional<VariantSlice> findPublished(String variantId, String salesChannelId) {
+        String channelId = idGenerator.convertIdFrom(salesChannelId).getValue();
+        return productVariantJpaRepo.findPublishedVariant(variantId, channelId).map(this::toSlice);
+    }
 
     @Override
     public Optional<VariantSlice> findVariant(String variantId) {
@@ -43,9 +48,8 @@ public class BuyabilityQueryAdapter implements BuyabilityQueryPort {
 
     @Override
     public List<PublicationSlice> listPublications() {
-        return productPublicationJpaRepository.findAll().stream()
-                .map(this::toPublication)
-                .flatMap(Optional::stream)
+        return productPublicationJpaRepository.findAllPublicationVariantUuids().stream()
+                .map(row -> new PublicationSlice((String) row[0], (String) row[1]))
                 .toList();
     }
 
@@ -54,11 +58,6 @@ public class BuyabilityQueryAdapter implements BuyabilityQueryPort {
         return productPublicationRepository.findByVariantId(idGenerator.convertIdFrom(variantId)).stream()
                 .map(publication -> publication.getSalesChannelId().getValue())
                 .toList();
-    }
-
-    private Optional<PublicationSlice> toPublication(ProductPublicationEntity entity) {
-        return productVariantJpaRepo.findById(entity.getVariantId())
-                .map(variant -> new PublicationSlice(variant.getUuid(), entity.getSalesChannelId()));
     }
 
     private VariantSlice toSlice(ProductVariantEntity variant) {
