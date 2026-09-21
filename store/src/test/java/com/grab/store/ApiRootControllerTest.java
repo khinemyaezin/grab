@@ -25,6 +25,9 @@ class ApiRootControllerTest {
         assertThat(response.getBody().getLink("get-cart-root")).isPresent();
         assertThat(response.getBody().getLink("get-cart-root").orElseThrow().getHref())
                 .endsWith("/api/v1/carts");
+        assertThat(response.getBody().getLink("get-region-root")).isPresent();
+        assertThat(response.getBody().getLink("get-region-root").orElseThrow().getHref())
+                .endsWith("/api/v1/regions");
         assertThat(response.getBody().getLink("event-stream").orElseThrow().getHref())
                 .endsWith("/api/v1/events/stream");
     }

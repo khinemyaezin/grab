@@ -29,6 +29,14 @@
         <storefront-query-infrastructure.version>0.0.1</storefront-query-infrastructure.version>
         <cart-application.version>0.0.1</cart-application.version>
         <cart-adapter-persistence.version>0.0.1</cart-adapter-persistence.version>
+        <customer-application.version>0.0.1</customer-application.version>
+        <customer-adapter-persistence.version>0.0.1</customer-adapter-persistence.version>
+        <region-application.version>0.0.1</region-application.version>
+        <region-adapter-persistence.version>0.0.1</region-adapter-persistence.version>
+        <order-application.version>0.0.1</order-application.version>
+        <order-adapter-persistence.version>0.0.1</order-adapter-persistence.version>
+        <payment-application.version>0.0.1</payment-application.version>
+        <payment-adapter-persistence.version>0.0.1</payment-adapter-persistence.version>
         <workflow-infrastructure.version>0.0.1</workflow-infrastructure.version>
     </properties>
 
@@ -163,6 +171,46 @@
             <artifactId>cart-adapter-persistence</artifactId>
             <version>${cart-adapter-persistence.version}</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
+<!--            <artifactId>customer-application</artifactId>-->
+<!--            <version>${customer-application.version}</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
+<!--            <artifactId>customer-adapter-persistence</artifactId>-->
+<!--            <version>${customer-adapter-persistence.version}</version>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>region-application</artifactId>
+            <version>${region-application.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>region-adapter-persistence</artifactId>
+            <version>${region-adapter-persistence.version}</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
+<!--            <artifactId>order-application</artifactId>-->
+<!--            <version>${order-application.version}</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
+<!--            <artifactId>order-adapter-persistence</artifactId>-->
+<!--            <version>${order-adapter-persistence.version}</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
+<!--            <artifactId>payment-application</artifactId>-->
+<!--            <version>${payment-application.version}</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
+<!--            <artifactId>payment-adapter-persistence</artifactId>-->
+<!--            <version>${payment-adapter-persistence.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>workflow-infrastructure</artifactId>

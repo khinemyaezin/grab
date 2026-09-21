@@ -8,6 +8,7 @@ import com.grab.store.pricing.PricingRootController;
 import com.grab.store.saleschannel.SalesChannelRootController;
 import com.grab.store.storefrontquery.StorefrontQueryRootController;
 import com.grab.store.cart.CartRootController;
+import com.grab.store.region.RegionRootController;
 import com.grab.store.shared.sse.EventStreamController;
 import com.grab.store.workflows.WorkflowsRootController;
 import org.springframework.hateoas.MediaTypes;
@@ -36,6 +37,7 @@ public class ApiRootController {
         model.add(linkTo(methodOn(SalesChannelRootController.class).root()).withRel("get-sales-channel-root"));
         model.add(linkTo(methodOn(StorefrontQueryRootController.class).root()).withRel("get-storefront-query-root"));
         model.add(linkTo(methodOn(CartRootController.class).root()).withRel("get-cart-root"));
+        model.add(linkTo(methodOn(RegionRootController.class).root()).withRel("get-region-root"));
         model.add(linkTo(methodOn(WorkflowsRootController.class).root()).withRel("get-workflows-root"));
         model.add(linkTo(methodOn(EventStreamController.class).stream(null, null, null)).withRel("event-stream"));
         return ResponseEntity.ok(model);
