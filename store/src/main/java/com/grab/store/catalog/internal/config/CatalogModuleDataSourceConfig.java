@@ -25,14 +25,14 @@ import java.util.Map;
 
 @Configuration
 @ComponentScan(
-        basePackages = "com.catalog.infrastructure.mapper",
+        basePackages = "com.catalog.adapter.persistence.mapper",
         includeFilters = @ComponentScan.Filter(
                 type = FilterType.REGEX,
                 pattern = ".*MapperImpl"
         )
 )
 @EnableJpaRepositories(
-        basePackages = {"com.catalog.infrastructure.repository.jpa"},
+        basePackages = {"com.catalog.adapter.persistence.repository"},
         entityManagerFactoryRef = "catalogEntityManagerFactory",
         transactionManagerRef = "catalogTransactionManager"
 )
@@ -61,7 +61,7 @@ public class CatalogModuleDataSourceConfig {
 
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setJpaVendorAdapter(vendorAdapter);
-        factory.setPackagesToScan("com.catalog.infrastructure");
+        factory.setPackagesToScan("com.catalog.adapter.persistence");
         factory.setDataSource(catalogDataSource);
         factory.setPersistenceUnitName("catalog");
         factory.setJpaPropertyMap(hibernateProperties());

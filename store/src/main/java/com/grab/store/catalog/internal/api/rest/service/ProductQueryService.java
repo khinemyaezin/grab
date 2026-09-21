@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.catalog.application.model.read.*;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -8,8 +9,6 @@ import com.grab.store.catalog.internal.api.rest.dto.request.ProductVariantSearch
 import com.grab.store.catalog.internal.api.rest.dto.request.VariationMatrixRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.*;
-import com.grab.store.catalog.internal.query.*;
-import com.grab.store.catalog.internal.query.GetProductBySlugResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
+import com.catalog.application.model.write.*;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
@@ -16,7 +17,6 @@ import com.grab.store.catalog.internal.api.rest.mapper.DeleteVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.RestoreVariantDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.SyncVariantsDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateVariantDtoMapper;
-import com.grab.store.catalog.internal.command.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -8,10 +8,10 @@ import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.aggregate.Location;
 import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.exception.InventoryDomainError;
-import com.inventory.domain.repository.ChannelFulfillmentRouteRepository;
-import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.domain.repository.LocationRepository;
-import com.inventory.domain.repository.StockMovementRepository;
+import com.inventory.domain.port.outbound.ChannelFulfillmentRouteRepository;
+import com.inventory.domain.port.outbound.InventoryRepository;
+import com.inventory.domain.port.outbound.LocationRepository;
+import com.inventory.domain.port.outbound.StockMovementRepository;
 import com.inventory.domain.service.InventoryAllocationService;
 
 import java.util.ArrayList;

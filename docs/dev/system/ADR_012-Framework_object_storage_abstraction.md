@@ -26,7 +26,7 @@ Establish a vendor-agnostic object storage abstraction (`com.grab.framework.stor
 - **Pluggable Provider SPI:** Mirror the framework's logging SPI pattern (`com.grab.framework.logger.spi`) by introducing `FileStorageProvider` and `FileStorageConfig` in `com.grab.framework.storage.spi`, allowing concrete storage backends to be discovered, prioritized, and instantiated dynamically.
 - **Presigned Direct Upload Pattern:** Shift binary transfer entirely out-of-band: clients obtain an authorized presigned upload contract from domain services, upload bytes directly to the storage engine via HTTP PUT, and subsequently submit the storage key to the domain API for verification.
 - **Server-Side Verification Contract:** Mandate that calling domain services verify object existence (`FileStoragePort.objectExists(storageKey)`) via an out-of-band `HEAD` check before associating media records with domain aggregates.
-- **Zero Cloud SDKs in Framework:** Keep the `framework` module completely free of cloud vendor dependencies (AWS SDK, GCS, Azure). Infrastructure adapters implement the framework SPI in separate adapter modules (e.g., `storage-infrastructure`).
+- **Zero Cloud SDKs in Framework:** Keep the `framework` module completely free of cloud vendor dependencies (AWS SDK, GCS, Azure). Infrastructure adapters implement the framework SPI in separate adapter modules (e.g., `storage-adapter-s3`).
 
 **What stays the same:**  
 Relational databases continue to store only metadata (storage keys, public URLs, content types, rank orders, and dimensions); raw bytes are never stored in the database. Domain aggregate roots (e.g., `Product`) remain pure and completely oblivious to storage endpoints, credentials, and presigning mechanics.
@@ -296,7 +296,7 @@ The storage framework integrates cleanly into the CQRS architecture of the comme
 | **Command Handlers** | Executes business transactions, calls `FileStoragePort`, and mutates aggregates. | `CreateProductMediaUploadCommandHandler`<br/>`ReplaceProductMediaCommandHandler` |
 | **Domain Model** | Pure aggregate roots maintaining media collections and variants. | `Product`, `ProductMedia`, `ProductVariant` |
 | **Framework Port & SPI** | Pure vendor-agnostic interface, value types, and provider SPI contracts. | `FileStoragePort`, `UploadRequest`, `PresignedUpload`, `FileStorageProvider`, `FileStorageConfig` |
-| **Infrastructure Adapter (Outside Framework)** | Pluggable module translating port calls to external storage SDKs. | `storage-infrastructure` (`S3FileStorageAdapter`, `S3FileStorageProvider`) |
+| **Infrastructure Adapter (Outside Framework)** | Pluggable module translating port calls to external storage SDKs. | `storage-adapter-s3` (`S3FileStorageAdapter`, `S3FileStorageProvider`) |
 
 ---
 
@@ -418,7 +418,7 @@ sequenceDiagram
   - `FileStorageProvider.java`: Extensibility SPI interface.
 
 **External adapter implementations (outside framework):**
-- Separate infrastructure modules (such as `storage-infrastructure`) implement `FileStorageProvider` and `FileStoragePort` using specific client libraries (e.g., AWS SDK v2 for S3-compatible engines).
+- Separate infrastructure modules (such as `storage-adapter-s3`) implement `FileStorageProvider` and `FileStoragePort` using specific client libraries (e.g., AWS SDK v2 for S3-compatible engines).
 
 **Changes to existing domain consumers:**
 - `store/catalog`:
@@ -430,7 +430,7 @@ sequenceDiagram
 ## 6. Implementation Plan
 
 - **Phase 1 (Complete):** Implement framework storage port (`FileStoragePort`) and SPI contracts (`FileStorageProvider`, `FileStorageConfig`) in `framework`.
-- **Phase 2 (Complete):** Implement external adapter in `storage-infrastructure` and configure local object storage under Docker Compose.
+- **Phase 2 (Complete):** Implement external adapter in `storage-adapter-s3` and configure local object storage under Docker Compose.
 - **Phase 3 (Complete):** Integrate `FileStoragePort` into the Catalog bounded context (`ProductController`, `CreateProductMediaUploadCommandHandler`, `ReplaceProductMediaCommandHandler`, and unit/slice tests).
 - **Phase 4 (Future):** Reuse `FileStoragePort` across other bounded contexts (e.g., Identity user profile avatars and Merchant storefront branding).
 

@@ -9,8 +9,8 @@ import com.grab.store.merchant.internal.api.rest.mapper.ChangeMerchantLifecycleR
 import com.grab.store.merchant.internal.api.rest.mapper.StartMerchantApplicationRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.SubmitMerchantApplicationRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.UpdateMerchantProfileRequestMapper;
-import com.grab.store.merchant.internal.command.*;
-import com.grab.store.merchant.internal.command.ChangeMerchantLifecycleCommand.Action;
+import com.merchant.application.model.write.*;
+import com.merchant.application.model.write.ChangeMerchantLifecycleCommand.Action;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.merchant.domain.enums.MerchantType;
 import lombok.RequiredArgsConstructor;

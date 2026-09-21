@@ -3,15 +3,16 @@ package com.grab.store.identity.internal.command.handler;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.identity.internal.command.RegisterCommand;
-import com.grab.store.identity.internal.exception.IdentityServiceException;
+import com.identity.application.service.RegisterService;
+import com.identity.application.model.write.RegisterCommand;
+import com.identity.application.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.repository.AccessAssignmentRepository;
-import com.identity.domain.repository.PlatformRepository;
-import com.identity.domain.repository.UserRepository;
+import com.identity.domain.port.outbound.AccessAssignmentRepository;
+import com.identity.domain.port.outbound.PlatformRepository;
+import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.domain.policy.RegistrationAccessPolicy;
 import com.identity.domain.policy.RegistrationAccessPolicyResolver;
@@ -38,7 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RegisterCommandHandlerTest {
+class RegisterServiceTest {
     @Mock
     private UserRepository users;
     @Mock
@@ -55,7 +56,7 @@ class RegisterCommandHandlerTest {
 
     private RegistrationAccessPolicy policy;
 
-    private RegisterCommandHandler handler;
+    private RegisterService handler;
     private RegisterCommand command;
 
     @BeforeEach
@@ -69,7 +70,7 @@ class RegisterCommandHandlerTest {
                 return AccessAssignment.create(assignmentId, userId, platform, "CUSTOMER", AccessScope.global(), null, null);
             }
         };
-        handler = new RegisterCommandHandler(users, platforms, assignments, passwords, ids, policyResolver);
+        handler = new RegisterService(users, platforms, assignments, passwords, ids, policyResolver);
         command = new RegisterCommand("customer@example.com", "Password123!", "CUSTOMER_APP");
     }
 
@@ -85,7 +86,7 @@ class RegisterCommandHandlerTest {
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(assignments.save(any(AccessAssignment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var result = handler.handle(command);
+        var result = handler.execute(command);
 
         ArgumentCaptor<AccessAssignment> assignment = ArgumentCaptor.forClass(AccessAssignment.class);
         verify(assignments).save(assignment.capture());
@@ -106,7 +107,7 @@ class RegisterCommandHandlerTest {
         User existingUser = User.createLocal(new CommonId("existing-1"), new Email(command.email()), new HashedPassword("hash"));
         when(users.findByEmail(new Email(command.email()))).thenReturn(Optional.of(existingUser));
 
-        assertThatThrownBy(() -> handler.handle(command))
+        assertThatThrownBy(() -> handler.execute(command))
                 .isInstanceOf(IdentityServiceException.class);
 
         verify(users, never()).save(any());
@@ -118,7 +119,7 @@ class RegisterCommandHandlerTest {
         when(users.findByEmail(new Email(command.email()))).thenReturn(Optional.empty());
         when(platforms.findByCode("CUSTOMER_APP")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> handler.handle(command))
+        assertThatThrownBy(() -> handler.execute(command))
                 .isInstanceOf(IdentityServiceException.class)
                 .satisfies(exception -> assertThat(
                         ((IdentityServiceException) exception).getMessageSource().code()
@@ -140,7 +141,7 @@ class RegisterCommandHandlerTest {
         )));
         prepareDomainConstruction();
 
-        assertThatThrownBy(() -> handler.handle(command))
+        assertThatThrownBy(() -> handler.execute(command))
                 .isInstanceOf(IdentityDomainValidationException.class);
 
         verify(users, never()).save(any());
@@ -159,7 +160,7 @@ class RegisterCommandHandlerTest {
         )));
         prepareDomainConstruction();
 
-        assertThatThrownBy(() -> handler.handle(command))
+        assertThatThrownBy(() -> handler.execute(command))
                 .isInstanceOf(IdentityDomainValidationException.class);
 
         verify(users, never()).save(any());

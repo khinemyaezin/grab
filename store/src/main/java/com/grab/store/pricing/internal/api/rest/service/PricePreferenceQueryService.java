@@ -5,9 +5,9 @@ import com.grab.framework.logger.Loggers;
 import com.grab.framework.logger.Logger;
 import com.grab.store.pricing.internal.api.rest.dto.response.PricePreferenceResponse;
 import com.grab.store.pricing.internal.api.rest.mapper.GetPricePreferenceRequestMapper;
-import com.grab.store.pricing.internal.command.PricePreferenceResult;
+import com.pricing.application.model.write.PricePreferenceResult;
 import com.grab.store.pricing.internal.config.PricingEnabled;
-import com.grab.store.pricing.internal.query.ListPricePreferencesQuery;
+import com.pricing.application.model.read.ListPricePreferencesQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

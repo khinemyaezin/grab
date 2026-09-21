@@ -1,13 +1,10 @@
 package com.grab.store.inventory.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.inventory.domain.aggregate.Location;
-import com.inventory.domain.repository.LocationRepository;
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
-import com.grab.store.inventory.internal.query.GetLocationQuery;
-import com.grab.store.inventory.internal.query.GetLocationResult;
+import com.inventory.application.port.inbound.GetLocationUseCase;
+import com.inventory.application.model.read.GetLocationQuery;
+import com.inventory.application.model.read.GetLocationResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -15,29 +12,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GetLocationQueryHandler implements QueryHandler<GetLocationQuery, GetLocationResult> {
 
-    private final LocationRepository locationRepository;
+    private final GetLocationUseCase getLocationUseCase;
 
     @Override
     @InventoryReadTransactional
     public GetLocationResult handle(GetLocationQuery query) {
-        Location location = locationRepository.findById(query.locationId())
-                .orElseThrow(() -> new InventoryServiceException(new InventoryServiceError.LocationNotFound(query.locationId().getValue())));
-
-        return new GetLocationResult(
-                location.getId(),
-                location.getCode(),
-                location.getName(),
-                location.getType().name(),
-                location.isActive(),
-                new GetLocationResult.Address(
-                        location.getAddress().line1(),
-                        location.getAddress().line2(),
-                        location.getAddress().city(),
-                        location.getAddress().state(),
-                        location.getAddress().postalCode(),
-                        location.getAddress().country()
-                )
-        );
+        return getLocationUseCase.execute(query);
     }
 
     @Override

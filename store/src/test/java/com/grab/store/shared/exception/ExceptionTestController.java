@@ -1,11 +1,11 @@
 package com.grab.store.shared.exception;
 
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.application.exception.InventoryServiceError;
+import com.inventory.application.exception.InventoryServiceException;
 import com.inventory.domain.exception.InventoryDomainError;
 import com.inventory.domain.exception.InventoryDomainValidationException;
-import com.inventory.infrastructure.exception.InventoryInfraError;
-import com.inventory.infrastructure.exception.InventoryInfraException;
+import com.inventory.adapter.persistence.exception.InventoryInfraError;
+import com.inventory.adapter.persistence.exception.InventoryInfraException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

@@ -2,7 +2,7 @@ package com.grab.store.merchant.internal.api.rest.service;
 
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
-import com.grab.store.merchant.internal.exception.MerchantServiceException;
+import com.merchant.application.exception.MerchantServiceException;
 import com.grab.store.shared.security.SecurityPrincipal;
 import org.junit.jupiter.api.Test;
 

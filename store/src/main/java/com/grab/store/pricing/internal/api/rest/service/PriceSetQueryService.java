@@ -5,7 +5,7 @@ import com.grab.framework.logger.Loggers;
 import com.grab.framework.logger.Logger;
 import com.grab.store.pricing.internal.api.rest.dto.response.PriceSetResponse;
 import com.grab.store.pricing.internal.api.rest.mapper.GetPriceSetRequestMapper;
-import com.grab.store.pricing.internal.command.PriceSetResult;
+import com.pricing.application.model.write.PriceSetResult;
 import com.grab.store.pricing.internal.config.PricingEnabled;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

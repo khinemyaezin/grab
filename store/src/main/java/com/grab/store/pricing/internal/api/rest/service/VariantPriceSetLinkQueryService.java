@@ -7,7 +7,7 @@ import com.grab.store.pricing.internal.api.rest.dto.request.ListVariantPriceSetL
 import com.grab.store.pricing.internal.api.rest.dto.response.VariantPriceSetLinkResponse;
 import com.grab.store.pricing.internal.api.rest.mapper.ListVariantPriceSetLinksRequestMapper;
 import com.grab.store.pricing.internal.config.PricingEnabled;
-import com.grab.store.pricing.internal.query.VariantPriceSetLinkResult;
+import com.pricing.application.model.read.VariantPriceSetLinkResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

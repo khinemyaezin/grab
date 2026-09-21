@@ -5,7 +5,7 @@ import com.grab.store.merchant.events.MerchantClosedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantSuspendedIntegrationEvent;
 import com.grab.store.merchant.events.StorefrontStatusChangedIntegrationEvent;
 import com.grab.store.shared.security.PlatformScopes;
-import com.identity.domain.repository.SessionStore;
+import com.identity.domain.port.outbound.SessionStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

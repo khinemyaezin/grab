@@ -3,13 +3,14 @@ package com.grab.store.pricing.internal.command.handler;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.pricing.internal.command.DeletePriceSetForDeletedVariantCommand;
-import com.grab.store.pricing.internal.command.DeletePriceSetForDeletedVariantResult;
+import com.pricing.application.model.write.DeletePriceSetForDeletedVariantCommand;
+import com.pricing.application.model.write.DeletePriceSetForDeletedVariantResult;
+import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
+import com.pricing.application.model.read.VariantPriceSetLinkView;
+import com.pricing.application.service.DeletePriceSetForDeletedVariantService;
 import com.pricing.domain.aggregate.PriceSet;
-import com.pricing.domain.repository.PriceSetRepository;
-import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkQueryRepository;
-import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkRepository;
-import com.pricing.infrastructure.view.VariantPriceSetLinkView;
+import com.pricing.domain.port.outbound.PriceSetRepository;
+import com.pricing.domain.port.outbound.VariantPriceSetLinkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,16 +27,16 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class DeletePriceSetForDeletedVariantCommandHandlerTest {
+class DeletePriceSetForDeletedVariantServiceTest {
 
     @Mock
-    private VariantPriceSetLinkQueryRepository variantPriceSetLinkQueryRepository;
+    private VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort;
     @Mock
     private VariantPriceSetLinkRepository variantPriceSetLinkRepository;
     @Mock
     private PriceSetRepository priceSetRepository;
 
-    private DeletePriceSetForDeletedVariantCommandHandler handler;
+    private DeletePriceSetForDeletedVariantService service;
 
     @BeforeEach
     void setUp() {
@@ -50,8 +51,8 @@ class DeletePriceSetForDeletedVariantCommandHandlerTest {
                 return new CommonId(id);
             }
         };
-        handler = new DeletePriceSetForDeletedVariantCommandHandler(
-                variantPriceSetLinkQueryRepository,
+        service = new DeletePriceSetForDeletedVariantService(
+                variantPriceSetLinkQueryPort,
                 variantPriceSetLinkRepository,
                 priceSetRepository,
                 idGenerator
@@ -59,10 +60,10 @@ class DeletePriceSetForDeletedVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_shouldDeleteLinkAndPriceSet() {
+    void execute_shouldDeleteLinkAndPriceSet() {
         CommonId variantId = new CommonId("variant-1");
         CommonId priceSetId = new CommonId("price-set-1");
-        when(variantPriceSetLinkQueryRepository.findByVariantIds(List.of("variant-1"))).thenReturn(List.of(
+        when(variantPriceSetLinkQueryPort.findByVariantIds(List.of("variant-1"))).thenReturn(List.of(
                 new VariantPriceSetLinkView(
                         "variant-1",
                         "price-set-1",
@@ -75,7 +76,7 @@ class DeletePriceSetForDeletedVariantCommandHandlerTest {
         ));
         when(priceSetRepository.findById(priceSetId)).thenReturn(Optional.of(PriceSet.create(priceSetId, Instant.now())));
 
-        DeletePriceSetForDeletedVariantResult result = handler.handle(
+        DeletePriceSetForDeletedVariantResult result = service.execute(
                 new DeletePriceSetForDeletedVariantCommand(variantId)
         );
 
@@ -86,11 +87,11 @@ class DeletePriceSetForDeletedVariantCommandHandlerTest {
     }
 
     @Test
-    void handle_whenNoLink_shouldSkip() {
+    void execute_whenNoLink_shouldSkip() {
         CommonId variantId = new CommonId("variant-1");
-        when(variantPriceSetLinkQueryRepository.findByVariantIds(List.of("variant-1"))).thenReturn(List.of());
+        when(variantPriceSetLinkQueryPort.findByVariantIds(List.of("variant-1"))).thenReturn(List.of());
 
-        DeletePriceSetForDeletedVariantResult result = handler.handle(
+        DeletePriceSetForDeletedVariantResult result = service.execute(
                 new DeletePriceSetForDeletedVariantCommand(variantId)
         );
 

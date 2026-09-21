@@ -546,7 +546,7 @@ Seller product search stays `POST /api/v1/catalog/.../search`. Customer browse d
 - `storefront-query-infrastructure` with `BuyableOffer` table, datasource, migrations
 - `StorefrontQueryModule` (`allowedDependencies` on write-module `::events`, and `::query` for projector/rebuild only)
 - Projection listeners, rebuild job, browse/PDP query handlers, Tier 2 root
-- Cart BC (`cart-domain`, `cart-infrastructure`, `CartModule`) for add-item: guest token, line snapshot, website single-seller, marketplace mixed sellers
+- Cart BC (`cart-domain`, `cart-adapter-persistence`, `CartModule`) for add-item: guest token, line snapshot, website single-seller, marketplace mixed sellers
 - `{module}::query` named interfaces on Catalog, Pricing, Inventory, Sales Channel
 
 **Changes to existing systems:**

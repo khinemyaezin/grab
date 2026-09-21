@@ -3,8 +3,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.CheckInventoryExistenceRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.CheckInventoryExistenceResponse;
-import com.grab.store.inventory.internal.query.CheckInventoryExistenceQuery;
-import com.grab.store.inventory.internal.query.CheckInventoryExistenceResult;
+import com.inventory.application.model.read.CheckInventoryExistenceQuery;
+import com.inventory.application.model.read.CheckInventoryExistenceResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

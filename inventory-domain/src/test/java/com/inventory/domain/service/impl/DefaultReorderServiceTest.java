@@ -3,7 +3,7 @@ package com.inventory.domain.service.impl;
 import com.grab.framework.id.Id;
 import com.inventory.domain.aggregate.InventoryItem;
 import com.inventory.domain.enums.InventoryStatus;
-import com.inventory.domain.repository.InventoryRepository;
+import com.inventory.domain.port.outbound.InventoryRepository;
 import com.inventory.domain.service.ReorderService.ReorderPriority;
 import com.inventory.domain.service.ReorderService.ReorderSuggestion;
 import com.inventory.domain.valueobject.InventoryQuantity;

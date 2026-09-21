@@ -1,8 +1,8 @@
 package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.store.identity.internal.api.rest.dto.response.UserProfileResponse;
-import com.grab.store.identity.internal.query.GetUserProfileQuery;
-import com.grab.store.identity.internal.query.GetUserProfileResult;
+import com.identity.application.model.read.GetUserProfileQuery;
+import com.identity.application.model.read.GetUserProfileResult;
 import org.mapstruct.Mapper;
 import com.grab.framework.mapper.IdMapper;
 

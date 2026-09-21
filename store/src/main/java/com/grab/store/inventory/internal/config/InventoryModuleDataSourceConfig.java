@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -22,9 +23,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@ComponentScan(basePackages = "com.inventory.infrastructure")
+@ComponentScan(
+        basePackages = "com.inventory.adapter.persistence.mapper",
+        includeFilters = @ComponentScan.Filter(
+                type = FilterType.REGEX,
+                pattern = ".*MapperImpl"
+        )
+)
 @EnableJpaRepositories(
-        basePackages = "com.inventory.infrastructure.repository.jpa",
+        basePackages = "com.inventory.adapter.persistence.repository.jpa",
         entityManagerFactoryRef = "inventoryEntityManagerFactory",
         transactionManagerRef = "inventoryTransactionManager"
 )
@@ -54,7 +61,7 @@ public class InventoryModuleDataSourceConfig {
 
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setJpaVendorAdapter(vendorAdapter);
-        factory.setPackagesToScan("com.inventory.infrastructure");
+        factory.setPackagesToScan("com.inventory.adapter.persistence");
         factory.setDataSource(inventoryDataSource);
         factory.setPersistenceUnitName("inventory");
         factory.setJpaPropertyMap(hibernateProperties());

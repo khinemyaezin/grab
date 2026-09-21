@@ -1,11 +1,12 @@
 package com.grab.store.pricing.internal.command.handler;
 
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.pricing.internal.command.DeletePriceSetCommand;
-import com.grab.store.pricing.internal.exception.PricingServiceException;
+import com.pricing.application.model.write.DeletePriceSetCommand;
+import com.pricing.application.exception.PricingServiceException;
+import com.pricing.application.service.DeletePriceSetService;
 import com.pricing.domain.aggregate.PriceSet;
-import com.pricing.domain.repository.PriceSetRepository;
-import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkRepository;
+import com.pricing.domain.port.outbound.PriceSetRepository;
+import com.pricing.domain.port.outbound.VariantPriceSetLinkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,38 +22,38 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class DeletePriceSetCommandHandlerTest {
+class DeletePriceSetServiceTest {
 
     @Mock
     private PriceSetRepository priceSetRepository;
     @Mock
     private VariantPriceSetLinkRepository variantPriceSetLinkRepository;
 
-    private DeletePriceSetCommandHandler handler;
+    private DeletePriceSetService service;
 
     @BeforeEach
     void setUp() {
-        handler = new DeletePriceSetCommandHandler(priceSetRepository, variantPriceSetLinkRepository);
+        service = new DeletePriceSetService(priceSetRepository, variantPriceSetLinkRepository);
     }
 
     @Test
-    void handle_shouldDeleteLinkThenPriceSet() {
+    void execute_shouldDeleteLinkThenPriceSet() {
         CommonId priceSetId = new CommonId("price-set-1");
         PriceSet priceSet = PriceSet.create(priceSetId, Instant.now());
         when(priceSetRepository.findById(priceSetId)).thenReturn(Optional.of(priceSet));
 
-        handler.handle(new DeletePriceSetCommand(priceSetId));
+        service.execute(new DeletePriceSetCommand(priceSetId));
 
         verify(variantPriceSetLinkRepository).deleteByPriceSetId("price-set-1");
         verify(priceSetRepository).delete(priceSetId);
     }
 
     @Test
-    void handle_whenPriceSetNotFound_shouldNotDeleteLink() {
+    void execute_whenPriceSetNotFound_shouldNotDeleteLink() {
         CommonId priceSetId = new CommonId("missing");
         when(priceSetRepository.findById(priceSetId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> handler.handle(new DeletePriceSetCommand(priceSetId)))
+        assertThatThrownBy(() -> service.execute(new DeletePriceSetCommand(priceSetId)))
                 .isInstanceOf(PricingServiceException.class);
 
         verifyNoInteractions(variantPriceSetLinkRepository);

@@ -8,7 +8,7 @@ import com.grab.store.merchant.internal.api.rest.dto.response.StorefrontResponse
 import com.grab.store.merchant.internal.api.rest.service.AuthenticatedMerchantScopeResolver;
 import com.grab.store.merchant.internal.api.rest.service.StorefrontCommandService;
 import com.grab.store.merchant.internal.api.rest.service.StorefrontQueryService;
-import com.grab.store.merchant.internal.command.ChangeStorefrontLifecycleCommand.Action;
+import com.merchant.application.model.write.ChangeStorefrontLifecycleCommand.Action;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.grab.store.shared.security.SecurityPrincipal;
 import jakarta.validation.Valid;

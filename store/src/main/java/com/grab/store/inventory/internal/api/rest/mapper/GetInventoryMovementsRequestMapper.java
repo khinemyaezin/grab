@@ -2,8 +2,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
-import com.grab.store.inventory.internal.query.GetInventoryMovementsQuery;
-import com.grab.store.inventory.internal.query.GetInventoryMovementsResult;
+import com.inventory.application.model.read.GetInventoryMovementsQuery;
+import com.inventory.application.model.read.GetInventoryMovementsResult;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Pageable;
 

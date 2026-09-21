@@ -1,17 +1,17 @@
 package com.grab.store.catalog.internal.event;
 
-import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
+import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.catalog.internal.command.ApplyProductStatusCommand;
-import com.grab.store.catalog.internal.command.ApplyProductStatusResult;
-import com.grab.store.catalog.internal.command.ProductDescriptionsResult;
-import com.grab.store.catalog.internal.command.ProductMediaResult;
-import com.grab.store.catalog.internal.command.ReplaceProductDescriptionsCommand;
-import com.grab.store.catalog.internal.command.ReplaceProductMediaCommand;
+import com.catalog.application.model.write.ApplyProductStatusCommand;
+import com.catalog.application.model.write.ApplyProductStatusResult;
+import com.catalog.application.model.write.ProductDescriptionsResult;
+import com.catalog.application.model.write.ProductMediaResult;
+import com.catalog.application.model.write.ReplaceProductDescriptionsCommand;
+import com.catalog.application.model.write.ReplaceProductMediaCommand;
 import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.ProductDescriptionsReplacedEvent;
 import com.grab.store.workflows.events.ProductMediaReplacedEvent;
@@ -19,7 +19,6 @@ import com.grab.store.workflows.events.ProductStatusAppliedEvent;
 import com.grab.store.workflows.events.RequestApplyProductStatusEvent;
 import com.grab.store.workflows.events.RequestReplaceProductDescriptionsEvent;
 import com.grab.store.workflows.events.RequestReplaceProductMediaEvent;
-import com.grab.store.workflows.events.SellableProductStepFailedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

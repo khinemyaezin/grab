@@ -8,7 +8,7 @@ import com.grab.store.identity.internal.api.rest.dto.response.AccessInvitationRe
 import com.grab.store.identity.internal.api.rest.mapper.AcceptAccessInvitationRequestMapper;
 import com.grab.store.identity.internal.api.rest.mapper.CreateAccessInvitationRequestMapper;
 import com.grab.store.identity.internal.api.rest.mapper.CancelAccessInvitationRequestMapper;
-import com.grab.store.identity.internal.command.*;
+import com.identity.application.model.write.*;
 import com.grab.store.shared.security.SecurityPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

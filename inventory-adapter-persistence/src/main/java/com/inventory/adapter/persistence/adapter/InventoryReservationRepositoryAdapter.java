@@ -1,0 +1,82 @@
+package com.inventory.adapter.persistence.adapter;
+
+import com.grab.framework.id.Id;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+import com.grab.framework.support.PersistenceExecutor;
+import com.inventory.domain.entity.InventoryReservation;
+import com.inventory.domain.enums.InventoryReservationStatus;
+import com.inventory.domain.port.outbound.InventoryReservationRepository;
+import com.inventory.adapter.persistence.entity.InventoryReservationEntity;
+import com.inventory.adapter.persistence.mapper.jpa.InventoryReservationJpaAssembler;
+import com.inventory.adapter.persistence.repository.jpa.InventoryReservationJpaRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@RequiredArgsConstructor
+public class InventoryReservationRepositoryAdapter implements InventoryReservationRepository {
+
+    private static final Logger log = Loggers.getLogger(InventoryReservationRepositoryAdapter.class);
+
+    private final InventoryReservationJpaRepository jpaRepository;
+    private final InventoryReservationJpaAssembler mapper;
+    private final PersistenceExecutor executor;
+
+    @Override
+    public Optional<InventoryReservation> findById(Id id) {
+        log.debug("Loading inventory reservation by id={}", id.getValue());
+        return executor.query("InventoryReservation", () -> jpaRepository.findByUuid(id.getValue())
+                .map(mapper::toFullDomainGraph));
+    }
+
+    @Override
+    public void save(InventoryReservation reservation) {
+        executor.command("InventoryReservation", () -> {
+            log.info("Persisting inventory reservation id={}", reservation.getId().getValue());
+            Optional<InventoryReservationEntity> existingEntity = jpaRepository.findByUuid(reservation.getId().getValue());
+            InventoryReservationEntity entity;
+
+            if (existingEntity.isPresent()) {
+                entity = mapper.buildFullEntityGraph(reservation, existingEntity.get());
+            } else {
+                entity = mapper.buildFullEntityGraph(reservation, null);
+            }
+
+            jpaRepository.save(entity);
+            log.debug("Persisted inventory reservation id={}", reservation.getId().getValue());
+            return null;
+        });
+    }
+
+    @Override
+    public Optional<InventoryReservation> findByIdempotencyKey(String idempotencyKey) {
+        log.debug("Loading inventory reservation by idempotencyKey={}", idempotencyKey);
+        return executor.query("InventoryReservation", () -> jpaRepository.findByIdempotencyKey(idempotencyKey)
+                .map(mapper::toFullDomainGraph));
+    }
+
+    @Override
+    public List<InventoryReservation> findActiveByOrderId(String orderId) {
+        log.debug("Loading active inventory reservations by orderId={}", orderId);
+        return executor.query("InventoryReservation", () -> jpaRepository
+                .findByOrderIdAndStatus(orderId, InventoryReservationStatus.ACTIVE)
+                .stream()
+                .map(mapper::toFullDomainGraph)
+                .toList());
+    }
+
+    @Override
+    public List<InventoryReservation> findExpiredActive(LocalDateTime asOf, int limit) {
+        log.debug("Loading expired active inventory reservations asOf={}, limit={}", asOf, limit);
+        return executor.query("InventoryReservation", () -> jpaRepository
+                .findExpiredActive(InventoryReservationStatus.ACTIVE, asOf, PageRequest.of(0, Math.max(1, limit)))
+                .stream()
+                .map(mapper::toFullDomainGraph)
+                .toList());
+    }
+
+}

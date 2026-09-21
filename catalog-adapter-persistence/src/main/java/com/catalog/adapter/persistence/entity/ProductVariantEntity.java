@@ -1,0 +1,93 @@
+package com.catalog.adapter.persistence.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.*;
+
+@Getter
+@Entity
+@Table(name = "product_variant", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_product_variant_merchant_sku", columnNames = {"merchant_id", "sku"})
+})
+public class ProductVariantEntity {
+    @Setter
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Setter
+    @Column(name = "merchant_id", nullable = false)
+    private String merchantId;
+
+    @Setter
+    @Column(nullable = false)
+    private String sku;
+
+    @Setter
+    @Column(name = "uuid", unique = true)
+    private String uuid;
+
+    @Setter
+    @Column(name = "status", nullable = false)
+    private String status;
+
+    @Setter
+    @Column(name = "manage_inventory", nullable = false)
+    private boolean manageInventory = false;
+
+    @Setter
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private ProductEntity product;
+
+    @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ProductVariationEntity> productVariations = new LinkedHashSet<>();
+
+    @Setter
+    @Column(name = "thumbnail_media_uuid")
+    private String thumbnailMediaUuid;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "product_variant_media",
+            joinColumns = @JoinColumn(name = "variant_id"),
+            inverseJoinColumns = @JoinColumn(name = "media_id"))
+    private Set<MediaEntity> medias = new LinkedHashSet<>();
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "productVariant")
+    private Set<ProductVariantDescriptionEntity> descriptions = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<ProductFeatureEntity> productFeatures = new LinkedHashSet<>();
+
+    public void addProductVariation(ProductVariationEntity entity) {
+        entity.setProductVariant(this);
+        this.productVariations.add(entity);
+    }
+
+    public void addMedia(MediaEntity mediaEntity) {
+        this.medias.add(mediaEntity);
+    }
+
+    public void clearMedias() {
+        this.medias.clear();
+    }
+
+    public void removeProductVariantOption(ProductVariationEntity entity) {
+        this.productVariations.remove(entity);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ProductVariantEntity that = (ProductVariantEntity) o;
+        return Objects.equals(uuid, that.uuid) && Objects.equals(sku, that.sku);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uuid, sku);
+    }
+}

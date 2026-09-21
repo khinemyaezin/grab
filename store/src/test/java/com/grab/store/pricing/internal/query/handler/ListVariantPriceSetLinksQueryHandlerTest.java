@@ -1,9 +1,10 @@
 package com.grab.store.pricing.internal.query.handler;
 
-import com.grab.store.pricing.internal.query.ListVariantPriceSetLinksQuery;
-import com.grab.store.pricing.internal.query.VariantPriceSetLinkResult;
-import com.pricing.infrastructure.repository.jpa.VariantPriceSetLinkQueryRepository;
-import com.pricing.infrastructure.view.VariantPriceSetLinkView;
+import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
+import com.pricing.application.model.read.ListVariantPriceSetLinksQuery;
+import com.pricing.application.model.read.VariantPriceSetLinkResult;
+import com.pricing.application.model.read.VariantPriceSetLinkView;
+import com.pricing.application.service.ListVariantPriceSetLinksService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,22 +18,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ListVariantPriceSetLinksQueryHandlerTest {
+class ListVariantPriceSetLinksServiceTest {
 
     @Mock
-    private VariantPriceSetLinkQueryRepository variantPriceSetLinkQueryRepository;
+    private VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort;
 
-    private ListVariantPriceSetLinksQueryHandler handler;
+    private ListVariantPriceSetLinksService service;
 
     @BeforeEach
     void setUp() {
-        handler = new ListVariantPriceSetLinksQueryHandler(variantPriceSetLinkQueryRepository);
+        service = new ListVariantPriceSetLinksService(variantPriceSetLinkQueryPort);
     }
 
     @Test
-    void handle_shouldReturnLinksForRequestedVariantIds() {
+    void execute_shouldReturnLinksForRequestedVariantIds() {
         Instant now = Instant.parse("2026-01-01T00:00:00Z");
-        when(variantPriceSetLinkQueryRepository.findByVariantIds(List.of("variant-1", "variant-2")))
+        when(variantPriceSetLinkQueryPort.findByVariantIds(List.of("variant-1", "variant-2")))
                 .thenReturn(List.of(
                         new VariantPriceSetLinkView(
                                 "variant-1", "price-set-1", "product-1", "SKU-1", "merchant-1", now, now
@@ -42,7 +43,7 @@ class ListVariantPriceSetLinksQueryHandlerTest {
                         )
                 ));
 
-        List<VariantPriceSetLinkResult> results = handler.handle(
+        List<VariantPriceSetLinkResult> results = service.execute(
                 new ListVariantPriceSetLinksQuery(List.of("variant-1", "variant-2"))
         );
 

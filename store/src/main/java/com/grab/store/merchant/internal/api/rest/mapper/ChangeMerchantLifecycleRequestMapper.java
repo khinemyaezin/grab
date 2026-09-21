@@ -3,9 +3,9 @@ package com.grab.store.merchant.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.merchant.internal.api.rest.dto.request.MerchantLifecycleRequest;
 import com.grab.store.merchant.internal.api.rest.dto.response.MerchantResponse;
-import com.grab.store.merchant.internal.command.ChangeMerchantLifecycleCommand;
-import com.grab.store.merchant.internal.command.ChangeMerchantLifecycleCommand.Action;
-import com.grab.store.merchant.internal.command.MerchantAccountResult;
+import com.merchant.application.model.write.ChangeMerchantLifecycleCommand;
+import com.merchant.application.model.write.ChangeMerchantLifecycleCommand.Action;
+import com.merchant.application.model.write.MerchantAccountResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

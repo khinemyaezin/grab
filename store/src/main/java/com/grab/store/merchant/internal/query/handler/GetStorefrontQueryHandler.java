@@ -1,28 +1,23 @@
 package com.grab.store.merchant.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.store.merchant.internal.command.StorefrontResult;
-import com.grab.store.merchant.internal.command.handler.StorefrontOwnership;
-import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.grab.store.merchant.internal.config.MerchantReadTransactional;
-import com.grab.store.merchant.internal.query.GetStorefrontQuery;
-import com.merchant.domain.aggregate.Storefront;
-import com.merchant.domain.repository.StorefrontRepository;
+import com.merchant.application.port.inbound.GetStorefrontUseCase;
+import com.merchant.application.model.read.GetStorefrontQuery;
+import com.merchant.application.model.write.StorefrontResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
-@MerchantEnabled
 @RequiredArgsConstructor
 public class GetStorefrontQueryHandler implements QueryHandler<GetStorefrontQuery, StorefrontResult> {
-    private final StorefrontRepository storefronts;
+
+    private final GetStorefrontUseCase getStorefrontUseCase;
 
     @Override
     @MerchantReadTransactional
     public StorefrontResult handle(GetStorefrontQuery query) {
-        Storefront storefront = StorefrontOwnership.requireOwned(
-                storefronts, query.storefrontId(), query.merchantId());
-        return StorefrontResult.from(storefront);
+        return getStorefrontUseCase.execute(query);
     }
 
     @Override

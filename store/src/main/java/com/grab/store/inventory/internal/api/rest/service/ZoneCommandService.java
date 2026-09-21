@@ -9,12 +9,12 @@ import com.grab.store.inventory.internal.api.rest.mapper.CreateZoneRequestMapper
 import com.grab.store.inventory.internal.api.rest.mapper.DeactivateZoneRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.DeleteZoneRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.UpdateZoneRequestMapper;
-import com.grab.store.inventory.internal.command.ActivateZoneCommand;
-import com.grab.store.inventory.internal.command.CreateZoneCommand;
-import com.grab.store.inventory.internal.command.DeactivateZoneCommand;
-import com.grab.store.inventory.internal.command.DeleteZoneCommand;
-import com.grab.store.inventory.internal.command.UpdateZoneCommand;
-import com.grab.store.inventory.internal.command.ZoneResult;
+import com.inventory.application.model.write.ActivateZoneCommand;
+import com.inventory.application.model.write.CreateZoneCommand;
+import com.inventory.application.model.write.DeactivateZoneCommand;
+import com.inventory.application.model.write.DeleteZoneCommand;
+import com.inventory.application.model.write.UpdateZoneCommand;
+import com.inventory.application.model.write.ZoneResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

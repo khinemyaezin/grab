@@ -1,87 +1,23 @@
 package com.grab.store.identity.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
-import com.grab.framework.id.IdGenerator;
-import com.grab.store.identity.internal.command.AccessInvitationResult;
-import com.grab.store.identity.internal.command.CreateAccessInvitationCommand;
 import com.grab.store.identity.internal.config.IdentityTransactional;
-import com.grab.store.identity.internal.exception.IdentityServiceError;
-import com.grab.store.identity.internal.exception.IdentityServiceException;
-import com.grab.store.identity.internal.utility.InvitationTokenService;
-import com.identity.domain.aggregate.AccessInvitation;
-import com.identity.domain.aggregate.Platform;
-import com.identity.domain.aggregate.Role;
-import com.identity.domain.aggregate.User;
-import com.identity.domain.repository.AccessInvitationRepository;
-import com.identity.domain.repository.PlatformRepository;
-import com.identity.domain.repository.RoleRepository;
-import com.identity.domain.repository.UserRepository;
-import com.identity.domain.policy.RoleDelegationPolicy;
-import com.identity.domain.valueobject.AccessScope;
-import com.identity.domain.valueobject.Email;
+import com.identity.application.port.inbound.CreateAccessInvitationUseCase;
+import com.identity.application.model.write.CreateAccessInvitationCommand;
+import com.identity.application.model.write.AccessInvitationResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class CreateAccessInvitationCommandHandler
-        implements CommandHandler<CreateAccessInvitationCommand, AccessInvitationResult> {
-    private final PlatformRepository platforms;
-    private final RoleRepository roles;
-    private final UserRepository users;
-    private final AccessInvitationRepository invitations;
-    private final RoleDelegationPolicy delegationPolicy;
-    private final InvitationTokenService tokens;
-    private final IdGenerator ids;
+public class CreateAccessInvitationCommandHandler implements CommandHandler<CreateAccessInvitationCommand, AccessInvitationResult> {
+
+    private final CreateAccessInvitationUseCase createAccessInvitationUseCase;
 
     @Override
     @IdentityTransactional
     public AccessInvitationResult handle(CreateAccessInvitationCommand command) {
-        Platform platform = platforms.findByCode(command.platformCode()).orElseThrow(() ->
-                new IdentityServiceException(
-                        new IdentityServiceError.PlatformNotFound(command.platformCode()),
-                        "Platform not found"
-                )
-        );
-        Role role = roles.findByCode(command.roleCode()).orElseThrow(() ->
-                new IdentityServiceException(
-                        new IdentityServiceError.RoleNotFound(command.roleCode()),
-                        "Role not found"
-                )
-        );
-        role.requireAssignable();
-        User inviter = users.findById(command.invitedBy()).orElseThrow(() ->
-                new IdentityServiceException(
-                        new IdentityServiceError.UserNotFound(command.invitedBy().getValue()),
-                        "Inviting user not found"
-                )
-        );
-        AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
-        AccessScope.from(command.actorScopeKey(), command.actorScopeId()).requireEncompasses(scope);
-        delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());
-        String acceptanceToken = tokens.generate();
-        AccessInvitation saved = invitations.save(AccessInvitation.create(
-                ids.generateId(),
-                new Email(command.inviteeEmail()),
-                platform,
-                command.roleCode(),
-                scope,
-                tokens.hash(acceptanceToken),
-                command.invitedBy(),
-                inviter.getEmail(),
-                command.expiresAt()
-        ));
-        return new AccessInvitationResult(
-                saved.getId().getValue(),
-                saved.getInviteeEmail().value(),
-                saved.getPlatformCode(),
-                saved.getRoleCode(),
-                saved.getScope().key().value(),
-                saved.getScope().scopeId(),
-                saved.getStatus().name(),
-                saved.getExpiresAt().toString(),
-                acceptanceToken
-        );
+        return createAccessInvitationUseCase.execute(command);
     }
 
     @Override

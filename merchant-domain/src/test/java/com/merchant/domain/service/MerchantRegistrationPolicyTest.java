@@ -6,7 +6,7 @@ import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.enums.MerchantStatus;
 import com.merchant.domain.enums.MerchantType;
 import com.merchant.domain.exception.MerchantDomainException;
-import com.merchant.domain.repository.MerchantAccountRepository;
+import com.merchant.domain.port.outbound.MerchantAccountRepository;
 import com.merchant.domain.valueobject.BusinessRegistration;
 import org.junit.jupiter.api.Test;
 

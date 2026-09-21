@@ -1,8 +1,8 @@
 package com.grab.store.catalog.internal.api.rest.service;
 
 import com.grab.framework.security.AccessContext;
-import com.grab.store.catalog.internal.exception.CatalogServiceError;
-import com.grab.store.catalog.internal.exception.CatalogServiceException;
+import com.catalog.application.exception.CatalogServiceError;
+import com.catalog.application.exception.CatalogServiceException;
 import com.grab.store.shared.security.PlatformScopes;
 import com.grab.store.shared.security.ScopeResolverHelper;
 import com.grab.store.shared.security.SecurityPrincipal;

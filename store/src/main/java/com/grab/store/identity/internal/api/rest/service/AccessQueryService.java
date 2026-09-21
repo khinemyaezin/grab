@@ -5,9 +5,9 @@ import com.grab.store.identity.internal.api.rest.dto.response.AccessContextRespo
 import com.grab.store.identity.internal.api.rest.mapper.ListAccessContextsRequestMapper;
 import com.grab.store.identity.internal.api.rest.dto.response.AccessAssignmentResponse;
 import com.grab.store.identity.internal.api.rest.mapper.ListAccessAssignmentsRequestMapper;
-import com.grab.store.identity.internal.command.AccessAssignmentResult;
-import com.grab.store.identity.internal.query.AccessContextResult;
-import com.grab.store.identity.internal.query.ListAccessContextsQuery;
+import com.identity.application.model.write.AccessAssignmentResult;
+import com.identity.application.model.read.AccessContextResult;
+import com.identity.application.model.read.ListAccessContextsQuery;
 import com.grab.store.shared.security.SecurityPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

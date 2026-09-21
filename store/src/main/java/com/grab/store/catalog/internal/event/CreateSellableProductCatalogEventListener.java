@@ -1,15 +1,15 @@
 package com.grab.store.catalog.internal.event;
 
-import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
+import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.catalog.internal.command.CreateProductSetCommand;
-import com.grab.store.catalog.internal.command.CreateProductSetResult;
-import com.grab.store.catalog.internal.command.DeleteProductCommand;
+import com.catalog.application.model.write.CreateProductSetCommand;
+import com.catalog.application.model.write.CreateProductSetResult;
+import com.catalog.application.model.write.DeleteProductCommand;
 import com.grab.store.workflows.events.ProductDeletedEvent;
 import com.grab.store.workflows.events.RequestCreateProductSetEvent;
 import com.grab.store.workflows.events.RequestDeleteProductCompensationEvent;

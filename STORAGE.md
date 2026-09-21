@@ -28,7 +28,7 @@ We use the **Direct-to-Storage Presigned Upload Pattern** with **Hexagonal Archi
 | Layer | Technology | Role in this Project |
 | :--- | :--- | :--- |
 | **Core Abstraction** | Java 21 (`framework/storage`) | Clean hexagonal interface (`FileStoragePort`) with zero external cloud dependencies. |
-| **Storage Adapter** | AWS Java SDK v2 (`storage-infrastructure`) | Talks to S3-compatible APIs using path-style addressing and generates SigV4 signed URLs. |
+| **Storage Adapter** | AWS Java SDK v2 (`storage-adapter-s3`) | Talks to S3-compatible APIs using path-style addressing and generates SigV4 signed URLs. |
 | **Local Storage Engine** | **SeaweedFS** (`chrislusf/seaweedfs:4.45`) | Fast, lightweight S3-compatible object store running in Docker on port `8333`. |
 | **Cloud Storage Engine** | **AWS S3** | Production drop-in replacement (uses the exact same code; only config changes). |
 | **Database** | **PostgreSQL 16** | Stores only image links, content types, and display orders. |
@@ -187,7 +187,7 @@ grab/
 │           ├── FileStorageProvider.java         # SPI contract for pluggable storage providers
 │           └── FileStorageConfig.java           # Configuration bag (endpoint, region, bucket, keys)
 │
-├── storage-infrastructure/                       # Pluggable Storage Adapter Module
+├── storage-adapter-s3/                       # Pluggable Storage Adapter Module
 │   └── src/main/java/com/grab/storage/infrastructure/
 │       ├── S3FileStorageAdapter.java            # Implements FileStoragePort using AWS SDK v2
 │       ├── S3FileStorageProvider.java           # Implements FileStorageProvider SPI (id = "s3")

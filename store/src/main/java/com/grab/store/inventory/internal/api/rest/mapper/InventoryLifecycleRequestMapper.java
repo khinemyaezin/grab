@@ -2,10 +2,10 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse;
-import com.grab.store.inventory.internal.command.ActivateInventoryCommand;
-import com.grab.store.inventory.internal.command.DiscontinueInventoryCommand;
-import com.grab.store.inventory.internal.command.InventoryItemResult;
-import com.grab.store.inventory.internal.command.SuspendInventoryCommand;
+import com.inventory.application.model.write.ActivateInventoryCommand;
+import com.inventory.application.model.write.DiscontinueInventoryCommand;
+import com.inventory.application.model.write.InventoryItemResult;
+import com.inventory.application.model.write.SuspendInventoryCommand;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

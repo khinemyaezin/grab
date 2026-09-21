@@ -1,0 +1,41 @@
+package com.identity.adapter.persistence.entity;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "platforms")
+public class PlatformEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String uuid;
+
+    @Column(nullable = false, unique = true, updatable = false)
+    private String code;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private boolean active = true;
+
+    @OneToMany(mappedBy = "platform", cascade = CascadeType.ALL)
+    private Set<PlatformRoleEntity> platformRoles = new LinkedHashSet<>();
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "platform_authorities",
+            joinColumns = @JoinColumn(name = "platform_id"),
+            inverseJoinColumns = @JoinColumn(name = "authority_id")
+    )
+    private Set<AuthorityEntity> authorities = new LinkedHashSet<>();
+}

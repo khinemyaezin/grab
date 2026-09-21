@@ -3,8 +3,8 @@ package com.grab.store.catalog.internal.api.rest.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.dto.request.ProductVariantSearchRequest;
 import com.grab.store.catalog.internal.api.rest.dto.response.ProductVariantSearchResponse;
-import com.grab.store.catalog.internal.query.ProductVariantSummaryQuery;
-import com.grab.store.catalog.internal.query.ProductVariantSummaryResult;
+import com.catalog.application.model.read.ProductVariantSummaryQuery;
+import com.catalog.application.model.read.ProductVariantSummaryResult;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Pageable;
 

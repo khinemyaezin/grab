@@ -116,23 +116,24 @@ independent services.
 This keeps operational complexity low while preserving bounded context
 separation in code.
 
-### 2. Keep each bounded context split into domain and infrastructure modules
+### 2. Bounded context modules (domain, application, infrastructure)
 
-Each major business area is split into:
+Each major business area uses:
 
-- a pure domain module
-- an infrastructure module
+- a pure **domain** module (`{bc}-domain`)
+- an **application** module (`{bc}-application`) for commands, queries, handlers, and driven ports (catalog first; other large contexts follow the same cut)
+- an **infrastructure** module (`{bc}-infrastructure`) for JPA adapters and outbox
 
 Responsibilities:
 
-- domain modules contain aggregates, value objects, domain services, and domain
-  rules
-- infrastructure modules contain data entities, repositories, assemblers, and
-  Spring-facing persistence adapters
-- application contains controllers, facade services, CQRS handler registration, and
-  persistence composition
+- domain modules contain aggregates, value objects, domain services, write-repository ports, and domain rules
+- application modules contain CQRS command/query types, `CommandHandler` / `QueryHandler` implementations, application services, query/hierarchy ports, and read-model records. They must not depend on infrastructure or JPA.
+- infrastructure modules implement application and domain ports (persistence, outbox, projections)
+- **store** remains the composition root: REST controllers, facade services, Modulith named interfaces, workflow listeners, datasource wiring, and `@Import` of `{bc}-application` + `{bc}-infrastructure`
 
-This keeps domain logic free from transport and persistence concerns.
+See [Hexagonal module layout](../../migration/ADR_001-Hexagonal_module_layout.md) for the full module map and dependency rules.
+
+This keeps domain logic free from transport and persistence concerns while making use cases a compile-time boundary.
 
 ### 3. Use in-process CQRS inside the monolith
 

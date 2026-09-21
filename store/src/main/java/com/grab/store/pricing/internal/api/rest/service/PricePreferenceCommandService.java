@@ -10,8 +10,8 @@ import com.grab.store.pricing.internal.api.rest.dto.request.UpdatePricePreferenc
 import com.grab.store.pricing.internal.api.rest.dto.response.PricePreferenceResponse;
 import com.grab.store.pricing.internal.api.rest.mapper.CreatePricePreferenceRequestMapper;
 import com.grab.store.pricing.internal.api.rest.mapper.UpdatePricePreferenceRequestMapper;
-import com.grab.store.pricing.internal.command.DeletePricePreferenceCommand;
-import com.grab.store.pricing.internal.command.PricePreferenceResult;
+import com.pricing.application.model.write.DeletePricePreferenceCommand;
+import com.pricing.application.model.write.PricePreferenceResult;
 import com.grab.store.pricing.internal.config.PricingEnabled;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

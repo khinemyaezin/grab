@@ -10,9 +10,9 @@ import com.grab.store.inventory.internal.api.rest.dto.response.InventoryResponse
 import com.grab.store.inventory.internal.api.rest.dto.response.InventorySummaryResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.ReorderSuggestionResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.StockMovementResponse;
-import com.grab.store.inventory.internal.query.GetInventoryLocationIdQuery;
-import com.grab.store.inventory.internal.query.GetInventoryMovementsResult;
-import com.grab.store.inventory.internal.query.GetInventoryReservationsResult;
+import com.inventory.application.model.read.GetInventoryLocationIdQuery;
+import com.inventory.application.model.read.GetInventoryMovementsResult;
+import com.inventory.application.model.read.GetInventoryReservationsResult;
 import com.grab.store.inventory.internal.api.rest.mapper.CheckInventoryExistenceRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryMovementsRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryRequestMapper;
@@ -20,20 +20,20 @@ import com.grab.store.inventory.internal.api.rest.mapper.GetInventoryReservation
 import com.grab.store.inventory.internal.api.rest.mapper.GetInventorySummaryRequestMapper;
 import com.grab.store.inventory.internal.api.rest.mapper.SearchInventoryRequestMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchInventoryRequest;
-import com.grab.store.inventory.internal.query.CheckInventoryExistenceQuery;
-import com.grab.store.inventory.internal.query.CheckInventoryExistenceResult;
-import com.grab.store.inventory.internal.query.GetAllocationAvailabilityQuery;
-import com.grab.store.inventory.internal.query.GetAllocationAvailabilityResult;
-import com.grab.store.inventory.internal.query.GetInventoryQuery;
-import com.grab.store.inventory.internal.query.GetInventoryResult;
-import com.grab.store.inventory.internal.query.GetInventoryMovementsQuery;
-import com.grab.store.inventory.internal.query.GetInventoryReservationsQuery;
-import com.grab.store.inventory.internal.query.GetInventorySummaryQuery;
-import com.grab.store.inventory.internal.query.GetInventorySummaryResult;
-import com.grab.store.inventory.internal.query.GetReorderSuggestionResult;
-import com.grab.store.inventory.internal.query.GetReorderSuggestionsQuery;
-import com.grab.store.inventory.internal.query.SearchInventoryQuery;
-import com.grab.store.inventory.internal.query.SearchInventoryResult;
+import com.inventory.application.model.read.CheckInventoryExistenceQuery;
+import com.inventory.application.model.read.CheckInventoryExistenceResult;
+import com.inventory.application.model.read.GetAllocationAvailabilityQuery;
+import com.inventory.application.model.read.GetAllocationAvailabilityResult;
+import com.inventory.application.model.read.GetInventoryQuery;
+import com.inventory.application.model.read.GetInventoryResult;
+import com.inventory.application.model.read.GetInventoryMovementsQuery;
+import com.inventory.application.model.read.GetInventoryReservationsQuery;
+import com.inventory.application.model.read.GetInventorySummaryQuery;
+import com.inventory.application.model.read.GetInventorySummaryResult;
+import com.inventory.application.model.read.GetReorderSuggestionResult;
+import com.inventory.application.model.read.GetReorderSuggestionsQuery;
+import com.inventory.application.model.read.SearchInventoryQuery;
+import com.inventory.application.model.read.SearchInventoryResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -89,8 +89,8 @@ public class InventoryQueryService {
         return queryBus.dispatch(query);
     }
 
-    public AllocationAvailabilityResponse getAllocationAvailability(String sku, Integer quantity) {
-        GetAllocationAvailabilityResult result = queryBus.dispatch(new GetAllocationAvailabilityQuery(sku, quantity));
+    public AllocationAvailabilityResponse getAllocationAvailability(String sku, Integer quantity, String salesChannelId) {
+        GetAllocationAvailabilityResult result = queryBus.dispatch(new GetAllocationAvailabilityQuery(sku, quantity, salesChannelId));
         return new AllocationAvailabilityResponse(
                 result.sku(),
                 result.availableQuantity(),

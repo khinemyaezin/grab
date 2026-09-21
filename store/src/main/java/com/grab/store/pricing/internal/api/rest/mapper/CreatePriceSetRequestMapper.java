@@ -1,7 +1,7 @@
 package com.grab.store.pricing.internal.api.rest.mapper;
 
-import com.grab.store.pricing.internal.command.CreatePriceSetCommand;
-import com.grab.store.pricing.internal.command.CreatePriceSetResult;
+import com.pricing.application.model.write.CreatePriceSetCommand;
+import com.pricing.application.model.write.CreatePriceSetResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class)

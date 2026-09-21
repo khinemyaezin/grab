@@ -5,9 +5,9 @@ import com.grab.framework.logger.Loggers;
 import com.grab.framework.logger.Logger;
 import com.grab.store.pricing.internal.api.rest.dto.response.PriceListResponse;
 import com.grab.store.pricing.internal.api.rest.mapper.GetPriceListRequestMapper;
-import com.grab.store.pricing.internal.command.PriceListResult;
+import com.pricing.application.model.write.PriceListResult;
 import com.grab.store.pricing.internal.config.PricingEnabled;
-import com.grab.store.pricing.internal.query.ListPriceListsQuery;
+import com.pricing.application.model.read.ListPriceListsQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

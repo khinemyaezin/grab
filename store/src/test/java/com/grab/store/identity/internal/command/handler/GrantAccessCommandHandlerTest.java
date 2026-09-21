@@ -2,15 +2,16 @@ package com.grab.store.identity.internal.command.handler;
 
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.identity.internal.command.GrantAccessCommand;
+import com.identity.application.service.GrantAccessService;
+import com.identity.application.model.write.GrantAccessCommand;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.User;
-import com.identity.domain.repository.AccessAssignmentRepository;
-import com.identity.domain.repository.PlatformRepository;
-import com.identity.domain.repository.RoleRepository;
-import com.identity.domain.repository.UserRepository;
+import com.identity.domain.port.outbound.AccessAssignmentRepository;
+import com.identity.domain.port.outbound.PlatformRepository;
+import com.identity.domain.port.outbound.RoleRepository;
+import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.policy.impl.RuleBasedRoleDelegationPolicy;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class GrantAccessCommandHandlerTest {
+class GrantAccessServiceTest {
     @Mock
     private UserRepository users;
     @Mock
@@ -43,11 +44,11 @@ class GrantAccessCommandHandlerTest {
     @Mock
     private IdGenerator ids;
 
-    private GrantAccessCommandHandler handler;
+    private GrantAccessService handler;
 
     @BeforeEach
     void setUp() {
-        handler = new GrantAccessCommandHandler(
+        handler = new GrantAccessService(
                 users,
                 platforms,
                 roles,
@@ -71,7 +72,7 @@ class GrantAccessCommandHandlerTest {
         when(ids.generateId()).thenReturn(new CommonId("assignment-1"));
         when(assignments.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var result = handler.handle(command);
+        var result = handler.execute(command);
 
         assertThat(result.id()).isEqualTo("assignment-1");
         assertThat(result.roleCode()).isEqualTo("MERCHANT_ADMIN");
@@ -86,7 +87,7 @@ class GrantAccessCommandHandlerTest {
         when(platforms.findByCode("SELLER_PORTAL")).thenReturn(Optional.of(sellerPlatform()));
         when(roles.findByCode(command.roleCode())).thenReturn(Optional.of(role(command.roleCode())));
 
-        assertThatThrownBy(() -> handler.handle(command))
+        assertThatThrownBy(() -> handler.execute(command))
                 .isInstanceOf(IdentityDomainValidationException.class)
                 .satisfies(exception -> assertThat(
                         ((IdentityDomainValidationException) exception).getMessageSource().code()
@@ -102,7 +103,7 @@ class GrantAccessCommandHandlerTest {
         when(platforms.findByCode("SELLER_PORTAL")).thenReturn(Optional.of(sellerPlatform()));
         when(roles.findByCode(command.roleCode())).thenReturn(Optional.of(role(command.roleCode())));
 
-        assertThatThrownBy(() -> handler.handle(command))
+        assertThatThrownBy(() -> handler.execute(command))
                 .isInstanceOf(IdentityDomainValidationException.class)
                 .satisfies(exception -> assertThat(
                         ((IdentityDomainValidationException) exception).getMessageSource().code()

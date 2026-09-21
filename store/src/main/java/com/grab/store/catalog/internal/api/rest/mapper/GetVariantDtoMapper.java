@@ -2,8 +2,8 @@ package com.grab.store.catalog.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.catalog.internal.api.rest.dto.response.GetVariantResponse;
-import com.grab.store.catalog.internal.query.GetVariantQuery;
-import com.grab.store.catalog.internal.query.GetVariantResult;
+import com.catalog.application.model.read.GetVariantQuery;
+import com.catalog.application.model.read.GetVariantResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

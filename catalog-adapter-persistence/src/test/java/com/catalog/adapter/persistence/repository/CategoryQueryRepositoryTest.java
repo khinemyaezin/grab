@@ -1,0 +1,102 @@
+package com.catalog.adapter.persistence.repository;
+
+import com.catalog.application.port.outbound.CategoryQueryPort;
+import com.catalog.adapter.persistence.entity.CategoryEntity;
+import com.catalog.adapter.persistence.repository.config.CategoryRepositoryTestConfig;
+import com.catalog.application.model.read.CategoryChildrenView;
+import com.catalog.application.model.read.CategoryNodeView;
+import com.catalog.application.model.read.CategoryView;
+import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class CategoryQueryRepositoryTest extends CategoryRepositoryTestConfig {
+
+    @Autowired
+    private CategoryNodeRepository categoryNodeRepository;
+
+    @Autowired
+    private CategoryQueryPort categoryQueryRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @BeforeEach
+    void setUp() {
+        CategoryEntity electronics = category("cat-1", "Electronics");
+        CategoryEntity smartphones = category("cat-2", "Smartphones");
+        CategoryEntity laptops = category("cat-3", "Laptops");
+
+        categoryNodeRepository.insert(electronics, null);
+        categoryNodeRepository.insert(smartphones, "cat-1");
+        categoryNodeRepository.insert(laptops, "cat-1");
+
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    @Test
+    void findTree_returnsNestedHierarchy() {
+        Optional<CategoryNodeView> tree = categoryQueryRepository.findTree("cat-1");
+
+        assertThat(tree).isPresent();
+        assertThat(tree.orElseThrow().children())
+                .extracting(CategoryNodeView::id)
+                .containsExactlyInAnyOrder("cat-2", "cat-3");
+    }
+
+    @Test
+    void findChildren_returnsImmediateChildren() {
+        Optional<CategoryChildrenView> children = categoryQueryRepository.findChildren("cat-1");
+
+        assertThat(children).isPresent();
+        assertThat(children.orElseThrow().parentId()).isEqualTo("cat-1");
+        assertThat(children.orElseThrow().children())
+                .extracting(CategoryView::id)
+                .containsExactlyInAnyOrder("cat-2", "cat-3");
+    }
+
+    @Test
+    void findParent_returnsParentWithGrandparentId() {
+        CategoryEntity accessories = category("cat-4", "Accessories");
+        categoryNodeRepository.insert(accessories, "cat-2");
+        entityManager.flush();
+        entityManager.clear();
+
+        Optional<CategoryView> parent = categoryQueryRepository.findParent("cat-4");
+
+        assertThat(parent).isPresent();
+        assertThat(parent.orElseThrow().id()).isEqualTo("cat-2");
+        assertThat(parent.orElseThrow().parentId()).isEqualTo("cat-1");
+    }
+
+    @Test
+    void findRootTrees_returnsDepthZeroHierarchies() {
+        List<CategoryNodeView> roots = categoryQueryRepository.findRootTrees();
+
+        assertThat(roots).extracting(CategoryNodeView::id).contains("cat-1");
+        CategoryNodeView electronics = roots.stream()
+                .filter(node -> "cat-1".equals(node.id()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(electronics.children())
+                .extracting(CategoryNodeView::id)
+                .containsExactlyInAnyOrder("cat-2", "cat-3");
+    }
+
+    private CategoryEntity category(String uuid, String name) {
+        CategoryEntity entity = new CategoryEntity();
+        entity.setUuid(uuid);
+        entity.setName(name);
+        entity.setActive(true);
+        entity.setListingAllowed(true);
+        entity.setC2cAllowed(true);
+        return entity;
+    }
+}

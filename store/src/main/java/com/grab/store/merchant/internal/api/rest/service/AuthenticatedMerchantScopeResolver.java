@@ -2,8 +2,8 @@ package com.grab.store.merchant.internal.api.rest.service;
 
 import com.grab.framework.security.AccessContext;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
-import com.grab.store.merchant.internal.exception.MerchantServiceError;
-import com.grab.store.merchant.internal.exception.MerchantServiceException;
+import com.merchant.application.exception.MerchantServiceError;
+import com.merchant.application.exception.MerchantServiceException;
 import com.grab.store.shared.security.PlatformScopes;
 import com.grab.store.shared.security.ScopeResolverHelper;
 import com.grab.store.shared.security.SecurityPrincipal;

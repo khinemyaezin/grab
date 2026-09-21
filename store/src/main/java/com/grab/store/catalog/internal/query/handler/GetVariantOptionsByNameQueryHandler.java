@@ -1,41 +1,23 @@
 package com.grab.store.catalog.internal.query.handler;
 
-import com.catalog.infrastructure.repository.jpa.VariantOptionQueryRepository;
-import com.catalog.infrastructure.view.VariantOptionView;
+import com.catalog.application.port.inbound.GetVariantOptionsByNameUseCase;
+import com.catalog.application.model.read.GetVariantOptionsByNameQuery;
+import com.catalog.application.model.read.VariantOptionResult;
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.framework.logger.Logger;
-import com.grab.framework.logger.Loggers;
-import com.grab.store.catalog.internal.query.GetVariantOptionsByNameQuery;
-import com.grab.store.catalog.internal.query.VariantOptionResult;
+import com.grab.store.catalog.internal.config.CatalogReadTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class GetVariantOptionsByNameQueryHandler implements QueryHandler<GetVariantOptionsByNameQuery, VariantOptionResult> {
 
-    private static final Logger log = Loggers.getLogger(GetVariantOptionsByNameQueryHandler.class);
-
-    private final VariantOptionQueryRepository variantOptionQueryRepository;
+    private final GetVariantOptionsByNameUseCase getVariantOptionsByNameUseCase;
 
     @Override
+    @CatalogReadTransactional
     public VariantOptionResult handle(GetVariantOptionsByNameQuery query) {
-        log.debug("Handling GetVariantOptionsByNameQuery for name={}", query.name());
-
-        List<VariantOptionView> views = variantOptionQueryRepository.findByNameAndTypeId(query.name(), query.typeId());
-
-        List<VariantOptionResult.VariantOptionItem> items = views.stream()
-                .map(view -> new VariantOptionResult.VariantOptionItem(
-                        view.optionId(),
-                        view.optionName(),
-                        view.typeId(),
-                        view.typeName()
-                ))
-                .toList();
-
-        return new VariantOptionResult(items);
+        return getVariantOptionsByNameUseCase.execute(query);
     }
 
     @Override

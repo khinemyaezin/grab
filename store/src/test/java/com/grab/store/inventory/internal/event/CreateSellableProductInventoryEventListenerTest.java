@@ -5,13 +5,13 @@ import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.inventory.internal.command.CreateInventoryCommand;
-import com.grab.store.inventory.internal.command.InventoryItemResult;
+import com.inventory.application.model.write.CreateInventoryCommand;
+import com.inventory.application.model.write.InventoryItemResult;
 import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.InventoryItemCreatedEvent;
 import com.grab.store.workflows.events.RequestCreateInventoryItemEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;
-import com.inventory.infrastructure.workflow.InventoryWorkflowStepRunner;
+import com.inventory.adapter.persistence.workflow.InventoryWorkflowStepRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

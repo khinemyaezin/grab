@@ -13,26 +13,37 @@ COPY framework/pom.xml framework/
 COPY outbox-infrastructure/pom.xml outbox-infrastructure/
 
 COPY catalog-domain/pom.xml catalog-domain/
-COPY catalog-infrastructure/pom.xml catalog-infrastructure/
+COPY catalog-application/pom.xml catalog-application/
+COPY catalog-adapter-persistence/pom.xml catalog-adapter-persistence/
 
 COPY inventory-domain/pom.xml inventory-domain/
-COPY inventory-infrastructure/pom.xml inventory-infrastructure/
+COPY inventory-application/pom.xml inventory-application/
+COPY inventory-adapter-persistence/pom.xml inventory-adapter-persistence/
 
 COPY identity-domain/pom.xml identity-domain/
-COPY identity-infrastructure/pom.xml identity-infrastructure/
+COPY identity-application/pom.xml identity-application/
+COPY identity-adapter-persistence/pom.xml identity-adapter-persistence/
 
 COPY merchant-domain/pom.xml merchant-domain/
-COPY merchant-infrastructure/pom.xml merchant-infrastructure/
+COPY merchant-application/pom.xml merchant-application/
+COPY merchant-adapter-persistence/pom.xml merchant-adapter-persistence/
 
 COPY pricing-domain/pom.xml pricing-domain/
-COPY pricing-infrastructure/pom.xml pricing-infrastructure/
+COPY pricing-application/pom.xml pricing-application/
+COPY pricing-adapter-persistence/pom.xml pricing-adapter-persistence/
 
 COPY sales-channel-domain/pom.xml sales-channel-domain/
-COPY sales-channel-infrastructure/pom.xml sales-channel-infrastructure/
+COPY sales-channel-application/pom.xml sales-channel-application/
+COPY sales-channel-adapter-persistence/pom.xml sales-channel-adapter-persistence/
+
+COPY storefront-query-infrastructure/pom.xml storefront-query-infrastructure/
+
+COPY cart-domain/pom.xml cart-domain/
+COPY cart-adapter-persistence/pom.xml cart-adapter-persistence/
 
 COPY workflow-infrastructure/pom.xml workflow-infrastructure/
 
-COPY storage-infrastructure/pom.xml storage-infrastructure/
+COPY storage-adapter-s3/pom.xml storage-adapter-s3/
 
 COPY logger-slf4j/pom.xml logger-slf4j/
 COPY store/pom.xml store/
@@ -44,26 +55,37 @@ COPY framework/src framework/src
 COPY outbox-infrastructure/src outbox-infrastructure/src
 
 COPY catalog-domain/src catalog-domain/src
-COPY catalog-infrastructure/src catalog-infrastructure/src
+COPY catalog-application/src catalog-application/src
+COPY catalog-adapter-persistence/src catalog-adapter-persistence/src
 
 COPY inventory-domain/src inventory-domain/src
-COPY inventory-infrastructure/src inventory-infrastructure/src
+COPY inventory-application/src inventory-application/src
+COPY inventory-adapter-persistence/src inventory-adapter-persistence/src
 
 COPY identity-domain/src identity-domain/src
-COPY identity-infrastructure/src identity-infrastructure/src
+COPY identity-application/src identity-application/src
+COPY identity-adapter-persistence/src identity-adapter-persistence/src
 
 COPY merchant-domain/src merchant-domain/src
-COPY merchant-infrastructure/src merchant-infrastructure/src
+COPY merchant-application/src merchant-application/src
+COPY merchant-adapter-persistence/src merchant-adapter-persistence/src
 
 COPY pricing-domain/src pricing-domain/src
-COPY pricing-infrastructure/src pricing-infrastructure/src
+COPY pricing-application/src pricing-application/src
+COPY pricing-adapter-persistence/src pricing-adapter-persistence/src
 
 COPY sales-channel-domain/src sales-channel-domain/src
-COPY sales-channel-infrastructure/src sales-channel-infrastructure/src
+COPY sales-channel-application/src sales-channel-application/src
+COPY sales-channel-adapter-persistence/src sales-channel-adapter-persistence/src
+
+COPY storefront-query-infrastructure/src storefront-query-infrastructure/src
+
+COPY cart-domain/src cart-domain/src
+COPY cart-adapter-persistence/src cart-adapter-persistence/src
 
 COPY workflow-infrastructure/src workflow-infrastructure/src
 
-COPY storage-infrastructure/src storage-infrastructure/src
+COPY storage-adapter-s3/src storage-adapter-s3/src
 
 COPY logger-slf4j/src logger-slf4j/src
 COPY store/src store/src

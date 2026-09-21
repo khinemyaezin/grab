@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -22,9 +23,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@ComponentScan(basePackages = "com.saleschannel.infrastructure")
+@ComponentScan(
+        basePackages = "com.saleschannel.adapter.persistence.mapper",
+        includeFilters = @ComponentScan.Filter(
+                type = FilterType.REGEX,
+                pattern = ".*MapperImpl"
+        )
+)
 @EnableJpaRepositories(
-        basePackages = "com.saleschannel.infrastructure.repository.jpa",
+        basePackages = "com.saleschannel.adapter.persistence.repository",
         entityManagerFactoryRef = "salesChannelEntityManagerFactory",
         transactionManagerRef = "salesChannelTransactionManager"
 )
@@ -57,7 +64,7 @@ public class SalesChannelModuleDataSourceConfig {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setJpaVendorAdapter(vendorAdapter);
-        factory.setPackagesToScan("com.saleschannel.infrastructure");
+        factory.setPackagesToScan("com.saleschannel.adapter.persistence");
         factory.setDataSource(salesChannelDataSource);
         factory.setPersistenceUnitName("saleschannel");
         factory.setJpaPropertyMap(hibernateProperties());

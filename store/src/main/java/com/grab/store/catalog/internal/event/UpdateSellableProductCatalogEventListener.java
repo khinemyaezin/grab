@@ -1,14 +1,14 @@
 package com.grab.store.catalog.internal.event;
 
-import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
+import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.catalog.internal.command.UpdateProductCommand;
-import com.grab.store.catalog.internal.command.UpdateProductResult;
+import com.catalog.application.model.write.UpdateProductCommand;
+import com.catalog.application.model.write.UpdateProductResult;
 import com.grab.store.workflows.events.RequestUpdateProductSetEvent;
 import com.grab.store.workflows.events.SellableProductProductUpdatedEvent;
 import com.grab.store.workflows.events.SellableProductStepFailedEvent;

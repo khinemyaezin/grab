@@ -4,8 +4,8 @@ import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.request.SearchLocationRequest;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationAddressResponse;
 import com.grab.store.inventory.internal.api.rest.dto.response.LocationResponse;
-import com.grab.store.inventory.internal.query.SearchLocationsQuery;
-import com.grab.store.inventory.internal.query.SearchLocationsResult;
+import com.inventory.application.model.read.SearchLocationsQuery;
+import com.inventory.application.model.read.SearchLocationsResult;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Pageable;
 

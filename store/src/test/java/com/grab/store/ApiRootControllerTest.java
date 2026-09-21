@@ -19,6 +19,12 @@ class ApiRootControllerTest {
         assertThat(response.getBody().getLink("get-sales-channel-root")).isPresent();
         assertThat(response.getBody().getLink("get-sales-channel-root").orElseThrow().getHref())
                 .endsWith("/api/v1/sales-channels");
+        assertThat(response.getBody().getLink("get-storefront-query-root")).isPresent();
+        assertThat(response.getBody().getLink("get-storefront-query-root").orElseThrow().getHref())
+                .endsWith("/api/v1/storefront-query");
+        assertThat(response.getBody().getLink("get-cart-root")).isPresent();
+        assertThat(response.getBody().getLink("get-cart-root").orElseThrow().getHref())
+                .endsWith("/api/v1/carts");
         assertThat(response.getBody().getLink("event-stream").orElseThrow().getHref())
                 .endsWith("/api/v1/events/stream");
     }

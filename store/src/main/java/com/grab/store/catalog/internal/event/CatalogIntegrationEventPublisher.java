@@ -1,6 +1,9 @@
 package com.grab.store.catalog.internal.event;
 
 import com.catalog.domain.event.ProductDeletedEvent;
+import com.catalog.domain.event.ProductPublishedToChannelEvent;
+import com.catalog.domain.event.ProductStatusChangedEvent;
+import com.catalog.domain.event.ProductUnpublishedFromChannelEvent;
 import com.catalog.domain.event.ProductUpdatedEvent;
 import com.catalog.domain.event.ProductVariantAddedEvent;
 import com.catalog.domain.event.ProductVariantChangeEvent;
@@ -9,6 +12,9 @@ import com.catalog.domain.event.ProductVariantRestoredEvent;
 import com.grab.framework.id.Id;
 import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
 import com.grab.store.catalog.events.ProductNameChangedIntegrationEvent;
+import com.grab.store.catalog.events.ProductPublishedToChannelIntegrationEvent;
+import com.grab.store.catalog.events.ProductStatusChangedIntegrationEvent;
+import com.grab.store.catalog.events.ProductUnpublishedFromChannelIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantRestoredIntegrationEvent;
@@ -90,6 +96,37 @@ public class CatalogIntegrationEventPublisher {
                 event.variantIds() == null
                         ? List.of()
                         : event.variantIds().stream().map(CatalogIntegrationEventPublisher::valueOf).toList(),
+                Instant.now(),
+                EVENT_VERSION
+        ));
+    }
+
+    @EventListener
+    public void handleProductPublishedToChannel(ProductPublishedToChannelEvent event) {
+        events.publishEvent(new ProductPublishedToChannelIntegrationEvent(
+                valueOf(event.variantId()),
+                valueOf(event.salesChannelId()),
+                Instant.now(),
+                EVENT_VERSION
+        ));
+    }
+
+    @EventListener
+    public void handleProductUnpublishedFromChannel(ProductUnpublishedFromChannelEvent event) {
+        events.publishEvent(new ProductUnpublishedFromChannelIntegrationEvent(
+                valueOf(event.variantId()),
+                valueOf(event.salesChannelId()),
+                Instant.now(),
+                EVENT_VERSION
+        ));
+    }
+
+    @EventListener
+    public void handleProductStatusChanged(ProductStatusChangedEvent event) {
+        events.publishEvent(new ProductStatusChangedIntegrationEvent(
+                valueOf(event.productId()),
+                event.oldStatus(),
+                event.newStatus(),
                 Instant.now(),
                 EVENT_VERSION
         ));

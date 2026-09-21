@@ -7,7 +7,7 @@ import com.identity.domain.enums.RoleKind;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
-import com.identity.domain.repository.AuthorityRepository;
+import com.identity.domain.port.outbound.AuthorityRepository;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashSet;

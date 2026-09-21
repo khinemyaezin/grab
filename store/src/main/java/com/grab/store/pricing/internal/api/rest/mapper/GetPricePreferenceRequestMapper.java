@@ -2,8 +2,8 @@ package com.grab.store.pricing.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.pricing.internal.api.rest.dto.response.PricePreferenceResponse;
-import com.grab.store.pricing.internal.command.PricePreferenceResult;
-import com.grab.store.pricing.internal.query.GetPricePreferenceQuery;
+import com.pricing.application.model.write.PricePreferenceResult;
+import com.pricing.application.model.read.GetPricePreferenceQuery;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

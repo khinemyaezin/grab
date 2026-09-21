@@ -6,7 +6,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
-import com.grab.store.pricing.internal.command.DeletePriceSetForDeletedVariantCommand;
+import com.pricing.application.model.write.DeletePriceSetForDeletedVariantCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

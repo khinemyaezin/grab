@@ -2,8 +2,8 @@ package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.identity.internal.api.rest.dto.response.SearchRolesResponse;
-import com.grab.store.identity.internal.query.SearchRolesQuery;
-import com.grab.store.identity.internal.query.SearchRolesResult;
+import com.identity.application.model.read.SearchRolesQuery;
+import com.identity.application.model.read.SearchRolesResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

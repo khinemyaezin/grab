@@ -16,7 +16,7 @@ import com.merchant.domain.event.MerchantReactivatedEvent;
 import com.merchant.domain.event.MerchantSuspendedEvent;
 import com.merchant.domain.event.StorefrontCreatedEvent;
 import com.merchant.domain.event.StorefrontStatusChangedEvent;
-import com.merchant.domain.repository.MerchantAccountRepository;
+import com.merchant.domain.port.outbound.MerchantAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;

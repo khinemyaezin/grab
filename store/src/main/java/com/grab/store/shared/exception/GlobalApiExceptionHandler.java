@@ -233,6 +233,12 @@ public class GlobalApiExceptionHandler {
         if (code.startsWith("mer.")) {
             return "merchant";
         }
+        if (code.startsWith("sfq.")) {
+            return "storefront-query";
+        }
+        if (code.startsWith("cart.")) {
+            return "cart";
+        }
         return "shared";
     }
 

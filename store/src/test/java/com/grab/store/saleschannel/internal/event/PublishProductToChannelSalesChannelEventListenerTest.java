@@ -2,13 +2,13 @@ package com.grab.store.saleschannel.internal.event;
 
 import com.grab.framework.cqrs.query.Query;
 import com.grab.framework.cqrs.query.QueryBus;
-import com.grab.store.saleschannel.internal.query.CheckSalesChannelUsableQuery;
-import com.grab.store.saleschannel.internal.query.CheckSalesChannelUsableResult;
+import com.saleschannel.application.model.read.CheckSalesChannelUsableQuery;
+import com.saleschannel.application.model.read.CheckSalesChannelUsableResult;
 import com.grab.store.shared.workflow.FakeModuleOutbox;
 import com.grab.store.workflows.events.ChannelAssertedEvent;
 import com.grab.store.workflows.events.PublishProductStepFailedEvent;
 import com.grab.store.workflows.events.RequestAssertChannelEvent;
-import com.saleschannel.infrastructure.workflow.SalesChannelWorkflowStepRunner;
+import com.saleschannel.adapter.persistence.workflow.SalesChannelWorkflowStepRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

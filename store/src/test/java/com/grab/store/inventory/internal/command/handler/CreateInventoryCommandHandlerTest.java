@@ -1,17 +1,17 @@
 package com.grab.store.inventory.internal.command.handler;
 
+import com.inventory.application.service.CreateInventoryService;
+
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.inventory.internal.command.CreateInventoryCommand;
-import com.grab.store.inventory.internal.command.InventoryItemResult;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
+import com.inventory.application.model.write.CreateInventoryCommand;
+import com.inventory.application.model.write.InventoryItemResult;
+import com.inventory.application.exception.InventoryServiceException;
 import com.inventory.domain.aggregate.Location;
-import com.inventory.domain.repository.InventoryRepository;
-import com.inventory.domain.repository.LocationRepository;
-import com.inventory.domain.repository.StockMovementRepository;
-import com.inventory.infrastructure.entity.ProductVariantViewEntity;
-import com.inventory.infrastructure.repository.jpa.ProductVariantViewJpaRepository;
-import com.inventory.infrastructure.view.ProductView;
+import com.inventory.domain.port.outbound.InventoryRepository;
+import com.inventory.domain.port.outbound.LocationRepository;
+import com.inventory.application.port.outbound.ProductVariantViewQueryPort;
+import com.inventory.application.model.read.ProductView;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,25 +31,22 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class CreateInventoryCommandHandlerTest {
+class CreateInventoryServiceTest {
 
     @Mock
     private InventoryRepository inventoryRepository;
 
     @Mock
-    private StockMovementRepository stockMovementRepository;
-
-    @Mock
     private LocationRepository locationRepository;
 
     @Mock
-    private ProductVariantViewJpaRepository productVariantViewJpaRepository;
+    private ProductVariantViewQueryPort productVariantViewQueryPort;
 
     @Mock
     private IdGenerator idGenerator;
 
     @InjectMocks
-    private CreateInventoryCommandHandler handler;
+    private CreateInventoryService handler;
 
     private CreateInventoryCommand command() {
         return new CreateInventoryCommand(
@@ -85,13 +82,13 @@ class CreateInventoryCommandHandlerTest {
     void handle_shouldCreateInventory_whenActiveProductVariantExistsForSku() {
         stubActiveLocation();
         ProductView variant = variantView();
-        when(productVariantViewJpaRepository.findBySkuAndStatus("SKU001", ProductVariantViewEntity.STATUS_ACTIVE))
+        when(productVariantViewQueryPort.findActiveBySku("SKU001"))
                 .thenReturn(Optional.of(variant));
         when(inventoryRepository.existsBySkuAndLocation(anyString(), any())).thenReturn(false);
         when(idGenerator.generateId()).thenReturn(new CommonId("inventory-1"));
         when(idGenerator.convertIdFrom("variant-1")).thenReturn(new CommonId("variant-1"));
 
-        InventoryItemResult result = handler.handle(command());
+        InventoryItemResult result = handler.execute(command());
 
         assertThat(result.productVariantId()).isEqualTo("variant-1");
         assertThat(result.sku()).isEqualTo("SKU001");
@@ -101,10 +98,10 @@ class CreateInventoryCommandHandlerTest {
     @Test
     void handle_shouldReject_whenActiveProductVariantNotInProjection() {
         stubActiveLocation();
-        when(productVariantViewJpaRepository.findBySkuAndStatus("SKU001", ProductVariantViewEntity.STATUS_ACTIVE))
+        when(productVariantViewQueryPort.findActiveBySku("SKU001"))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> handler.handle(command()))
+        assertThatThrownBy(() -> handler.execute(command()))
                 .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Product variant not found for sku: SKU001");
 
@@ -114,10 +111,10 @@ class CreateInventoryCommandHandlerTest {
     @Test
     void handle_shouldReject_whenOnlyDeletedProductVariantExistsForSku() {
         stubActiveLocation();
-        when(productVariantViewJpaRepository.findBySkuAndStatus(eq("SKU001"), eq(ProductVariantViewEntity.STATUS_ACTIVE)))
+        when(productVariantViewQueryPort.findActiveBySku(eq("SKU001")))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> handler.handle(command()))
+        assertThatThrownBy(() -> handler.execute(command()))
                 .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Product variant not found for sku: SKU001");
 
@@ -129,10 +126,10 @@ class CreateInventoryCommandHandlerTest {
         stubActiveLocation();
         ProductView variant = mock(ProductView.class);
         when(variant.isManageInventory()).thenReturn(false);
-        when(productVariantViewJpaRepository.findBySkuAndStatus("SKU001", ProductVariantViewEntity.STATUS_ACTIVE))
+        when(productVariantViewQueryPort.findActiveBySku("SKU001"))
                 .thenReturn(Optional.of(variant));
 
-        assertThatThrownBy(() -> handler.handle(command()))
+        assertThatThrownBy(() -> handler.execute(command()))
                 .isInstanceOf(InventoryServiceException.class)
                 .hasMessageContaining("Inventory is not managed for sku: SKU001");
 
@@ -161,10 +158,10 @@ class CreateInventoryCommandHandlerTest {
                 "merchant-1"
         );
 
-        InventoryItemResult result = handler.handle(command);
+        InventoryItemResult result = handler.execute(command);
 
         assertThat(result.productVariantId()).isEqualTo("variant-from-saga");
-        verify(productVariantViewJpaRepository, never()).findBySkuAndStatus(anyString(), anyString());
+        verify(productVariantViewQueryPort, never()).findActiveBySku(anyString());
         verify(inventoryRepository).save(any());
     }
 }

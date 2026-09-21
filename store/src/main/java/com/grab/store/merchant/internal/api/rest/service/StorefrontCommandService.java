@@ -8,8 +8,8 @@ import com.grab.store.merchant.internal.api.rest.dto.response.StorefrontResponse
 import com.grab.store.merchant.internal.api.rest.mapper.ChangeStorefrontLifecycleRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.CreateStorefrontRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.UpdateStorefrontProfileRequestMapper;
-import com.grab.store.merchant.internal.command.ChangeStorefrontLifecycleCommand.Action;
-import com.grab.store.merchant.internal.command.StorefrontResult;
+import com.merchant.application.model.write.ChangeStorefrontLifecycleCommand.Action;
+import com.merchant.application.model.write.StorefrontResult;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

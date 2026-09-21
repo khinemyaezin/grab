@@ -1,0 +1,74 @@
+package com.merchant.application.service;
+
+import com.merchant.application.port.inbound.UpdateMerchantProfileUseCase;
+
+import com.grab.framework.id.Id;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+import com.merchant.application.model.write.MerchantAccountResult;
+import com.merchant.application.model.write.UpdateMerchantProfileCommand;
+import com.merchant.application.exception.MerchantServiceError;
+import com.merchant.application.exception.MerchantServiceException;
+import com.merchant.domain.aggregate.MerchantAccount;
+import com.merchant.domain.exception.MerchantDomainException;
+import com.merchant.domain.port.outbound.MerchantAccountRepository;
+import com.merchant.domain.valueobject.*;
+import lombok.RequiredArgsConstructor;
+
+import java.time.Instant;
+
+@RequiredArgsConstructor
+public class UpdateMerchantProfileService implements UpdateMerchantProfileUseCase {
+    private static final Logger log = Loggers.getLogger(UpdateMerchantProfileService.class);
+    private final MerchantAccountRepository merchants;
+    public MerchantAccountResult execute(UpdateMerchantProfileCommand command) {
+        MerchantAccount merchant = find(command.merchantId());
+        merchant.requireApplicant(command.applicantUserId());
+
+        MerchantName name = new MerchantName(command.legalName(), command.displayName());
+        ContactInformation contact = new ContactInformation(command.contactEmail(), command.contactPhone());
+
+        BusinessRegistration registration = registration(command);
+        RegisteredAddress address = getRegisterAddress(command);
+
+        Instant now = Instant.now();
+        merchant.updateProfile(
+                name,
+                registration,
+                contact,
+                address,
+                now
+        );
+        MerchantAccount saved = merchants.save(merchant);
+        return MerchantAccountResult.from(saved);
+    }
+
+    private BusinessRegistration registration(UpdateMerchantProfileCommand command) {
+        if (isBlank(command.registrationCountryCode()) && isBlank(command.registrationNumber())) return null;
+        return new BusinessRegistration(command.registrationCountryCode(), command.registrationNumber());
+    }
+
+    private RegisteredAddress getRegisterAddress(UpdateMerchantProfileCommand command){
+        try {
+            return new RegisteredAddress(
+                    command.addressLine1(), command.addressLine2(), command.addressCity(),
+                    command.addressRegion(), command.addressPostalCode(), command.addressCountryCode());
+        }catch (MerchantDomainException exception) {
+            log.warn("Unable to get register address", exception);
+            return null;
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private MerchantAccount find(Id merchantId) {
+        return merchants.findById(merchantId).orElseThrow(() -> notFound(merchantId));
+    }
+
+    private MerchantServiceException notFound(Id merchantId) {
+        MerchantServiceError error = new MerchantServiceError.MerchantNotFound(merchantId.getValue());
+        return new MerchantServiceException(error, "Merchant account not found");
+    }
+}

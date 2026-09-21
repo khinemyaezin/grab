@@ -6,10 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -22,9 +19,15 @@ import java.util.Map;
 
 @Configuration
 @ConditionalOnProperty(prefix = "pricing", name = "enabled", havingValue = "true")
-@ComponentScan("com.pricing.infrastructure")
+@ComponentScan(
+        basePackages = "com.pricing.adapter.persistence.mapper",
+        includeFilters = @ComponentScan.Filter(
+                type = FilterType.REGEX,
+                pattern = ".*MapperImpl"
+        )
+)
 @EnableJpaRepositories(
-        basePackages = "com.pricing.infrastructure.repository.jpa",
+        basePackages = "com.pricing.adapter.persistence.repository.jpa",
         entityManagerFactoryRef = "pricingEntityManagerFactory",
         transactionManagerRef = "pricingTransactionManager"
 )
@@ -57,7 +60,7 @@ public class PricingModuleDataSourceConfig {
             Environment environment) {
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setDataSource(dataSource);
-        factory.setPackagesToScan("com.pricing.infrastructure.entity", "com.pricing.infrastructure.outbox");
+        factory.setPackagesToScan("com.pricing.adapter.persistence.entity", "com.pricing.adapter.persistence.outbox");
         factory.setPersistenceUnitName("pricing");
         factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         factory.setJpaPropertyMap(Map.of(

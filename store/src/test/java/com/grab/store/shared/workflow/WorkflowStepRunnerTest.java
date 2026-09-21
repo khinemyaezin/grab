@@ -1,6 +1,6 @@
 package com.grab.store.shared.workflow;
 
-import com.catalog.infrastructure.workflow.CatalogWorkflowStepRunner;
+import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
 import com.grab.framework.domain.Event;
 import com.grab.framework.workflow.WorkflowStepRunner;
 import org.junit.jupiter.api.Test;

@@ -1,8 +1,8 @@
 package com.grab.store.identity.internal.api.rest.service;
 
 import com.grab.framework.security.AccessContext;
-import com.grab.store.identity.internal.exception.IdentityServiceError;
-import com.grab.store.identity.internal.exception.IdentityServiceException;
+import com.identity.application.exception.IdentityServiceError;
+import com.identity.application.exception.IdentityServiceException;
 import com.grab.store.shared.security.SecurityPrincipal;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.ScopeKey;

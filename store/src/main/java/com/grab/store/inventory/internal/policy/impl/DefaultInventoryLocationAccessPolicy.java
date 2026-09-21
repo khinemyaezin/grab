@@ -1,8 +1,8 @@
 package com.grab.store.inventory.internal.policy.impl;
 
-import com.grab.store.inventory.internal.exception.InventoryServiceError;
-import com.grab.store.inventory.internal.exception.InventoryServiceException;
-import com.grab.store.inventory.internal.policy.InventoryLocationAccessPolicy;
+import com.inventory.application.exception.InventoryServiceError;
+import com.inventory.application.exception.InventoryServiceException;
+import com.inventory.domain.policy.InventoryLocationAccessPolicy;
 import com.grab.store.shared.security.PlatformScopes;
 import com.inventory.domain.aggregate.Location;
 

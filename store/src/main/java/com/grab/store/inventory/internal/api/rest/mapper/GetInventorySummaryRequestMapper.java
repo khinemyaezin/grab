@@ -2,8 +2,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.InventorySummaryResponse;
-import com.grab.store.inventory.internal.query.GetInventorySummaryQuery;
-import com.grab.store.inventory.internal.query.GetInventorySummaryResult;
+import com.inventory.application.model.read.GetInventorySummaryQuery;
+import com.inventory.application.model.read.GetInventorySummaryResult;
 import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)

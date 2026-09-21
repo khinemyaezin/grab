@@ -7,8 +7,8 @@ import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
 import com.grab.store.merchant.internal.api.rest.dto.response.MerchantResponse;
 import com.grab.store.merchant.internal.api.rest.mapper.GetMerchantRequestMapper;
-import com.grab.store.merchant.internal.command.MerchantAccountResult;
-import com.grab.store.merchant.internal.query.GetMerchantQuery;
+import com.merchant.application.model.write.MerchantAccountResult;
+import com.merchant.application.model.read.GetMerchantQuery;
 import com.grab.store.shared.security.SecurityPrincipal;
 import org.junit.jupiter.api.Test;
 

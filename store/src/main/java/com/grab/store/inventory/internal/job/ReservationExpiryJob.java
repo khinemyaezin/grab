@@ -2,8 +2,8 @@ package com.grab.store.inventory.internal.job;
 
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.inventory.internal.command.ExpireExpiredReservationsCommand;
-import com.grab.store.inventory.internal.command.ExpireExpiredReservationsResult;
+import com.inventory.application.model.write.ExpireExpiredReservationsCommand;
+import com.inventory.application.model.write.ExpireExpiredReservationsResult;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import lombok.RequiredArgsConstructor;

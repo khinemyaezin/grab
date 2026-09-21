@@ -1,12 +1,11 @@
 package com.grab.store.identity.internal.query.handler;
 
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.identity.internal.query.ListAccessAssignmentsQuery;
-import com.identity.domain.aggregate.AccessAssignment;
+import com.identity.application.port.outbound.AccessAssignmentQueryPort;
+import com.identity.application.model.read.ListAccessAssignmentsQuery;
+import com.identity.application.model.read.AccessAssignmentView;
+import com.identity.application.service.ListAccessAssignmentsService;
 import com.identity.domain.enums.AccessAssignmentStatus;
-import com.identity.domain.repository.AccessAssignmentRepository;
-import com.identity.domain.valueobject.AccessScope;
-import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -16,19 +15,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class ListAccessAssignmentsQueryHandlerTest {
-    private final AccessAssignmentRepository assignments = mock(AccessAssignmentRepository.class);
-    private final ListAccessAssignmentsQueryHandler handler = new ListAccessAssignmentsQueryHandler(assignments);
+class ListAccessAssignmentsServiceTest {
+    private final AccessAssignmentQueryPort assignments = mock(AccessAssignmentQueryPort.class);
+    private final ListAccessAssignmentsService handler = new ListAccessAssignmentsService(assignments);
 
     @Test
     void handle_withMerchantScope_shouldHideAssignmentsFromOtherMerchants() {
         var userId = new CommonId("user-1");
-        when(assignments.findByUser(userId)).thenReturn(List.of(
-                assignment("assignment-1", userId, "merchant-1"),
-                assignment("assignment-2", userId, "merchant-2")
+        when(assignments.findByUser("user-1")).thenReturn(List.of(
+                assignment("assignment-1", "user-1", "merchant-1"),
+                assignment("assignment-2", "user-1", "merchant-2")
         ));
 
-        var results = handler.handle(new ListAccessAssignmentsQuery(
+        var results = handler.execute(new ListAccessAssignmentsQuery(
                 userId, "merchant.account", "merchant-1"
         ));
 
@@ -39,26 +38,28 @@ class ListAccessAssignmentsQueryHandlerTest {
     @Test
     void handle_withGlobalScope_shouldReturnAllAssignments() {
         var userId = new CommonId("user-1");
-        when(assignments.findByUser(userId)).thenReturn(List.of(
-                assignment("assignment-1", userId, "merchant-1"),
-                assignment("assignment-2", userId, "merchant-2")
+        when(assignments.findByUser("user-1")).thenReturn(List.of(
+                assignment("assignment-1", "user-1", "merchant-1"),
+                assignment("assignment-2", "user-1", "merchant-2")
         ));
 
-        var results = handler.handle(new ListAccessAssignmentsQuery(userId, "global", "*"));
+        var results = handler.execute(new ListAccessAssignmentsQuery(userId, "global", "*"));
 
         assertThat(results).hasSize(2);
     }
 
-    private AccessAssignment assignment(String id, CommonId userId, String merchantId) {
+    private AccessAssignmentView assignment(String id, String userId, String merchantId) {
         Instant now = Instant.now();
-        return new AccessAssignment(
-                new CommonId(id),
+        return new AccessAssignmentView(
+                id,
                 userId,
                 "SELLER_PORTAL",
                 "MERCHANT_ADMIN",
-                new AccessScope(new ScopeKey("merchant.account"), merchantId),
+                "merchant.account",
+                merchantId,
                 AccessAssignmentStatus.ACTIVE,
-                new CommonId("owner-1"),
+                AccessAssignmentStatus.ACTIVE,
+                "owner-1",
                 now,
                 now,
                 null

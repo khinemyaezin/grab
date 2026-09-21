@@ -1,7 +1,8 @@
 package com.grab.store.shared;
 
-import org.springframework.data.domain.Pageable;
-
-public interface PageableQueryRequest {
-    Pageable pageable();
+/**
+ * @deprecated use {@link com.grab.framework.cqrs.query.PageableQueryRequest}
+ */
+@Deprecated
+public interface PageableQueryRequest extends com.grab.framework.cqrs.query.PageableQueryRequest {
 }

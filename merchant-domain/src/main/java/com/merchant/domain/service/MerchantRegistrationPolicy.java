@@ -5,7 +5,7 @@ import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.enums.MerchantType;
 import com.merchant.domain.exception.MerchantDomainError;
 import com.merchant.domain.exception.MerchantDomainException;
-import com.merchant.domain.repository.MerchantAccountRepository;
+import com.merchant.domain.port.outbound.MerchantAccountRepository;
 
 import java.util.Objects;
 

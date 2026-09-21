@@ -2,8 +2,8 @@ package com.grab.store.inventory.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
 import com.grab.store.inventory.internal.api.rest.dto.response.ZoneResponse;
-import com.grab.store.inventory.internal.query.ListZonesByLocationQuery;
-import com.grab.store.inventory.internal.query.ListZonesResult;
+import com.inventory.application.model.read.ListZonesByLocationQuery;
+import com.inventory.application.model.read.ListZonesResult;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Pageable;
 

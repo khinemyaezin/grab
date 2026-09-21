@@ -4,7 +4,7 @@ import com.grab.framework.id.Id;
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.enums.MerchantStatus;
 import com.merchant.domain.enums.MerchantType;
-import com.merchant.domain.repository.MerchantAccountRepository;
+import com.merchant.domain.port.outbound.MerchantAccountRepository;
 import com.merchant.domain.valueobject.BusinessRegistration;
 
 import java.util.ArrayList;

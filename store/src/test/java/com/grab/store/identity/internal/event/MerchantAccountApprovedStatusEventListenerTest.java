@@ -5,7 +5,7 @@ import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.identity.internal.command.ReplaceAccessCommand;
+import com.identity.application.model.write.ReplaceAccessCommand;
 import com.grab.store.identity.internal.policy.impl.DefaultMerchantApprovalAccessPolicy;
 import com.grab.store.merchant.events.MerchantApprovedIntegrationEvent;
 import org.junit.jupiter.api.Test;

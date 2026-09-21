@@ -5,7 +5,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
 import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
-import com.grab.store.inventory.internal.command.DiscontinueInventoryForDeletedVariantCommand;
+import com.inventory.application.model.write.DiscontinueInventoryForDeletedVariantCommand;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

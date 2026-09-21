@@ -58,9 +58,10 @@ public class AllocationController {
     @GetMapping("/availability")
     public ResponseEntity<EntityModel<AllocationAvailabilityResponse>> availability(
             @RequestParam String sku,
-            @RequestParam(required = false) Integer quantity
+            @RequestParam(required = false) Integer quantity,
+            @RequestParam(required = false) String salesChannelId
     ) {
-        AllocationAvailabilityResponse response = inventoryQueryService.getAllocationAvailability(sku, quantity);
+        AllocationAvailabilityResponse response = inventoryQueryService.getAllocationAvailability(sku, quantity, salesChannelId);
         return ResponseEntity.ok(allocationModelAssembler.toAvailabilityModel(response));
     }
 }

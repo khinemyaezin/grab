@@ -5,7 +5,7 @@ import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.repository.AuthorityRepository;
+import com.identity.domain.port.outbound.AuthorityRepository;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;

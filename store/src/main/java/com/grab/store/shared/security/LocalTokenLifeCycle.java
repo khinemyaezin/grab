@@ -4,7 +4,7 @@ import com.grab.framework.id.Id;
 import com.grab.framework.security.*;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;
-import com.identity.domain.repository.SessionStore;
+import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.service.*;
 import com.identity.domain.valueobject.SessionDetails;
 import io.jsonwebtoken.Jwts;
