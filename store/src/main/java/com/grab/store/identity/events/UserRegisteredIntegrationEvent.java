@@ -7,7 +7,6 @@ import java.time.Instant;
 public record UserRegisteredIntegrationEvent(
         String userId,
         String email,
-        String platformCode,
         Instant occurredAt,
         int version
 ) implements Event {

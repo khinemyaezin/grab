@@ -1,8 +1,8 @@
-package com.grab.store.identity.internal.api.query;
+package com.grab.store.identity.internal.api.adapter;
 
 import com.grab.framework.id.Id;
-import com.grab.store.identity.internal.api.query.mapper.UserProfileQueryMapper;
-import com.grab.store.identity.query.UserProfileQuery;
+import com.grab.store.identity.internal.api.adapter.mapper.UserProfileQueryMapper;
+import com.grab.store.identity.port.UserProfileQuery;
 import com.identity.application.model.read.GetUserProfileQuery;
 import com.identity.application.model.read.GetUserProfileResult;
 import com.identity.application.port.inbound.GetUserProfileUseCase;

@@ -1,10 +1,10 @@
-package com.grab.store.identity.query;
+package com.customer.application.port.outbound;
 
 import com.grab.framework.id.Id;
 
 import java.util.List;
 
-public interface UserProfileQuery {
+public interface UserProfileQueryPort {
     UserProfileResponse getUserProfile(Id userId);
 
     record UserProfileResponse(
@@ -12,7 +12,7 @@ public interface UserProfileQuery {
             String email,
             String status,
             String createdAt,
-            List<String> platformCode
-            ) {
+            List<String> platformCodes
+    ) {
     }
 }

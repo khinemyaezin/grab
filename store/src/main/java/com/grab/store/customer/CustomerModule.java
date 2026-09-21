@@ -2,6 +2,6 @@ package com.grab.store.customer;
 
 import org.springframework.modulith.ApplicationModule;
 
-@ApplicationModule(allowedDependencies = {"shared", "identity::events"})
+@ApplicationModule(allowedDependencies = {"shared", "identity::events", "identity::query"})
 public class CustomerModule {
 }

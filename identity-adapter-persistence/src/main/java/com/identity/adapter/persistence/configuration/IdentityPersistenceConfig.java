@@ -237,7 +237,7 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public SessionStore refreshSessionStore(RefreshSessionJpaRepository sessionRepository, UserJpaRepository userRepository) {
-        return new JpaSessionStoreAdapter(sessionRepository, userRepository);
+        return new SessionStoreAdapter(sessionRepository, userRepository);
     }
 
     @Bean

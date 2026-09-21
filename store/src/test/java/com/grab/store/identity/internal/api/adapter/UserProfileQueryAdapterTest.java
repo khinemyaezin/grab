@@ -1,8 +1,8 @@
-package com.grab.store.identity.internal.api.query;
+package com.grab.store.identity.internal.api.adapter;
 
 import com.grab.framework.id.Id;
-import com.grab.store.identity.internal.api.query.mapper.UserProfileQueryMapper;
-import com.grab.store.identity.query.UserProfileQuery;
+import com.grab.store.identity.internal.api.adapter.mapper.UserProfileQueryMapper;
+import com.grab.store.identity.port.UserProfileQuery;
 import com.identity.application.model.read.GetUserProfileQuery;
 import com.identity.application.model.read.GetUserProfileResult;
 import com.identity.application.port.inbound.GetUserProfileUseCase;
@@ -36,7 +36,7 @@ class UserProfileQueryAdapterTest {
     }
 
     @Test
-    void shouldMapAndReturnUserProfileResponse() {
+    void getUserProfile_validUserId_returnsUserProfileResponse() {
         Id userId = () -> "user-123";
 
         GetUserProfileResult.AccessContextInfo context1 = new GetUserProfileResult.AccessContextInfo(
@@ -66,7 +66,7 @@ class UserProfileQueryAdapterTest {
         assertThat(response.email()).isEqualTo("user@example.com");
         assertThat(response.status()).isEqualTo("ACTIVE");
         assertThat(response.createdAt()).isEqualTo("2023-01-01T00:00:00Z");
-        assertThat(response.platformCode()).containsExactly("PLATFORM_1", "PLATFORM_2");
+        assertThat(response.platformCodes()).containsExactly("PLATFORM_1", "PLATFORM_2");
 
         verify(getUserProfileUseCase).execute(any(GetUserProfileQuery.class));
     }

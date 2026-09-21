@@ -80,10 +80,5 @@ public class RepositoryTestConfig extends PostgreSqlTestContainer {
         UserJpaRepository getUserJpaRepository(EntityManager entityManager) {
             return new JpaRepositoryFactory(entityManager).getRepository(UserJpaRepository.class);
         }
-
-        @Bean
-        UserQueryRepository getUserQueryRepository(EntityManager entityManager) {
-            return new JpaRepositoryFactory(entityManager).getRepository(UserQueryRepository.class);
-        }
     }
 }

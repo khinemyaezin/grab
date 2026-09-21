@@ -1,4 +1,4 @@
-package com.grab.store.identity.query;
+package com.grab.store.identity.port;
 
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;

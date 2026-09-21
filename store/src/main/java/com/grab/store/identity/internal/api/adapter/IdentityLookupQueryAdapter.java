@@ -1,9 +1,9 @@
-package com.grab.store.identity.internal.api.query;
+package com.grab.store.identity.internal.api.adapter;
 
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
 import com.grab.store.identity.internal.config.IdentityReadTransactional;
-import com.grab.store.identity.query.IdentityLookupQuery;
+import com.grab.store.identity.port.IdentityLookupQuery;
 import com.identity.application.port.inbound.IdentityLookupUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

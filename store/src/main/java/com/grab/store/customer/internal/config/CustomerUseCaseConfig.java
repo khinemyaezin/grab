@@ -7,6 +7,7 @@ import com.customer.application.port.inbound.GetCustomerByUserIdUseCase;
 import com.customer.application.port.inbound.RegisterCustomerUseCase;
 import com.customer.application.port.inbound.SuspendCustomerUseCase;
 import com.customer.application.port.outbound.CustomerQueryPort;
+import com.customer.application.port.outbound.UserProfileQueryPort;
 import com.customer.application.service.AttachUserToCustomerService;
 import com.customer.application.service.CreateGuestCustomerService;
 import com.customer.application.service.GetCustomerByIdService;
@@ -26,9 +27,10 @@ public class CustomerUseCaseConfig {
     @Bean
     public RegisterCustomerUseCase registerCustomerUseCase(
             CustomerRepository customers,
-            IdGenerator ids
+            IdGenerator ids,
+            UserProfileQueryPort userProfileQueryPort
     ) {
-        return new RegisterCustomerService(customers, ids);
+        return new RegisterCustomerService(customers, ids, userProfileQueryPort);
     }
 
     @Bean

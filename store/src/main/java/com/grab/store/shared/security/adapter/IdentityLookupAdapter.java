@@ -2,7 +2,7 @@ package com.grab.store.shared.security.adapter;
 
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
-import com.grab.store.identity.query.IdentityLookupQuery;
+import com.grab.store.identity.port.IdentityLookupQuery;
 import com.grab.store.shared.security.IdentityResolverClient;
 import com.grab.store.shared.security.expection.IdentityAuthenticationException;
 import com.grab.store.shared.security.expection.IdentitySecurityError;

@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @RequiredArgsConstructor
-public class JpaSessionStoreAdapter implements SessionStore {
+public class SessionStoreAdapter implements SessionStore {
 
     private final RefreshSessionJpaRepository sessionRepository;
     private final UserJpaRepository userRepository;
