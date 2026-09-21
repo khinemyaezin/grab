@@ -171,16 +171,16 @@
             <artifactId>cart-adapter-persistence</artifactId>
             <version>${cart-adapter-persistence.version}</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
-<!--            <artifactId>customer-application</artifactId>-->
-<!--            <version>${customer-application.version}</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.coolstuff.ecommerce.grab</groupId>-->
-<!--            <artifactId>customer-adapter-persistence</artifactId>-->
-<!--            <version>${customer-adapter-persistence.version}</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>customer-application</artifactId>
+            <version>${customer-application.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>customer-adapter-persistence</artifactId>
+            <version>${customer-adapter-persistence.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>region-application</artifactId>
