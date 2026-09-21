@@ -1,4 +1,4 @@
-# R8 / R18. HATEOAS
+# R9. HATEOAS
 
 Load when adding links, assemblers, root controllers, or HAL configuration.
 

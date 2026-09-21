@@ -145,11 +145,10 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public UserQueryPort userQueryPort(
-            UserQueryRepository userQueryRepository,
             UserJpaRepository userJpaRepository,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new UserQueryAdapter(userQueryRepository, userJpaRepository, executor);
+        return new UserQueryAdapter(userJpaRepository, executor);
     }
 
     @Bean

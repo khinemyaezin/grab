@@ -212,4 +212,9 @@ public class IdentityUseCaseConfig {
     public IdentityLookupUseCase identityLookupUseCase(IdentityLookupPort identityLookupPort) {
         return new IdentityLookupService(identityLookupPort);
     }
+
+    @Bean
+    public RevokeSessionsByScopeUseCase revokeSessionsByScopeUseCase(SessionStore sessionStore) {
+        return new RevokeSessionsByScopeService(sessionStore);
+    }
 }

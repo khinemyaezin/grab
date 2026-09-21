@@ -1,11 +1,11 @@
 package com.grab.store.identity.internal.event;
 
-import com.grab.store.identity.internal.config.IdentityTransactional;
+import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.store.merchant.events.MerchantClosedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantSuspendedIntegrationEvent;
 import com.grab.store.merchant.events.StorefrontStatusChangedIntegrationEvent;
 import com.grab.store.shared.security.PlatformScopes;
-import com.identity.domain.port.outbound.SessionStore;
+import com.identity.application.model.write.RevokeSessionsByScopeCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -13,38 +13,37 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class MerchantSessionRevocationEventListener {
-    private final SessionStore sessions;
+    private final CommandBus commandBus;
 
     @EventListener
-    @IdentityTransactional
     public void onMerchantSuspended(MerchantSuspendedIntegrationEvent event) {
         revokeMerchantAccount(event.merchantId());
     }
 
     @EventListener
-    @IdentityTransactional
     public void onMerchantClosed(MerchantClosedIntegrationEvent event) {
         revokeMerchantAccount(event.merchantId());
     }
 
     @EventListener
-    @IdentityTransactional
     public void onStorefrontStatusChanged(StorefrontStatusChangedIntegrationEvent event) {
         if (!"SUSPENDED".equals(event.status()) && !"CLOSED".equals(event.status())) {
             return;
         }
-        sessions.revokeByScope(
+        var command = new RevokeSessionsByScopeCommand(
                 PlatformScopes.SELLER_PORTAL,
                 PlatformScopes.MERCHANT_STOREFRONT_SCOPE,
                 event.storefrontId()
         );
+        commandBus.dispatch(command);
     }
 
     private void revokeMerchantAccount(String merchantId) {
-        sessions.revokeByScope(
+        var command = new RevokeSessionsByScopeCommand(
                 PlatformScopes.SELLER_PORTAL,
                 PlatformScopes.MERCHANT_ACCOUNT_SCOPE,
                 merchantId
         );
+        commandBus.dispatch(command);
     }
 }

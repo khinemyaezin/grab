@@ -30,7 +30,7 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
 ## Named interfaces
 
 - Events: publish from a public named-interface package, for example `com.grab.store.merchant.events` with `@NamedInterface("events")`. Consuming modules declare the dependency explicitly, for example `@ApplicationModule(allowedDependencies = {"shared", "merchant::events"})`.
-- HATEOAS links: publish link facades from a public named-interface package, for example `com.grab.store.catalog.api` with `@NamedInterface("api")`. Consuming modules declare `{module}::api` in `allowedDependencies`. See `api/hateoas.md`.
+- HATEOAS links: publish link facades from a public named-interface package, for example `com.grab.store.catalog.api` with `@NamedInterface("api")`. Consuming modules declare `{module}::api` in `allowedDependencies`. See `inbound/hateoas.md`.
 
 ## Layer contents
 

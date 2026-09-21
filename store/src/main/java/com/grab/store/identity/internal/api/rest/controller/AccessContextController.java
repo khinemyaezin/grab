@@ -38,12 +38,8 @@ public class AccessContextController {
             @RequestHeader(value = "X-Platform") @NotBlank String platformCode,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        List<EntityModel<AccessContextResponse>> contexts = queryService
-                .listContexts(principal.getPlatformUserId(), platformCode)
-                .stream()
-                .map(contextModelAssembler::toModel)
-                .toList();
-        CollectionModel<EntityModel<AccessContextResponse>> model = CollectionModel.of(contexts);
+        List<AccessContextResponse> responses = queryService.listContexts(principal.getPlatformUserId(), platformCode);
+        CollectionModel<EntityModel<AccessContextResponse>> model = contextModelAssembler.toCollectionModel(responses);
         model.add(linkTo(methodOn(AccessContextController.class)
                 .listContexts(platformCode, null))
                 .withRel("list-access-contexts"));

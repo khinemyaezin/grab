@@ -1,4 +1,4 @@
-# R15. Naming
+# R19. Naming
 
 Load when naming a new type, package, or test method.
 
@@ -31,4 +31,8 @@ Load when naming a new type, package, or test method.
 | Modulith named interface package (events) | `{module}.events` + `@NamedInterface("events")` |
 | Modulith named interface package (API links) | `{module}.api` + `@NamedInterface("api")` |
 | Cross-module HATEOAS link facade | `{Owner}ApiLinks` under `{owner}.api` |
+| Outbound Query Port (shared interface) | `{Domain}{Capability}Query` under `store/.../{domain}/query/` |
+| Outbound Query Adapter | `{Domain}{Capability}QueryAdapter` under `store/.../{domain}/internal/api/adapter/` or `internal/api/query/` |
+| Outbound Query Mapper | `{QueryPortName}Mapper` under `store/.../{domain}/internal/api/query/mapper/` |
+| Outbound Query Response DTO | Declared inside the query interface (nested `record`) |
 | Test method | `{functionName}_{input}_{expectedBehavior}` |

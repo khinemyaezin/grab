@@ -11,10 +11,9 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 | Category | Path |
 |---|---|
 | Architecture | `.agent/rules/architecture/` |
-| Application | `.agent/rules/application/` |
-| API | `.agent/rules/api/` |
+| Inbound | `.agent/rules/inbound/` |
+| Outbound | `.agent/rules/outbound/` |
 | Domain | `.agent/rules/domain/` |
-| Infrastructure | `.agent/rules/infrastructure/` |
 | Platform | `.agent/rules/platform/` |
 | Conventions | `.agent/rules/conventions/` |
 

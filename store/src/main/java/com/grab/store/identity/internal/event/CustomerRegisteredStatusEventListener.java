@@ -35,13 +35,16 @@ public class CustomerRegisteredStatusEventListener {
                 new CustomerRegistrationAccessPolicy.CustomerRegistrationContext(customerIdValue);
 
         accessPolicy.placementsFor(context)
-                .forEach(placement ->
-                        commandBus.dispatch(new ReplaceAccessCommand(
-                                idGenerator.convertIdFrom(userIdValue),
-                                placement.platformCode(),
-                                placement.placementCode(),
-                                placement.scopeKey(),
-                                placement.scopeId()
-                        )));
+                .forEach(placement -> {
+                    var userId = idGenerator.convertIdFrom(userIdValue);
+                    var command = new ReplaceAccessCommand(
+                            userId,
+                            placement.platformCode(),
+                            placement.placementCode(),
+                            placement.scopeKey(),
+                            placement.scopeId()
+                    );
+                    commandBus.dispatch(command);
+                });
     }
 }

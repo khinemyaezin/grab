@@ -39,13 +39,15 @@ public class MerchantAccountApprovedStatusEventListener {
                 new MerchantApprovalAccessPolicy.MerchantApprovalContext(merchantId.getValue());
 
         accessPolicy.placementsFor(context)
-                .forEach(placement ->
-                        commandBus.dispatch(new ReplaceAccessCommand(
-                                applicantUserId,
-                                placement.platformCode(),
-                                placement.placementCode(),
-                                placement.scopeKey(),
-                                placement.scopeId()
-                        )));
+                .forEach(placement -> {
+                    var command = new ReplaceAccessCommand(
+                            applicantUserId,
+                            placement.platformCode(),
+                            placement.placementCode(),
+                            placement.scopeKey(),
+                            placement.scopeId()
+                    );
+                    commandBus.dispatch(command);
+                });
     }
 }
