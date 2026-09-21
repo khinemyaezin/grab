@@ -197,6 +197,61 @@ storefrontquery:
       show_sql: ${STOREFRONTQUERY_JPA_SHOW_SQL:false}
       format_sql: ${STOREFRONTQUERY_JPA_FORMAT_SQL:false}
 
+region:
+  seed:
+    enabled: ${REGION_SEED_ENABLED:true}
+  datasource:
+    url: ${REGION_DATASOURCE_URL:jdbc:postgresql://localhost:5432/region}
+    username: ${REGION_DATASOURCE_USERNAME:admin}
+    password: ${REGION_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${REGION_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${REGION_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${REGION_JPA_DDL_AUTO:validate}
+      show_sql: ${REGION_JPA_SHOW_SQL:false}
+      format_sql: ${REGION_JPA_FORMAT_SQL:false}
+  outbox:
+    fixed-delay-ms: ${REGION_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${REGION_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${REGION_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${REGION_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${REGION_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${REGION_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${REGION_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${REGION_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${REGION_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${REGION_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+customer:
+  enabled: ${CUSTOMER_ENABLED:true}
+  datasource:
+    url: ${CUSTOMER_DATASOURCE_URL:jdbc:postgresql://localhost:5432/customer}
+    username: ${CUSTOMER_DATASOURCE_USERNAME:admin}
+    password: ${CUSTOMER_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${CUSTOMER_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${CUSTOMER_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${CUSTOMER_JPA_DDL_AUTO:validate}
+      show_sql: ${CUSTOMER_JPA_SHOW_SQL:false}
+      format_sql: ${CUSTOMER_JPA_FORMAT_SQL:false}
+  outbox:
+    fixed-delay-ms: ${CUSTOMER_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${CUSTOMER_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${CUSTOMER_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${CUSTOMER_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${CUSTOMER_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${CUSTOMER_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${CUSTOMER_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${CUSTOMER_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${CUSTOMER_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${CUSTOMER_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
 cart:
   datasource:
     url: ${CART_DATASOURCE_URL:jdbc:postgresql://localhost:5432/cart}
@@ -207,7 +262,7 @@ cart:
     hibernate:
       dialect: ${CART_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
-        auto: ${CART_JPA_DDL_AUTO:update}
+        auto: ${CART_JPA_DDL_AUTO:validate}
       show_sql: ${CART_JPA_SHOW_SQL:false}
       format_sql: ${CART_JPA_FORMAT_SQL:false}
   outbox:
@@ -222,6 +277,60 @@ cart:
       workers: ${CART_OUTBOX_HOT_QUEUE_WORKERS:2}
       capacity: ${CART_OUTBOX_HOT_QUEUE_CAPACITY:1000}
       drain-timeout-ms: ${CART_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+order:
+  enabled: ${ORDER_ENABLED:true}
+  datasource:
+    url: ${ORDER_DATASOURCE_URL:jdbc:postgresql://localhost:5432/order}
+    username: ${ORDER_DATASOURCE_USERNAME:admin}
+    password: ${ORDER_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${ORDER_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${ORDER_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${ORDER_JPA_DDL_AUTO:validate}
+      show_sql: ${ORDER_JPA_SHOW_SQL:false}
+      format_sql: ${ORDER_JPA_FORMAT_SQL:false}
+  outbox:
+    fixed-delay-ms: ${ORDER_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${ORDER_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${ORDER_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${ORDER_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${ORDER_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${ORDER_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${ORDER_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${ORDER_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${ORDER_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${ORDER_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+payment:
+  enabled: ${PAYMENT_ENABLED:true}
+  datasource:
+    url: ${PAYMENT_DATASOURCE_URL:jdbc:postgresql://localhost:5432/payment}
+    username: ${PAYMENT_DATASOURCE_USERNAME:admin}
+    password: ${PAYMENT_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${PAYMENT_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+  jpa:
+    hibernate:
+      dialect: ${PAYMENT_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${PAYMENT_JPA_DDL_AUTO:validate}
+      show_sql: ${PAYMENT_JPA_SHOW_SQL:false}
+      format_sql: ${PAYMENT_JPA_FORMAT_SQL:false}
+  outbox:
+    fixed-delay-ms: ${PAYMENT_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${PAYMENT_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${PAYMENT_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${PAYMENT_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${PAYMENT_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${PAYMENT_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${PAYMENT_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${PAYMENT_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${PAYMENT_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${PAYMENT_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
 
 workflows:
   seed:
