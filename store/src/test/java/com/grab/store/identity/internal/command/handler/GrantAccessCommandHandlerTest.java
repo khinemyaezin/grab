@@ -139,7 +139,9 @@ class GrantAccessServiceTest {
                 "SELLER_PORTAL",
                 "Seller Portal",
                 true,
-                Set.of("MERCHANT_OWNER", "MERCHANT_ADMIN")
+                Set.of("MERCHANT_OWNER", "MERCHANT_ADMIN"),
+                Set.of(),
+                Set.of()
         );
     }
 

@@ -1,14 +1,14 @@
 CREATE TABLE regions (
     id VARCHAR(64) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    currency_code CHAR(3) NOT NULL,
+    currency_code VARCHAR(3) NOT NULL,
     status VARCHAR(32) NOT NULL
 );
 
 CREATE TABLE region_countries (
     id VARCHAR(96) PRIMARY KEY,
     region_id VARCHAR(64) NOT NULL REFERENCES regions (id),
-    country_code CHAR(2) NOT NULL,
+    country_code VARCHAR(2) NOT NULL,
     CONSTRAINT uq_region_country UNIQUE (region_id, country_code)
 );
 

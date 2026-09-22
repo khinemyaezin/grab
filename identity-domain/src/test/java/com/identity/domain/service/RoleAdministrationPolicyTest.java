@@ -81,7 +81,8 @@ class RoleAdministrationPolicyTest {
                 "Seller Portal",
                 true,
                 Set.of(),
-                authorityCodes
+                authorityCodes,
+                Set.of()
         );
     }
 

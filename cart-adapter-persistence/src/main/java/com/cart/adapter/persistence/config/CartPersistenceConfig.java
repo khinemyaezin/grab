@@ -70,7 +70,7 @@ public class CartPersistenceConfig {
     }
 
     @Bean
-    CartOutboxEventProcessor processor(
+    CartOutboxEventProcessor cartOutboxEventProcessor(
             @Qualifier("cartOutboxStore") OutboxStore<CartOutboxEvent, Long> store,
             @Qualifier("cartOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("cartOutboxEventDispatcher") OutboxEventDispatcher dispatcher,

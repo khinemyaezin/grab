@@ -1,7 +1,7 @@
 package com.grab.store.cart.internal.adapter;
 
 import com.cart.application.port.outbound.CatalogBuyabilityPort;
-import com.grab.store.catalog.query.CatalogBuyabilityQueryPort;
+import com.grab.store.catalog.port.CatalogBuyabilityQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,21 +17,21 @@ import static org.mockito.Mockito.when;
 class CatalogBuyabilityAdapterTest {
 
     @Mock
-    private CatalogBuyabilityQueryPort catalogBuyabilityQueryPort;
+    private CatalogBuyabilityQuery catalogBuyabilityQuery;
 
     @InjectMocks
     private CatalogBuyabilityAdapter adapter;
 
     @Test
-    void findPublished_returnsEmptyWhenNotPublished() {
-        when(catalogBuyabilityQueryPort.findPublished("var-1", "web-1")).thenReturn(Optional.empty());
+    void findPublished_notPublished_returnsEmpty() {
+        when(catalogBuyabilityQuery.findPublished("var-1", "web-1")).thenReturn(Optional.empty());
 
         assertThat(adapter.findPublished("var-1", "web-1")).isEmpty();
     }
 
     @Test
-    void findPublished_mapsBuyableVariantWhenPublished() {
-        when(catalogBuyabilityQueryPort.findPublished("var-1", "web-1"))
+    void findPublished_published_returnsMappedBuyableVariant() {
+        when(catalogBuyabilityQuery.findPublished("var-1", "web-1"))
                 .thenReturn(Optional.of(publishedVariant()));
 
         Optional<CatalogBuyabilityPort.BuyableVariant> result = adapter.findPublished("var-1", "web-1");
@@ -45,8 +45,8 @@ class CatalogBuyabilityAdapterTest {
         });
     }
 
-    private static CatalogBuyabilityQueryPort.CatalogVariantSlice publishedVariant() {
-        return new CatalogBuyabilityQueryPort.CatalogVariantSlice(
+    private static CatalogBuyabilityQuery.CatalogVariantSlice publishedVariant() {
+        return new CatalogBuyabilityQuery.CatalogVariantSlice(
                 "var-1",
                 "prod-1",
                 "seller-1",

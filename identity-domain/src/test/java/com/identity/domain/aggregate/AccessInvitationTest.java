@@ -11,6 +11,7 @@ import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -144,7 +145,9 @@ class AccessInvitationTest {
                 "SELLER_PORTAL",
                 "Seller Portal",
                 true,
-                java.util.Set.of("STOREFRONT_MANAGER")
+                Set.of("STOREFRONT_MANAGER"),
+                Set.of(),
+                Set.of()
         );
     }
 }

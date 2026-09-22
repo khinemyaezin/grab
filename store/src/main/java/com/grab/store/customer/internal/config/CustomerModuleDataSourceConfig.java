@@ -1,5 +1,6 @@
 package com.grab.store.customer.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,10 +42,13 @@ public class CustomerModuleDataSourceConfig {
     }
 
     @Bean("customerDataSource")
-    public DataSource customerDataSource(
+    @ConfigurationProperties("customer.datasource.hikari")
+    public HikariDataSource customerDataSource(
             @Qualifier("customerDataSourceProperties") DataSourceProperties properties
     ) {
-        return properties.initializeDataSourceBuilder().build();
+        return properties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean(name = "customerFlyway", initMethod = "migrate")

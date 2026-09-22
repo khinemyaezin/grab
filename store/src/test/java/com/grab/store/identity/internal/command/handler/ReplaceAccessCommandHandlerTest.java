@@ -266,7 +266,9 @@ class ReplaceAccessServiceTest {
                 "PORTAL",
                 "Portal",
                 true,
-                Set.of(PREVIOUS_ROLE, REPLACEMENT_ROLE)
+                Set.of(PREVIOUS_ROLE, REPLACEMENT_ROLE),
+                Set.of(),
+                Set.of()
         );
     }
 

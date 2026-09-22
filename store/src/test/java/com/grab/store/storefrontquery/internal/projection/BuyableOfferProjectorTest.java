@@ -1,9 +1,9 @@
 package com.grab.store.storefrontquery.internal.projection;
 
-import com.grab.store.catalog.query.CatalogBuyabilityQueryPort;
-import com.grab.store.inventory.query.InventoryAvailabilityQueryPort;
-import com.grab.store.pricing.query.PricingQuoteQueryPort;
-import com.grab.store.saleschannel.query.SalesChannelQueryPort;
+import com.grab.store.catalog.port.CatalogBuyabilityQuery;
+import com.grab.store.inventory.port.InventoryAvailabilityQuery;
+import com.grab.store.pricing.port.PricingQuoteQuery;
+import com.grab.store.saleschannel.port.SalesChannelQuery;
 import com.storefrontquery.infrastructure.entity.BuyableOfferEntity;
 import com.storefrontquery.infrastructure.repository.jpa.BuyableOfferJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,13 +30,13 @@ class BuyableOfferProjectorTest {
     @Mock
     private BuyableOfferJpaRepository offers;
     @Mock
-    private CatalogBuyabilityQueryPort catalog;
+    private CatalogBuyabilityQuery catalog;
     @Mock
-    private PricingQuoteQueryPort pricing;
+    private PricingQuoteQuery pricing;
     @Mock
-    private InventoryAvailabilityQueryPort inventory;
+    private InventoryAvailabilityQuery inventory;
     @Mock
-    private SalesChannelQueryPort salesChannels;
+    private SalesChannelQuery salesChannels;
 
     private BuyableOfferProjector projector;
 
@@ -47,16 +46,16 @@ class BuyableOfferProjectorTest {
     }
 
     @Test
-    void onPublished_shouldMarkBuyableWhenActivePricedAndInStock() {
+    void onPublished_activePricedAndInStock_marksBuyable() {
         when(offers.findBySalesChannelIdAndVariantId("web-1", "var-1")).thenReturn(Optional.empty());
-        when(catalog.findVariant("var-1")).thenReturn(Optional.of(new CatalogBuyabilityQueryPort.CatalogVariantSlice(
+        when(catalog.findVariant("var-1")).thenReturn(Optional.of(new CatalogBuyabilityQuery.CatalogVariantSlice(
                 "var-1", "prod-1", "seller-1", "SKU-1", "Shirt", "shirt", "ACTIVE", false, "img"
         )));
         when(salesChannels.isEnabled("web-1")).thenReturn(true);
         when(inventory.available("SKU-1", "web-1"))
-                .thenReturn(new InventoryAvailabilityQueryPort.Availability(4, false));
+                .thenReturn(new InventoryAvailabilityQuery.Availability(4, false));
         when(pricing.quote(eq("var-1"), eq("MMK"), eq(1), eq("web-1")))
-                .thenReturn(Optional.of(new PricingQuoteQueryPort.QuotedPrice(new BigDecimal("12000"), "MMK", "ps-1")));
+                .thenReturn(Optional.of(new PricingQuoteQuery.QuotedPrice(new BigDecimal("12000"), "MMK", "ps-1")));
         when(offers.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         projector.onPublished("var-1", "web-1", Instant.now());
@@ -71,16 +70,16 @@ class BuyableOfferProjectorTest {
     }
 
     @Test
-    void onPublished_shouldStayNotBuyableWhenStockIsAtUnroutedLocation() {
+    void onPublished_stockAtUnroutedLocation_staysNotBuyable() {
         when(offers.findBySalesChannelIdAndVariantId("mkt-1", "var-1")).thenReturn(Optional.empty());
-        when(catalog.findVariant("var-1")).thenReturn(Optional.of(new CatalogBuyabilityQueryPort.CatalogVariantSlice(
+        when(catalog.findVariant("var-1")).thenReturn(Optional.of(new CatalogBuyabilityQuery.CatalogVariantSlice(
                 "var-1", "prod-1", "seller-1", "SKU-1", "Shirt", "shirt", "ACTIVE", false, "img"
         )));
         when(salesChannels.isEnabled("mkt-1")).thenReturn(true);
         when(inventory.available("SKU-1", "mkt-1"))
-                .thenReturn(new InventoryAvailabilityQueryPort.Availability(0, false));
+                .thenReturn(new InventoryAvailabilityQuery.Availability(0, false));
         when(pricing.quote(eq("var-1"), eq("MMK"), eq(1), eq("mkt-1")))
-                .thenReturn(Optional.of(new PricingQuoteQueryPort.QuotedPrice(new BigDecimal("12000"), "MMK", "ps-1")));
+                .thenReturn(Optional.of(new PricingQuoteQuery.QuotedPrice(new BigDecimal("12000"), "MMK", "ps-1")));
         when(offers.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         projector.onPublished("var-1", "mkt-1", Instant.now());
@@ -92,7 +91,7 @@ class BuyableOfferProjectorTest {
     }
 
     @Test
-    void onUnpublished_shouldIgnoreStaleEvent() {
+    void onUnpublished_staleEvent_ignoresEvent() {
         BuyableOfferEntity existing = new BuyableOfferEntity();
         existing.setSalesChannelId("web-1");
         existing.setVariantId("var-1");

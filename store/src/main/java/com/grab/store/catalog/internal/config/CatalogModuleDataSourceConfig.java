@@ -1,5 +1,6 @@
 package com.grab.store.catalog.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -51,8 +52,11 @@ public class CatalogModuleDataSourceConfig {
     }
 
     @Bean("catalogDataSource")
-    public DataSource catalogDataSource(@Qualifier("catalogDataSourceProperties")DataSourceProperties catalogDataSourceProperties) {
-        return catalogDataSourceProperties.initializeDataSourceBuilder().build();
+    @ConfigurationProperties("catalog.datasource.hikari")
+    public HikariDataSource catalogDataSource(@Qualifier("catalogDataSourceProperties") DataSourceProperties catalogDataSourceProperties) {
+        return catalogDataSourceProperties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean("catalogEntityManagerFactory")

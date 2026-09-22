@@ -83,5 +83,4 @@ public class User extends AggregateRoot<Id> {
                 "User status cannot transition from " + status + " to " + requestedStatus
         );
     }
-
 }

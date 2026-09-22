@@ -19,9 +19,8 @@ import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.RoleRepository;
-import com.identity.application.port.outbound.IdentityLookupPort;
+import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
-import com.identity.application.port.outbound.MerchantViewQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.adapter.persistence.adapter.*;
@@ -169,11 +168,6 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public MerchantViewQueryPort merchantViewQueryPort(MerchantViewJpaRepository merchantViewJpaRepository) {
-        return new MerchantViewQueryAdapter(merchantViewJpaRepository);
-    }
-
-    @Bean
     public AuthorityRepository authorityRepository(AuthorityJpaRepository jpaRepository) {
         return new AuthorityRepositoryAdapter(jpaRepository);
     }
@@ -264,12 +258,12 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public IdentityLookupPort identityLookupPort(
+    public IdentityLookupQueryPort identityLookupQueryPort(
             UserJpaRepository users,
             ExternalIdentityJpaRepository externalIdentities,
             ExternalEntitlementMappingJpaRepository entitlementMappings,
             AccessAssignmentJpaRepository accessAssignments) {
-        return new IdentityLookupAdapter(
+        return new IdentityLookupQueryAdapter(
                 users, externalIdentities, entitlementMappings, accessAssignments
         );
     }

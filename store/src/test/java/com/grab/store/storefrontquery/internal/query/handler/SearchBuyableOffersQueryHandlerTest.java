@@ -1,6 +1,6 @@
 package com.grab.store.storefrontquery.internal.query.handler;
 
-import com.grab.store.saleschannel.query.SalesChannelQueryPort;
+import com.grab.store.saleschannel.port.SalesChannelQuery;
 import com.grab.store.storefrontquery.internal.exception.StorefrontQueryServiceException;
 import com.grab.store.storefrontquery.internal.query.SearchBuyableOffersQuery;
 import com.storefrontquery.infrastructure.repository.jpa.BuyableOfferJpaRepository;
@@ -26,12 +26,12 @@ class SearchBuyableOffersQueryHandlerTest {
     @Mock
     private BuyableOfferJpaRepository offers;
     @Mock
-    private SalesChannelQueryPort salesChannels;
+    private SalesChannelQuery salesChannels;
     @InjectMocks
     private SearchBuyableOffersQueryHandler handler;
 
     @Test
-    void handle_shouldFailClosedWhenChannelDisabled() {
+    void handle_channelDisabled_throwsStorefrontQueryServiceException() {
         when(salesChannels.isEnabled("web-1")).thenReturn(false);
 
         assertThatThrownBy(() -> handler.handle(new SearchBuyableOffersQuery("web-1", Pageable.unpaged())))
@@ -39,7 +39,7 @@ class SearchBuyableOffersQueryHandlerTest {
     }
 
     @Test
-    void handle_shouldQueryBuyableRowsForEnabledChannel() {
+    void handle_channelEnabled_queriesBuyableOffers() {
         when(salesChannels.isEnabled("web-1")).thenReturn(true);
         when(offers.findBySalesChannelIdAndBuyableTrue(eq("web-1"), any()))
                 .thenReturn(new PageImpl<>(List.of()));

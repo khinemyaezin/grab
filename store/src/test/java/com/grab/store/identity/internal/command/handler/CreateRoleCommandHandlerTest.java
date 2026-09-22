@@ -61,7 +61,8 @@ class CreateRoleServiceTest {
                 "Seller Portal",
                 true,
                 Set.of(),
-                Set.of("MERCHANT_PROFILE_READ", "MERCHANT_PROFILE_WRITE")
+                Set.of("MERCHANT_PROFILE_READ", "MERCHANT_PROFILE_WRITE"),
+                Set.of()
         );
     }
 

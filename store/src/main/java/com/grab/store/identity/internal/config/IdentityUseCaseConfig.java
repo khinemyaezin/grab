@@ -4,13 +4,11 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.identity.application.port.inbound.*;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
-import com.identity.application.port.outbound.IdentityLookupPort;
-import com.identity.application.port.outbound.MerchantViewQueryPort;
+import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.application.service.*;
 import com.identity.domain.policy.AccessPlacementPolicyResolver;
-import com.identity.domain.policy.RegistrationAccessPolicyResolver;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import com.identity.domain.policy.impl.RuleBasedRoleDelegationPolicy;
@@ -123,10 +121,9 @@ public class IdentityUseCaseConfig {
 
     @Bean
     public ListAccessContextsUseCase listAccessContextsUseCase(
-            AccessAssignmentQueryPort assignments,
-            MerchantViewQueryPort merchantViewQueryPort
+            AccessAssignmentQueryPort assignments
     ) {
-        return new ListAccessContextsService(assignments, merchantViewQueryPort);
+        return new ListAccessContextsService(assignments);
     }
 
     @Bean
@@ -175,10 +172,9 @@ public class IdentityUseCaseConfig {
             PlatformRepository platforms,
             AccessAssignmentRepository accessAssignments,
             PasswordHasher passwordHasher,
-            IdGenerator idGenerator,
-            RegistrationAccessPolicyResolver policyResolver
+            IdGenerator idGenerator
     ) {
-        return new RegisterService(users, platforms, accessAssignments, passwordHasher, idGenerator, policyResolver);
+        return new RegisterService(users, platforms, accessAssignments, passwordHasher, idGenerator);
     }
 
     @Bean
@@ -209,8 +205,8 @@ public class IdentityUseCaseConfig {
     }
 
     @Bean
-    public IdentityLookupUseCase identityLookupUseCase(IdentityLookupPort identityLookupPort) {
-        return new IdentityLookupService(identityLookupPort);
+    public IdentityLookupUseCase identityLookupUseCase(IdentityLookupQueryPort identityLookupQueryPort) {
+        return new IdentityLookupService(identityLookupQueryPort);
     }
 
     @Bean

@@ -1,6 +1,5 @@
 package com.grab.store.identity.internal.command.handler;
 
-import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.identity.application.service.RegisterService;
@@ -9,14 +8,12 @@ import com.identity.application.exception.IdentityServiceException;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
-import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.domain.policy.RegistrationAccessPolicy;
 import com.identity.domain.policy.RegistrationAccessPolicyResolver;
-import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.HashedPassword;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,16 +58,7 @@ class RegisterServiceTest {
 
     @BeforeEach
     void setUp() {
-        policy = new RegistrationAccessPolicy() {
-            @Override
-            public String platformCode() { return "CUSTOMER_APP"; }
-            @Override
-            public AccessAssignment createAssignment(Id assignmentId, Id userId, Platform platform) {
-                platform.requireSupportedRole("CUSTOMER");
-                return AccessAssignment.create(assignmentId, userId, platform, "CUSTOMER", AccessScope.global(), null, null);
-            }
-        };
-        handler = new RegisterService(users, platforms, assignments, passwords, ids, policyResolver);
+        handler = new RegisterService(users, platforms, assignments, passwords, ids);
         command = new RegisterCommand("customer@example.com", "Password123!", "CUSTOMER_APP");
     }
 
@@ -80,7 +68,6 @@ class RegisterServiceTest {
 
         var platform = Optional.of(customerPlatform());
         when(platforms.findByCode("CUSTOMER_APP")).thenReturn(platform);
-        when(policyResolver.resolve("CUSTOMER_APP")).thenReturn(policy);
         when(passwords.hash(command.password())).thenReturn(new HashedPassword("stored-hash"));
         when(ids.generateId()).thenReturn(new CommonId("user-1"), new CommonId("assignment-1"));
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -129,56 +116,14 @@ class RegisterServiceTest {
         verify(assignments, never()).save(any());
     }
 
-    @Test
-    void handle_withUnsupportedConfiguredRole_shouldCreateNeitherUserNorAssignment() {
-        when(users.findByEmail(new Email(command.email()))).thenReturn(Optional.empty());
-        when(platforms.findByCode("CUSTOMER_APP")).thenReturn(Optional.of(new Platform(
-                new CommonId("platform-1"),
-                "CUSTOMER_APP",
-                "Customer App",
-                true,
-                Set.of("MEMBER")
-        )));
-        prepareDomainConstruction();
-
-        assertThatThrownBy(() -> handler.execute(command))
-                .isInstanceOf(IdentityDomainValidationException.class);
-
-        verify(users, never()).save(any());
-        verify(assignments, never()).save(any());
-    }
-
-    @Test
-    void handle_withInactiveConfiguredRole_shouldCreateNeitherUserNorAssignment() {
-        when(users.findByEmail(new Email(command.email()))).thenReturn(Optional.empty());
-        when(platforms.findByCode("CUSTOMER_APP")).thenReturn(Optional.of(new Platform(
-                new CommonId("platform-1"),
-                "CUSTOMER_APP",
-                "Customer App",
-                true,
-                Set.of()
-        )));
-        prepareDomainConstruction();
-
-        assertThatThrownBy(() -> handler.execute(command))
-                .isInstanceOf(IdentityDomainValidationException.class);
-
-        verify(users, never()).save(any());
-        verify(assignments, never()).save(any());
-    }
-
-    private void prepareDomainConstruction() {
-        when(passwords.hash(command.password())).thenReturn(new HashedPassword("stored-hash"));
-        when(ids.generateId()).thenReturn(new CommonId("user-1"), new CommonId("assignment-1"));
-        when(policyResolver.resolve("CUSTOMER_APP")).thenReturn(policy);
-    }
-
     private Platform customerPlatform() {
         return new Platform(
                 new CommonId("platform-1"),
                 "CUSTOMER_APP",
                 "Customer App",
                 true,
+                Set.of("CUSTOMER"),
+                Set.of(),
                 Set.of("CUSTOMER")
         );
     }

@@ -28,6 +28,7 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
     private final SessionStore sessions;
     private final IdGenerator ids;
     private final AccessPlacementPolicyResolver placementPolicies;
+
     public AccessAssignmentResult execute(ReplaceAccessCommand command) {
         users.findById(command.userId()).orElseThrow(() -> new IdentityServiceException(
                 new IdentityServiceError.UserNotFound(command.userId().getValue()),

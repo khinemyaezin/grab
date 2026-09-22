@@ -1,6 +1,6 @@
 package com.grab.store.identity.internal.event;
 
-import com.grab.store.identity.events.UserRegisteredIntegrationEvent;
+import com.grab.store.shared.events.UserRegisteredIntegrationEvent;
 import com.identity.domain.event.UserRegisteredEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;

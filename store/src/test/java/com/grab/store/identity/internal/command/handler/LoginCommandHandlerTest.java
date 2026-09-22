@@ -181,7 +181,9 @@ class LoginServiceTest {
                         "SELLER_PORTAL",
                         "Seller Portal",
                         true,
-                        Set.of(roleCode)
+                        Set.of(roleCode),
+                        Set.of(),
+                        Set.of()
                 ),
                 roleCode,
                 new AccessScope(new ScopeKey("merchant.account"), merchantId),

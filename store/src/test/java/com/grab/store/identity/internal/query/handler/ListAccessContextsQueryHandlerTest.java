@@ -2,7 +2,6 @@ package com.grab.store.identity.internal.query.handler;
 
 import com.grab.framework.id.impl.CommonId;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
-import com.identity.application.port.outbound.MerchantViewQueryPort;
 import com.identity.application.model.read.ListAccessContextsQuery;
 import com.identity.application.model.read.AccessAssignmentView;
 import com.identity.application.service.ListAccessContextsService;
@@ -25,8 +24,6 @@ class ListAccessContextsServiceTest {
 
     @Mock
     private AccessAssignmentQueryPort assignments;
-    @Mock
-    private MerchantViewQueryPort merchantViewQueryPort;
 
     @Test
     void handle_shouldGroupRolesByPlatformAndScope() {
@@ -38,9 +35,7 @@ class ListAccessContextsServiceTest {
                 assignment("assignment-2", "STORE_MANAGER", "merchant-1"),
                 assignment("assignment-3", "MERCHANT_OWNER", "merchant-2")
         ));
-        when(merchantViewQueryPort.findAllByScopeIdIn(any())).thenReturn(List.of());
-
-        var results = new ListAccessContextsService(assignments, merchantViewQueryPort)
+        var results = new ListAccessContextsService(assignments)
                 .execute(new ListAccessContextsQuery(userId, "SELLER_PORTAL"));
 
         assertThat(results).hasSize(2);

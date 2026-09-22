@@ -25,11 +25,11 @@ class CustomerUserProfileQueryAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new CustomerUserProfileQueryPortAdapter(identityUserProfileQuery);
+        adapter = new CustomerUserProfileQueryAdapter(identityUserProfileQuery);
     }
 
     @Test
-    void shouldDelegateAndMapUserProfile() {
+    void getUserProfile_existingProfile_returnsMappedProfile() {
         Id userId = () -> "user-123";
 
         UserProfileQuery.UserProfileResponse identityResponse =
@@ -53,7 +53,7 @@ class CustomerUserProfileQueryAdapterTest {
     }
 
     @Test
-    void shouldReturnNull_whenIdentityReturnsNull() {
+    void getUserProfile_nullFromIdentity_returnsNull() {
         Id userId = () -> "user-123";
         when(identityUserProfileQuery.getUserProfile(userId)).thenReturn(null);
 

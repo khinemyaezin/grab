@@ -3,10 +3,6 @@ package com.identity.adapter.persistence.configuration;
 import com.identity.domain.policy.AccessPlacementPolicy;
 import com.identity.domain.policy.AccessPlacementPolicyResolver;
 import com.identity.domain.policy.RegistrationAccessPolicyResolver;
-import com.identity.domain.policy.impl.MerchantOwnerAccessPlacementPolicy;
-import com.identity.domain.policy.impl.CustomerAppUserRegistrationAccessPolicy;
-import com.identity.domain.policy.impl.CustomerAppUserRegistrationAccessPolicy;
-import com.identity.domain.policy.impl.SellerPlatformUserRegistrationAccessPolicy;
 import com.identity.domain.policy.RegistrationAccessPolicy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,33 +12,8 @@ import java.util.List;
 @Configuration
 public class IdentityDomainConfig {
     @Bean
-    public SellerPlatformUserRegistrationAccessPolicy sellerRegistrationAccessPolicy() {
-        return new SellerPlatformUserRegistrationAccessPolicy();
-    }
-
-    @Bean
-    public CustomerAppUserRegistrationAccessPolicy customerAppRegistrationAccessPolicy() {
-        return new CustomerAppUserRegistrationAccessPolicy();
-    }
-
-    @Bean
-    public CustomerAppUserRegistrationAccessPolicy customerAppUserRegistrationAccessPolicy() {
-        return new CustomerAppUserRegistrationAccessPolicy();
-    }
-
-    @Bean
     public RegistrationAccessPolicyResolver registrationAccessPolicyResolver(List<RegistrationAccessPolicy> policies) {
         return new RegistrationAccessPolicyResolver(policies);
-    }
-
-    @Bean
-    public MerchantOwnerAccessPlacementPolicy merchantOwnerAccessPlacementPolicy() {
-        return new MerchantOwnerAccessPlacementPolicy();
-    }
-
-    @Bean
-    public com.identity.domain.policy.impl.InventoryOperatorAccessPlacementPolicy inventoryOperatorAccessPlacementPolicy() {
-        return new com.identity.domain.policy.impl.InventoryOperatorAccessPlacementPolicy();
     }
 
     @Bean
