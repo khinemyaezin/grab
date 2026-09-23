@@ -8,7 +8,6 @@ import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.application.service.*;
-import com.identity.domain.policy.AccessPlacementPolicyResolver;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import com.identity.domain.policy.impl.RuleBasedRoleDelegationPolicy;
@@ -183,10 +182,9 @@ public class IdentityUseCaseConfig {
             PlatformRepository platforms,
             AccessAssignmentRepository assignments,
             SessionStore sessions,
-            IdGenerator ids,
-            AccessPlacementPolicyResolver placementPolicies
+            IdGenerator ids
     ) {
-        return new ReplaceAccessService(users, platforms, assignments, sessions, ids, placementPolicies);
+        return new ReplaceAccessService(users, platforms, assignments, sessions, ids);
     }
 
     @Bean

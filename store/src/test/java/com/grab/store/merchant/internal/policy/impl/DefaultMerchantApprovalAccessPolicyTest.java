@@ -1,6 +1,6 @@
 package com.grab.store.merchant.internal.policy.impl;
 
-import com.merchant.application.policy.DefaultMerchantApprovalAccessPolicy;
+import com.merchant.domain.policy.impl.DefaultMerchantApprovalAccessPolicy;
 import com.merchant.domain.policy.MerchantApprovalAccessPolicy;
 import org.junit.jupiter.api.Test;
 

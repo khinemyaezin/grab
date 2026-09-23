@@ -7,11 +7,11 @@ import com.merchant.application.port.outbound.StorefrontQueryPort;
 import com.merchant.application.service.*;
 import com.merchant.domain.port.outbound.MerchantAccountRepository;
 import com.merchant.domain.port.outbound.StorefrontRepository;
-import com.merchant.domain.service.MerchantApprovalPolicy;
+import com.merchant.domain.policy.MerchantApprovalPolicy;
 import com.merchant.domain.service.MerchantRegistrationPolicy;
 import com.merchant.domain.service.StorefrontProvisioningService;
 import com.merchant.domain.service.StorefrontSlugPolicy;
-import com.merchant.domain.service.SystemDefaultMerchantApprovalPolicy;
+import com.merchant.domain.policy.impl.SystemDefaultMerchantApprovalPolicy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
