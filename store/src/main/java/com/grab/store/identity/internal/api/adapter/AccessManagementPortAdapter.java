@@ -8,7 +8,6 @@ import com.identity.application.model.write.ReplaceAccessCommand;
 import com.identity.application.model.write.RevokeSessionsByScopeCommand;
 import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.application.port.inbound.RevokeSessionsByScopeUseCase;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -30,11 +29,12 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
 
     @Override
     @IdentityTransactional
-    public void grantAccess(GrantAccessRequest request) {
+    public void replaceAccess(ReplaceAccessRequest request) {
         Id userId = idGenerator.convertIdFrom(request.userId());
         var command = new ReplaceAccessCommand(
                 userId,
                 request.platformCode(),
+                request.previousRoleCode(),
                 request.roleCode(),
                 request.scopeKey(),
                 request.scopeId()
@@ -49,6 +49,7 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
         var command = new ReplaceAccessCommand(
                 userId,
                 request.platformCode(),
+                request.roleCode(),
                 null,
                 request.scopeKey(),
                 request.scopeId()

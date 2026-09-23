@@ -1,7 +1,7 @@
-package com.merchant.domain.service;
+package com.merchant.domain.policy.impl;
 
 import com.merchant.domain.aggregate.MerchantAccount;
-import com.merchant.domain.enums.MerchantType;
+import com.merchant.domain.policy.MerchantApprovalPolicy;
 
 public final class SystemDefaultMerchantApprovalPolicy implements MerchantApprovalPolicy {
 

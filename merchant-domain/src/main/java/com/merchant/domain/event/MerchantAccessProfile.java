@@ -1,4 +1,4 @@
-package com.merchant.application.util;
+package com.merchant.domain.event;
 
 public final class MerchantAccessProfile {
     public static final String SELLER_PLATFORM_CODE = "SELLER_PORTAL";

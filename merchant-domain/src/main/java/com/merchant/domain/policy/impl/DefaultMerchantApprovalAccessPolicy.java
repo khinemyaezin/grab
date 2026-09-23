@@ -1,6 +1,6 @@
-package com.merchant.application.policy;
+package com.merchant.domain.policy.impl;
 
-import com.merchant.application.util.MerchantAccessProfile;
+import com.merchant.domain.event.MerchantAccessProfile;
 import com.merchant.domain.policy.MerchantApprovalAccessPolicy;
 
 import java.util.List;

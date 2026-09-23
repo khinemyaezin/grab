@@ -51,6 +51,21 @@ public class AccessAssignmentRepositoryAdapter implements AccessAssignmentReposi
     }
 
     @Override
+    public List<AccessAssignment> findCurrentByUserPlatformAndScope(
+            Id userId,
+            String platformCode,
+            AccessScope scope
+    ) {
+        return executor.query("AccessAssignment", () -> assignments
+                .findCurrentByUserPlatformAndScope(
+                        userId.getValue(), platformCode, scope.key().value(), scope.scopeId()
+                )
+                .stream()
+                .map(assembler::toDomain)
+                .toList());
+    }
+
+    @Override
     public List<AccessAssignment> findByUser(Id userId) {
         return executor.query("AccessAssignment", () -> assignments
                 .findByUser_UuidOrderByCreatedAt(userId.getValue())

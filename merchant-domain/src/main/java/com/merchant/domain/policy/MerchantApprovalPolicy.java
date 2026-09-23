@@ -1,4 +1,4 @@
-package com.merchant.domain.service;
+package com.merchant.domain.policy;
 
 import com.merchant.domain.aggregate.MerchantAccount;
 

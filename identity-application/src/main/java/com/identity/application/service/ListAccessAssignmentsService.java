@@ -1,5 +1,6 @@
 package com.identity.application.service;
 
+import com.identity.application.model.read.AccessAssignmentView;
 import com.identity.application.model.write.AccessAssignmentResult;
 import com.identity.application.port.inbound.ListAccessAssignmentsUseCase;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
@@ -25,7 +26,7 @@ public class ListAccessAssignmentsService implements ListAccessAssignmentsUseCas
     }
 
     private AccessAssignmentResult toResult(
-            com.identity.application.model.read.AccessAssignmentView assignment,
+            AccessAssignmentView assignment,
             Instant at
     ) {
         return new AccessAssignmentResult(

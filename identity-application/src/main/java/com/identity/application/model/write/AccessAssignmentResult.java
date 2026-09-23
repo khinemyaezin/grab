@@ -36,4 +36,21 @@ public record AccessAssignmentResult(
                 assignment.getExpiresAt() == null ? null : assignment.getExpiresAt().toString()
         );
     }
+
+    public static AccessAssignmentResult revoked(String userId, String platformCode, String scopeKey, String scopeId) {
+        Instant now = Instant.now();
+        return new AccessAssignmentResult(
+                null,
+                userId,
+                platformCode,
+                null,
+                scopeKey,
+                scopeId,
+                "REVOKED",
+                null,
+                now.toString(),
+                now.toString(),
+                null
+        );
+    }
 }
