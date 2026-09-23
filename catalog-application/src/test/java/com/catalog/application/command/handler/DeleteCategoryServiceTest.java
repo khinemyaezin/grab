@@ -3,7 +3,8 @@ package com.catalog.application.command.handler;
 import com.catalog.application.service.DeleteCategoryService;
 
 import com.catalog.domain.aggregate.Category;
-import com.catalog.application.port.outbound.CategoryHierarchyPort;
+import com.catalog.application.port.outbound.CategoryHierarchyQueryPort;
+import com.catalog.domain.port.outbound.CategoryHierarchyRepository;
 import com.catalog.domain.port.outbound.CategoryRepository;
 import com.catalog.domain.port.outbound.ProductRepository;
 import com.grab.framework.exception.ErrorCategory;
@@ -32,7 +33,9 @@ class DeleteCategoryServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
     @Mock
-    private CategoryHierarchyPort categoryHierarchyPort;
+    private CategoryHierarchyQueryPort categoryHierarchyQueryPort;
+    @Mock
+    private CategoryHierarchyRepository categoryHierarchyRepository;
     @Mock
     private ProductRepository productRepository;
 
@@ -40,16 +43,16 @@ class DeleteCategoryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DeleteCategoryService(categoryRepository, categoryHierarchyPort, productRepository);
+        service = new DeleteCategoryService(categoryRepository, categoryHierarchyQueryPort, categoryHierarchyRepository, productRepository);
     }
 
     @Test
-    void handle_blocksDeleteWhenSubtreeHasAssignedProducts() {
+    void execute_subtreeHasAssignedProducts_throwsException() {
         Id categoryId = new CommonId("category-123");
         Category category = Category.createRoot(categoryId, "Category");
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(category));
-        when(categoryHierarchyPort.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
+        when(categoryHierarchyQueryPort.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
         when(productRepository.existsByCategoryIds(Set.of(categoryId))).thenReturn(true);
 
         assertThatThrownBy(() -> service.execute(new DeleteCategoryCommand(categoryId)))
@@ -62,22 +65,22 @@ class DeleteCategoryServiceTest {
     }
 
     @Test
-    void handle_deletesWhenSubtreeHasNoAssignedProducts() {
+    void execute_subtreeHasNoAssignedProducts_deletesCategory() {
         Id categoryId = new CommonId("category-123");
         Category category = Category.createRoot(categoryId, "Category");
 
         when(categoryRepository.find(categoryId)).thenReturn(Optional.of(category));
-        when(categoryHierarchyPort.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
+        when(categoryHierarchyQueryPort.findSubtreeIds(categoryId)).thenReturn(Set.of(categoryId));
         when(productRepository.existsByCategoryIds(Set.of(categoryId))).thenReturn(false);
 
         DeleteCategoryResult result = service.execute(new DeleteCategoryCommand(categoryId));
 
-        verify(categoryHierarchyPort).deleteSubtree(categoryId);
+        verify(categoryHierarchyRepository).deleteSubtree(categoryId);
         assertThat(result.deleted()).isTrue();
     }
 
     @Test
-    void handle_missingCategoryReturnsFalse() {
+    void execute_missingCategory_returnsFalse() {
         Id categoryId = new CommonId("missing-category");
         when(categoryRepository.find(categoryId)).thenReturn(Optional.empty());
 

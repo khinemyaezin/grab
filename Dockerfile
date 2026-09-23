@@ -36,11 +36,19 @@ COPY sales-channel-domain/pom.xml sales-channel-domain/
 COPY sales-channel-application/pom.xml sales-channel-application/
 COPY sales-channel-adapter-persistence/pom.xml sales-channel-adapter-persistence/
 
+COPY customer-domain/pom.xml customer-domain/
+COPY customer-application/pom.xml customer-application/
+COPY customer-adapter-persistence/pom.xml customer-adapter-persistence/
+
 COPY storefront-query-infrastructure/pom.xml storefront-query-infrastructure/
 
 COPY cart-domain/pom.xml cart-domain/
 COPY cart-application/pom.xml cart-application/
 COPY cart-adapter-persistence/pom.xml cart-adapter-persistence/
+
+COPY region-domain/pom.xml region-domain/
+COPY region-application/pom.xml region-application/
+COPY region-adapter-persistence/pom.xml region-adapter-persistence/
 
 COPY workflow-infrastructure/pom.xml workflow-infrastructure/
 
@@ -79,11 +87,19 @@ COPY sales-channel-domain/src sales-channel-domain/src
 COPY sales-channel-application/src sales-channel-application/src
 COPY sales-channel-adapter-persistence/src sales-channel-adapter-persistence/src
 
+COPY customer-domain/src customer-domain/src
+COPY customer-application/src customer-application/src
+COPY customer-adapter-persistence/src customer-adapter-persistence/src
+
 COPY storefront-query-infrastructure/src storefront-query-infrastructure/src
 
 COPY cart-domain/src cart-domain/src
 COPY cart-application/src cart-application/src
 COPY cart-adapter-persistence/src cart-adapter-persistence/src
+
+COPY region-domain/src region-domain/src
+COPY region-application/src region-application/src
+COPY region-adapter-persistence/src region-adapter-persistence/src
 
 COPY workflow-infrastructure/src workflow-infrastructure/src
 

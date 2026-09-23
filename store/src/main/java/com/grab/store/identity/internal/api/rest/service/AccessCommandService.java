@@ -44,14 +44,15 @@ public class AccessCommandService {
             SecurityPrincipal principal
     ) {
         AuthenticatedAccessScopeResolver.ActorScope actorScope = actorScopes.resolve(principal);
-        AccessAssignmentResult result = commandBus.dispatch(statusMapper.toCommand(
+        var command = statusMapper.toCommand(
                 assignmentId,
                 requestedStatus,
                 actorScope.key(),
                 actorScope.id(),
                 principal.getPlatformUserId(),
                 principal.actor().roles()
-        ));
+        );
+        AccessAssignmentResult result = commandBus.dispatch(command);
         return statusMapper.toResponse(result);
     }
 

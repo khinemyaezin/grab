@@ -3,7 +3,7 @@ package com.catalog.application.service;
 import com.catalog.application.exception.CatalogServiceError;
 import com.catalog.application.exception.CatalogServiceException;
 import com.catalog.application.port.inbound.GetProductBySlugUseCase;
-import com.catalog.application.port.outbound.MerchantAvailabilityPort;
+import com.catalog.application.port.outbound.MerchantAvailabilityQueryPort;
 import com.catalog.application.port.outbound.ProductQueryPort;
 import com.catalog.application.port.outbound.VariantOptionQueryPort;
 import com.catalog.application.model.read.GetProductBySlugQuery;
@@ -29,7 +29,7 @@ public class GetProductBySlugService implements GetProductBySlugUseCase {
 
     private final ProductQueryPort productQueryPort;
     private final VariantOptionQueryPort variantOptionQueryPort;
-    private final MerchantAvailabilityPort merchantAvailabilityPort;
+    private final MerchantAvailabilityQueryPort merchantAvailabilityQueryPort;
     private final ProductMediaConverter productMediaConverter;
     private final IdGenerator idGenerator;
 
@@ -47,7 +47,7 @@ public class GetProductBySlugService implements GetProductBySlugUseCase {
             );
         }
 
-        MerchantAvailabilityPort.MerchantAvailabilitySlice availability = merchantAvailabilityPort
+        MerchantAvailabilityQueryPort.MerchantAvailabilitySlice availability = merchantAvailabilityQueryPort
                 .findByMerchantId(product.merchantId())
                 .orElse(null);
         if (availability == null || !"ACTIVE".equals(availability.status())) {

@@ -19,6 +19,10 @@ catalog:
     username: ${CATALOG_DATASOURCE_USERNAME:admin}
     password: ${CATALOG_DATASOURCE_PASSWORD:123}
     driver-class-name: ${CATALOG_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${CATALOG_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${CATALOG_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Catalog
   jpa:
     hibernate:
       dialect: ${CATALOG_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -47,6 +51,10 @@ inventory:
     username: ${INVENTORY_DATASOURCE_USERNAME:admin}
     password: ${INVENTORY_DATASOURCE_PASSWORD:123}
     driver-class-name: ${INVENTORY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${INVENTORY_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${INVENTORY_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Inventory
   jpa:
     hibernate:
       dialect: ${INVENTORY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -81,6 +89,10 @@ identity:
     username: ${IDENTITY_DATASOURCE_USERNAME:admin}
     password: ${IDENTITY_DATASOURCE_PASSWORD:123}
     driver-class-name: ${IDENTITY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${IDENTITY_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${IDENTITY_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Identity
   jpa:
     hibernate:
       dialect: ${IDENTITY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -106,6 +118,10 @@ merchant:
     username: ${MERCHANT_DATASOURCE_USERNAME:admin}
     password: ${MERCHANT_DATASOURCE_PASSWORD:123}
     driver-class-name: ${MERCHANT_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${MERCHANT_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${MERCHANT_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Merchant
   jpa:
     hibernate:
       dialect: ${MERCHANT_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -133,6 +149,10 @@ saleschannel:
     username: ${SALESCHANNEL_DATASOURCE_USERNAME:admin}
     password: ${SALESCHANNEL_DATASOURCE_PASSWORD:123}
     driver-class-name: ${SALESCHANNEL_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${SALESCHANNEL_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${SALESCHANNEL_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-SalesChannel
   jpa:
     hibernate:
       dialect: ${SALESCHANNEL_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -160,6 +180,10 @@ pricing:
     username: ${PRICING_DATASOURCE_USERNAME:admin}
     password: ${PRICING_DATASOURCE_PASSWORD:123}
     driver-class-name: ${PRICING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${PRICING_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${PRICING_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Pricing
   jpa:
     hibernate:
       dialect: ${PRICING_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -189,6 +213,10 @@ storefrontquery:
     username: ${STOREFRONTQUERY_DATASOURCE_USERNAME:admin}
     password: ${STOREFRONTQUERY_DATASOURCE_PASSWORD:123}
     driver-class-name: ${STOREFRONTQUERY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${STOREFRONTQUERY_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${STOREFRONTQUERY_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-StorefrontQuery
   jpa:
     hibernate:
       dialect: ${STOREFRONTQUERY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -205,6 +233,10 @@ region:
     username: ${REGION_DATASOURCE_USERNAME:admin}
     password: ${REGION_DATASOURCE_PASSWORD:123}
     driver-class-name: ${REGION_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${REGION_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${REGION_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Region
   jpa:
     hibernate:
       dialect: ${REGION_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -232,6 +264,10 @@ customer:
     username: ${CUSTOMER_DATASOURCE_USERNAME:admin}
     password: ${CUSTOMER_DATASOURCE_PASSWORD:123}
     driver-class-name: ${CUSTOMER_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${CUSTOMER_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${CUSTOMER_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Customer
   jpa:
     hibernate:
       dialect: ${CUSTOMER_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -258,6 +294,10 @@ cart:
     username: ${CART_DATASOURCE_USERNAME:admin}
     password: ${CART_DATASOURCE_PASSWORD:123}
     driver-class-name: ${CART_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${CART_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${CART_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Cart
   jpa:
     hibernate:
       dialect: ${CART_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
@@ -340,6 +380,10 @@ workflows:
     username: ${WORKFLOWS_DATASOURCE_USERNAME:admin}
     password: ${WORKFLOWS_DATASOURCE_PASSWORD:123}
     driver-class-name: ${WORKFLOWS_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${WORKFLOWS_HIKARI_MAX_POOL_SIZE:${HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${WORKFLOWS_HIKARI_MIN_IDLE:${HIKARI_MIN_IDLE:2}}
+      pool-name: HikariPool-Workflows
   jpa:
     hibernate:
       dialect: ${WORKFLOWS_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}

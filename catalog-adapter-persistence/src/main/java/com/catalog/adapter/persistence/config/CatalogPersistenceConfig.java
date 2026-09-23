@@ -2,10 +2,12 @@ package com.catalog.adapter.persistence.config;
 
 import com.catalog.domain.port.outbound.CategoryRepository;
 import com.catalog.domain.port.outbound.VariantTypeRepository;
-import com.catalog.application.port.outbound.CategoryHierarchyPort;
+import com.catalog.application.port.outbound.CategoryHierarchyQueryPort;
+import com.catalog.domain.port.outbound.CategoryHierarchyRepository;
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.port.outbound.MerchantAvailabilityPort;
-import com.catalog.application.port.outbound.ProductAuditPort;
+import com.catalog.application.port.outbound.MerchantAvailabilityQueryPort;
+import com.catalog.domain.port.outbound.MerchantAvailabilityRepository;
+import com.catalog.application.port.outbound.ProductAuditQueryPort;
 import com.catalog.application.port.outbound.ProductQueryPort;
 import com.catalog.application.port.outbound.ProductVariantQueryPort;
 import com.catalog.application.port.outbound.VariantOptionQueryPort;
@@ -30,6 +32,7 @@ import com.catalog.adapter.persistence.outbox.CatalogOutboxEvent;
 import com.catalog.adapter.persistence.outbox.CatalogOutboxEventProcessor;
 import com.catalog.adapter.persistence.outbox.CatalogOutboxEventProducer;
 import com.catalog.adapter.persistence.repository.*;
+import com.catalog.adapter.persistence.repository.impl.*;
 import com.catalog.adapter.persistence.adapter.*;
 import com.catalog.adapter.persistence.adapter.*;
 import com.catalog.adapter.persistence.adapter.VariantOptionQueryAdapter;
@@ -341,12 +344,20 @@ public class CatalogPersistenceConfig {
     }
 
     @Bean
-    public CategoryHierarchyPort categoryHierarchyPort(
+    public CategoryHierarchyQueryPort categoryHierarchyQueryPort(
             CategoryNodeRepository categoryNodeRepository,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor,
             IdGenerator idGenerator
     ) {
-        return new CategoryHierarchyAdapter(categoryNodeRepository, executor, idGenerator);
+        return new com.catalog.adapter.persistence.adapter.CategoryHierarchyQueryAdapter(categoryNodeRepository, executor, idGenerator);
+    }
+
+    @Bean
+    public CategoryHierarchyRepository categoryHierarchyRepository(
+            CategoryNodeRepository categoryNodeRepository,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new com.catalog.adapter.persistence.adapter.CategoryHierarchyRepositoryAdapter(categoryNodeRepository, executor);
     }
 
     @Bean
@@ -375,15 +386,22 @@ public class CatalogPersistenceConfig {
     }
 
     @Bean
-    public MerchantAvailabilityPort merchantAvailabilityPort(
+    public MerchantAvailabilityQueryPort merchantAvailabilityQueryPort(
             CatalogMerchantAvailabilityJpaRepository availabilityJpaRepository
     ) {
-        return new MerchantAvailabilityAdapter(availabilityJpaRepository);
+        return new com.catalog.adapter.persistence.adapter.MerchantAvailabilityQueryAdapter(availabilityJpaRepository);
     }
 
     @Bean
-    public ProductAuditPort productAuditPort(CatalogOutboxEventJpaRepo catalogOutboxEventJpaRepo) {
-        return new ProductAuditAdapter(catalogOutboxEventJpaRepo);
+    public MerchantAvailabilityRepository merchantAvailabilityRepository(
+            CatalogMerchantAvailabilityJpaRepository availabilityJpaRepository
+    ) {
+        return new com.catalog.adapter.persistence.adapter.MerchantAvailabilityRepositoryAdapter(availabilityJpaRepository);
+    }
+
+    @Bean
+    public ProductAuditQueryPort productAuditQueryPort(CatalogOutboxEventJpaRepo catalogOutboxEventJpaRepo) {
+        return new ProductAuditQueryAdapter(catalogOutboxEventJpaRepo);
     }
 
     @Bean

@@ -1,5 +1,6 @@
 package com.grab.store.region.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -42,10 +43,13 @@ public class RegionModuleDataSourceConfig {
     }
 
     @Bean("regionDataSource")
-    public DataSource regionDataSource(
+    @ConfigurationProperties("region.datasource.hikari")
+    public HikariDataSource regionDataSource(
             @Qualifier("regionDataSourceProperties") DataSourceProperties properties
     ) {
-        return properties.initializeDataSourceBuilder().build();
+        return properties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean("regionEntityManagerFactory")
@@ -69,7 +73,7 @@ public class RegionModuleDataSourceConfig {
         return new JpaTransactionManager(entityManagerFactory);
     }
 
-    @Bean(name = "regionFlyway", initMethod = "migrate")
+    @Bean(initMethod = "migrate")
     @ConditionalOnProperty(prefix = "region.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Flyway regionFlyway(@Qualifier("regionDataSource") DataSource dataSource) {
         return Flyway.configure()

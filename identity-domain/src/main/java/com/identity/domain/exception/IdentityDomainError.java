@@ -15,6 +15,8 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.InvalidPlatformCode,
         IdentityDomainError.InvalidPlatformName,
         IdentityDomainError.PlatformRoleNotSupported,
+        IdentityDomainError.PlatformDefaultRoleNotSupported,
+        IdentityDomainError.PlatformDefaultRoleNotConfigured,
         IdentityDomainError.PlatformAuthorityNotSupported,
         IdentityDomainError.SystemRoleModificationForbidden,
         IdentityDomainError.RoleAuthoritiesRequired,
@@ -261,6 +263,40 @@ public sealed interface IdentityDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("platformCode", platformCode, "roleCode", roleCode);
+        }
+    }
+
+    record PlatformDefaultRoleNotSupported(String platformCode, String roleCode) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "idt.domain.platform.default_role_not_supported";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("platformCode", platformCode, "roleCode", roleCode);
+        }
+    }
+
+    record PlatformDefaultRoleNotConfigured(String platformCode) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "idt.domain.platform.default_role_not_configured";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("platformCode", platformCode);
         }
     }
 

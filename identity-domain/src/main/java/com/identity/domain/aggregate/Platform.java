@@ -4,12 +4,11 @@ import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.id.Id;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
+import com.identity.domain.valueobject.AccessScope;
 import lombok.Getter;
 
-import java.util.LinkedHashSet;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Getter
 public class Platform extends AggregateRoot<Id> {
@@ -18,10 +17,7 @@ public class Platform extends AggregateRoot<Id> {
     private boolean active;
     private final Set<String> roleCodes;
     private final Set<String> authorityCodes;
-
-    public Platform(Id id, String code, String name, boolean active, Set<String> roleCodes) {
-        this(id, code, name, active, roleCodes, Set.of());
-    }
+    private final Set<String> defaultRoles;
 
     public Platform(
             Id id,
@@ -29,7 +25,8 @@ public class Platform extends AggregateRoot<Id> {
             String name,
             boolean active,
             Set<String> roleCodes,
-            Set<String> authorityCodes
+            Set<String> authorityCodes,
+            Set<String> defaultRoles
     ) {
         super(id);
         this.code = normalizeCode(code);
@@ -37,10 +34,20 @@ public class Platform extends AggregateRoot<Id> {
         this.active = active;
         this.roleCodes = normalizeRoleCodes(roleCodes);
         this.authorityCodes = normalizeRoleCodes(authorityCodes);
+        this.defaultRoles = normalizeDefaultRoleCodes(roleCodes, defaultRoles);
     }
 
-    public boolean supportsRole(String roleCode) {
-        return active && roleCodes.contains(normalizeCode(roleCode));
+    private Set<String> normalizeDefaultRoleCodes(Set<String> roleCodes, Set<String> defaultRoleCodes){
+        return defaultRoleCodes.stream()
+                .peek(normalized -> {
+                    if (!roleCodes.contains(normalized)) {
+                        throw new IdentityDomainValidationException(
+                                new IdentityDomainError.PlatformDefaultRoleNotSupported(this.code, normalized),
+                                "Default role must be supported by the platform"
+                        );
+                    }
+                })
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     public String requireSupportedRole(String roleCode) {

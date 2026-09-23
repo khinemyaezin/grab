@@ -66,6 +66,25 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             @Param("scopeId") String scopeId
     );
 
+    @EntityGraph(attributePaths = {"user", "platformRole", "platformRole.platform", "platformRole.role"})
+    @Query("""
+            select assignment from AccessAssignmentEntity assignment
+            where assignment.user.uuid = :userId
+              and assignment.platformRole.platform.code = :platformCode
+              and assignment.scopeKey = :scopeKey
+              and assignment.scopeId = :scopeId
+              and assignment.status in (
+                  com.identity.domain.enums.AccessAssignmentStatus.ACTIVE,
+                  com.identity.domain.enums.AccessAssignmentStatus.SUSPENDED
+              )
+            """)
+    List<AccessAssignmentEntity> findCurrentByUserPlatformAndScope(
+            @Param("userId") String userId,
+            @Param("platformCode") String platformCode,
+            @Param("scopeKey") String scopeKey,
+            @Param("scopeId") String scopeId
+    );
+
     @Query("""
             select (count(assignment) > 0) from AccessAssignmentEntity assignment
             where assignment.user.uuid = :userId

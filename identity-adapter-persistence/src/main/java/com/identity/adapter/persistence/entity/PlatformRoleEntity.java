@@ -41,4 +41,7 @@ public class PlatformRoleEntity {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault = false;
 }

@@ -2,6 +2,8 @@ package com.merchant.domain.service;
 
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.enums.MerchantType;
+import com.merchant.domain.policy.MerchantApprovalPolicy;
+import com.merchant.domain.policy.impl.SystemDefaultMerchantApprovalPolicy;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

@@ -1,5 +1,6 @@
 package com.grab.store.identity.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,8 +41,9 @@ public class IdentityDataSourceConfig {
     }
 
     @Bean("identityDataSource")
-    DataSource dataSource(@Qualifier("identityDataSourceProperties") DataSourceProperties p) {
-        return p.initializeDataSourceBuilder().build();
+    @ConfigurationProperties("identity.datasource.hikari")
+    HikariDataSource dataSource(@Qualifier("identityDataSourceProperties") DataSourceProperties p) {
+        return p.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean("identityEntityManagerFactory")

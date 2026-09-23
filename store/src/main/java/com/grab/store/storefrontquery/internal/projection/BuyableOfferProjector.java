@@ -1,9 +1,9 @@
 package com.grab.store.storefrontquery.internal.projection;
 
-import com.grab.store.catalog.query.CatalogBuyabilityQueryPort;
-import com.grab.store.inventory.query.InventoryAvailabilityQueryPort;
-import com.grab.store.pricing.query.PricingQuoteQueryPort;
-import com.grab.store.saleschannel.query.SalesChannelQueryPort;
+import com.grab.store.catalog.port.CatalogBuyabilityQuery;
+import com.grab.store.inventory.port.InventoryAvailabilityQuery;
+import com.grab.store.pricing.port.PricingQuoteQuery;
+import com.grab.store.saleschannel.port.SalesChannelQuery;
 import com.grab.store.storefrontquery.internal.config.StorefrontQueryTransactional;
 import com.storefrontquery.infrastructure.entity.BuyableOfferEntity;
 import com.storefrontquery.infrastructure.repository.jpa.BuyableOfferJpaRepository;
@@ -18,10 +18,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BuyableOfferProjector {
     private final BuyableOfferJpaRepository offers;
-    private final CatalogBuyabilityQueryPort catalog;
-    private final PricingQuoteQueryPort pricing;
-    private final InventoryAvailabilityQueryPort inventory;
-    private final SalesChannelQueryPort salesChannels;
+    private final CatalogBuyabilityQuery catalog;
+    private final PricingQuoteQuery pricing;
+    private final InventoryAvailabilityQuery inventory;
+    private final SalesChannelQuery salesChannels;
 
     @Value("${storefrontquery.display-currency:MMK}")
     private String displayCurrency;
@@ -121,7 +121,7 @@ public class BuyableOfferProjector {
     @StorefrontQueryTransactional
     public void rebuild() {
         Instant now = Instant.now();
-        for (CatalogBuyabilityQueryPort.PublicationSlice publication : catalog.listPublications()) {
+        for (CatalogBuyabilityQuery.PublicationSlice publication : catalog.listPublications()) {
             upsert(publication.variantId(), publication.salesChannelId(), true, now);
         }
     }
@@ -159,7 +159,7 @@ public class BuyableOfferProjector {
             return;
         }
         if (entity.getSku() != null) {
-            InventoryAvailabilityQueryPort.Availability availability =
+            InventoryAvailabilityQuery.Availability availability =
                     inventory.available(entity.getSku(), entity.getSalesChannelId());
             entity.setUntracked(availability.untracked());
             entity.setAvailableQty(availability.availableQty());

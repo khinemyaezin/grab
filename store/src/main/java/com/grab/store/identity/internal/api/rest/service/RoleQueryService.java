@@ -2,9 +2,11 @@ package com.grab.store.identity.internal.api.rest.service;
 
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.store.identity.internal.api.rest.dto.response.RoleResponse;
+import com.grab.store.identity.internal.api.rest.dto.response.RoleSearchResponse;
 import com.grab.store.identity.internal.api.rest.mapper.ListRolesRequestMapper;
 import com.grab.store.identity.internal.api.rest.mapper.SearchRolesRequestMapper;
-import com.grab.store.identity.internal.api.rest.dto.response.SearchRolesResponse;
+import com.identity.application.model.read.ListRolesQuery;
+import com.identity.application.model.read.ListRolesResult;
 import com.identity.application.model.read.SearchRolesQuery;
 import com.identity.application.model.read.SearchRolesResult;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +24,12 @@ public class RoleQueryService {
     private final SearchRolesRequestMapper searchRolesMapper;
 
     public Page<RoleResponse> listRoles(Pageable pageable) {
-        return queryBus.dispatch(listRolesMapper.toQuery(pageable)).map(listRolesMapper::toResponse);
+        ListRolesQuery query = listRolesMapper.toQuery(pageable);
+        Page<ListRolesResult> resultPage = queryBus.dispatch(query);
+        return resultPage.map(listRolesMapper::toResponse);
     }
 
-    public List<SearchRolesResponse> searchRoles(String name) {
+    public List<RoleSearchResponse> searchRoles(String name) {
         SearchRolesQuery query = searchRolesMapper.toQuery(name);
         SearchRolesResult result = queryBus.dispatch(query);
         return searchRolesMapper.toResponse(result);

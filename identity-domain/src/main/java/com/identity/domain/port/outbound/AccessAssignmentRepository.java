@@ -20,6 +20,12 @@ public interface AccessAssignmentRepository {
 
     List<AccessAssignment> findEffectiveByUserAndPlatform(Id userId, String platformCode, Instant now);
 
+    List<AccessAssignment> findCurrentByUserPlatformAndScope(
+            Id userId,
+            String platformCode,
+            AccessScope scope
+    );
+
     List<AccessAssignment> findByUser(Id userId);
 
     boolean existsEffective(Id userId, String platformCode, String roleCode, AccessScope scope, Instant now);

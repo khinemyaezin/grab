@@ -19,9 +19,8 @@ import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.RoleRepository;
-import com.identity.application.port.outbound.IdentityLookupPort;
+import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
-import com.identity.application.port.outbound.MerchantViewQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.adapter.persistence.adapter.*;
@@ -145,11 +144,10 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public UserQueryPort userQueryPort(
-            UserQueryRepository userQueryRepository,
             UserJpaRepository userJpaRepository,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new UserQueryAdapter(userQueryRepository, userJpaRepository, executor);
+        return new UserQueryAdapter(userJpaRepository, executor);
     }
 
     @Bean
@@ -167,11 +165,6 @@ public class IdentityPersistenceConfig {
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new AccessAssignmentQueryAdapter(assignments, executor);
-    }
-
-    @Bean
-    public MerchantViewQueryPort merchantViewQueryPort(MerchantViewJpaRepository merchantViewJpaRepository) {
-        return new MerchantViewQueryAdapter(merchantViewJpaRepository);
     }
 
     @Bean
@@ -238,7 +231,7 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public SessionStore refreshSessionStore(RefreshSessionJpaRepository sessionRepository, UserJpaRepository userRepository) {
-        return new JpaSessionStoreAdapter(sessionRepository, userRepository);
+        return new SessionStoreAdapter(sessionRepository, userRepository);
     }
 
     @Bean
@@ -265,12 +258,12 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public IdentityLookupPort identityLookupPort(
+    public IdentityLookupQueryPort identityLookupQueryPort(
             UserJpaRepository users,
             ExternalIdentityJpaRepository externalIdentities,
             ExternalEntitlementMappingJpaRepository entitlementMappings,
             AccessAssignmentJpaRepository accessAssignments) {
-        return new IdentityLookupAdapter(
+        return new IdentityLookupQueryAdapter(
                 users, externalIdentities, entitlementMappings, accessAssignments
         );
     }

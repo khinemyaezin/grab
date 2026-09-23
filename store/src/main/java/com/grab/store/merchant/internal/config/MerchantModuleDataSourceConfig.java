@@ -1,5 +1,6 @@
 package com.grab.store.merchant.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,8 +37,9 @@ public class MerchantModuleDataSourceConfig {
     DataSourceProperties properties() { return new DataSourceProperties(); }
 
     @Bean("merchantDataSource")
-    DataSource dataSource(@Qualifier("merchantDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().build();
+    @ConfigurationProperties("merchant.datasource.hikari")
+    HikariDataSource dataSource(@Qualifier("merchantDataSourceProperties") DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean(name = "merchantFlyway", initMethod = "migrate")

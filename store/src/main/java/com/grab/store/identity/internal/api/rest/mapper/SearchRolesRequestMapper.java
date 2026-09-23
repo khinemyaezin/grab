@@ -1,11 +1,10 @@
 package com.grab.store.identity.internal.api.rest.mapper;
 
 import com.grab.framework.mapper.IdMapper;
-import com.grab.store.identity.internal.api.rest.dto.response.SearchRolesResponse;
+import com.grab.store.identity.internal.api.rest.dto.response.RoleSearchResponse;
 import com.identity.application.model.read.SearchRolesQuery;
 import com.identity.application.model.read.SearchRolesResult;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 import java.util.List;
 
@@ -13,14 +12,14 @@ import java.util.List;
 public abstract class SearchRolesRequestMapper {
     public abstract SearchRolesQuery toQuery(String name);
 
-    public List<SearchRolesResponse> toResponse(SearchRolesResult result) {
+    public List<RoleSearchResponse> toResponse(SearchRolesResult result) {
         if (result == null) {
             return null;
         }
         return toResponseList(result.roles());
     }
-    protected abstract List<SearchRolesResponse> toResponseList(List<SearchRolesResult.Role> roles);
 
-    protected abstract SearchRolesResponse toResponseItem(SearchRolesResult.Role role);
+    protected abstract List<RoleSearchResponse> toResponseList(List<SearchRolesResult.Role> roles);
 
+    protected abstract RoleSearchResponse toResponseItem(SearchRolesResult.Role role);
 }

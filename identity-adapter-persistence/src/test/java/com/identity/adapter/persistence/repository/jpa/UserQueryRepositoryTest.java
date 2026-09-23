@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class UserQueryRepositoryTest extends RepositoryTestConfig {
 
     @Autowired
-    private UserQueryRepository userQueryRepository;
+    private UserJpaRepository userQueryRepository;
 
     @Autowired
     private UserJpaRepository userJpaRepository;

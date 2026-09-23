@@ -1,5 +1,6 @@
 package com.grab.store.saleschannel.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -51,10 +52,13 @@ public class SalesChannelModuleDataSourceConfig {
     }
 
     @Bean("salesChannelDataSource")
-    public DataSource salesChannelDataSource(
+    @ConfigurationProperties("saleschannel.datasource.hikari")
+    public HikariDataSource salesChannelDataSource(
             @Qualifier("salesChannelDataSourceProperties") DataSourceProperties salesChannelDataSourceProperties
     ) {
-        return salesChannelDataSourceProperties.initializeDataSourceBuilder().build();
+        return salesChannelDataSourceProperties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean("salesChannelEntityManagerFactory")

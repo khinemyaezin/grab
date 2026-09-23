@@ -58,7 +58,7 @@ class AuthenticatedMerchantScopeResolverTest {
                 "local",
                 "user-1",
                 "user@example.com",
-                Set.of("MERCHANT_OWNER"),
+                Set.of("MERCHANT_ADMIN"),
                 Set.of("MERCHANT_PROFILE_READ"),
                 context
         );

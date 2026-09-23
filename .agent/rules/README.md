@@ -11,10 +11,9 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 | Category | Path | Load when |
 |---|---|---|
 | Architecture | `architecture/` | Module layout, dependencies, layers, CQRS flow |
-| Application | `application/` | Controllers, services, mappers, commands, queries, handlers |
-| API | `api/` | DTOs, HATEOAS, HAL config |
+| Inbound | `inbound/` | REST controllers, services, mappers, commands, queries, handlers, DTOs, HATEOAS |
+| Outbound | `outbound/` | Shared API query ports & adapters, persistence adapters, JPA, infrastructure |
 | Domain | `domain/` | Aggregates, domain events, policies |
-| Infrastructure & Adapters | `infrastructure/` | JPA mapping, persistence adapters, specifications, storage adapters |
 | Platform | `platform/` | Errors, transactions, events, logging |
 | Conventions | `conventions/` | Naming, coding style |
 
@@ -24,24 +23,25 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 |---|---|
 | R1 | `architecture/module-structure.md` |
 | R2 | `architecture/layered-cqrs.md` |
-| R3 | `application/controllers.md` |
-| R4 | `application/services.md` |
-| R5 | `application/mappers.md` |
-| R6 | `application/commands-queries.md` |
-| R7 | `application/handlers.md` |
-| R8 | `api/hateoas.md` |
-| R9 | `api/dtos.md` |
-| R10 | `domain/aggregates.md` |
-| R11 | `infrastructure/persistence.md` |
-| R12 | `platform/errors.md` |
-| R13 | `platform/transactions.md` |
-| R14 | `platform/events.md` |
-| R15 | `conventions/naming.md` |
-| R16 | `platform/logging.md` |
-| R17 | `conventions/coding-style.md` |
-| R18 | `api/hateoas.md` |
-| R19 | `domain/policies.md` |
-| R20 | this file, section "Before generating code" |
+| R3 | `inbound/controllers.md` |
+| R4 | `inbound/services.md` |
+| R5 | `inbound/mappers.md` |
+| R6 | `inbound/commands-queries.md` |
+| R7 | `inbound/handlers.md` |
+| R8 | `inbound/dtos.md` |
+| R9 | `inbound/hateoas.md` |
+| R10 | `outbound/api-ports.md` |
+| R11 | `outbound/persistence.md` |
+| R12 | `outbound/infrastructure.md` |
+| R13 | `domain/aggregates.md` |
+| R14 | `domain/policies.md` |
+| R15 | `platform/errors.md` |
+| R16 | `platform/transactions.md` |
+| R17 | `platform/events.md` |
+| R18 | `platform/logging.md` |
+| R19 | `conventions/naming.md` |
+| R20 | `conventions/coding-style.md` |
+| R21 | this file, section "Before generating code" |
 
 ## Before generating code
 
@@ -72,3 +72,4 @@ Verify all of the following before producing or changing code.
 23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks`. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding. No proxying owner list/search.
 24. `shared` remains `@ApplicationModule(type = OPEN)`.
 25. Strict CQRS isolation: CommandService and QueryService never mess with each other or cross-call. CommandService NEVER injects or invokes QueryBus or queries data. QueryService NEVER injects or invokes CommandBus or mutates state.
+26. Outbound API exposure via shared interface ports (instead of gRPC): provider public interface lives in `store/.../{domain}/port/` with DTOs declared inside the interface, provider adapter lives in `store/.../{domain}/internal/api/adapter/{port}Adapter` delegating only to `*UseCase` with transaction starting on the adapter method, and mapper lives in `store/.../{domain}/internal/api/adapter/mapper/{PortName}Mapper`. Consuming modules define an outbound port in `{consumer}-application/.../port/outbound/{TargetDomain}{Capability}Port` and implement it via an adapter in `store/.../{consumer}/internal/adapter/{TargetDomain}{Capability}Adapter`. Persistence adapters are strictly intra-domain.

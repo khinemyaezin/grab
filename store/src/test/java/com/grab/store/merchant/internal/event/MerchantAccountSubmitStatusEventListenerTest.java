@@ -7,7 +7,7 @@ import com.merchant.application.model.write.ChangeMerchantLifecycleCommand;
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.event.MerchantApplicationSubmittedEvent;
 import com.merchant.domain.port.outbound.MerchantAccountRepository;
-import com.merchant.domain.service.SystemDefaultMerchantApprovalPolicy;
+import com.merchant.domain.policy.impl.SystemDefaultMerchantApprovalPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

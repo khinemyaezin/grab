@@ -10,7 +10,7 @@
 |---|------|-------------|
 | R1 | Unique Email | A user cannot register with an email address that is already active in the system. |
 | R2 | Secure Password | Passwords must not be stored in plaintext. They must be hashed using a strong algorithm (e.g., BCrypt). |
-| R3 | Default Access | Upon registration, a user must automatically be granted a default global access assignment (e.g., `CUSTOMER` on `CUSTOMER_APP`) determined by the `RegistrationAccessPolicy`. |
+| R3 | Default Access | Upon registration, a user must automatically be granted a default global access assignment (e.g., `CUSTOMER` on `CUSTOMER_APP` or `MERCHANT_APPLICANT` on `SELLER_PORTAL`) configured on the platform (`Platform.getDefaultRole()`). |
 | R4 | Atomic Creation | The creation of the `User` record and the initial `AccessAssignment` must be performed within a single database transaction. |
 
 ---
@@ -18,7 +18,7 @@
 ## 2. Acceptance Criteria
 
 - [ ] AC1: Given a valid email and password, when a user registers, their account is created with an `ACTIVE` status and the password is securely hashed.
-- [ ] AC2: Given a successful registration, the system automatically assigns the user the default platform role defined in the system policy.
+- [ ] AC2: Given a successful registration, the system automatically assigns the user the default platform role configured on the platform (via `Platform.getDefaultRole()`).
 - [ ] AC3: Given an email that already exists in the system, when a user attempts to register, the system rejects the request with an `EmailExists` error and does not create duplicate records.
 - [ ] AC4: A successful registration returns the user's ID, email, status, and creation date, but never returns the hashed password.
 

@@ -2,14 +2,12 @@ package com.grab.store.merchant.internal.event;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.merchant.events.MerchantApprovedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantClosedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantReactivatedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantSuspendedIntegrationEvent;
 import com.grab.store.merchant.events.StorefrontCreatedIntegrationEvent;
 import com.grab.store.merchant.events.StorefrontStatusChangedIntegrationEvent;
 import com.merchant.domain.aggregate.MerchantAccount;
-import com.merchant.domain.event.MerchantApprovedEvent;
 import com.merchant.domain.event.MerchantClosedEvent;
 import com.merchant.domain.event.MerchantLifecycleEvent;
 import com.merchant.domain.event.MerchantReactivatedEvent;
@@ -30,19 +28,6 @@ public class MerchantIntegrationEventPublisher {
     private final ApplicationEventPublisher events;
     private final MerchantAccountRepository merchants;
     private final IdGenerator ids;
-
-    @EventListener
-    public void handleMerchantApproved(MerchantApprovedEvent event) {
-        events.publishEvent(new MerchantApprovedIntegrationEvent(
-                event.merchantId(),
-                event.applicantUserId(),
-                event.merchantName(),
-                merchantType(event),
-                event.status(),
-                event.occurredAt(),
-                EVENT_VERSION
-        ));
-    }
 
     @EventListener
     public void handleMerchantSuspended(MerchantSuspendedEvent event) {

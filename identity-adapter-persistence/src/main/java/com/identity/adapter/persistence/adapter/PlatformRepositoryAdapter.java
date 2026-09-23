@@ -59,6 +59,7 @@ public class PlatformRepositoryAdapter implements PlatformRepository {
     }
 
     private void reconcileRoles(Platform source, PlatformEntity destination) {
+        Set<String> defaultRoles = source.getDefaultRoles();
         Map<String, PlatformRoleEntity> existingByCode = destination.getPlatformRoles().stream()
                 .collect(Collectors.toMap(
                         platformRole -> platformRole.getRole().getCode(),
@@ -68,8 +69,10 @@ public class PlatformRepositoryAdapter implements PlatformRepository {
                 ));
         for (String roleCode : source.getRoleCodes()) {
             PlatformRoleEntity existing = existingByCode.remove(roleCode);
+            boolean isDefault = defaultRoles.contains(roleCode);
             if (existing != null) {
                 existing.setActive(true);
+                existing.setDefault(isDefault);
                 continue;
             }
             RoleEntity role = roles.findByCode(roleCode).orElseThrow();
@@ -78,9 +81,13 @@ public class PlatformRepositoryAdapter implements PlatformRepository {
             platformRole.setPlatform(destination);
             platformRole.setRole(role);
             platformRole.setActive(true);
+            platformRole.setDefault(isDefault);
             destination.getPlatformRoles().add(platformRole);
         }
-        existingByCode.values().forEach(platformRole -> platformRole.setActive(false));
+        existingByCode.values().forEach(platformRole -> {
+            platformRole.setActive(false);
+            platformRole.setDefault(false);
+        });
     }
 
     private Platform toDomain(PlatformEntity entity) {
@@ -93,13 +100,20 @@ public class PlatformRepositoryAdapter implements PlatformRepository {
                 .filter(AuthorityEntity::isActive)
                 .map(AuthorityEntity::getCode)
                 .collect(Collectors.toSet());
+        Set<String> defaultRoles = entity.getPlatformRoles().stream()
+                .filter(PlatformRoleEntity::isActive)
+                .filter(PlatformRoleEntity::isDefault)
+                .filter(platformRole -> platformRole.getRole().isActive())
+                .map(platformRole -> platformRole.getRole().getCode())
+                .collect(Collectors.toSet());
         return new Platform(
                 ids.map(entity.getUuid()),
                 entity.getCode(),
                 entity.getName(),
                 entity.isActive(),
                 roleCodes,
-                authorityCodes
+                authorityCodes,
+                defaultRoles
         );
     }
 }

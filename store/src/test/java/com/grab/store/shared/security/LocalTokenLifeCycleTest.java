@@ -88,7 +88,7 @@ class LocalTokenLifeCycleTest {
                 properties.issuer(),
                 userId,
                 "owner@example.com",
-                Set.of("MERCHANT_OWNER"),
+                Set.of("MERCHANT_ADMIN"),
                 Set.of("MERCHANT_WRITE_OWN"),
                 context
         );

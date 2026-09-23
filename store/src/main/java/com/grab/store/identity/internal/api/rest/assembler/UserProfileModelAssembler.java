@@ -27,8 +27,8 @@ public class UserProfileModelAssembler
                 .withRel("list-roles"));
 
         entity.add(linkTo(methodOn(RoleAdminController.class)
-                .suggestRoles(null))
-                .withRel("suggest-roles"));
+                .searchRoles(null))
+                .withRel("search-roles"));
 
         if (UserStatus.ACTIVE.name().equals(response.status())) {
             entity.add(linkTo(methodOn(UserAdminController.class)

@@ -1,16 +1,13 @@
 package com.identity.application.service;
 
-import com.identity.application.port.inbound.ReplaceAccessUseCase;
-
 import com.grab.framework.id.IdGenerator;
-import com.identity.application.model.write.AccessAssignmentResult;
-import com.identity.application.model.write.ReplaceAccessCommand;
 import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
+import com.identity.application.model.write.AccessAssignmentResult;
+import com.identity.application.model.write.ReplaceAccessCommand;
+import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Platform;
-import com.identity.domain.policy.AccessPlacementPolicy;
-import com.identity.domain.policy.AccessPlacementPolicyResolver;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.SessionStore;
@@ -19,6 +16,7 @@ import com.identity.domain.valueobject.AccessScope;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 
 @RequiredArgsConstructor
 public class ReplaceAccessService implements ReplaceAccessUseCase {
@@ -27,7 +25,8 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
     private final AccessAssignmentRepository assignments;
     private final SessionStore sessions;
     private final IdGenerator ids;
-    private final AccessPlacementPolicyResolver placementPolicies;
+
+    @Override
     public AccessAssignmentResult execute(ReplaceAccessCommand command) {
         users.findById(command.userId()).orElseThrow(() -> new IdentityServiceException(
                 new IdentityServiceError.UserNotFound(command.userId().getValue()),
@@ -40,81 +39,85 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
                         "Platform not found"
                 ));
 
-        AccessPlacementPolicy placementPolicy = placementPolicies.resolve(
-                command.replacementRoleCode()
+        AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
+        Instant now = Instant.now();
+
+        List<AccessAssignment> currentAssignments = assignments.findCurrentByUserPlatformAndScope(
+                command.userId(),
+                platform.getCode(),
+                scope
         );
 
-        if (placementPolicy == null) {
-            throw new IdentityServiceException(
-                    new IdentityServiceError.RoleNotFound(command.replacementRoleCode()),
-                    "Access placement policy not found"
+        String replacementRole = command.replacementRoleCode();
+        if (replacementRole != null && !replacementRole.isBlank()) {
+            replacementRole = platform.requireSupportedRole(replacementRole);
+        }
+
+        String previousRole = command.previousRoleCode();
+        if (previousRole != null && !previousRole.isBlank()) {
+            previousRole = platform.requireSupportedRole(previousRole);
+        }
+
+        AccessAssignment existingReplacement = null;
+        if (replacementRole != null && !replacementRole.isBlank()) {
+            for (AccessAssignment current : currentAssignments) {
+                if (current.getRoleCode().equalsIgnoreCase(replacementRole) && current.isEffectiveAt(now)) {
+                    existingReplacement = current;
+                    break;
+                }
+            }
+        }
+
+        AccessAssignment lastRevoked = null;
+        for (AccessAssignment current : currentAssignments) {
+            if (existingReplacement != null && current.getId().equals(existingReplacement.getId())) {
+                continue;
+            }
+
+            boolean shouldRevoke = (previousRole != null && !previousRole.isBlank())
+                    ? current.getRoleCode().equalsIgnoreCase(previousRole)
+                    : true;
+
+            if (shouldRevoke) {
+                lastRevoked = retireAssignment(current, now);
+            }
+        }
+
+        if (existingReplacement != null) {
+            return AccessAssignmentResult.from(existingReplacement, now);
+        }
+
+        if (replacementRole == null || replacementRole.isBlank()) {
+            if (lastRevoked != null) {
+                return AccessAssignmentResult.from(lastRevoked, now);
+            }
+            return AccessAssignmentResult.revoked(
+                    command.userId().getValue(),
+                    platform.getCode(),
+                    scope.key().value(),
+                    scope.scopeId()
             );
         }
 
-        AccessPlacementPolicy.AccessPlacementPlan plan = placementPolicy.plan(
-                platform,
-                AccessScope.from(command.scopeKey(), command.scopeId())
-        );
-
-        revokePreviousAccess(command, platform, plan);
-
-        AccessAssignment replacement = resolveReplacement(command, platform, plan);
-        return AccessAssignmentResult.from(replacement);
-    }
-
-    private AccessAssignment resolveReplacement(
-            ReplaceAccessCommand command,
-            Platform platform,
-            AccessPlacementPolicy.AccessPlacementPlan plan
-    ) {
-        AccessAssignment current = assignments.findCurrent(
-                command.userId(),
-                platform.getCode(),
-                plan.replacementRoleCode(),
-                plan.replacementScope()
-        ).orElse(null);
-
-        Instant now = Instant.now();
-        if (current != null && current.isEffectiveAt(now)) {
-            return current;
-        }
-        if (current != null) {
-            retireInactiveReplacement(current, now);
-        }
-
-        return assignments.save(AccessAssignment.create(
+        AccessAssignment replacement = assignments.save(AccessAssignment.create(
                 ids.generateId(),
                 command.userId(),
                 platform,
-                plan.replacementRoleCode(),
-                plan.replacementScope(),
+                replacementRole,
+                scope,
                 null,
                 null
         ));
+
+        return AccessAssignmentResult.from(replacement, now);
     }
 
-    private void retireInactiveReplacement(AccessAssignment assignment, Instant now) {
+    private AccessAssignment retireAssignment(AccessAssignment assignment, Instant now) {
         if (!assignment.expireIfDue(now)) {
             assignment.revoke();
         }
         AccessAssignment retired = assignments.save(assignment);
         sessions.revokeByAssignment(retired.getId().getValue());
-    }
-
-    private void revokePreviousAccess(
-            ReplaceAccessCommand command,
-            Platform platform,
-            AccessPlacementPolicy.AccessPlacementPlan plan
-    ) {
-        assignments.findCurrent(
-                command.userId(),
-                platform.getCode(),
-                plan.previousRoleCode(),
-                plan.previousScope()
-        ).ifPresent(assignment -> {
-            assignment.revoke();
-            AccessAssignment revoked = assignments.save(assignment);
-            sessions.revokeByAssignment(revoked.getId().getValue());
-        });
+        return retired;
     }
 }

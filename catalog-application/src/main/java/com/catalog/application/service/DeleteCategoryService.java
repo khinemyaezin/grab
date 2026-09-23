@@ -6,7 +6,8 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 
 import com.catalog.domain.aggregate.Category;
-import com.catalog.application.port.outbound.CategoryHierarchyPort;
+import com.catalog.application.port.outbound.CategoryHierarchyQueryPort;
+import com.catalog.domain.port.outbound.CategoryHierarchyRepository;
 import com.catalog.domain.port.outbound.CategoryRepository;
 import com.catalog.domain.port.outbound.ProductRepository;
 import com.grab.framework.id.Id;
@@ -24,7 +25,8 @@ public class DeleteCategoryService implements DeleteCategoryUseCase {
     private static final Logger log = Loggers.getLogger(DeleteCategoryService.class);
 
     private final CategoryRepository categoryRepository;
-    private final CategoryHierarchyPort categoryHierarchyPort;
+    private final CategoryHierarchyQueryPort categoryHierarchyQueryPort;
+    private final CategoryHierarchyRepository categoryHierarchyRepository;
     private final ProductRepository productRepository;
 
         public DeleteCategoryResult execute(DeleteCategoryCommand command) {
@@ -36,14 +38,14 @@ public class DeleteCategoryService implements DeleteCategoryUseCase {
             return new DeleteCategoryResult(false);
         }
 
-        Set<Id> subtreeIds = categoryHierarchyPort.findSubtreeIds(command.categoryId());
+        Set<Id> subtreeIds = categoryHierarchyQueryPort.findSubtreeIds(command.categoryId());
         if (productRepository.existsByCategoryIds(subtreeIds)) {
             throw new CatalogServiceException(
                     new CatalogServiceError.CategoryHasAssignedProducts(command.categoryId().getValue())
             );
         }
 
-        categoryHierarchyPort.deleteSubtree(command.categoryId());
+        categoryHierarchyRepository.deleteSubtree(command.categoryId());
 
         log.info("Category deleted successfully: {}", command.categoryId());
 

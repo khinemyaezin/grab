@@ -9,6 +9,7 @@ import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -177,7 +178,9 @@ class AccessAssignmentTest {
                 "SELLER_PORTAL",
                 "Seller Portal",
                 true,
-                java.util.Set.of("MERCHANT_OWNER")
+                Set.of("MERCHANT_OWNER"),
+                Set.of(),
+                Set.of()
         );
     }
 }

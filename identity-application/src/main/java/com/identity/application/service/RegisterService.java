@@ -15,11 +15,12 @@ import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.service.PasswordHasher;
-import com.identity.domain.policy.RegistrationAccessPolicy;
-import com.identity.domain.policy.RegistrationAccessPolicyResolver;
+import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.HashedPassword;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 public class RegisterService implements RegisterUseCase {
@@ -28,7 +29,7 @@ public class RegisterService implements RegisterUseCase {
     private final AccessAssignmentRepository accessAssignments;
     private final PasswordHasher passwordHasher;
     private final IdGenerator idGenerator;
-    private final RegistrationAccessPolicyResolver policyResolver;
+
     public UserProfileResult execute(RegisterCommand command) {
         Email email = new Email(command.email());
         if (users.findByEmail(email).isPresent()) {
@@ -48,12 +49,18 @@ public class RegisterService implements RegisterUseCase {
         HashedPassword password = passwordHasher.hash(command.password());
         User user = User.createLocal(userId, email, password);
 
-        Id assignmentId = idGenerator.generateId();
-        RegistrationAccessPolicy policy = policyResolver.resolve(command.platformCode());
-        AccessAssignment assignment = policy.createAssignment(assignmentId, userId, platform);
+        List<AccessAssignment> defaultAssignments = platform.getDefaultRoles().stream()
+                .map(defaultRoleCode -> AccessAssignment.create(
+                        idGenerator.generateId(),
+                        userId,
+                        platform,
+                        defaultRoleCode,
+                        AccessScope.global(),
+                        null,
+                        null)).toList();
 
         User saved = users.save(user);
-        accessAssignments.save(assignment);
+        defaultAssignments.forEach(accessAssignments::save);
 
         return new UserProfileResult(
                 saved.getId().getValue(),

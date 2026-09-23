@@ -1,9 +1,10 @@
 package com.grab.store.identity.internal.api.rest.controller;
 
 import com.grab.store.identity.internal.api.rest.assembler.RoleModelAssembler;
+import com.grab.store.identity.internal.api.rest.assembler.SearchRolesModelAssembler;
 import com.grab.store.identity.internal.api.rest.dto.request.CreateRoleRequest;
 import com.grab.store.identity.internal.api.rest.dto.response.RoleResponse;
-import com.grab.store.identity.internal.api.rest.dto.response.SearchRolesResponse;
+import com.grab.store.identity.internal.api.rest.dto.response.RoleSearchResponse;
 import com.grab.store.identity.internal.api.rest.service.RoleCommandService;
 import com.grab.store.identity.internal.api.rest.service.RoleQueryService;
 import jakarta.validation.Valid;
@@ -39,6 +40,7 @@ public class RoleAdminController {
     private final RoleCommandService commandService;
     private final RoleQueryService queryService;
     private final RoleModelAssembler roleModelAssembler;
+    private final SearchRolesModelAssembler searchRolesModelAssembler;
 
     @GetMapping
     public ResponseEntity<PagedModel<EntityModel<RoleResponse>>> listRoles(
@@ -69,9 +71,9 @@ public class RoleAdminController {
             @PathVariable String role,
             @PathVariable String authority
     ) {
-        return ResponseEntity.ok(roleModelAssembler.toModel(
-                commandService.manageAuthority(role, authority, true)
-        ));
+        RoleResponse response = commandService.manageAuthority(role, authority, true);
+        EntityModel<RoleResponse> model = roleModelAssembler.toModel(response);
+        return ResponseEntity.ok(model);
     }
 
     @DeleteMapping("/{role}/authorities/{authority}")
@@ -79,18 +81,18 @@ public class RoleAdminController {
             @PathVariable String role,
             @PathVariable String authority
     ) {
-        return ResponseEntity.ok(roleModelAssembler.toModel(
-                commandService.manageAuthority(role, authority, false)
-        ));
+        RoleResponse response = commandService.manageAuthority(role, authority, false);
+        EntityModel<RoleResponse> model = roleModelAssembler.toModel(response);
+        return ResponseEntity.ok(model);
     }
 
     @GetMapping("/suggestions")
-    public ResponseEntity<CollectionModel<SearchRolesResponse>> suggestRoles(
+    public ResponseEntity<CollectionModel<EntityModel<RoleSearchResponse>>> searchRoles(
             @RequestParam String name
     ) {
-        List<SearchRolesResponse> responses = queryService.searchRoles(name);
-        CollectionModel<SearchRolesResponse> collectionModel = CollectionModel.of(responses);
-        collectionModel.add(linkTo(methodOn(RoleAdminController.class).suggestRoles(name)).withSelfRel());
+        List<RoleSearchResponse> responses = queryService.searchRoles(name);
+        CollectionModel<EntityModel<RoleSearchResponse>> collectionModel =
+                searchRolesModelAssembler.toCollectionModel(responses, name);
         return ResponseEntity.ok(collectionModel);
     }
 }
