@@ -48,5 +48,10 @@ public class RepositoryTestConfig extends PostgreSqlTestContainer {
         StorefrontJpaRepository storefrontJpaRepository(EntityManager entityManager) {
             return new JpaRepositoryFactory(entityManager).getRepository(StorefrontJpaRepository.class);
         }
+
+        @Bean
+        com.merchant.adapter.persistence.repository.jpa.MerchantMemberJpaRepository merchantMemberJpaRepository(EntityManager entityManager) {
+            return new JpaRepositoryFactory(entityManager).getRepository(com.merchant.adapter.persistence.repository.jpa.MerchantMemberJpaRepository.class);
+        }
     }
 }

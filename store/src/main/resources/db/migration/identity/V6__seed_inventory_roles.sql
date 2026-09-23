@@ -17,7 +17,7 @@ JOIN authorities authority ON (
     role.code = 'INVENTORY_LOCATION_OPERATOR'
     AND authority.code IN ('INVENTORY_READ', 'INVENTORY_WRITE')
 ) OR (
-    role.code = 'MERCHANT_OWNER'
+    role.code = 'MERCHANT_ADMIN'
     AND authority.code IN ('INVENTORY_READ', 'INVENTORY_WRITE')
 )
 ON CONFLICT DO NOTHING;

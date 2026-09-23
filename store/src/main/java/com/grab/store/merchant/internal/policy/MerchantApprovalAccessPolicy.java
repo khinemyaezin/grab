@@ -1,4 +1,4 @@
-package com.merchant.domain.policy;
+package com.grab.store.merchant.internal.policy;
 
 import java.util.List;
 

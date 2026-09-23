@@ -3,11 +3,14 @@ package com.grab.store.merchant.internal.config;
 import com.grab.framework.id.IdGenerator;
 import com.merchant.application.port.inbound.*;
 import com.merchant.application.port.outbound.MerchantAccountQueryPort;
+import com.merchant.application.port.outbound.MerchantMemberQueryPort;
 import com.merchant.application.port.outbound.StorefrontQueryPort;
 import com.merchant.application.service.*;
 import com.merchant.domain.port.outbound.MerchantAccountRepository;
+import com.merchant.domain.port.outbound.MerchantMemberRepository;
 import com.merchant.domain.port.outbound.StorefrontRepository;
 import com.merchant.domain.policy.MerchantApprovalPolicy;
+import com.merchant.domain.policy.MerchantOwnershipPolicy;
 import com.merchant.domain.service.MerchantRegistrationPolicy;
 import com.merchant.domain.service.StorefrontProvisioningService;
 import com.merchant.domain.service.StorefrontSlugPolicy;
@@ -126,5 +129,57 @@ public class MerchantUseCaseConfig {
             StorefrontSlugPolicy slugPolicy
     ) {
         return new UpdateStorefrontProfileService(merchants, storefronts, slugPolicy);
+    }
+
+    @Bean
+    MerchantOwnershipPolicy merchantOwnershipPolicy() {
+        return new MerchantOwnershipPolicy();
+    }
+
+    @Bean
+    public InviteMerchantMemberUseCase inviteMerchantMemberUseCase(
+            MerchantAccountRepository merchants,
+            MerchantMemberRepository members,
+            IdGenerator ids
+    ) {
+        return new InviteMerchantMemberService(merchants, members, ids);
+    }
+
+    @Bean
+    public AcceptMerchantMemberInvitationUseCase acceptMerchantMemberInvitationUseCase(
+            MerchantMemberRepository members
+    ) {
+        return new AcceptMerchantMemberInvitationService(members);
+    }
+
+    @Bean
+    public ChangeMerchantMemberRoleUseCase changeMerchantMemberRoleUseCase(
+            MerchantAccountRepository merchants,
+            MerchantMemberRepository members,
+            MerchantOwnershipPolicy ownershipPolicy
+    ) {
+        return new ChangeMerchantMemberRoleService(merchants, members, ownershipPolicy);
+    }
+
+    @Bean
+    public RemoveMerchantMemberUseCase removeMerchantMemberUseCase(
+            MerchantAccountRepository merchants,
+            MerchantMemberRepository members,
+            MerchantOwnershipPolicy ownershipPolicy
+    ) {
+        return new RemoveMerchantMemberService(merchants, members, ownershipPolicy);
+    }
+
+    @Bean
+    public ListMerchantMembersUseCase listMerchantMembersUseCase(MerchantMemberQueryPort memberQueryPort) {
+        return new ListMerchantMembersService(memberQueryPort);
+    }
+
+    @Bean
+    public ProvisionMerchantAdminUseCase provisionMerchantAdminUseCase(
+            MerchantMemberRepository members,
+            IdGenerator ids
+    ) {
+        return new ProvisionMerchantAdminService(members, ids);
     }
 }

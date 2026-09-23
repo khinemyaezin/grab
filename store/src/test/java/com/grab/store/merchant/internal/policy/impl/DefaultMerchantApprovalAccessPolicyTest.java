@@ -1,7 +1,6 @@
 package com.grab.store.merchant.internal.policy.impl;
 
-import com.merchant.domain.policy.impl.DefaultMerchantApprovalAccessPolicy;
-import com.merchant.domain.policy.MerchantApprovalAccessPolicy;
+import com.grab.store.merchant.internal.policy.MerchantApprovalAccessPolicy;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -11,7 +10,7 @@ class DefaultMerchantApprovalAccessPolicyTest {
             new DefaultMerchantApprovalAccessPolicy();
 
     @Test
-    void placementsFor_shouldGrantSellerMerchantOwnerAccess() {
+    void placementsFor_shouldGrantSellerMerchantAdminAccess() {
         var placements = policy.placementsFor(
                 new MerchantApprovalAccessPolicy.MerchantApprovalContext("merchant-1")
         );
@@ -19,7 +18,7 @@ class DefaultMerchantApprovalAccessPolicyTest {
         assertThat(placements).containsExactly(
                 new MerchantApprovalAccessPolicy.AccessPlacement(
                         "SELLER_PORTAL",
-                        "MERCHANT_OWNER",
+                        "MERCHANT_ADMIN",
                         "merchant.account",
                         "merchant-1"
                 )

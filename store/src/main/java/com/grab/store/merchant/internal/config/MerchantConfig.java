@@ -1,8 +1,8 @@
 package com.grab.store.merchant.internal.config;
 
 import com.merchant.adapter.persistence.config.MerchantPersistenceConfig;
-import com.merchant.domain.policy.impl.DefaultMerchantApprovalAccessPolicy;
-import com.merchant.domain.policy.MerchantApprovalAccessPolicy;
+import com.grab.store.merchant.internal.policy.MerchantApprovalAccessPolicy;
+import com.grab.store.merchant.internal.policy.impl.DefaultMerchantApprovalAccessPolicy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;

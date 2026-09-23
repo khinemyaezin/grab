@@ -8,7 +8,7 @@ INSERT INTO role_authorities (role_id, authority_id)
 SELECT role.id, authority.id
 FROM roles role
 JOIN authorities authority ON (
-    role.code = 'MERCHANT_OWNER'
+    role.code = 'MERCHANT_ADMIN'
     AND authority.code IN ('MERCHANT_STOREFRONT_READ', 'MERCHANT_STOREFRONT_WRITE')
 )
 ON CONFLICT DO NOTHING;

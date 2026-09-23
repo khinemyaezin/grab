@@ -3,7 +3,7 @@ ALTER TABLE roles ADD COLUMN assignable BOOLEAN NOT NULL DEFAULT TRUE;
 
 UPDATE roles
 SET role_kind = 'SYSTEM'
-WHERE code IN ('CUSTOMER', 'USER_ADMIN', 'MERCHANT_APPLICANT', 'MERCHANT_OWNER');
+WHERE code IN ('CUSTOMER', 'USER_ADMIN', 'MERCHANT_ADMIN');
 
 ALTER TABLE roles
     ADD CONSTRAINT ck_roles_kind CHECK (role_kind IN ('SYSTEM', 'CUSTOM'));
@@ -66,7 +66,7 @@ WHERE platform_role.platform_id = platform.id
   AND (
       (role.code = 'CUSTOMER' AND platform.code <> 'CUSTOMER_APP')
       OR (role.code = 'USER_ADMIN' AND platform.code <> 'ADMIN_CONSOLE')
-      OR (role.code IN ('MERCHANT_APPLICANT', 'MERCHANT_OWNER') AND platform.code <> 'SELLER_PORTAL')
+      OR (role.code IN ('MERCHANT_ADMIN') AND platform.code <> 'SELLER_PORTAL')
   );
 
 UPDATE roles role

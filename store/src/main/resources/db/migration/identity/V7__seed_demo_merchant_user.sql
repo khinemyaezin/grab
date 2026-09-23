@@ -42,7 +42,7 @@ BEGIN
                  JOIN roles ON roles.id = platform_roles.role_id
         WHERE users.email = '${demoEmail}'
           AND platforms.code = 'SELLER_PORTAL'
-          AND roles.code = 'MERCHANT_OWNER'
+          AND roles.code = 'MERCHANT_ADMIN'
           AND NOT EXISTS (
               SELECT 1
               FROM access_assignments existing

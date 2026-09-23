@@ -6,10 +6,7 @@ SET is_default = TRUE
 WHERE (platform_id, role_id) IN (
     SELECT p.id, r.id
     FROM platforms p
-    JOIN roles r ON (
-        (p.code = 'CUSTOMER_APP' AND r.code = 'CUSTOMER') OR
-        (p.code = 'SELLER_PORTAL' AND r.code = 'MERCHANT_APPLICANT')
-    )
+    JOIN roles r ON (p.code = 'CUSTOMER_APP' AND r.code = 'CUSTOMER')
 );
 
 -- Ensure at most one default role per platform

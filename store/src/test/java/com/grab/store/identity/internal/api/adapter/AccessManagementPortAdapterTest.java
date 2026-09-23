@@ -49,8 +49,8 @@ class AccessManagementPortAdapterTest {
         var request = new AccessManagementPort.ReplaceAccessRequest(
                 "usr-123",
                 "SELLER_PORTAL",
-                "MERCHANT_STAFF",
-                "MERCHANT_OWNER",
+                "OPERATOR",
+                "MERCHANT_ADMIN",
                 "merchant.account",
                 "store-999"
         );
@@ -63,8 +63,8 @@ class AccessManagementPortAdapterTest {
         ReplaceAccessCommand command = captor.getValue();
         assertThat(command.userId()).isEqualTo(userId);
         assertThat(command.platformCode()).isEqualTo("SELLER_PORTAL");
-        assertThat(command.previousRoleCode()).isEqualTo("MERCHANT_STAFF");
-        assertThat(command.replacementRoleCode()).isEqualTo("MERCHANT_OWNER");
+        assertThat(command.previousRoleCode()).isEqualTo("OPERATOR");
+        assertThat(command.replacementRoleCode()).isEqualTo("MERCHANT_ADMIN");
         assertThat(command.scopeKey()).isEqualTo("merchant.account");
         assertThat(command.scopeId()).isEqualTo("store-999");
     }
@@ -77,7 +77,7 @@ class AccessManagementPortAdapterTest {
         var request = new AccessManagementPort.RevokeAccessRequest(
                 "usr-123",
                 "SELLER_PORTAL",
-                "MERCHANT_STAFF",
+                "OPERATOR",
                 "merchant.account",
                 "store-999"
         );
@@ -90,7 +90,7 @@ class AccessManagementPortAdapterTest {
         ReplaceAccessCommand command = captor.getValue();
         assertThat(command.userId()).isEqualTo(userId);
         assertThat(command.platformCode()).isEqualTo("SELLER_PORTAL");
-        assertThat(command.previousRoleCode()).isEqualTo("MERCHANT_STAFF");
+        assertThat(command.previousRoleCode()).isEqualTo("OPERATOR");
         assertThat(command.replacementRoleCode()).isNull();
         assertThat(command.scopeKey()).isEqualTo("merchant.account");
         assertThat(command.scopeId()).isEqualTo("store-999");
