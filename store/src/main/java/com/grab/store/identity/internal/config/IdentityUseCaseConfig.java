@@ -156,6 +156,14 @@ public class IdentityUseCaseConfig {
     }
 
     @Bean
+    public RegisterAuthorityManifestUseCase registerAuthorityManifestUseCase(
+            AuthorityRepository authorityRepository,
+            IdGenerator idGenerator
+    ) {
+        return new RegisterAuthorityManifestService(authorityRepository, idGenerator);
+    }
+
+    @Bean
     public RefreshTokenUseCase refreshTokenUseCase(TokenLifeCycle tokenLifeCycle) {
         return new RefreshTokenService(tokenLifeCycle);
     }
