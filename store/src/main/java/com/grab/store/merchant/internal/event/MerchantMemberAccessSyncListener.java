@@ -3,6 +3,7 @@ package com.grab.store.merchant.internal.event;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.store.identity.port.AccessManagementPort;
+import com.grab.store.merchant.internal.policy.MerchantAdminRoleProfile;
 import com.merchant.domain.enums.MemberStatus;
 import com.merchant.domain.event.MerchantAccessProfile;
 import com.merchant.domain.event.MerchantMemberCreatedEvent;
@@ -33,7 +34,7 @@ public class MerchantMemberAccessSyncListener {
                     MerchantAccessProfile.ADMIN_ROLE_CODE,
                     MerchantAccessProfile.MERCHANT_SCOPE_KEY,
                     event.merchantId(),
-                    MerchantAccessProfile.DEFAULT_ADMIN_AUTHORITIES
+                    MerchantAdminRoleProfile.AUTHORITIES
             ));
         }
     }

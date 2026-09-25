@@ -13,6 +13,8 @@ The choice of listener annotation depends on the **event delivery mechanism and 
 
 ## MUST
 
+- Place all cross-module integration events under `store/src/main/java/com/grab/store/shared/events/{module}/` organized by module folder name (e.g., `com.grab.store.shared.events.catalog.*`, `com.grab.store.shared.events.identity.*`).
+- For independent module / microservices-ready startup, each module emits its authority manifest integration event asynchronously and non-blocking upon receiving `ApplicationReadyEvent`. Identity listens to these manifest events and registers them idempotently.
 - Use `@EventListener` in `store/.../event/` for all outbox-dispatched events (cross-module integration events, outbox domain events, and workflow signals).
 - Use `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)` ONLY for direct in-memory events published during an active database transaction (e.g. `WorkflowTerminalUiEventListener`).
 - Cross-module communication: transactional outbox via `outbox-infrastructure` (at-least-once delivery), exposed through Modulith named interfaces. See `architecture/module-structure.md`.
@@ -20,5 +22,7 @@ The choice of listener annotation depends on the **event delivery mechanism and 
 
 ## MUST NOT
 
+- Block application startup or wait on asynchronous event acknowledgements (no two-way ACK sagas or thread-blocking wait loops at boot time).
+- Introduce HTTP readiness filters returning 503 for startup metadata initialization.
 - Use `@TransactionalEventListener` on outbox-dispatched events. It defers execution until AFTER `AbstractOutboxProcessor` commits `markPublished()`, silently breaking outbox error handling and retries.
 - Call command handlers or write domain repositories directly from event listeners.

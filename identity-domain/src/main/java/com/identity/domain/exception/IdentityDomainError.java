@@ -29,7 +29,19 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.AccessInvitationExpired,
         IdentityDomainError.SelfAccessInvitationForbidden,
         IdentityDomainError.AccessInvitationRecipientMismatch,
-        IdentityDomainError.AccountNotActive {
+        IdentityDomainError.AccountNotActive,
+        IdentityDomainError.AuthorityManifestVersionConflict {
+
+    record AuthorityManifestVersionConflict(String moduleKey, int version) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+
+        @Override
+        public String code() { return "idt.domain.authority.manifest_version_conflict"; }
+
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey, "version", version); }
+    }
 
     record SystemRoleModificationForbidden(String roleCode) implements IdentityDomainError {
         @Override

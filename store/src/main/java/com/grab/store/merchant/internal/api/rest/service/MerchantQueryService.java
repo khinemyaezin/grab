@@ -10,10 +10,10 @@ import com.grab.store.merchant.internal.api.rest.mapper.GetMerchantRequestMapper
 import com.grab.store.merchant.internal.api.rest.mapper.ListMerchantReviewQueueRequestMapper;
 import com.grab.store.merchant.internal.api.rest.mapper.ListMyMerchantsRequestMapper;
 import com.merchant.application.model.write.MerchantAccountResult;
+import com.merchant.application.security.MerchantAuthorityManifest;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.merchant.application.model.read.*;
 import com.grab.store.shared.security.SecurityPrincipal;
-import com.grab.store.merchant.internal.api.rest.config.MerchantAuthorityCodes;
 import com.merchant.domain.enums.MerchantStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,7 +34,7 @@ public class MerchantQueryService {
 
     public MerchantResponse get(String merchantId, SecurityPrincipal principal) {
         boolean reviewer = principal.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals(MerchantAuthorityCodes.GLOBAL_READ));
+                .anyMatch(authority -> authority.getAuthority().equals(MerchantAuthorityManifest.GLOBAL_READ));
         boolean scopedAccess = merchantScopes.resolveScopedAccess(principal, merchantId, reviewer);
         String actorId = principal.getPlatformUserId();
         GetMerchantQuery query = getMapper.toQuery(merchantId, actorId, reviewer, scopedAccess);

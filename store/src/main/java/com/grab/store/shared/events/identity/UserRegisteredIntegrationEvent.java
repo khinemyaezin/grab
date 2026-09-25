@@ -1,4 +1,4 @@
-package com.grab.store.shared.events;
+package com.grab.store.shared.events.identity;
 
 import com.grab.framework.domain.Event;
 

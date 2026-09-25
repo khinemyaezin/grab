@@ -1,7 +1,6 @@
 package com.identity.adapter.persistence.configuration;
 
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.id.IdGenerator;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;

@@ -5,6 +5,7 @@ import com.identity.adapter.persistence.repository.jpa.config.RepositoryTestConf
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,9 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
 
     @Autowired
     private AuthorityJpaRepository authorityJpaRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     private AuthorityEntity readAuthority;
     private AuthorityEntity writeAuthority;
@@ -84,5 +88,32 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
 
         assertThat(saved.getId()).isNotNull();
         assertThat(authorityJpaRepository.findByCode("DELETE")).isPresent();
+    }
+
+    @Test
+    void upsertByCode_updatesMetadataAndPreservesInactiveStatus() {
+        authorityJpaRepository.saveAndFlush(writeAuthority);
+
+        authorityJpaRepository.upsertByCode("WRITE", "Updated write permission", "Updated description");
+        entityManager.clear();
+
+        AuthorityEntity updated = authorityJpaRepository.findByCode("WRITE").orElseThrow();
+        assertThat(updated.getName()).isEqualTo("Updated write permission");
+        assertThat(updated.getDescription()).isEqualTo("Updated description");
+        assertThat(updated.isActive()).isFalse();
+        assertThat(authorityJpaRepository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void upsertByCode_insertsNewAuthorityAsActiveAndIsIdempotent() {
+        authorityJpaRepository.upsertByCode("NEW", "New permission", "New description");
+        authorityJpaRepository.upsertByCode("NEW", "New permission v2", "New description v2");
+        entityManager.clear();
+
+        AuthorityEntity created = authorityJpaRepository.findByCode("NEW").orElseThrow();
+        assertThat(created.getName()).isEqualTo("New permission v2");
+        assertThat(created.getDescription()).isEqualTo("New description v2");
+        assertThat(created.isActive()).isTrue();
+        assertThat(authorityJpaRepository.count()).isEqualTo(3);
     }
 }

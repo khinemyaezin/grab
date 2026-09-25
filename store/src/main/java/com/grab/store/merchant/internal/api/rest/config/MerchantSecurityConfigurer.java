@@ -1,5 +1,6 @@
 package com.grab.store.merchant.internal.api.rest.config;
 
+import com.merchant.application.security.MerchantAuthorityManifest;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import org.springframework.http.HttpMethod;
@@ -15,9 +16,9 @@ public class MerchantSecurityConfigurer implements ModuleSecurityConfigurer {
         auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants").permitAll();
 
         auth.requestMatchers(HttpMethod.GET, "/api/v1/admin/merchants/**")
-                .hasAuthority(MerchantAuthorityCodes.GLOBAL_READ);
+                .hasAuthority(MerchantAuthorityManifest.GLOBAL_READ);
         auth.requestMatchers(HttpMethod.POST, "/api/v1/admin/merchants/**")
-                .hasAuthority(MerchantAuthorityCodes.LIFECYCLE_WRITE);
+                .hasAuthority(MerchantAuthorityManifest.LIFECYCLE_WRITE);
 
         auth.requestMatchers(HttpMethod.POST, "/api/v1/merchants/applications/**")
                 .authenticated();
@@ -29,12 +30,12 @@ public class MerchantSecurityConfigurer implements ModuleSecurityConfigurer {
                 .authenticated();
 
         auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants/storefronts", "/api/v1/merchants/storefronts/**")
-                .hasAuthority(MerchantAuthorityCodes.STOREFRONT_READ);
+                .hasAuthority(MerchantAuthorityManifest.STOREFRONT_READ);
         auth.requestMatchers(HttpMethod.POST, "/api/v1/merchants/storefronts", "/api/v1/merchants/storefronts/**")
-                .hasAuthority(MerchantAuthorityCodes.STOREFRONT_WRITE);
+                .hasAuthority(MerchantAuthorityManifest.STOREFRONT_WRITE);
         auth.requestMatchers(HttpMethod.PATCH, "/api/v1/merchants/storefronts/**")
-                .hasAuthority(MerchantAuthorityCodes.STOREFRONT_WRITE);
+                .hasAuthority(MerchantAuthorityManifest.STOREFRONT_WRITE);
         auth.requestMatchers(HttpMethod.GET, "/api/v1/merchants/**")
-                .hasAuthority(MerchantAuthorityCodes.PROFILE_READ);
+                .hasAuthority(MerchantAuthorityManifest.PROFILE_READ);
     }
 }

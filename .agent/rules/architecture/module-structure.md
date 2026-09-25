@@ -29,7 +29,7 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
 
 ## Named interfaces
 
-- Events: publish from a public named-interface package, for example `com.grab.store.merchant.events` with `@NamedInterface("events")`. Consuming modules declare the dependency explicitly, for example `@ApplicationModule(allowedDependencies = {"shared", "merchant::events"})`.
+- Events: cross-module integration events MUST be written under `store/src/main/java/com/grab/store/shared/events/{module}/` organized by module folder name (e.g. `com.grab.store.shared.events.catalog.*`). Since `shared` is OPEN, consuming modules access integration events via `shared`. Module-internal domain events stay inside their respective domain.
 - HATEOAS links: publish link facades from a public named-interface package, for example `com.grab.store.catalog.api` with `@NamedInterface("api")`. Consuming modules declare `{module}::api` in `allowedDependencies`. See `inbound/hateoas.md`.
 
 ## Layer contents

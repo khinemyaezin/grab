@@ -1,6 +1,7 @@
 package com.grab.store.merchant.internal.event;
 
 import com.grab.store.identity.port.AccessManagementPort;
+import com.grab.store.merchant.internal.policy.MerchantAdminRoleProfile;
 import com.merchant.domain.event.MerchantAccessProfile;
 import com.merchant.domain.event.MerchantMemberCreatedEvent;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
@@ -45,7 +46,7 @@ class MerchantMemberAccessSyncListenerTest {
         assertThat(request.roleCode()).isEqualTo(MerchantAccessProfile.ADMIN_ROLE_CODE);
         assertThat(request.scopeKey()).isEqualTo(MerchantAccessProfile.MERCHANT_SCOPE_KEY);
         assertThat(request.scopeId()).isEqualTo("mer-1");
-        assertThat(request.authorityCodes()).isEqualTo(MerchantAccessProfile.DEFAULT_ADMIN_AUTHORITIES);
+        assertThat(request.authorityCodes()).isEqualTo(MerchantAdminRoleProfile.AUTHORITIES);
     }
 
     @Test

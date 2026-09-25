@@ -7,9 +7,11 @@ import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import com.identity.domain.port.outbound.AuthorityRepository;
+import com.identity.domain.model.Authority;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,6 +79,11 @@ class RoleAdministrationPolicyTest {
             LinkedHashSet<String> found = new LinkedHashSet<>(codes);
             found.retainAll(activeCodes);
             return Set.copyOf(found);
+        }
+
+        @Override
+        public void upsertAll(List<Authority> authorities) {
+            throw new UnsupportedOperationException("Not used by role administration policy tests");
         }
     }
 }
