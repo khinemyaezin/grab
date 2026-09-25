@@ -14,7 +14,13 @@ public class AuthorityEntity {
     private Long id;
 
     @Column(nullable = false, unique = true, updatable = false)
+    private String uuid;
+
+    @Column(nullable = false, unique = true, updatable = false)
     private String code;
+
+    @Column(nullable = false)
+    private String category;
 
     @Column(nullable = false)
     private String name;

@@ -8,7 +8,7 @@ import com.identity.application.model.write.ReplaceAccessCommand;
 import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Role;
-import com.identity.domain.enums.RoleKind;
+import com.identity.domain.model.Authority;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.RoleRepository;
@@ -148,9 +148,9 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
                 .filter(code -> code.matches("[A-Z][A-Z0-9_]*"))
                 .collect(Collectors.toSet());
 
-        Set<String> activeAuthorities = (authorities != null && !validCodes.isEmpty())
-                ? authorities.findActiveCodes(validCodes)
-                : validCodes;
+        Set<Authority> activeAuthorities = authorities != null && !validCodes.isEmpty()
+                ? authorities.findActiveByCodes(validCodes)
+                : Set.of();
 
         if (activeAuthorities.isEmpty()) {
             throw new IdentityServiceException(

@@ -84,7 +84,9 @@ class IdentityLookupQueryAdapterTest {
             String scopeId
     ) {
         AuthorityEntity authority = new AuthorityEntity();
+        authority.setUuid("authority-" + authorityCode);
         authority.setCode(authorityCode);
+        authority.setCategory("identity");
         authority.setName(authorityCode);
         authority.setActive(true);
 

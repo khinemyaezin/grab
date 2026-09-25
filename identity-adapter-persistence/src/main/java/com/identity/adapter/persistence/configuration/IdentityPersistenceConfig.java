@@ -165,8 +165,8 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public AuthorityRepository authorityRepository(AuthorityJpaRepository jpaRepository) {
-        return new AuthorityRepositoryAdapter(jpaRepository);
+    public AuthorityRepository authorityRepository(AuthorityJpaRepository jpaRepository, IdMapper ids) {
+        return new AuthorityRepositoryAdapter(jpaRepository, ids);
     }
 
     @Bean

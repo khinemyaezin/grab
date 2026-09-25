@@ -6,9 +6,9 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface AuthorityJpaRepository extends JpaRepository<AuthorityEntity, Long> {
     Optional<AuthorityEntity> findByCode(String code);
@@ -17,14 +17,17 @@ public interface AuthorityJpaRepository extends JpaRepository<AuthorityEntity, L
 
     @Modifying
     @Query(value = """
-            INSERT INTO authorities (code, name, description, active)
-            VALUES (:code, :name, :description, TRUE)
+            INSERT INTO authorities (uuid, code, category, name, description, active)
+            VALUES (:uuid, :code, :category, :name, :description, TRUE)
             ON CONFLICT (code) DO UPDATE
-            SET name = EXCLUDED.name,
+            SET category = EXCLUDED.category,
+                name = EXCLUDED.name,
                 description = EXCLUDED.description
             """, nativeQuery = true)
     void upsertByCode(
+            @Param("uuid") String uuid,
             @Param("code") String code,
+            @Param("category") String category,
             @Param("name") String name,
             @Param("description") String description
     );

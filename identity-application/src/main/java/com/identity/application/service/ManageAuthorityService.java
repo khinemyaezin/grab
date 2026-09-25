@@ -7,12 +7,13 @@ import com.identity.application.model.write.RoleResult;
 import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
 import com.identity.domain.aggregate.Role;
+import com.identity.domain.model.Authority;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Locale;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class ManageAuthorityService implements ManageAuthorityUseCase {
@@ -42,7 +43,9 @@ public class ManageAuthorityService implements ManageAuthorityUseCase {
                 role.getKind().name(),
                 role.isActive(),
                 role.isAssignable(),
-                role.getAuthorityCodes()
+                role.getAuthorities().stream()
+                        .map(Authority::getCode)
+                        .collect(Collectors.toUnmodifiableSet())
         );
     }
 }

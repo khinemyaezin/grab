@@ -10,7 +10,6 @@ import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.model.Authority;
 import org.junit.jupiter.api.Test;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +32,7 @@ class RoleAdministrationPolicyTest {
         );
 
         assertThat(role.getKind()).isEqualTo(RoleKind.CUSTOM);
-        assertThat(role.getAuthorityCodes())
+        assertThat(role.getAuthorities().stream().map(Authority::getCode).toList())
                 .containsExactlyInAnyOrder("MERCHANT_PROFILE_READ", "MERCHANT_PROFILE_WRITE");
     }
 
@@ -62,23 +61,21 @@ class RoleAdministrationPolicyTest {
         );
 
         policy.changeAuthority(role, "MERCHANT_PROFILE_WRITE", true);
-        assertThat(role.getAuthorityCodes()).contains("MERCHANT_PROFILE_WRITE");
+        assertThat(role.getAuthorities().stream().map(Authority::getCode).toList()).contains("MERCHANT_PROFILE_WRITE");
 
         policy.changeAuthority(role, "MERCHANT_PROFILE_WRITE", false);
-        assertThat(role.getAuthorityCodes()).doesNotContain("MERCHANT_PROFILE_WRITE");
+        assertThat(role.getAuthorities().stream().map(Authority::getCode).toList()).doesNotContain("MERCHANT_PROFILE_WRITE");
     }
 
     private record FixedAuthorityRepository(Set<String> activeCodes) implements AuthorityRepository {
         @Override
-        public boolean existsByCode(String code) {
-            return activeCodes.contains(code);
-        }
-
-        @Override
-        public Set<String> findActiveCodes(Set<String> codes) {
-            LinkedHashSet<String> found = new LinkedHashSet<>(codes);
-            found.retainAll(activeCodes);
-            return Set.copyOf(found);
+        public Set<Authority> findActiveByCodes(Set<String> codes) {
+            return activeCodes.stream()
+                    .filter(codes::contains)
+                    .map(code -> Authority.rehydrate(
+                            new CommonId("authority-" + code), code, "identity", code, null, true
+                    ))
+                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
         }
 
         @Override

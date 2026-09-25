@@ -2,6 +2,7 @@ package com.identity.application.service;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.id.impl.CommonId;
 import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
 import com.identity.application.model.write.AccessAssignmentResult;
@@ -11,6 +12,7 @@ import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.enums.UserStatus;
+import com.identity.domain.model.Authority;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.RoleRepository;
@@ -438,7 +440,7 @@ class ReplaceAccessServiceTest {
 
         assertThat(result.roleCode()).isEqualTo(REPLACEMENT_ROLE);
         verify(roleRepository, never()).save(any());
-        verify(authorityRepository, never()).findActiveCodes(any());
+        verify(authorityRepository, never()).findActiveByCodes(any());
     }
 
     @Test
@@ -459,7 +461,8 @@ class ReplaceAccessServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
         when(roleRepository.findByCode(REPLACEMENT_ROLE)).thenReturn(Optional.empty());
-        when(authorityRepository.findActiveCodes(Set.of("USER_READ"))).thenReturn(Set.of("USER_READ"));
+        when(authorityRepository.findActiveByCodes(Set.of("USER_READ")))
+                .thenReturn(Set.of(authority("USER_READ")));
         when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class))).thenReturn(List.of());
         when(idGenerator.generateId()).thenReturn(() -> "role-new-123", newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -471,7 +474,8 @@ class ReplaceAccessServiceTest {
         verify(roleRepository).save(roleCaptor.capture());
         Role savedRole = roleCaptor.getValue();
         assertThat(savedRole.getCode()).isEqualTo(REPLACEMENT_ROLE);
-        assertThat(savedRole.getAuthorityCodes()).containsExactly("USER_READ");
+        assertThat(savedRole.getAuthorities().stream().map(Authority::getCode))
+                .containsExactly("USER_READ");
     }
 
     @Test
@@ -491,7 +495,7 @@ class ReplaceAccessServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
         when(roleRepository.findByCode(REPLACEMENT_ROLE)).thenReturn(Optional.empty());
-        when(authorityRepository.findActiveCodes(Set.of("UNKNOWN_AUTH"))).thenReturn(Set.of());
+        when(authorityRepository.findActiveByCodes(Set.of("UNKNOWN_AUTH"))).thenReturn(Set.of());
 
         assertThatThrownBy(() -> serviceWithRoles.execute(command))
                 .isInstanceOf(IdentityServiceException.class)
@@ -522,5 +526,9 @@ class ReplaceAccessServiceTest {
                 now,
                 expiresAt
         );
+    }
+
+    private Authority authority(String code) {
+        return Authority.rehydrate(new CommonId("authority-" + code), code, "identity", code, null, true);
     }
 }

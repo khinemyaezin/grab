@@ -1,10 +1,15 @@
 CREATE TABLE IF NOT EXISTS authorities (
     id BIGSERIAL PRIMARY KEY,
+    uuid VARCHAR(255) NOT NULL,
     code VARCHAR(255) NOT NULL UNIQUE,
+    category VARCHAR(100) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description VARCHAR(255),
-    active BOOLEAN NOT NULL DEFAULT TRUE
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT uk_authorities_uuid UNIQUE (uuid)
 );
+
+CREATE INDEX IF NOT EXISTS idx_authorities_category ON authorities (category);
 
 CREATE TABLE IF NOT EXISTS roles (
     id BIGSERIAL PRIMARY KEY,

@@ -7,6 +7,7 @@ import com.identity.domain.event.RoleStatusChangedEvent;
 import com.identity.domain.enums.RoleKind;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
+import com.identity.domain.model.Authority;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -25,12 +26,13 @@ class RoleTest {
                 " seller ",
                 " Seller ",
                 "Marketplace seller",
-                Set.of("CATALOG_READ")
+                Set.of(authority("CATALOG_READ"))
         );
 
         assertEquals("SELLER", role.getCode());
         assertEquals("Seller", role.getName());
-        assertInstanceOf(RoleCreatedEvent.class, role.getEvents().getFirst());
+        RoleCreatedEvent event = assertInstanceOf(RoleCreatedEvent.class, role.getEvents().getFirst());
+        assertEquals(Set.of("CATALOG_READ"), event.authorityCodes());
     }
 
     @Test
@@ -42,7 +44,7 @@ class RoleTest {
                         "not valid",
                         "Seller",
                         null,
-                        Set.of("CATALOG_READ")
+                        Set.of(authority("CATALOG_READ"))
                 )
         );
 
@@ -61,12 +63,14 @@ class RoleTest {
     }
 
     @Test
-    void assignAuthority_withNewAuthority_shouldNormalizeAndEmitEvent() {
+    void assignAuthority_withNewAuthority_shouldEmitEvent() {
         Role role = hydratedRole(true);
 
-        role.assignAuthority(" catalog_read ");
+        role.assignAuthority(authority("CATALOG_READ"));
 
-        assertEquals(Set.of("CATALOG_READ"), role.getAuthorityCodes());
+        assertEquals(Set.of("CATALOG_READ"), role.getAuthorities().stream()
+                .map(Authority::getCode)
+                .collect(java.util.stream.Collectors.toSet()));
         RoleAuthorityChangedEvent event = assertInstanceOf(RoleAuthorityChangedEvent.class, role.getEvents().getFirst());
         assertEquals("CATALOG_READ", event.authorityCode());
         assertEquals(true, event.assigned());
@@ -74,9 +78,9 @@ class RoleTest {
 
     @Test
     void assignAuthority_withExistingAuthority_shouldNotEmitEvent() {
-        Role role = new Role(new CommonId("r1"), "SELLER", "Seller", null, true, Set.of("CATALOG_READ"));
+        Role role = new Role(new CommonId("r1"), "SELLER", "Seller", null, true, Set.of(authority("CATALOG_READ")));
 
-        role.assignAuthority("catalog_read");
+        role.assignAuthority(authority("CATALOG_READ"));
 
         assertEquals(0, role.getEvents().size());
     }
@@ -91,12 +95,12 @@ class RoleTest {
                 RoleKind.SYSTEM,
                 true,
                 true,
-                Set.of("MERCHANT_PROFILE_READ")
+                Set.of(authority("MERCHANT_PROFILE_READ"))
         );
 
         IdentityDomainValidationException exception = assertThrows(
                 IdentityDomainValidationException.class,
-                () -> role.assignAuthority("MERCHANT_PROFILE_WRITE")
+                () -> role.assignAuthority(authority("MERCHANT_PROFILE_WRITE"))
         );
 
         assertInstanceOf(
@@ -108,12 +112,12 @@ class RoleTest {
     @Test
     void revokeAuthority_withLastCustomAuthority_shouldRejectEmptyRole() {
         Role role = hydratedRole(true);
-        role.assignAuthority("CATALOG_READ");
+        role.assignAuthority(authority("CATALOG_READ"));
         role.pullEvents();
 
         IdentityDomainValidationException exception = assertThrows(
                 IdentityDomainValidationException.class,
-                () -> role.revokeAuthority("CATALOG_READ")
+                () -> role.revokeAuthority(authority("CATALOG_READ"))
         );
 
         assertInstanceOf(IdentityDomainError.RoleAuthoritiesRequired.class, exception.getMessageSource());
@@ -121,5 +125,9 @@ class RoleTest {
 
     private Role hydratedRole(boolean active) {
         return new Role(new CommonId("r1"), "SELLER", "Seller", null, active, Set.of());
+    }
+
+    private Authority authority(String code) {
+        return Authority.rehydrate(new CommonId("authority-" + code), code, "identity", code, null, true);
     }
 }

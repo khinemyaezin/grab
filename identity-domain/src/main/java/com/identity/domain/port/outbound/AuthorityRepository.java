@@ -6,9 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 public interface AuthorityRepository {
-    boolean existsByCode(String code);
-
-    Set<String> findActiveCodes(Set<String> codes);
+    Set<Authority> findActiveByCodes(Set<String> codes);
 
     void upsertAll(List<Authority> authorities);
 }

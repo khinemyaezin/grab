@@ -23,8 +23,8 @@ public class RoleJpaAssemblerImpl implements RoleJpaAssembler {
             entity = new RoleEntity();
         }
         entityMapper.toEntity(role, entity);
-        entity.setAuthorities(role.getAuthorityCodes().stream()
-                .map(code -> authorities.findByCode(code).orElseThrow())
+        entity.setAuthorities(role.getAuthorities().stream()
+                .map(authority -> authorities.findByCode(authority.getCode()).orElseThrow())
                 .collect(Collectors.toSet()));
         return entity;
     }

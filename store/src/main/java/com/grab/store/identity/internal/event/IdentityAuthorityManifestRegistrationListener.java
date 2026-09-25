@@ -1,5 +1,6 @@
 package com.grab.store.identity.internal.event;
 
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.security.AuthorityManifestDeclaredIntegrationEvent;
@@ -18,6 +19,7 @@ public class IdentityAuthorityManifestRegistrationListener {
     private static final Logger log = Loggers.getLogger(IdentityAuthorityManifestRegistrationListener.class);
 
     private final AuthorityRepository authorityRepository;
+    private final IdGenerator idGenerator;
 
     @EventListener
     @IdentityTransactional
@@ -26,7 +28,7 @@ public class IdentityAuthorityManifestRegistrationListener {
                 event.moduleKey(), event.manifestVersion(), event.authorities().size());
 
         List<Authority> authorities = event.authorities().stream()
-                .map(Authority::from)
+                .map(definition -> Authority.from(idGenerator.generateId(), event.moduleKey(), definition))
                 .toList();
 
         authorityRepository.upsertAll(authorities);
