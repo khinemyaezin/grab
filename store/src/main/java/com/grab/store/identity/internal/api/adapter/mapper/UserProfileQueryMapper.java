@@ -14,15 +14,15 @@ import java.util.Objects;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class UserProfileQueryMapper {
 
-    @Mapping(target = "platformCodes", expression = "java(mapPlatformCodes(result.accessContexts()))")
+    @Mapping(target = "roleCodes", expression = "java(mapRoleCodes(result.accessContexts()))")
     public abstract UserProfileResponse toResponse(GetUserProfileResult result);
 
-    protected List<String> mapPlatformCodes(List<GetUserProfileResult.AccessContextInfo> accessContexts) {
+    protected List<String> mapRoleCodes(List<GetUserProfileResult.AccessContextInfo> accessContexts) {
         if (accessContexts == null) {
             return Collections.emptyList();
         }
         return accessContexts.stream()
-                .map(GetUserProfileResult.AccessContextInfo::platformCode)
+                .map(GetUserProfileResult.AccessContextInfo::roleCode)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();

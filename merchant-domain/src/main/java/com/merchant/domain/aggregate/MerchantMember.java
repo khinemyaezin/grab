@@ -163,6 +163,7 @@ public class MerchantMember extends AggregateRoot<Id> {
                 userId.getValue(),
                 null,
                 role.name(),
+                role.authorities(),
                 version + 1,
                 now
         ));
@@ -189,6 +190,7 @@ public class MerchantMember extends AggregateRoot<Id> {
                 userId.getValue(),
                 previousRole.name(),
                 newRole.name(),
+                newRole.authorities(),
                 version + 1,
                 now
         ));

@@ -19,9 +19,8 @@ public class MerchantLifecycleMemberSyncListener {
 
     @EventListener
     public void onMerchantSuspended(MerchantSuspendedEvent event) {
-        log.warn("Merchant suspended merchantId={}. Revoking active seller portal sessions.", event.merchantId());
+        log.warn("Merchant suspended merchantId={}. Revoking active merchant sessions.", event.merchantId());
         accessManagementPort.revokeSessionsByScope(
-                MerchantAccessProfile.SELLER_PLATFORM_CODE,
                 MerchantAccessProfile.MERCHANT_SCOPE_KEY,
                 event.merchantId()
         );
@@ -29,9 +28,8 @@ public class MerchantLifecycleMemberSyncListener {
 
     @EventListener
     public void onMerchantClosed(MerchantClosedEvent event) {
-        log.warn("Merchant closed merchantId={}. Revoking active seller portal sessions.", event.merchantId());
+        log.warn("Merchant closed merchantId={}. Revoking active merchant sessions.", event.merchantId());
         accessManagementPort.revokeSessionsByScope(
-                MerchantAccessProfile.SELLER_PLATFORM_CODE,
                 MerchantAccessProfile.MERCHANT_SCOPE_KEY,
                 event.merchantId()
         );

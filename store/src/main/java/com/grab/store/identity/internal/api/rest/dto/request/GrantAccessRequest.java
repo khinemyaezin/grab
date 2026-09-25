@@ -7,7 +7,6 @@ import java.time.Instant;
 
 public record GrantAccessRequest(
         @NotBlank String userId,
-        @NotBlank String platformCode,
         @NotBlank String roleCode,
         @NotBlank String scopeKey,
         @NotBlank String scopeId,

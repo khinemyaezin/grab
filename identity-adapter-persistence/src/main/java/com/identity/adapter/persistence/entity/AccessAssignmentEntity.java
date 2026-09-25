@@ -25,7 +25,7 @@ import java.time.Instant;
 @Table(
         name = "access_assignments",
         indexes = {
-                @Index(name = "idx_access_assignment_user_platform", columnList = "user_id, platform_role_id"),
+                @Index(name = "idx_access_assignment_user_role", columnList = "user_id, role_id"),
                 @Index(name = "idx_access_assignment_scope", columnList = "scope_key, scope_id")
         }
 )
@@ -42,8 +42,8 @@ public class AccessAssignmentEntity {
     private UserEntity user;
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
-    @JoinColumn(name = "platform_role_id", nullable = false)
-    private PlatformRoleEntity platformRole;
+    @JoinColumn(name = "role_id", nullable = false)
+    private RoleEntity role;
 
     @Column(name = "scope_key", nullable = false)
     private String scopeKey;

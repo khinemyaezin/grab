@@ -34,7 +34,6 @@ public class GetUserProfileService implements GetUserProfileUseCase {
                 .filter(view -> view.assignmentId() != null)
                 .map(view -> new GetUserProfileResult.AccessContextInfo(
                         view.assignmentId(),
-                        view.platformCode(),
                         view.roleCode(),
                         view.scopeKey(),
                         view.scopeId(),

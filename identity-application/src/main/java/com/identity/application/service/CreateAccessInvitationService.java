@@ -9,11 +9,9 @@ import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
 import com.identity.domain.service.InvitationTokenService;
 import com.identity.domain.aggregate.AccessInvitation;
-import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
-import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.policy.RoleDelegationPolicy;
@@ -23,20 +21,14 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class CreateAccessInvitationService implements CreateAccessInvitationUseCase {
-    private final PlatformRepository platforms;
     private final RoleRepository roles;
     private final UserRepository users;
     private final AccessInvitationRepository invitations;
     private final RoleDelegationPolicy delegationPolicy;
     private final InvitationTokenService invitationTokens;
     private final IdGenerator ids;
+
     public AccessInvitationResult execute(CreateAccessInvitationCommand command) {
-        Platform platform = platforms.findByCode(command.platformCode()).orElseThrow(() ->
-                new IdentityServiceException(
-                        new IdentityServiceError.PlatformNotFound(command.platformCode()),
-                        "Platform not found"
-                )
-        );
         Role role = roles.findByCode(command.roleCode()).orElseThrow(() ->
                 new IdentityServiceException(
                         new IdentityServiceError.RoleNotFound(command.roleCode()),
@@ -57,7 +49,6 @@ public class CreateAccessInvitationService implements CreateAccessInvitationUseC
         AccessInvitation saved = invitations.save(AccessInvitation.create(
                 ids.generateId(),
                 new Email(command.inviteeEmail()),
-                platform,
                 command.roleCode(),
                 scope,
                 invitationTokens.hash(acceptanceToken),
@@ -68,7 +59,6 @@ public class CreateAccessInvitationService implements CreateAccessInvitationUseC
         return new AccessInvitationResult(
                 saved.getId().getValue(),
                 saved.getInviteeEmail().value(),
-                saved.getPlatformCode(),
                 saved.getRoleCode(),
                 saved.getScope().key().value(),
                 saved.getScope().scopeId(),

@@ -25,13 +25,9 @@ public class AccessAssignmentQueryAdapter implements AccessAssignmentQueryPort {
     }
 
     @Override
-    public List<AccessAssignmentView> findEffectiveByUserAndPlatform(
-            String userId,
-            String platformCode,
-            Instant now
-    ) {
+    public List<AccessAssignmentView> findEffectiveByUser(String userId, Instant now) {
         return executor.query("AccessAssignment", () ->
-                jpaRepository.findEffectiveByUserAndPlatform(userId, platformCode, now).stream()
+                jpaRepository.findEffectiveByUser(userId, now).stream()
                         .map(entity -> toView(entity, now))
                         .toList());
     }
@@ -47,8 +43,7 @@ public class AccessAssignmentQueryAdapter implements AccessAssignmentQueryPort {
         return new AccessAssignmentView(
                 entity.getUuid(),
                 entity.getUser().getUuid(),
-                entity.getPlatformRole().getPlatform().getCode(),
-                entity.getPlatformRole().getRole().getCode(),
+                entity.getRole().getCode(),
                 entity.getScopeKey(),
                 entity.getScopeId(),
                 stored,

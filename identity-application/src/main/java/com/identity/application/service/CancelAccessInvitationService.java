@@ -31,7 +31,6 @@ public class CancelAccessInvitationService implements CancelAccessInvitationUseC
         return new AccessInvitationResult(
                 saved.getId().getValue(),
                 saved.getInviteeEmail().value(),
-                saved.getPlatformCode(),
                 saved.getRoleCode(),
                 saved.getScope().key().value(),
                 saved.getScope().scopeId(),

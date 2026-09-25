@@ -29,10 +29,9 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<EntityModel<AuthResponse>> login(
-            @Valid @RequestBody LoginRequest request,
-            @RequestHeader(value = "X-Platform") String platformCode
+            @Valid @RequestBody LoginRequest request
             ) {
-        AuthResponse response = commandService.login(request, platformCode);
+        AuthResponse response = commandService.login(request);
         return ResponseEntity.ok()
                 .headers(authCookieHelper.createTokenCookies(response.accessToken(), response.refreshToken(), response.expiresInMs()))
                 .body(authModelAssembler.toModel(response));
@@ -71,9 +70,8 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<EntityModel<UserProfileResponse>> register(
-            @RequestHeader(value = "X-Platform") String platformCode,
             @Valid @RequestBody RegisterRequest request) {
-        UserProfileResponse response = commandService.register(request, platformCode);
+        UserProfileResponse response = commandService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userProfileModelAssembler.toModel(response));
     }

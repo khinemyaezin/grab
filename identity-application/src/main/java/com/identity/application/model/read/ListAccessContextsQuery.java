@@ -6,7 +6,6 @@ import com.grab.framework.id.Id;
 import java.util.List;
 
 public record ListAccessContextsQuery(
-        Id userId,
-        String platformCode
+        Id userId
 ) implements Query<List<AccessContextResult>> {
 }

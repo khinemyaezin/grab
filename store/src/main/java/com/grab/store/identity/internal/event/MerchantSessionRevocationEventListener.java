@@ -25,7 +25,6 @@ public class MerchantSessionRevocationEventListener {
 //            return;
 //        }
 //        var command = new RevokeSessionsByScopeCommand(
-//                PlatformScopes.SELLER_PORTAL,
 //                PlatformScopes.MERCHANT_STOREFRONT_SCOPE,
 //                event.storefrontId()
 //        );
@@ -34,7 +33,6 @@ public class MerchantSessionRevocationEventListener {
 //
 //    private void revokeMerchantAccount(String merchantId) {
 //        var command = new RevokeSessionsByScopeCommand(
-//                PlatformScopes.SELLER_PORTAL,
 //                PlatformScopes.MERCHANT_ACCOUNT_SCOPE,
 //                merchantId
 //        );

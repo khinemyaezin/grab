@@ -19,8 +19,7 @@ public interface RefreshSessionJpaRepository extends JpaRepository<RefreshSessio
 
     List<RefreshSessionEntity> findByAssignmentUuid(String assignmentUuid);
 
-    List<RefreshSessionEntity> findByPlatformCodeAndScopeKeyAndScopeIdAndRevokedAtIsNull(
-            String platformCode,
+    List<RefreshSessionEntity> findByScopeKeyAndScopeIdAndRevokedAtIsNull(
             String scopeKey,
             String scopeId
     );

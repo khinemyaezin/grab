@@ -7,13 +7,13 @@ import com.identity.application.exception.IdentityServiceException;
 import com.identity.application.model.write.AccessAssignmentResult;
 import com.identity.application.model.write.ReplaceAccessCommand;
 import com.identity.domain.aggregate.AccessAssignment;
-import com.identity.domain.aggregate.Platform;
+import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.enums.UserStatus;
-import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
-import com.identity.domain.port.outbound.PlatformRepository;
+import com.identity.domain.port.outbound.AuthorityRepository;
+import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.valueobject.AccessScope;
@@ -41,7 +41,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ReplaceAccessServiceTest {
 
-    private static final String PLATFORM_CODE = "SELLER_PORTAL";
     private static final String PREVIOUS_ROLE = "MERCHANT_STAFF";
     private static final String REPLACEMENT_ROLE = "MERCHANT_OWNER";
     private static final String ANOTHER_ROLE = "STORE_CASHIER";
@@ -52,7 +51,10 @@ class ReplaceAccessServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private PlatformRepository platformRepository;
+    private RoleRepository roleRepository;
+
+    @Mock
+    private AuthorityRepository authorityRepository;
 
     @Mock
     private AccessAssignmentRepository assignmentRepository;
@@ -68,13 +70,11 @@ class ReplaceAccessServiceTest {
     private Id userId;
     private Id newAssignmentId;
     private User activeUser;
-    private Platform platform;
 
     @BeforeEach
     void setUp() {
         service = new ReplaceAccessService(
                 userRepository,
-                platformRepository,
                 assignmentRepository,
                 sessionStore,
                 idGenerator
@@ -91,27 +91,16 @@ class ReplaceAccessServiceTest {
                 LocalDateTime.now(),
                 LocalDateTime.now()
         );
-
-        platform = new Platform(
-                () -> "plt-1",
-                PLATFORM_CODE,
-                "Seller Portal",
-                true,
-                Set.of(PREVIOUS_ROLE, REPLACEMENT_ROLE, ANOTHER_ROLE),
-                Set.of(),
-                Set.of()
-        );
     }
 
     @Test
     void shouldCreateReplacementAccess_whenValidCommandAndNoPriorRole() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of());
         when(idGenerator.generateId()).thenReturn(newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class)))
@@ -134,7 +123,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldRevokePreviousAccessInScope_andIssueNewRole() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment previousAssignment = createAssignment(
@@ -142,8 +131,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(previousAssignment));
         when(idGenerator.generateId()).thenReturn(newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class)))
@@ -163,7 +151,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldReturnExistingAssignment_whenUserAlreadyHasActiveRoleInScope() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment existingAssignment = createAssignment(
@@ -171,8 +159,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(existingAssignment));
 
         AccessAssignmentResult result = service.execute(command);
@@ -189,7 +176,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldRevokeSuspendedAssignment_andCreateActiveReplacement() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment suspended = createAssignment(
@@ -197,8 +184,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(suspended));
         when(idGenerator.generateId()).thenReturn(newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class)))
@@ -215,7 +201,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldExpirePastDueAssignment_andCreateActiveReplacement() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         Instant pastDate = Instant.parse("2020-01-01T00:00:00Z");
@@ -224,8 +210,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(expired));
         when(idGenerator.generateId()).thenReturn(newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class)))
@@ -242,7 +227,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldPerformPureRevocation_whenReplacementRoleIsNull() {
         ReplaceAccessCommand revokeCommand = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, null, SCOPE_KEY, SCOPE_ID
+                userId, null, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment activeRole = createAssignment(
@@ -250,8 +235,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(activeRole));
         when(assignmentRepository.save(any(AccessAssignment.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -267,12 +251,11 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldReturnRevokedResult_whenReplacementRoleIsNullAndNoAssignmentExists() {
         ReplaceAccessCommand revokeCommand = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, null, SCOPE_KEY, SCOPE_ID
+                userId, null, SCOPE_KEY, SCOPE_ID
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of());
 
         AccessAssignmentResult result = service.execute(revokeCommand);
@@ -286,7 +269,7 @@ class ReplaceAccessServiceTest {
     @DisplayName("Should throw UserNotFound exception when user does not exist")
     void shouldThrowUserNotFound_whenUserDoesNotExist() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
@@ -298,48 +281,13 @@ class ReplaceAccessServiceTest {
                     assertThat(isEx.getMessageSource()).isInstanceOf(IdentityServiceError.UserNotFound.class);
                 });
 
-        verify(platformRepository, never()).findByCode(any());
-        verify(assignmentRepository, never()).findCurrentByUserPlatformAndScope(any(), any(), any());
-    }
-
-    @Test
-    void shouldThrowPlatformNotFound_whenPlatformDoesNotExist() {
-        ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, "UNKNOWN_PORTAL", REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
-        );
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode("UNKNOWN_PORTAL")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.execute(command))
-                .isInstanceOf(IdentityServiceException.class)
-                .satisfies(ex -> {
-                    IdentityServiceException isEx = (IdentityServiceException) ex;
-                    assertThat(isEx.getMessageSource()).isInstanceOf(IdentityServiceError.PlatformNotFound.class);
-                });
-
-        verify(assignmentRepository, never()).findCurrentByUserPlatformAndScope(any(), any(), any());
-    }
-
-    @Test
-    void shouldThrowException_whenRoleIsNotSupportedByPlatform() {
-        ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, "SUPER_ADMIN", SCOPE_KEY, SCOPE_ID
-        );
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-
-        assertThatThrownBy(() -> service.execute(command))
-                .isInstanceOf(IdentityDomainValidationException.class);
-
-        verify(assignmentRepository, never()).save(any());
+        verify(assignmentRepository, never()).findCurrentByUserAndScope(any(), any());
     }
 
     @Test
     void shouldRevokeOnlySpecifiedPreviousRole_andRetainOtherRolesInSameScope() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, PREVIOUS_ROLE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, PREVIOUS_ROLE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment staffAssignment = createAssignment(
@@ -350,8 +298,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(staffAssignment, cashierAssignment));
         when(idGenerator.generateId()).thenReturn(newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class)))
@@ -375,7 +322,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldRevokeOnlySpecifiedPreviousRole_whenReplacementRoleIsNull() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, PREVIOUS_ROLE, null, SCOPE_KEY, SCOPE_ID
+                userId, PREVIOUS_ROLE, null, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment staffAssignment = createAssignment(
@@ -386,8 +333,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(staffAssignment, cashierAssignment));
         when(assignmentRepository.save(any(AccessAssignment.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -409,7 +355,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldRetainExistingReplacementRole_andRevokeOnlyPreviousRole_whenBothPresent() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, PREVIOUS_ROLE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, PREVIOUS_ROLE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment staffAssignment = createAssignment(
@@ -420,8 +366,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(staffAssignment, ownerAssignment));
         when(assignmentRepository.save(any(AccessAssignment.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -443,7 +388,7 @@ class ReplaceAccessServiceTest {
     @Test
     void shouldGrantReplacementRole_whenPreviousRoleIsNotHeldByUser() {
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, PREVIOUS_ROLE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, PREVIOUS_ROLE, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
         );
 
         AccessAssignment cashierAssignment = createAssignment(
@@ -451,8 +396,7 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
-        when(assignmentRepository.findCurrentByUserPlatformAndScope(eq(userId), eq(PLATFORM_CODE), any(AccessScope.class)))
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
                 .thenReturn(List.of(cashierAssignment));
         when(idGenerator.generateId()).thenReturn(newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class)))
@@ -469,17 +413,94 @@ class ReplaceAccessServiceTest {
     }
 
     @Test
-    void shouldThrowException_whenPreviousRoleIsNotSupportedByPlatform() {
+    void shouldSkipRoleCreation_whenRoleAlreadyExists() {
+        ReplaceAccessService serviceWithRoles = new ReplaceAccessService(
+                userRepository,
+                roleRepository,
+                authorityRepository,
+                assignmentRepository,
+                sessionStore,
+                idGenerator
+        );
+
         ReplaceAccessCommand command = new ReplaceAccessCommand(
-                userId, PLATFORM_CODE, "UNKNOWN_ROLE", REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID
+                userId, null, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID, Set.of("USER_READ")
+        );
+
+        Role existingRole = mock(Role.class);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
+        when(roleRepository.findByCode(REPLACEMENT_ROLE)).thenReturn(Optional.of(existingRole));
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class))).thenReturn(List.of());
+        when(idGenerator.generateId()).thenReturn(newAssignmentId);
+        when(assignmentRepository.save(any(AccessAssignment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AccessAssignmentResult result = serviceWithRoles.execute(command);
+
+        assertThat(result.roleCode()).isEqualTo(REPLACEMENT_ROLE);
+        verify(roleRepository, never()).save(any());
+        verify(authorityRepository, never()).findActiveCodes(any());
+    }
+
+    @Test
+    void shouldCreateRoleWithActiveAuthorities_whenRoleDoesNotExist() {
+        ReplaceAccessService serviceWithRoles = new ReplaceAccessService(
+                userRepository,
+                roleRepository,
+                authorityRepository,
+                assignmentRepository,
+                sessionStore,
+                idGenerator
+        );
+
+        Set<String> requestedAuths = Set.of("USER_READ", "INVALID_CODE!#", "*");
+        ReplaceAccessCommand command = new ReplaceAccessCommand(
+                userId, null, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID, requestedAuths
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(platformRepository.findByCode(PLATFORM_CODE)).thenReturn(Optional.of(platform));
+        when(roleRepository.findByCode(REPLACEMENT_ROLE)).thenReturn(Optional.empty());
+        when(authorityRepository.findActiveCodes(Set.of("USER_READ"))).thenReturn(Set.of("USER_READ"));
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class))).thenReturn(List.of());
+        when(idGenerator.generateId()).thenReturn(() -> "role-new-123", newAssignmentId);
+        when(assignmentRepository.save(any(AccessAssignment.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThatThrownBy(() -> service.execute(command))
-                .isInstanceOf(IdentityDomainValidationException.class);
+        AccessAssignmentResult result = serviceWithRoles.execute(command);
 
+        assertThat(result.roleCode()).isEqualTo(REPLACEMENT_ROLE);
+        ArgumentCaptor<Role> roleCaptor = ArgumentCaptor.forClass(Role.class);
+        verify(roleRepository).save(roleCaptor.capture());
+        Role savedRole = roleCaptor.getValue();
+        assertThat(savedRole.getCode()).isEqualTo(REPLACEMENT_ROLE);
+        assertThat(savedRole.getAuthorityCodes()).containsExactly("USER_READ");
+    }
+
+    @Test
+    void shouldThrowRoleNotFound_whenRoleDoesNotExistAndNoActiveAuthoritiesMatch() {
+        ReplaceAccessService serviceWithRoles = new ReplaceAccessService(
+                userRepository,
+                roleRepository,
+                authorityRepository,
+                assignmentRepository,
+                sessionStore,
+                idGenerator
+        );
+
+        ReplaceAccessCommand command = new ReplaceAccessCommand(
+                userId, null, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID, Set.of("UNKNOWN_AUTH")
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
+        when(roleRepository.findByCode(REPLACEMENT_ROLE)).thenReturn(Optional.empty());
+        when(authorityRepository.findActiveCodes(Set.of("UNKNOWN_AUTH"))).thenReturn(Set.of());
+
+        assertThatThrownBy(() -> serviceWithRoles.execute(command))
+                .isInstanceOf(IdentityServiceException.class)
+                .satisfies(ex -> {
+                    IdentityServiceException isEx = (IdentityServiceException) ex;
+                    assertThat(isEx.getMessageSource()).isInstanceOf(IdentityServiceError.RoleNotFound.class);
+                });
+
+        verify(roleRepository, never()).save(any());
         verify(assignmentRepository, never()).save(any());
     }
 
@@ -493,7 +514,6 @@ class ReplaceAccessServiceTest {
         return new AccessAssignment(
                 () -> id,
                 userId,
-                PLATFORM_CODE,
                 roleCode,
                 AccessScope.from(SCOPE_KEY, SCOPE_ID),
                 status,

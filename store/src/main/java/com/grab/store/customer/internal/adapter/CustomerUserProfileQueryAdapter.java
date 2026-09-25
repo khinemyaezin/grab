@@ -22,7 +22,7 @@ public class CustomerUserProfileQueryAdapter implements UserProfileQueryPort {
                 profile.email(),
                 profile.status(),
                 profile.createdAt(),
-                profile.platformCodes()
+                profile.roleCodes()
         );
     }
 }

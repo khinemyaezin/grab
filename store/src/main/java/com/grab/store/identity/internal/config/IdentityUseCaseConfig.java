@@ -40,12 +40,11 @@ public class IdentityUseCaseConfig {
     public AcceptAccessInvitationUseCase acceptAccessInvitationUseCase(
             AccessInvitationRepository invitations,
             AccessAssignmentRepository assignments,
-            PlatformRepository platforms,
             RoleRepository roles,
             InvitationTokenService invitationTokens,
             IdGenerator ids
     ) {
-        return new AcceptAccessInvitationService(invitations, assignments, platforms, roles, invitationTokens, ids);
+        return new AcceptAccessInvitationService(invitations, assignments, roles, invitationTokens, ids);
     }
 
     @Bean
@@ -75,7 +74,6 @@ public class IdentityUseCaseConfig {
 
     @Bean
     public CreateAccessInvitationUseCase createAccessInvitationUseCase(
-            PlatformRepository platforms,
             RoleRepository roles,
             UserRepository users,
             AccessInvitationRepository invitations,
@@ -83,17 +81,16 @@ public class IdentityUseCaseConfig {
             InvitationTokenService invitationTokens,
             IdGenerator ids
     ) {
-        return new CreateAccessInvitationService(platforms, roles, users, invitations, delegationPolicy, invitationTokens, ids);
+        return new CreateAccessInvitationService(roles, users, invitations, delegationPolicy, invitationTokens, ids);
     }
 
     @Bean
     public CreateRoleUseCase createRoleUseCase(
             RoleRepository roleRepository,
-            PlatformRepository platformRepository,
             RoleAdministrationPolicy roleAdministrationPolicy,
             IdGenerator idGenerator
     ) {
-        return new CreateRoleService(roleRepository, platformRepository, roleAdministrationPolicy, idGenerator);
+        return new CreateRoleService(roleRepository, roleAdministrationPolicy, idGenerator);
     }
 
     @Bean
@@ -104,13 +101,12 @@ public class IdentityUseCaseConfig {
     @Bean
     public GrantAccessUseCase grantAccessUseCase(
             UserRepository users,
-            PlatformRepository platforms,
             RoleRepository roles,
             AccessAssignmentRepository assignments,
             RoleDelegationPolicy delegationPolicy,
             IdGenerator ids
     ) {
-        return new GrantAccessService(users, platforms, roles, assignments, delegationPolicy, ids);
+        return new GrantAccessService(users, roles, assignments, delegationPolicy, ids);
     }
 
     @Bean
@@ -154,10 +150,9 @@ public class IdentityUseCaseConfig {
     @Bean
     public ManageAuthorityUseCase manageAuthorityUseCase(
             RoleRepository roleRepository,
-            PlatformRepository platformRepository,
             RoleAdministrationPolicy roleAdministrationPolicy
     ) {
-        return new ManageAuthorityService(roleRepository, platformRepository, roleAdministrationPolicy);
+        return new ManageAuthorityService(roleRepository, roleAdministrationPolicy);
     }
 
     @Bean
@@ -168,23 +163,23 @@ public class IdentityUseCaseConfig {
     @Bean
     public RegisterUseCase registerUseCase(
             UserRepository users,
-            PlatformRepository platforms,
             AccessAssignmentRepository accessAssignments,
             PasswordHasher passwordHasher,
             IdGenerator idGenerator
     ) {
-        return new RegisterService(users, platforms, accessAssignments, passwordHasher, idGenerator);
+        return new RegisterService(users, accessAssignments, passwordHasher, idGenerator);
     }
 
     @Bean
     public ReplaceAccessUseCase replaceAccessUseCase(
             UserRepository users,
-            PlatformRepository platforms,
+            RoleRepository roles,
+            AuthorityRepository authorities,
             AccessAssignmentRepository assignments,
             SessionStore sessions,
             IdGenerator ids
     ) {
-        return new ReplaceAccessService(users, platforms, assignments, sessions, ids);
+        return new ReplaceAccessService(users, roles, authorities, assignments, sessions, ids);
     }
 
     @Bean

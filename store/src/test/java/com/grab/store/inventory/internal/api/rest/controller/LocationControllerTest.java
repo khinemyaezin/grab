@@ -113,7 +113,7 @@ class LocationControllerTest {
     @Test
     void createLocation_withoutActorId_shouldReturn403() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
-                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN")));
 
         mockMvc.perform(post("/api/v1/inventory/locations")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -241,7 +241,7 @@ class LocationControllerTest {
     @Test
     void listLocations_withoutSellerId_shouldReturn403() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
-                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN")));
 
         mockMvc.perform(get("/api/v1/inventory/locations"))
                 .andExpect(status().isForbidden());

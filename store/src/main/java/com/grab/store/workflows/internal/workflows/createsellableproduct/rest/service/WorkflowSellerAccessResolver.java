@@ -23,7 +23,6 @@ public class WorkflowSellerAccessResolver {
     public WorkflowAccess resolve(SecurityPrincipal principal) {
         String merchantId = ScopeResolverHelper.resolveScopeId(
                         principal,
-                        PlatformScopes.SELLER_PORTAL,
                         PlatformScopes.MERCHANT_ACCOUNT_SCOPE)
                 .orElseThrow(() -> forbidden(principal));
 
@@ -39,10 +38,9 @@ public class WorkflowSellerAccessResolver {
     private RuntimeException forbidden(SecurityPrincipal principal) {
         AccessContext context = principal != null ? principal.getAccessContext().orElse(null) : null;
         if (context == null) {
-            return SharedErrors.workflowScopeForbidden(UNKNOWN, UNKNOWN, UNKNOWN);
+            return SharedErrors.workflowScopeForbidden(UNKNOWN, UNKNOWN);
         }
         return SharedErrors.workflowScopeForbidden(
-                safe(context.platformCode()),
                 safe(context.scopeKey()),
                 safe(context.scopeId())
         );

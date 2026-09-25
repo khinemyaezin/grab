@@ -21,8 +21,9 @@ public class ListAccessContextsService implements ListAccessContextsUseCase {
 
     public List<AccessContextResult> execute(ListAccessContextsQuery query) {
         Instant now = Instant.now();
-        Map<ContextKey, List<AccessAssignmentView>> contexts = assignments
-                .findEffectiveByUserAndPlatform(query.userId().getValue(), query.platformCode(), now)
+        List<AccessAssignmentView> views = assignments.findEffectiveByUser(query.userId().getValue(), now);
+
+        Map<ContextKey, List<AccessAssignmentView>> contexts = views
                 .stream()
                 .collect(Collectors.groupingBy(
                         assignment -> new ContextKey(assignment.scopeKey(), assignment.scopeId()),
@@ -50,7 +51,6 @@ public class ListAccessContextsService implements ListAccessContextsUseCase {
 
         return new AccessContextResult(
                 anchor.id(),
-                anchor.platformCode(),
                 Set.copyOf(roleCodes),
                 anchor.scopeKey(),
                 anchor.scopeId(),

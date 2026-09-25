@@ -22,7 +22,6 @@ public class AuthenticatedCatalogMerchantResolver {
 
         return ScopeResolverHelper.resolveScopeId(
                         principal,
-                        PlatformScopes.SELLER_PORTAL,
                         PlatformScopes.MERCHANT_ACCOUNT_SCOPE)
                 .orElseThrow(() -> buildForbiddenException(principal));
     }
@@ -38,7 +37,7 @@ public class AuthenticatedCatalogMerchantResolver {
     private CatalogServiceException forbidden(String scopeKey, String scopeId) {
         CatalogServiceError error = new CatalogServiceError.MerchantScopeRequired(
                 safeValue(scopeKey), safeValue(scopeId));
-        return new CatalogServiceException(error, "A Seller Portal merchant account scope is required");
+        return new CatalogServiceException(error, "A merchant account scope is required");
     }
 
     private String safeValue(String value) {

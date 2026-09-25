@@ -35,7 +35,6 @@ public class SessionStoreAdapter implements SessionStore {
         session.setCreatedAt(Instant.now());
         session.setExpiresAt(expiresAt);
         if(Objects.nonNull(accessContext)) {
-            session.setPlatformCode(accessContext.platformCode());
             session.setAssignmentUuid(accessContext.assignmentId());
             session.setScopeKey(accessContext.scopeKey());
             session.setScopeId(accessContext.scopeId());
@@ -115,23 +114,21 @@ public class SessionStoreAdapter implements SessionStore {
     }
 
     @Override
-    public void revokeByScope(String platformCode, String scopeKey, String scopeId) {
+    public void revokeByScope(String scopeKey, String scopeId) {
         Instant now = Instant.now();
-        var scopedSessions = sessionRepository.findByPlatformCodeAndScopeKeyAndScopeIdAndRevokedAtIsNull(
-                platformCode, scopeKey, scopeId);
+        var scopedSessions = sessionRepository.findByScopeKeyAndScopeIdAndRevokedAtIsNull(
+                scopeKey, scopeId);
         scopedSessions.forEach(session -> session.setRevokedAt(now));
         sessionRepository.saveAll(scopedSessions);
     }
 
     private Optional<AccessContext> contextOf(RefreshSessionEntity session) {
-        if (session.getPlatformCode() == null
-                || session.getAssignmentUuid() == null
+        if (session.getAssignmentUuid() == null
                 || session.getScopeKey() == null
                 || session.getScopeId() == null) {
             return Optional.empty();
         }
         return Optional.of(new AccessContext(
-                session.getPlatformCode(),
                 session.getAssignmentUuid(),
                 session.getScopeKey(),
                 session.getScopeId()

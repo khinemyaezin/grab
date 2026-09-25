@@ -82,7 +82,7 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
 
     private Set<RoleEntity> scopedRoles(UserEntity user, AccessContext context) {
         AccessAssignmentEntity anchor = accessAssignments
-                .findForContext(context.assignmentId(), user.getUuid(), context.platformCode())
+                .findByUuidAndUser_Uuid(context.assignmentId(), user.getUuid())
                 .orElseThrow(this::invalidAccessContext);
 
         boolean matchesScope = anchor.getScopeKey().equals(context.scopeKey())
@@ -91,13 +91,12 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
             throw invalidAccessContext();
         }
 
-        Set<RoleEntity> roles = accessAssignments.findEffectiveByUserAndPlatform(
-                        user.getUuid(), context.platformCode(), Instant.now()
+        Set<RoleEntity> roles = accessAssignments.findEffectiveByUser(
+                        user.getUuid(), Instant.now()
                 ).stream()
                 .filter(assignment -> assignment.getScopeKey().equals(context.scopeKey()))
                 .filter(assignment -> assignment.getScopeId().equals(context.scopeId()))
-                .map(AccessAssignmentEntity::getPlatformRole)
-                .map(PlatformRoleEntity::getRole)
+                .map(AccessAssignmentEntity::getRole)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
         if (roles.isEmpty()) {

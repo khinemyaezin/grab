@@ -44,7 +44,6 @@ public final class DefaultInventoryLocationAccessPolicy implements InventoryLoca
     private InventoryServiceException forbidden(String scopeKey, String scopeId) {
         return new InventoryServiceException(
                 new InventoryServiceError.InventoryScopeForbidden(
-                        PlatformScopes.SELLER_PORTAL,
                         scopeKey == null || scopeKey.isBlank() ? "UNKNOWN" : scopeKey,
                         scopeId == null || scopeId.isBlank() ? "UNKNOWN" : scopeId
                 )

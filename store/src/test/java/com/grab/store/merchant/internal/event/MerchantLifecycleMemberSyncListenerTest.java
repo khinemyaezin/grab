@@ -33,7 +33,6 @@ class MerchantLifecycleMemberSyncListenerTest {
         listener.onMerchantSuspended(event);
 
         verify(accessManagementPort).revokeSessionsByScope(
-                MerchantAccessProfile.SELLER_PLATFORM_CODE,
                 MerchantAccessProfile.MERCHANT_SCOPE_KEY,
                 "mer-1"
         );
@@ -48,7 +47,6 @@ class MerchantLifecycleMemberSyncListenerTest {
         listener.onMerchantClosed(event);
 
         verify(accessManagementPort).revokeSessionsByScope(
-                MerchantAccessProfile.SELLER_PLATFORM_CODE,
                 MerchantAccessProfile.MERCHANT_SCOPE_KEY,
                 "mer-1"
         );

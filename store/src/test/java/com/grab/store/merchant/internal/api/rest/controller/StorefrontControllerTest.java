@@ -117,8 +117,8 @@ class StorefrontControllerTest {
     @Test
     void list_withoutMerchantScope_shouldReturn403() throws Exception {
         when(merchantScopes.resolveCurrentMerchantId(any())).thenThrow(new MerchantServiceException(
-                new MerchantServiceError.MerchantScopeForbidden("CUSTOMER_APP", "merchant.storefront", "sf-1"),
-                "A Seller Portal merchant account scope is required"
+                new MerchantServiceError.MerchantScopeForbidden("merchant.storefront", "sf-1"),
+                "A merchant account scope is required"
         ));
 
         mockMvc.perform(get("/api/v1/merchants/storefronts"))

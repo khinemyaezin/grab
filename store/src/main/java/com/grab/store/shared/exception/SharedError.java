@@ -64,7 +64,7 @@ public sealed interface SharedError extends MessageSource permits
         }
     }
 
-    record WorkflowScopeForbidden(String platformCode, String scopeKey, String scopeId) implements SharedError {
+    record WorkflowScopeForbidden(String scopeKey, String scopeId) implements SharedError {
         @Override
         public ErrorCategory kind() {
             return ErrorCategory.FORBIDDEN;
@@ -78,7 +78,6 @@ public sealed interface SharedError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of(
-                    "platformCode", platformCode,
                     "scopeKey", scopeKey,
                     "scopeId", scopeId
             );

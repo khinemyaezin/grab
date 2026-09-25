@@ -30,7 +30,7 @@ public sealed interface MerchantServiceError extends MessageSource permits
         }
     }
 
-    record MerchantScopeForbidden(String platformCode, String scopeKey, String scopeId)
+    record MerchantScopeForbidden(String scopeKey, String scopeId)
             implements MerchantServiceError {
         @Override
         public ErrorCategory kind() {
@@ -45,7 +45,6 @@ public sealed interface MerchantServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of(
-                    "platformCode", platformCode,
                     "scopeKey", scopeKey,
                     "scopeId", scopeId
             );

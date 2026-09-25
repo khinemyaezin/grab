@@ -23,8 +23,8 @@ public class AccessQueryService {
     private final ListAccessAssignmentsRequestMapper assignmentMapper;
     private final AuthenticatedAccessScopeResolver actorScopes;
 
-    public List<AccessContextResponse> listContexts(String userId, String platformCode) {
-        ListAccessContextsQuery query = mapper.toQuery(userId, platformCode);
+    public List<AccessContextResponse> listContexts(String userId) {
+        ListAccessContextsQuery query = mapper.toQuery(userId);
         List<AccessContextResult> results = queryBus.dispatch(query);
         return results.stream().map(mapper::toResponse).toList();
     }

@@ -13,7 +13,6 @@ public class RevokeSessionsByScopeService implements RevokeSessionsByScopeUseCas
     @Override
     public Void execute(RevokeSessionsByScopeCommand command) {
         sessionStore.revokeByScope(
-                command.platformCode(),
                 command.scopeKey(),
                 command.scopeId()
         );

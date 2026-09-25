@@ -12,12 +12,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.InvalidRoleCode,
         IdentityDomainError.InvalidRoleName,
         IdentityDomainError.InvalidUserStatusTransition,
-        IdentityDomainError.InvalidPlatformCode,
-        IdentityDomainError.InvalidPlatformName,
-        IdentityDomainError.PlatformRoleNotSupported,
-        IdentityDomainError.PlatformDefaultRoleNotSupported,
-        IdentityDomainError.PlatformDefaultRoleNotConfigured,
-        IdentityDomainError.PlatformAuthorityNotSupported,
         IdentityDomainError.SystemRoleModificationForbidden,
         IdentityDomainError.RoleAuthoritiesRequired,
         IdentityDomainError.AuthoritiesUnavailable,
@@ -81,19 +75,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         public Map<String, Object> args() { return Map.of("roleCode", roleCode); }
     }
 
-    record PlatformAuthorityNotSupported(String platformCode, String authorityCode)
-            implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
-
-        @Override
-        public String code() { return "idt.domain.platform.authority_not_supported"; }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode, "authorityCode", authorityCode);
-        }
-    }
 
     record AccountNotActive(String userId) implements IdentityDomainError {
         @Override
@@ -215,90 +196,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         }
     }
 
-    record InvalidPlatformCode(String platformCode) implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.code_invalid";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode);
-        }
-    }
-
-    record InvalidPlatformName() implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.name_invalid";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of();
-        }
-    }
-
-    record PlatformRoleNotSupported(String platformCode, String roleCode) implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.role_not_supported";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode, "roleCode", roleCode);
-        }
-    }
-
-    record PlatformDefaultRoleNotSupported(String platformCode, String roleCode) implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.default_role_not_supported";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode, "roleCode", roleCode);
-        }
-    }
-
-    record PlatformDefaultRoleNotConfigured(String platformCode) implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.default_role_not_configured";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode);
-        }
-    }
 
     record InvalidAccessCode(String field, String value) implements IdentityDomainError {
         @Override

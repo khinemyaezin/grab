@@ -82,8 +82,6 @@ inventory:
 identity:
   seed:
     enabled: ${IDENTITY_SEED_ENABLED:true}
-    admin-email: ${IDENTITY_ADMIN_EMAIL:admin@example.com}
-    admin-password: ${IDENTITY_ADMIN_PASSWORD:change-me-admin}
   datasource:
     url: ${IDENTITY_DATASOURCE_URL:jdbc:postgresql://localhost:5432/identity}
     username: ${IDENTITY_DATASOURCE_USERNAME:admin}

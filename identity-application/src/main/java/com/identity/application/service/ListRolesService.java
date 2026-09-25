@@ -20,8 +20,7 @@ public class ListRolesService implements ListRolesUseCase {
                 role.kind(),
                 role.active(),
                 role.assignable(),
-                role.authorityCodes(),
-                role.platformCodes()
+                role.authorityCodes()
         ));
     }
 }

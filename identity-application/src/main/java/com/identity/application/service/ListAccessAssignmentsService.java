@@ -32,7 +32,6 @@ public class ListAccessAssignmentsService implements ListAccessAssignmentsUseCas
         return new AccessAssignmentResult(
                 assignment.id(),
                 assignment.userId(),
-                assignment.platformCode(),
                 assignment.roleCode(),
                 assignment.scopeKey(),
                 assignment.scopeId(),

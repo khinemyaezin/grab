@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 class InviteMerchantMemberServiceTest {
-    private final Instant now = Instant.parse("2026-09-23T10:00:00Z");
+    private final Instant now = Instant.now();
     private final CommonId merchantId = new CommonId("mer-1");
     private final CommonId applicantId = new CommonId("usr-applicant");
     private final CommonId adminMemberUserId = new CommonId("usr-admin-member");

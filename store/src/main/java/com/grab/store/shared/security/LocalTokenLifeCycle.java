@@ -54,7 +54,6 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
         AccessContext context = actor.accessContext();
         if (Objects.nonNull(context)) {
             builder
-                    .claim("platform", context.platformCode())
                     .claim("assignment_id", context.assignmentId())
                     .claim("scope_key", context.scopeKey())
                     .claim("scope_id", context.scopeId());

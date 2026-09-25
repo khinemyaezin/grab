@@ -81,7 +81,7 @@ class LocalTokenLifeCycleTest {
     void issue_withAccessContext_shouldPersistAndEncodeContext() {
         String userId = UUID.randomUUID().toString();
         AccessContext context = new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"
+                "assignment-1", "merchant.account", "merchant-1"
         );
         AuthenticatedActor actor = new AuthenticatedActor(
                 userId,
@@ -97,7 +97,6 @@ class LocalTokenLifeCycleTest {
 
         var parsed = Jwts.parser().verifyWith(keyPair.getPublic()).build()
                 .parseSignedClaims(tokenPair.accessToken());
-        assertEquals("SELLER_PORTAL", parsed.getPayload().get("platform"));
         assertEquals("assignment-1", parsed.getPayload().get("assignment_id"));
         assertEquals("merchant.account", parsed.getPayload().get("scope_key"));
         assertFalse(parsed.getPayload().containsKey("scope_type"));

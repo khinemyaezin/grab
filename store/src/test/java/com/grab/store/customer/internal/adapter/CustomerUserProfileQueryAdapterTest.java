@@ -35,7 +35,7 @@ class CustomerUserProfileQueryAdapterTest {
         UserProfileQuery.UserProfileResponse identityResponse =
                 new UserProfileQuery.UserProfileResponse(
                         "user-123", "test@example.com", "ACTIVE", "2023-01-01T00:00:00Z",
-                        List.of("CUSTOMER_APP")
+                        List.of("CUSTOMER")
                 );
 
         when(identityUserProfileQuery.getUserProfile(userId)).thenReturn(identityResponse);
@@ -47,7 +47,7 @@ class CustomerUserProfileQueryAdapterTest {
         assertThat(response.email()).isEqualTo("test@example.com");
         assertThat(response.status()).isEqualTo("ACTIVE");
         assertThat(response.createdAt()).isEqualTo("2023-01-01T00:00:00Z");
-        assertThat(response.platformCodes()).containsExactly("CUSTOMER_APP");
+        assertThat(response.roleCodes()).containsExactly("CUSTOMER");
 
         verify(identityUserProfileQuery).getUserProfile(userId);
     }

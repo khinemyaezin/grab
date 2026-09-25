@@ -48,7 +48,6 @@ class AccessManagementPortAdapterTest {
 
         var request = new AccessManagementPort.ReplaceAccessRequest(
                 "usr-123",
-                "SELLER_PORTAL",
                 "OPERATOR",
                 "MERCHANT_ADMIN",
                 "merchant.account",
@@ -62,7 +61,6 @@ class AccessManagementPortAdapterTest {
 
         ReplaceAccessCommand command = captor.getValue();
         assertThat(command.userId()).isEqualTo(userId);
-        assertThat(command.platformCode()).isEqualTo("SELLER_PORTAL");
         assertThat(command.previousRoleCode()).isEqualTo("OPERATOR");
         assertThat(command.replacementRoleCode()).isEqualTo("MERCHANT_ADMIN");
         assertThat(command.scopeKey()).isEqualTo("merchant.account");
@@ -76,7 +74,6 @@ class AccessManagementPortAdapterTest {
 
         var request = new AccessManagementPort.RevokeAccessRequest(
                 "usr-123",
-                "SELLER_PORTAL",
                 "OPERATOR",
                 "merchant.account",
                 "store-999"
@@ -89,7 +86,6 @@ class AccessManagementPortAdapterTest {
 
         ReplaceAccessCommand command = captor.getValue();
         assertThat(command.userId()).isEqualTo(userId);
-        assertThat(command.platformCode()).isEqualTo("SELLER_PORTAL");
         assertThat(command.previousRoleCode()).isEqualTo("OPERATOR");
         assertThat(command.replacementRoleCode()).isNull();
         assertThat(command.scopeKey()).isEqualTo("merchant.account");
@@ -98,13 +94,12 @@ class AccessManagementPortAdapterTest {
 
     @Test
     void shouldRevokeSessionsByScope() {
-        adapter.revokeSessionsByScope("SELLER_PORTAL", "merchant.account", "store-999");
+        adapter.revokeSessionsByScope("merchant.account", "store-999");
 
         ArgumentCaptor<RevokeSessionsByScopeCommand> captor = ArgumentCaptor.forClass(RevokeSessionsByScopeCommand.class);
         verify(revokeSessionsByScopeUseCase).execute(captor.capture());
 
         RevokeSessionsByScopeCommand command = captor.getValue();
-        assertThat(command.platformCode()).isEqualTo("SELLER_PORTAL");
         assertThat(command.scopeKey()).isEqualTo("merchant.account");
         assertThat(command.scopeId()).isEqualTo("store-999");
     }

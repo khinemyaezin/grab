@@ -10,8 +10,6 @@ import com.identity.application.model.write.AuthResult;
 import com.identity.application.model.write.LoginCommand;
 import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
-import com.identity.application.exception.IdentityServiceException;
-import com.identity.application.exception.IdentityServiceError;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
@@ -22,11 +20,10 @@ import com.identity.domain.service.TokenPair;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @RequiredArgsConstructor
 public class LoginService implements LoginUseCase {
@@ -36,6 +33,7 @@ public class LoginService implements LoginUseCase {
     private final PasswordHasher passwordHasher;
     private final TokenLifeCycle tokenLifeCycle;
     private final PlatformIdentityResolver identityResolver;
+
     public AuthResult execute(LoginCommand command) {
         User user = userRepository.findByEmail(new Email(command.email()))
                 .orElseThrow(this::invalidCredentials);
@@ -65,7 +63,8 @@ public class LoginService implements LoginUseCase {
                 accessContext.isEmpty()
         );
     }
-private IdentityServiceException invalidCredentials() {
+
+    private IdentityServiceException invalidCredentials() {
         return new IdentityServiceException(
                 new IdentityServiceError.InvalidCredentials(),
                 "Invalid email or password"
@@ -73,18 +72,11 @@ private IdentityServiceException invalidCredentials() {
     }
 
     private Optional<AccessContext> resolveRequestedContext(LoginCommand command, User user) {
-        if (command.platformCode() == null) {
-            throw new IdentityServiceException(
-                    new IdentityServiceError.PlatformNotFound(""),
-                    "Platform code is required when selecting an assignment"
-            );
-        }
-
-        List<AccessAssignment> available = accessAssignments.findEffectiveByUserAndPlatform(
-                user.getId(), command.platformCode(), Instant.now()
+        List<AccessAssignment> available = accessAssignments.findEffectiveByUser(
+                user.getId(), Instant.now()
         );
         if (available.isEmpty()) {
-            throw platformAccessUnavailable(command.platformCode());
+            return Optional.empty();
         }
         long availableContexts = available.stream()
                 .map(assignment -> new ContextKey(
@@ -102,17 +94,9 @@ private IdentityServiceException invalidCredentials() {
 
     private AccessContext toContext(AccessAssignment assignment) {
         return new AccessContext(
-                assignment.getPlatformCode(),
                 assignment.getId().getValue(),
                 assignment.getScope().key().value(),
                 assignment.getScope().scopeId()
-        );
-    }
-
-    private IdentityServiceException platformAccessUnavailable(String platformCode) {
-        return new IdentityServiceException(
-                new IdentityServiceError.PlatformAccessUnavailable(platformCode),
-                "No active access is available for the requested platform"
         );
     }
 

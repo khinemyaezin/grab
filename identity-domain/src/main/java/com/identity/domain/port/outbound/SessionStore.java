@@ -29,7 +29,7 @@ public interface SessionStore {
 
     void revokeByAssignment(String assignmentId);
 
-    default void revokeByScope(String platformCode, String scopeKey, String scopeId) {
+    default void revokeByScope(String scopeKey, String scopeId) {
     }
     
     void replaceSession(String oldTokenHash, String newTokenHash, Instant oldRevokedAt);

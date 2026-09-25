@@ -9,7 +9,6 @@ public interface MerchantApprovalAccessPolicy {
     }
 
     record AccessPlacement(
-            String platformCode,
             String placementCode,
             String scopeKey,
             String scopeId

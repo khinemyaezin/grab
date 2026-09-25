@@ -9,7 +9,6 @@ public interface CustomerRegistrationAccessPolicy {
     }
 
     record AccessPlacement(
-            String platformCode,
             String placementCode,
             String scopeKey,
             String scopeId

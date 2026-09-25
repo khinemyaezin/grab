@@ -10,7 +10,6 @@ public final class DefaultCustomerRegistrationAccessPolicy implements CustomerRe
     @Override
     public List<AccessPlacement> placementsFor(CustomerRegistrationContext context) {
         return List.of(new AccessPlacement(
-                CustomerAccessProfile.CUSTOMER_PLATFORM_CODE,
                 CustomerAccessProfile.CUSTOMER_ROLE_CODE,
                 CustomerAccessProfile.CUSTOMER_ACCOUNT_SCOPE_KEY,
                 context.customerId()

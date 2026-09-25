@@ -17,12 +17,10 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
     @Query("""
             SELECT new com.identity.application.model.read.UserAssignmentView(
                    u.uuid, u.email, u.status, u.createdAt,
-                   aa.uuid, p.code, r.code, aa.scopeKey, aa.scopeId, aa.status)
+                   aa.uuid, r.code, aa.scopeKey, aa.scopeId, aa.status)
             FROM UserEntity u
             LEFT JOIN AccessAssignmentEntity aa ON aa.user.uuid = u.uuid
-            LEFT JOIN aa.platformRole pr
-            LEFT JOIN pr.platform p
-            LEFT JOIN pr.role r
+            LEFT JOIN aa.role r
             WHERE u.uuid = :userId
             ORDER BY aa.createdAt
             """)

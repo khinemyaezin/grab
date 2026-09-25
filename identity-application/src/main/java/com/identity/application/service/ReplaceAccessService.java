@@ -7,24 +7,54 @@ import com.identity.application.model.write.AccessAssignmentResult;
 import com.identity.application.model.write.ReplaceAccessCommand;
 import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.domain.aggregate.AccessAssignment;
-import com.identity.domain.aggregate.Platform;
+import com.identity.domain.aggregate.Role;
+import com.identity.domain.enums.RoleKind;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
-import com.identity.domain.port.outbound.PlatformRepository;
+import com.identity.domain.port.outbound.AuthorityRepository;
+import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.valueobject.AccessScope;
-import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 public class ReplaceAccessService implements ReplaceAccessUseCase {
     private final UserRepository users;
-    private final PlatformRepository platforms;
+    private final RoleRepository roles;
+    private final AuthorityRepository authorities;
     private final AccessAssignmentRepository assignments;
     private final SessionStore sessions;
     private final IdGenerator ids;
+
+    public ReplaceAccessService(
+            UserRepository users,
+            RoleRepository roles,
+            AuthorityRepository authorities,
+            AccessAssignmentRepository assignments,
+            SessionStore sessions,
+            IdGenerator ids
+    ) {
+        this.users = users;
+        this.roles = roles;
+        this.authorities = authorities;
+        this.assignments = assignments;
+        this.sessions = sessions;
+        this.ids = ids;
+    }
+
+    public ReplaceAccessService(
+            UserRepository users,
+            AccessAssignmentRepository assignments,
+            SessionStore sessions,
+            IdGenerator ids
+    ) {
+        this(users, null, null, assignments, sessions, ids);
+    }
 
     @Override
     public AccessAssignmentResult execute(ReplaceAccessCommand command) {
@@ -33,33 +63,27 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
                 "User not found"
         ));
 
-        Platform platform = platforms.findByCode(command.platformCode())
-                .orElseThrow(() -> new IdentityServiceException(
-                        new IdentityServiceError.PlatformNotFound(command.platformCode()),
-                        "Platform not found"
-                ));
-
         AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
         Instant now = Instant.now();
 
-        List<AccessAssignment> currentAssignments = assignments.findCurrentByUserPlatformAndScope(
+        List<AccessAssignment> currentAssignments = assignments.findCurrentByUserAndScope(
                 command.userId(),
-                platform.getCode(),
                 scope
         );
 
         String replacementRole = command.replacementRoleCode();
         if (replacementRole != null && !replacementRole.isBlank()) {
-            replacementRole = platform.requireSupportedRole(replacementRole);
+            replacementRole = replacementRole.trim().toUpperCase(Locale.ROOT);
         }
 
         String previousRole = command.previousRoleCode();
         if (previousRole != null && !previousRole.isBlank()) {
-            previousRole = platform.requireSupportedRole(previousRole);
+            previousRole = previousRole.trim().toUpperCase(Locale.ROOT);
         }
 
         AccessAssignment existingReplacement = null;
         if (replacementRole != null && !replacementRole.isBlank()) {
+            ensureRoleExists(replacementRole, command.authorityCodes());
             for (AccessAssignment current : currentAssignments) {
                 if (current.getRoleCode().equalsIgnoreCase(replacementRole) && current.isEffectiveAt(now)) {
                     existingReplacement = current;
@@ -74,9 +98,7 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
                 continue;
             }
 
-            boolean shouldRevoke = (previousRole != null && !previousRole.isBlank())
-                    ? current.getRoleCode().equalsIgnoreCase(previousRole)
-                    : true;
+            boolean shouldRevoke = previousRole == null || previousRole.isBlank() || current.getRoleCode().equalsIgnoreCase(previousRole);
 
             if (shouldRevoke) {
                 lastRevoked = retireAssignment(current, now);
@@ -93,7 +115,6 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
             }
             return AccessAssignmentResult.revoked(
                     command.userId().getValue(),
-                    platform.getCode(),
                     scope.key().value(),
                     scope.scopeId()
             );
@@ -102,7 +123,6 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
         AccessAssignment replacement = assignments.save(AccessAssignment.create(
                 ids.generateId(),
                 command.userId(),
-                platform,
                 replacementRole,
                 scope,
                 null,
@@ -110,6 +130,43 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
         ));
 
         return AccessAssignmentResult.from(replacement, now);
+    }
+
+    private void ensureRoleExists(String roleCode, Set<String> requestedAuthorityCodes) {
+        if (roles == null) {
+            return;
+        }
+
+        if (roles.findByCode(roleCode).isPresent()) {
+            return;
+        }
+
+        Set<String> validCodes = requestedAuthorityCodes == null ? Set.of() : requestedAuthorityCodes.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .map(code -> code.toUpperCase(Locale.ROOT))
+                .filter(code -> code.matches("[A-Z][A-Z0-9_]*"))
+                .collect(Collectors.toSet());
+
+        Set<String> activeAuthorities = (authorities != null && !validCodes.isEmpty())
+                ? authorities.findActiveCodes(validCodes)
+                : validCodes;
+
+        if (activeAuthorities.isEmpty()) {
+            throw new IdentityServiceException(
+                    new IdentityServiceError.RoleNotFound(roleCode),
+                    "Role " + roleCode + " does not exist and cannot be created without active authorities"
+            );
+        }
+
+        Role newRole = Role.createCustom(
+                ids.generateId(),
+                roleCode,
+                roleCode,
+                null,
+                activeAuthorities
+        );
+        roles.save(newRole);
     }
 
     private AccessAssignment retireAssignment(AccessAssignment assignment, Instant now) {

@@ -15,7 +15,6 @@ import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
-import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.RoleRepository;
@@ -153,10 +152,9 @@ public class IdentityPersistenceConfig {
     @Bean
     public RoleQueryPort roleQueryPort(
             RoleJpaRepository jpaRepository,
-            PlatformJpaRepository platformJpaRepository,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new RoleQueryAdapter(jpaRepository, platformJpaRepository, executor);
+        return new RoleQueryAdapter(jpaRepository, executor);
     }
 
     @Bean
@@ -183,30 +181,18 @@ public class IdentityPersistenceConfig {
     @Bean
     public AccessAssignmentJpaAssembler accessAssignmentJpaAssembler(
             UserJpaRepository users,
-            PlatformRoleJpaRepository platformRoles,
+            RoleJpaRepository roles,
             IdMapper ids
     ) {
-        return new AccessAssignmentJpaAssemblerImpl(users, platformRoles, ids);
+        return new AccessAssignmentJpaAssemblerImpl(users, roles, ids);
     }
 
     @Bean
     public AccessInvitationJpaAssembler accessInvitationJpaAssembler(
-            PlatformRoleJpaRepository platformRoles,
+            RoleJpaRepository roles,
             IdMapper ids
     ) {
-        return new AccessInvitationJpaAssemblerImpl(platformRoles, ids);
-    }
-
-    @Bean
-    public PlatformRepository platformRepository(
-            PlatformJpaRepository platforms,
-            RoleJpaRepository roles,
-            AuthorityJpaRepository authorities,
-            IdMapper ids,
-            IdGenerator idGenerator,
-            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
-    ) {
-        return new PlatformRepositoryAdapter(platforms, roles, authorities, ids, idGenerator, executor);
+        return new AccessInvitationJpaAssemblerImpl(roles, ids);
     }
 
     @Bean

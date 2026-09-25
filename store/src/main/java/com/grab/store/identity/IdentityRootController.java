@@ -30,7 +30,7 @@ public class IdentityRootController {
                 .withSelfRel());
 
         model.add(linkTo(methodOn(AccessContextController.class)
-                .listContexts(null, null))
+                .listContexts(null))
                 .withRel("list-access-contexts"));
 
         model.add(linkTo(methodOn(ProfileController.class)
@@ -38,7 +38,7 @@ public class IdentityRootController {
                 .withRel("get-profile"));
 
         model.add(linkTo(methodOn(AuthController.class)
-                .login(null, null))
+                .login(null))
                 .withRel("login"));
 
         model.add(linkTo(methodOn(AuthController.class)
@@ -46,7 +46,7 @@ public class IdentityRootController {
                 .withRel("logout"));
 
         model.add(linkTo(methodOn(AuthController.class)
-                .register(null, null))
+                .register(null))
                 .withRel("register"));
 
         model.add(linkTo(methodOn(UserAdminController.class)

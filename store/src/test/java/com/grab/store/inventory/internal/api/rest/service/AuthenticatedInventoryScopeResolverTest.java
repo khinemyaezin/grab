@@ -31,8 +31,8 @@ class AuthenticatedInventoryScopeResolverTest {
         resolver = new AuthenticatedInventoryScopeResolver();
     }
 
-    private void mockSecurityPrincipal(String platformCode, String scopeKey, String scopeId, String platformUserId) {
-        AccessContext context = new AccessContext(platformCode, "assignment-1", scopeKey, scopeId);
+    private void mockSecurityPrincipal(String scopeKey, String scopeId, String platformUserId) {
+        AccessContext context = new AccessContext("assignment-1", scopeKey, scopeId);
         lenient().when(securityPrincipal.getAccessContext()).thenReturn(Optional.of(context));
         lenient().when(securityPrincipal.getPlatformUserId()).thenReturn(platformUserId);
     }
@@ -46,14 +46,14 @@ class AuthenticatedInventoryScopeResolverTest {
 
         @Test
         void resolveOwnerMerchantId_withMerchantScope_shouldReturnMerchantId() {
-            mockSecurityPrincipal(PlatformScopes.SELLER_PORTAL, PlatformScopes.MERCHANT_ACCOUNT_SCOPE, "merchant-123", "user-1");
+            mockSecurityPrincipal(PlatformScopes.MERCHANT_ACCOUNT_SCOPE, "merchant-123", "user-1");
             String merchantId = resolver.resolveOwnerMerchantId(securityPrincipal);
             assertThat(merchantId).isEqualTo("merchant-123");
         }
 
         @Test
         void resolveOwnerMerchantId_withOtherScope_shouldThrow() {
-            mockSecurityPrincipal(PlatformScopes.SELLER_PORTAL, "other.scope", "merchant-123", "user-1");
+            mockSecurityPrincipal("other.scope", "merchant-123", "user-1");
             assertThatThrownBy(() -> resolver.resolveOwnerMerchantId(securityPrincipal))
                     .isInstanceOf(InventoryServiceException.class);
         }
@@ -71,7 +71,7 @@ class AuthenticatedInventoryScopeResolverTest {
 
         @Test
         void resolve_withMerchantAccountScope_shouldReturnAccess() {
-            mockSecurityPrincipal(PlatformScopes.SELLER_PORTAL, PlatformScopes.MERCHANT_ACCOUNT_SCOPE, "merchant-123", "user-1");
+            mockSecurityPrincipal(PlatformScopes.MERCHANT_ACCOUNT_SCOPE, "merchant-123", "user-1");
 
             ResolvedInventoryAccess access = resolver.resolve(securityPrincipal);
 
@@ -82,7 +82,7 @@ class AuthenticatedInventoryScopeResolverTest {
 
         @Test
         void resolve_withFulfillmentLocationScope_shouldReturnAccess() {
-            mockSecurityPrincipal(PlatformScopes.SELLER_PORTAL, PlatformScopes.FULFILLMENT_LOCATION_SCOPE, "location-456", "user-1");
+            mockSecurityPrincipal(PlatformScopes.FULFILLMENT_LOCATION_SCOPE, "location-456", "user-1");
 
             ResolvedInventoryAccess access = resolver.resolve(securityPrincipal);
 
@@ -93,7 +93,7 @@ class AuthenticatedInventoryScopeResolverTest {
 
         @Test
         void resolve_withOtherScope_shouldThrowException() {
-            mockSecurityPrincipal(PlatformScopes.SELLER_PORTAL, "some.other.scope", "value", "user-1");
+            mockSecurityPrincipal("some.other.scope", "value", "user-1");
             assertThatThrownBy(() -> resolver.resolve(securityPrincipal))
                     .isInstanceOf(InventoryServiceException.class);
         }

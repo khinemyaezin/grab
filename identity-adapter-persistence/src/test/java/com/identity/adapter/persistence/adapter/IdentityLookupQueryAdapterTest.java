@@ -5,8 +5,6 @@ import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.enums.UserStatus;
 import com.identity.adapter.persistence.entity.AccessAssignmentEntity;
 import com.identity.adapter.persistence.entity.AuthorityEntity;
-import com.identity.adapter.persistence.entity.PlatformEntity;
-import com.identity.adapter.persistence.entity.PlatformRoleEntity;
 import com.identity.adapter.persistence.entity.RoleEntity;
 import com.identity.adapter.persistence.entity.UserEntity;
 import com.identity.adapter.persistence.repository.jpa.AccessAssignmentJpaRepository;
@@ -58,10 +56,10 @@ class IdentityLookupQueryAdapterTest {
         );
 
         when(users.findByUuid("user-1")).thenReturn(Optional.of(user));
-        when(assignments.findForContext("assignment-1", "user-1", "SELLER_PORTAL"))
+        when(assignments.findByUuidAndUser_Uuid("assignment-1", "user-1"))
                 .thenReturn(Optional.of(owner));
-        when(assignments.findEffectiveByUserAndPlatform(
-                eq("user-1"), eq("SELLER_PORTAL"), any(Instant.class)
+        when(assignments.findEffectiveByUser(
+                eq("user-1"), any(Instant.class)
         )).thenReturn(List.of(owner, manager, otherMerchant));
 
         var actor = new IdentityLookupQueryAdapter(
@@ -70,7 +68,7 @@ class IdentityLookupQueryAdapterTest {
                 "local-issuer",
                 "user-1",
                 new AccessContext(
-                        "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"
+                        "assignment-1", "merchant.account", "merchant-1"
                 )
         ).orElseThrow();
 
@@ -97,22 +95,10 @@ class IdentityLookupQueryAdapterTest {
         role.setActive(true);
         role.setAuthorities(Set.of(authority));
 
-        PlatformEntity platform = new PlatformEntity();
-        platform.setUuid("seller-platform");
-        platform.setCode("SELLER_PORTAL");
-        platform.setName("Seller Portal");
-        platform.setActive(true);
-
-        PlatformRoleEntity platformRole = new PlatformRoleEntity();
-        platformRole.setUuid("platform-role-" + roleCode);
-        platformRole.setPlatform(platform);
-        platformRole.setRole(role);
-        platformRole.setActive(true);
-
         AccessAssignmentEntity assignment = new AccessAssignmentEntity();
         assignment.setUuid(id);
         assignment.setUser(user);
-        assignment.setPlatformRole(platformRole);
+        assignment.setRole(role);
         assignment.setScopeKey("merchant.account");
         assignment.setScopeId(scopeId);
         assignment.setStatus(AccessAssignmentStatus.ACTIVE);

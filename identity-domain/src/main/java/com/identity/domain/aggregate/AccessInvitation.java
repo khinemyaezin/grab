@@ -17,7 +17,6 @@ import java.util.Objects;
 @Getter
 public class AccessInvitation extends AggregateRoot<Id> {
     private final Email inviteeEmail;
-    private final String platformCode;
     private final String roleCode;
     private final AccessScope scope;
     private final String tokenHash;
@@ -31,7 +30,6 @@ public class AccessInvitation extends AggregateRoot<Id> {
     public AccessInvitation(
             Id id,
             Email inviteeEmail,
-            String platformCode,
             String roleCode,
             AccessScope scope,
             String tokenHash,
@@ -44,7 +42,6 @@ public class AccessInvitation extends AggregateRoot<Id> {
     ) {
         super(id);
         this.inviteeEmail = Objects.requireNonNull(inviteeEmail, "inviteeEmail is required");
-        this.platformCode = normalizeCode(platformCode);
         this.roleCode = normalizeCode(roleCode);
         this.scope = Objects.requireNonNull(scope, "scope is required");
         this.tokenHash = validateTokenHash(tokenHash);
@@ -59,7 +56,6 @@ public class AccessInvitation extends AggregateRoot<Id> {
     public static AccessInvitation create(
             Id id,
             Email inviteeEmail,
-            Platform platform,
             String roleCode,
             AccessScope scope,
             String tokenHash,
@@ -67,7 +63,6 @@ public class AccessInvitation extends AggregateRoot<Id> {
             Email inviterEmail,
             Instant expiresAt
     ) {
-        Objects.requireNonNull(platform, "platform is required");
         Objects.requireNonNull(inviterEmail, "inviterEmail is required");
         if (Objects.requireNonNull(inviteeEmail, "inviteeEmail is required").equals(inviterEmail)) {
             throw new IdentityDomainValidationException(
@@ -75,17 +70,17 @@ public class AccessInvitation extends AggregateRoot<Id> {
                     "Users cannot invite themselves"
             );
         }
-        String supportedRoleCode = platform.requireSupportedRole(roleCode);
+        String normalizedRoleCode = normalizeCode(roleCode);
         Instant now = Instant.now();
         if (!expiresAt.isAfter(now)) {
             throw invalidExpiration(expiresAt);
         }
         AccessInvitation invitation = new AccessInvitation(
-                id, inviteeEmail, platform.getCode(), supportedRoleCode, scope, tokenHash,
+                id, inviteeEmail, normalizedRoleCode, scope, tokenHash,
                 invitedBy, InvitationStatus.PENDING, now, expiresAt, null, now
         );
         invitation.addEvent(new AccessInvitationChangedEvent(
-                id, inviteeEmail.value(), invitation.platformCode, invitation.roleCode,
+                id, inviteeEmail.value(), invitation.roleCode,
                 scope.key().value(), scope.scopeId(), null, InvitationStatus.PENDING, now
         ));
         return invitation;
@@ -139,7 +134,7 @@ public class AccessInvitation extends AggregateRoot<Id> {
 
     private void addChangedEvent(InvitationStatus previous, Instant occurredAt) {
         addEvent(new AccessInvitationChangedEvent(
-                getId(), inviteeEmail.value(), platformCode, roleCode,
+                getId(), inviteeEmail.value(), roleCode,
                 scope.key().value(), scope.scopeId(), previous, status, occurredAt
         ));
     }
@@ -174,8 +169,8 @@ public class AccessInvitation extends AggregateRoot<Id> {
 
     private static IdentityDomainValidationException invalidCode(String value) {
         return new IdentityDomainValidationException(
-                new IdentityDomainError.InvalidAccessCode("invitation code", String.valueOf(value)),
-                "Invalid invitation platform or role code"
+                new IdentityDomainError.InvalidAccessCode("invitation role code", String.valueOf(value)),
+                "Invalid invitation role code"
         );
     }
 

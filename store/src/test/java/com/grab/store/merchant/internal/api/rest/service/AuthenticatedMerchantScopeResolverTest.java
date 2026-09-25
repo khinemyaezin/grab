@@ -17,7 +17,7 @@ class AuthenticatedMerchantScopeResolverTest {
     @Test
     void resolveCurrentMerchantId_withMerchantAccountContext_shouldReturnScopeId() {
         SecurityPrincipal principal = principal(new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"));
+                "assignment-1", "merchant.account", "merchant-1"));
 
         String merchantId = resolver.resolveCurrentMerchantId(principal);
 
@@ -37,7 +37,7 @@ class AuthenticatedMerchantScopeResolverTest {
     @Test
     void resolveCurrentMerchantId_withNonMerchantScope_shouldRejectAccess() {
         SecurityPrincipal principal = principal(new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "merchant.storefront", "storefront-1"));
+                "assignment-1", "merchant.storefront", "storefront-1"));
 
         assertThatThrownBy(() -> resolver.resolveCurrentMerchantId(principal))
                 .isInstanceOf(MerchantServiceException.class);
@@ -46,7 +46,7 @@ class AuthenticatedMerchantScopeResolverTest {
     @Test
     void resolveScopedAccess_withDifferentSelectedMerchant_shouldRejectAccess() {
         SecurityPrincipal principal = principal(new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"));
+                "assignment-1", "merchant.account", "merchant-1"));
 
         assertThatThrownBy(() -> resolver.resolveScopedAccess(principal, "merchant-2", false))
                 .isInstanceOf(MerchantServiceException.class);

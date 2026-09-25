@@ -33,11 +33,11 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
         Id userId = idGenerator.convertIdFrom(request.userId());
         var command = new ReplaceAccessCommand(
                 userId,
-                request.platformCode(),
                 request.previousRoleCode(),
                 request.roleCode(),
                 request.scopeKey(),
-                request.scopeId()
+                request.scopeId(),
+                request.authorityCodes()
         );
         replaceAccessUseCase.execute(command);
     }
@@ -48,7 +48,6 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
         Id userId = idGenerator.convertIdFrom(request.userId());
         var command = new ReplaceAccessCommand(
                 userId,
-                request.platformCode(),
                 request.roleCode(),
                 null,
                 request.scopeKey(),
@@ -59,9 +58,8 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
 
     @Override
     @IdentityTransactional
-    public void revokeSessionsByScope(String platformCode, String scopeKey, String scopeId) {
+    public void revokeSessionsByScope(String scopeKey, String scopeId) {
         var command = new RevokeSessionsByScopeCommand(
-                platformCode,
                 scopeKey,
                 scopeId
         );

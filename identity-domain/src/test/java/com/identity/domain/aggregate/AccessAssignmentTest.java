@@ -9,7 +9,6 @@ import com.identity.domain.valueobject.ScopeKey;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,7 +22,6 @@ class AccessAssignmentTest {
         AccessAssignment assignment = AccessAssignment.create(
                 new CommonId("assignment-1"),
                 new CommonId("user-1"),
-                sellerPlatform(),
                 " merchant_owner ",
                 new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 new CommonId("admin-1"),
@@ -31,7 +29,6 @@ class AccessAssignmentTest {
         );
 
         assertEquals(AccessAssignmentStatus.ACTIVE, assignment.getStatus());
-        assertEquals("SELLER_PORTAL", assignment.getPlatformCode());
         assertEquals("MERCHANT_OWNER", assignment.getRoleCode());
         assertTrue(assignment.isEffectiveAt(Instant.now()));
         assertInstanceOf(AccessAssignmentChangedEvent.class, assignment.getEvents().getFirst());
@@ -64,7 +61,6 @@ class AccessAssignmentTest {
                 () -> AccessAssignment.create(
                         new CommonId("assignment-1"),
                         new CommonId("user-1"),
-                        sellerPlatform(),
                         "MERCHANT_OWNER",
                         new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                         null,
@@ -87,7 +83,6 @@ class AccessAssignmentTest {
         AccessAssignment assignment = new AccessAssignment(
                 new CommonId("assignment-1"),
                 new CommonId("user-1"),
-                "SELLER_PORTAL",
                 "MERCHANT_OWNER",
                 new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 AccessAssignmentStatus.ACTIVE,
@@ -109,7 +104,6 @@ class AccessAssignmentTest {
         AccessAssignment assignment = new AccessAssignment(
                 new CommonId("assignment-1"),
                 new CommonId("user-1"),
-                "SELLER_PORTAL",
                 "MERCHANT_OWNER",
                 new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 AccessAssignmentStatus.SUSPENDED,
@@ -125,14 +119,13 @@ class AccessAssignmentTest {
     }
 
     @Test
-    void create_withUnsupportedPlatformRole_shouldRejectAssignment() {
+    void create_withInvalidRoleCode_shouldRejectAssignment() {
         assertThrows(
                 IdentityDomainValidationException.class,
                 () -> AccessAssignment.create(
                         new CommonId("assignment-1"),
                         new CommonId("user-1"),
-                        sellerPlatform(),
-                        "SUPER_ADMIN",
+                        "invalid-role-code!",
                         new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                         new CommonId("admin-1"),
                         null
@@ -147,7 +140,6 @@ class AccessAssignmentTest {
                 () -> AccessAssignment.create(
                         new CommonId("assignment-1"),
                         new CommonId("user-1"),
-                        sellerPlatform(),
                         "MERCHANT_OWNER",
                         new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                         new CommonId("user-1"),
@@ -161,7 +153,6 @@ class AccessAssignmentTest {
         return new AccessAssignment(
                 new CommonId("assignment-1"),
                 new CommonId("user-1"),
-                "SELLER_PORTAL",
                 "MERCHANT_OWNER",
                 new AccessScope(new ScopeKey("merchant.account"), "merchant-1"),
                 AccessAssignmentStatus.ACTIVE,
@@ -169,18 +160,6 @@ class AccessAssignmentTest {
                 now,
                 now,
                 null
-        );
-    }
-
-    private Platform sellerPlatform() {
-        return new Platform(
-                new CommonId("seller-platform"),
-                "SELLER_PORTAL",
-                "Seller Portal",
-                true,
-                Set.of("MERCHANT_OWNER"),
-                Set.of(),
-                Set.of()
         );
     }
 }

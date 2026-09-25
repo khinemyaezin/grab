@@ -40,8 +40,6 @@ services:
       INVENTORY_OUTBOX_HOT_QUEUE_WORKERS: "${INVENTORY_OUTBOX_HOT_QUEUE_WORKERS:-2}"
       INVENTORY_OUTBOX_HOT_QUEUE_CAPACITY: "${INVENTORY_OUTBOX_HOT_QUEUE_CAPACITY:-1000}"
       INVENTORY_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS: "${INVENTORY_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:-5000}"
-      IDENTITY_ADMIN_EMAIL: "${IDENTITY_ADMIN_EMAIL:-admin@example.com}"
-      IDENTITY_ADMIN_PASSWORD: "${IDENTITY_ADMIN_PASSWORD:-change-me-admin}"
       IDENTITY_DATASOURCE_URL: "${IDENTITY_DATASOURCE_URL:?IDENTITY_DATASOURCE_URL is required}"
       IDENTITY_DATASOURCE_USERNAME: "${IDENTITY_DATASOURCE_USERNAME:?IDENTITY_DATASOURCE_USERNAME is required}"
       IDENTITY_DATASOURCE_PASSWORD: "${IDENTITY_DATASOURCE_PASSWORD:?IDENTITY_DATASOURCE_PASSWORD is required}"
@@ -215,6 +213,8 @@ services:
       - "${PGADMIN_PORT:-5050}:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
+      - ./docker/postgres/servers.json:/pgadmin4/servers.json:ro
+      - ./docker/postgres/.pgpass:/pgpass:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -8,24 +8,17 @@ import com.identity.application.model.write.RegisterCommand;
 import com.identity.application.model.write.UserProfileResult;
 import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
-import com.identity.domain.aggregate.AccessAssignment;
-import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
-import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.service.PasswordHasher;
-import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.HashedPassword;
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
-
 @RequiredArgsConstructor
 public class RegisterService implements RegisterUseCase {
     private final UserRepository users;
-    private final PlatformRepository platforms;
     private final AccessAssignmentRepository accessAssignments;
     private final PasswordHasher passwordHasher;
     private final IdGenerator idGenerator;
@@ -39,28 +32,11 @@ public class RegisterService implements RegisterUseCase {
             );
         }
 
-        Platform platform = platforms.findByCode(command.platformCode()).orElseThrow(() ->
-                new IdentityServiceException(
-                        new IdentityServiceError.PlatformNotFound(command.platformCode()),
-                        "Registration platform not found"
-                )
-        );
         Id userId = idGenerator.generateId();
         HashedPassword password = passwordHasher.hash(command.password());
         User user = User.createLocal(userId, email, password);
 
-        List<AccessAssignment> defaultAssignments = platform.getDefaultRoles().stream()
-                .map(defaultRoleCode -> AccessAssignment.create(
-                        idGenerator.generateId(),
-                        userId,
-                        platform,
-                        defaultRoleCode,
-                        AccessScope.global(),
-                        null,
-                        null)).toList();
-
         User saved = users.save(user);
-        defaultAssignments.forEach(accessAssignments::save);
 
         return new UserProfileResult(
                 saved.getId().getValue(),

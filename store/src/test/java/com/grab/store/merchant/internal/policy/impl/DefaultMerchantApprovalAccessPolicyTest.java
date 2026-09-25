@@ -17,7 +17,6 @@ class DefaultMerchantApprovalAccessPolicyTest {
 
         assertThat(placements).containsExactly(
                 new MerchantApprovalAccessPolicy.AccessPlacement(
-                        "SELLER_PORTAL",
                         "MERCHANT_ADMIN",
                         "merchant.account",
                         "merchant-1"

@@ -12,7 +12,7 @@ public interface UserProfileQuery {
             String email,
             String status,
             String createdAt,
-            List<String> platformCodes
+            List<String> roleCodes
             ) {
     }
 }

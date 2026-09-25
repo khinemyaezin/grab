@@ -48,7 +48,6 @@ public class SwitchAccessContextService implements SwitchAccessContextUseCase {
             );
         }
         AccessContext context = new AccessContext(
-                assignment.getPlatformCode(),
                 assignment.getId().getValue(),
                 assignment.getScope().key().value(),
                 assignment.getScope().scopeId()

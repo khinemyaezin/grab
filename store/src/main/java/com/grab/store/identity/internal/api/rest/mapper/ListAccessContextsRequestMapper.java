@@ -8,7 +8,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ListAccessContextsRequestMapper {
-    public abstract ListAccessContextsQuery toQuery(String userId, String platformCode);
+    public abstract ListAccessContextsQuery toQuery(String userId);
 
     public abstract AccessContextResponse toResponse(AccessContextResult result);
 }

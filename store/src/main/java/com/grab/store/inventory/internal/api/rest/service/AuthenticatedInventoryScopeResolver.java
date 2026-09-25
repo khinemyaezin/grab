@@ -15,7 +15,6 @@ public class AuthenticatedInventoryScopeResolver {
     public String resolveOwnerMerchantId(SecurityPrincipal principal) {
         return ScopeResolverHelper.resolveScopeId(
                         principal,
-                        PlatformScopes.SELLER_PORTAL,
                         PlatformScopes.MERCHANT_ACCOUNT_SCOPE)
                 .orElseThrow(() -> buildForbiddenException(principal));
     }
@@ -23,7 +22,6 @@ public class AuthenticatedInventoryScopeResolver {
     public ResolvedInventoryAccess resolve(SecurityPrincipal principal) {
         AccessContext context = principal != null ? principal.getAccessContext().orElse(null) : null;
         if (context == null
-                || !PlatformScopes.SELLER_PORTAL.equals(context.platformCode())
                 || context.scopeId() == null
                 || context.scopeId().isBlank()) {
             throw buildForbiddenException(principal);
@@ -45,14 +43,13 @@ public class AuthenticatedInventoryScopeResolver {
     private InventoryServiceException buildForbiddenException(SecurityPrincipal principal) {
         AccessContext context = principal != null ? principal.getAccessContext().orElse(null) : null;
         if (context == null) {
-            return forbidden(UNKNOWN, UNKNOWN, UNKNOWN);
+            return forbidden(UNKNOWN, UNKNOWN);
         }
-        return forbidden(context.platformCode(), context.scopeKey(), context.scopeId());
+        return forbidden(context.scopeKey(), context.scopeId());
     }
 
-    private InventoryServiceException forbidden(String platformCode, String scopeKey, String scopeId) {
+    private InventoryServiceException forbidden(String scopeKey, String scopeId) {
         InventoryServiceError error = new InventoryServiceError.InventoryScopeForbidden(
-                safeValue(platformCode),
                 safeValue(scopeKey),
                 safeValue(scopeId)
         );

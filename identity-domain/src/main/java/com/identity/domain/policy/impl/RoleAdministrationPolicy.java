@@ -1,7 +1,6 @@
 package com.identity.domain.policy.impl;
 
 import com.grab.framework.id.Id;
-import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
@@ -24,19 +23,14 @@ public final class RoleAdministrationPolicy {
             String code,
             String name,
             String description,
-            Platform platform,
             Set<String> requestedAuthorityCodes
     ) {
         Set<String> authorityCodes = requireActiveAuthorities(requestedAuthorityCodes);
-        platform.requireSupportedAuthorities(authorityCodes);
-        Role role = Role.createCustom(roleId, code, name, description, authorityCodes);
-        platform.addRole(role.getCode());
-        return role;
+        return Role.createCustom(roleId, code, name, description, authorityCodes);
     }
 
-    public void changeAuthority(Role role, Platform platform, String authorityCode, boolean assign) {
+    public void changeAuthority(Role role, String authorityCode, boolean assign) {
         Set<String> authorityCodes = requireActiveAuthorities(Set.of(authorityCode));
-        platform.requireSupportedAuthorities(authorityCodes);
         String normalizedAuthorityCode = authorityCodes.iterator().next();
         if (assign) {
             role.assignAuthority(normalizedAuthorityCode);

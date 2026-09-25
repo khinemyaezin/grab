@@ -41,11 +41,11 @@ class MerchantMemberAccessSyncListenerTest {
 
         AccessManagementPort.ReplaceAccessRequest request = captor.getValue();
         assertThat(request.userId()).isEqualTo("usr-1");
-        assertThat(request.platformCode()).isEqualTo(MerchantAccessProfile.SELLER_PLATFORM_CODE);
         assertThat(request.previousRoleCode()).isNull();
         assertThat(request.roleCode()).isEqualTo(MerchantAccessProfile.ADMIN_ROLE_CODE);
         assertThat(request.scopeKey()).isEqualTo(MerchantAccessProfile.MERCHANT_SCOPE_KEY);
         assertThat(request.scopeId()).isEqualTo("mer-1");
+        assertThat(request.authorityCodes()).isEqualTo(MerchantAccessProfile.DEFAULT_ADMIN_AUTHORITIES);
     }
 
     @Test
@@ -62,7 +62,7 @@ class MerchantMemberAccessSyncListenerTest {
     @Test
     void onMemberRoleChanged_shouldTriggerReplaceAccess() {
         MerchantMemberRoleChangedEvent event = new MerchantMemberRoleChangedEvent(
-                "mem-1", "mer-1", "usr-1", "OPERATOR", "ANALYST", 2, now
+                "mem-1", "mer-1", "usr-1", "OPERATOR", "ANALYST", Set.of("INVENTORY_READ"), 2, now
         );
 
         listener.onMemberRoleChanged(event);
@@ -75,6 +75,7 @@ class MerchantMemberAccessSyncListenerTest {
         assertThat(request.userId()).isEqualTo("usr-1");
         assertThat(request.previousRoleCode()).isEqualTo("OPERATOR");
         assertThat(request.roleCode()).isEqualTo("ANALYST");
+        assertThat(request.authorityCodes()).containsExactly("INVENTORY_READ");
     }
 
     @Test

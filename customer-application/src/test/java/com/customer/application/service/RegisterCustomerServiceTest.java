@@ -44,14 +44,14 @@ class RegisterCustomerServiceTest {
     }
 
     @Test
-    void shouldRegisterCustomer_whenPlatformIsCustomerApp() {
+    void shouldRegisterCustomer_whenRoleIsCustomer() {
         Id userId = () -> "user-123";
         Id customerId = () -> "cust-456";
         RegisterCustomerCommand command = new RegisterCustomerCommand(userId, "test@example.com", "Test User");
 
         UserProfileQueryPort.UserProfileResponse profile = new UserProfileQueryPort.UserProfileResponse(
                 "user-123", "test@example.com", "ACTIVE", "2023-01-01T00:00:00Z",
-                List.of("CUSTOMER_APP")
+                List.of("CUSTOMER")
         );
 
         when(userProfileQuery.getUserProfile(userId)).thenReturn(profile);
@@ -70,13 +70,13 @@ class RegisterCustomerServiceTest {
     }
 
     @Test
-    void shouldReturnNull_whenPlatformIsNotCustomerApp() {
+    void shouldReturnNull_whenRoleIsNotCustomer() {
         Id userId = () -> "user-123";
         RegisterCustomerCommand command = new RegisterCustomerCommand(userId, "test@example.com", "Test User");
 
         UserProfileQueryPort.UserProfileResponse profile = new UserProfileQueryPort.UserProfileResponse(
                 "user-123", "test@example.com", "ACTIVE", "2023-01-01T00:00:00Z",
-                List.of("SELLER_PORTAL")
+                List.of("MERCHANT_ADMIN")
         );
 
         when(userProfileQuery.getUserProfile(userId)).thenReturn(profile);
@@ -107,7 +107,7 @@ class RegisterCustomerServiceTest {
 
         UserProfileQueryPort.UserProfileResponse profile = new UserProfileQueryPort.UserProfileResponse(
                 "user-123", "test@example.com", "ACTIVE", "2023-01-01T00:00:00Z",
-                List.of("CUSTOMER_APP")
+                List.of("CUSTOMER")
         );
 
         Customer existingCustomer = Customer.register(

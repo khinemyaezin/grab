@@ -16,7 +16,6 @@ import java.util.Objects;
 @Getter
 public class AccessAssignment extends AggregateRoot<Id> {
     private final Id userId;
-    private final String platformCode;
     private final String roleCode;
     private final AccessScope scope;
     private AccessAssignmentStatus status;
@@ -28,7 +27,6 @@ public class AccessAssignment extends AggregateRoot<Id> {
     public AccessAssignment(
             Id id,
             Id userId,
-            String platformCode,
             String roleCode,
             AccessScope scope,
             AccessAssignmentStatus status,
@@ -39,7 +37,6 @@ public class AccessAssignment extends AggregateRoot<Id> {
     ) {
         super(id);
         this.userId = Objects.requireNonNull(userId, "userId is required");
-        this.platformCode = normalizeCode(platformCode, "platform code");
         this.roleCode = normalizeCode(roleCode, "role code");
         this.scope = Objects.requireNonNull(scope, "scope is required");
         this.status = Objects.requireNonNull(status, "status is required");
@@ -52,28 +49,26 @@ public class AccessAssignment extends AggregateRoot<Id> {
     public static AccessAssignment create(
             Id id,
             Id userId,
-            Platform platform,
             String roleCode,
             AccessScope scope,
             Id assignedBy,
             Instant expiresAt
     ) {
-        Objects.requireNonNull(platform, "platform is required");
         Objects.requireNonNull(userId, "userId is required");
-        if (Objects.equals(userId,assignedBy)) {
+        if (Objects.equals(userId, assignedBy)) {
             throw selfAssignmentForbidden();
         }
-        String supportedRoleCode = platform.requireSupportedRole(roleCode);
+        String normalizedRoleCode = normalizeCode(roleCode, "role code");
         Instant now = Instant.now();
         if (expiresAt != null && !expiresAt.isAfter(now)) {
             throw invalidExpiration(expiresAt);
         }
         AccessAssignment assignment = new AccessAssignment(
-                id, userId, platform.getCode(), supportedRoleCode, scope,
+                id, userId, normalizedRoleCode, scope,
                 AccessAssignmentStatus.ACTIVE, assignedBy, now, now, expiresAt
         );
         assignment.addEvent(new AccessAssignmentChangedEvent(
-                id, userId, assignment.platformCode, assignment.roleCode,
+                id, userId, assignment.roleCode,
                 scope.key().value(), scope.scopeId(), null, AccessAssignmentStatus.ACTIVE, now
         ));
         return assignment;
@@ -155,7 +150,7 @@ public class AccessAssignment extends AggregateRoot<Id> {
         status = requested;
         updatedAt = Instant.now();
         addEvent(new AccessAssignmentChangedEvent(
-                getId(), userId, platformCode, roleCode,
+                getId(), userId, roleCode,
                 scope.key().value(), scope.scopeId(), previous, requested, updatedAt
         ));
     }

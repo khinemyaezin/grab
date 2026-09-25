@@ -29,11 +29,11 @@ public class MerchantMemberAccessSyncListener {
             );
             accessManagementPort.replaceAccess(new AccessManagementPort.ReplaceAccessRequest(
                     event.userId(),
-                    MerchantAccessProfile.SELLER_PLATFORM_CODE,
                     null,
                     MerchantAccessProfile.ADMIN_ROLE_CODE,
                     MerchantAccessProfile.MERCHANT_SCOPE_KEY,
-                    event.merchantId()
+                    event.merchantId(),
+                    MerchantAccessProfile.DEFAULT_ADMIN_AUTHORITIES
             ));
         }
     }
@@ -50,11 +50,11 @@ public class MerchantMemberAccessSyncListener {
         );
         accessManagementPort.replaceAccess(new AccessManagementPort.ReplaceAccessRequest(
                 event.userId(),
-                MerchantAccessProfile.SELLER_PLATFORM_CODE,
                 MerchantAccessProfile.toRoleCode(event.previousRole()),
                 MerchantAccessProfile.toRoleCode(event.newRole()),
                 MerchantAccessProfile.MERCHANT_SCOPE_KEY,
-                event.merchantId()
+                event.merchantId(),
+                event.authorities()
         ));
     }
 
@@ -68,7 +68,6 @@ public class MerchantMemberAccessSyncListener {
         );
         accessManagementPort.revokeAccess(new AccessManagementPort.RevokeAccessRequest(
                 event.userId(),
-                MerchantAccessProfile.SELLER_PLATFORM_CODE,
                 MerchantAccessProfile.toRoleCode(event.role()),
                 MerchantAccessProfile.MERCHANT_SCOPE_KEY,
                 event.merchantId()

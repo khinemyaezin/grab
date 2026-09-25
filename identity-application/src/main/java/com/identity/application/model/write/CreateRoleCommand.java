@@ -8,7 +8,6 @@ public record CreateRoleCommand(
         String code,
         String name,
         String description,
-        String platformCode,
         Set<String> authorityCodes
 ) implements Command<RoleResult> {
 }

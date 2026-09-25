@@ -15,7 +15,7 @@ import java.time.Instant;
 
 @RequiredArgsConstructor
 public class RegisterCustomerService implements RegisterCustomerUseCase {
-    public static final String CUSTOMER_PLATFORM_CODE = "CUSTOMER_APP";
+    public static final String CUSTOMER_ROLE_CODE = "CUSTOMER";
 
     private final CustomerRepository customers;
     private final IdGenerator ids;
@@ -24,7 +24,7 @@ public class RegisterCustomerService implements RegisterCustomerUseCase {
     @Override
     public CustomerResult execute(RegisterCustomerCommand command) {
         var profile = userProfileQueryPort.getUserProfile(command.userId());
-        if (profile == null || profile.platformCodes() == null || !profile.platformCodes().contains(CUSTOMER_PLATFORM_CODE)) {
+        if (profile == null || profile.roleCodes() == null || !profile.roleCodes().contains(CUSTOMER_ROLE_CODE)) {
             return null;
         }
         if (customers.findByUserId(command.userId()).isPresent()) {
