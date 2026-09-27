@@ -11,6 +11,8 @@ import org.mapstruct.MappingTarget;
 @Mapper(config = CentralMapperConfig.class, uses = {IdMapper.class})
 public abstract class RoleEntityMapper {
 
+    @Mapping(ignore = true, target = "id")
+    @Mapping(ignore = true, target = "authorities")
     @Mapping(source = "id", target = "uuid")
     public abstract void toEntity(Role source, @MappingTarget RoleEntity destination);
 }

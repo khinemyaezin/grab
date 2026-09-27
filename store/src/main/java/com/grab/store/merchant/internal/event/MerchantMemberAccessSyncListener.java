@@ -3,15 +3,15 @@ package com.grab.store.merchant.internal.event;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.store.identity.port.AccessManagementPort;
-import com.grab.store.merchant.internal.policy.MerchantAdminRoleProfile;
 import com.merchant.domain.enums.MemberStatus;
-import com.merchant.domain.event.MerchantAccessProfile;
 import com.merchant.domain.event.MerchantMemberCreatedEvent;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
 import com.merchant.domain.event.MerchantMemberRoleChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -31,10 +31,10 @@ public class MerchantMemberAccessSyncListener {
             accessManagementPort.replaceAccess(new AccessManagementPort.ReplaceAccessRequest(
                     event.userId(),
                     null,
-                    MerchantAccessProfile.ADMIN_ROLE_CODE,
-                    MerchantAccessProfile.MERCHANT_SCOPE_KEY,
+                    com.merchant.application.security.MerchantAdminAccessProfile.ADMIN_ROLE_CODE,
+                    com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
                     event.merchantId(),
-                    MerchantAdminRoleProfile.AUTHORITIES
+                    Set.of()
             ));
         }
     }
@@ -51,9 +51,9 @@ public class MerchantMemberAccessSyncListener {
         );
         accessManagementPort.replaceAccess(new AccessManagementPort.ReplaceAccessRequest(
                 event.userId(),
-                MerchantAccessProfile.toRoleCode(event.previousRole()),
-                MerchantAccessProfile.toRoleCode(event.newRole()),
-                MerchantAccessProfile.MERCHANT_SCOPE_KEY,
+                com.merchant.application.security.MerchantAdminAccessProfile.toRoleCode(event.previousRole()),
+                com.merchant.application.security.MerchantAdminAccessProfile.toRoleCode(event.newRole()),
+                com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
                 event.merchantId(),
                 event.authorities()
         ));
@@ -69,8 +69,8 @@ public class MerchantMemberAccessSyncListener {
         );
         accessManagementPort.revokeAccess(new AccessManagementPort.RevokeAccessRequest(
                 event.userId(),
-                MerchantAccessProfile.toRoleCode(event.role()),
-                MerchantAccessProfile.MERCHANT_SCOPE_KEY,
+                com.merchant.application.security.MerchantAdminAccessProfile.toRoleCode(event.role()),
+                com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
                 event.merchantId()
         ));
     }

@@ -1,7 +1,6 @@
 package com.grab.store.merchant.internal.event;
 
 import com.grab.store.identity.port.AccessManagementPort;
-import com.merchant.domain.event.MerchantAccessProfile;
 import com.merchant.domain.event.MerchantClosedEvent;
 import com.merchant.domain.event.MerchantSuspendedEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +32,7 @@ class MerchantLifecycleMemberSyncListenerTest {
         listener.onMerchantSuspended(event);
 
         verify(accessManagementPort).revokeSessionsByScope(
-                MerchantAccessProfile.MERCHANT_SCOPE_KEY,
+                com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
                 "mer-1"
         );
     }
@@ -47,7 +46,7 @@ class MerchantLifecycleMemberSyncListenerTest {
         listener.onMerchantClosed(event);
 
         verify(accessManagementPort).revokeSessionsByScope(
-                MerchantAccessProfile.MERCHANT_SCOPE_KEY,
+                com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
                 "mer-1"
         );
     }

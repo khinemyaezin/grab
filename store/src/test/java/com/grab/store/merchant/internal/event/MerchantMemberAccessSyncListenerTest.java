@@ -1,8 +1,6 @@
 package com.grab.store.merchant.internal.event;
 
 import com.grab.store.identity.port.AccessManagementPort;
-import com.grab.store.merchant.internal.policy.MerchantAdminRoleProfile;
-import com.merchant.domain.event.MerchantAccessProfile;
 import com.merchant.domain.event.MerchantMemberCreatedEvent;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
 import com.merchant.domain.event.MerchantMemberRoleChangedEvent;
@@ -43,8 +41,8 @@ class MerchantMemberAccessSyncListenerTest {
         AccessManagementPort.ReplaceAccessRequest request = captor.getValue();
         assertThat(request.userId()).isEqualTo("usr-1");
         assertThat(request.previousRoleCode()).isNull();
-        assertThat(request.roleCode()).isEqualTo(MerchantAccessProfile.ADMIN_ROLE_CODE);
-        assertThat(request.scopeKey()).isEqualTo(MerchantAccessProfile.MERCHANT_SCOPE_KEY);
+        assertThat(request.roleCode()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.ADMIN_ROLE_CODE);
+        assertThat(request.scopeKey()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY);
         assertThat(request.scopeId()).isEqualTo("mer-1");
         assertThat(request.authorityCodes()).isEqualTo(MerchantAdminRoleProfile.AUTHORITIES);
     }
@@ -94,7 +92,7 @@ class MerchantMemberAccessSyncListenerTest {
         AccessManagementPort.RevokeAccessRequest request = captor.getValue();
         assertThat(request.userId()).isEqualTo("usr-1");
         assertThat(request.roleCode()).isEqualTo("OPERATOR");
-        assertThat(request.scopeKey()).isEqualTo(MerchantAccessProfile.MERCHANT_SCOPE_KEY);
+        assertThat(request.scopeKey()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY);
         assertThat(request.scopeId()).isEqualTo("mer-1");
     }
 }
