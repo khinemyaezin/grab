@@ -1,6 +1,6 @@
 # Repository Specification & Core Invariants
 
-> **Source of Truth**: Detailed topic rules reside in [.agents/rules/](.agents/rules/README.md). Workflow runbooks and templates reside in [.agents/skills/](.agents/skills/).
+> **Source of Truth**: Detailed topic rules reside in [.agents/rules/](.agents/rules/README.md).
 > This document defines the **non-negotiable global architectural invariants**, the **Rule Index**, and the **Pre-Code Checklist (R21)**.
 
 ## Scope and Use
@@ -36,6 +36,7 @@ When implementing specific layers or components, inspect the dedicated rule in `
 - Persistence write adapter (`{Domain}RepositoryAdapter`) implements `{Domain}Repository`, injecting `{Domain}JpaRepository` + mapper/assembler, `DomainEventProducer`, and `PersistenceExecutor`.
 - Persistence query adapter (`{Domain}QueryAdapter`) implements `{Domain}QueryPort`, returning application view records (`{Domain}View`), never domain aggregates or JPA entities.
 - Controllers, services, mappers, assemblers, and policies MUST NOT touch repositories, ports, or adapters.
+- Spring Data JPA repositories in persistence adapters MUST NOT use native queries (`@Query(nativeQuery = true)`). Use derived query methods, JPQL, or Criteria API Specifications instead.
 
 ### 5. Spring Modulith & Cross-Module Boundaries
 - Cross-module communication is permitted ONLY via:
@@ -85,10 +86,8 @@ Refer to the source files in [.agents/rules/](.agents/rules/README.md) for detai
 
 ## On-Demand Skills
 
-For multi-step implementation workflows, consult the corresponding skill in [.agents/skills/](.agents/skills/):
-- **`create-cqrs-operation`**: Recipes for creating Commands, Queries, Handlers, Use Cases, Mappers, Controllers, and HATEOAS assemblers.
-- **`create-persistence-adapter`**: Recipes for creating JPA Entities, Repositories, Assemblers, Query Specifications, and Repository Adapters.
-- **`specs-and-templates`**: Authoring guides and templates for Domain Specs, Tech Specs, and Workflow Specs.
+For multi-step implementation workflows, consult the corresponding skill in [.agents/rules/documentation/specification](.agents/rules/documentation/specification.md):
+- **`specification`**: Authoring guides and templates for Domain Specs, Tech Specs, and Workflow Specs.
 
 ---
 
@@ -115,7 +114,7 @@ Verify all 26 checks before producing or changing code:
 17. No business logic in handlers. Aggregate or policy owns business rules.
 18. A handler does not call another handler. Cascading work goes through `CommandBus`/`QueryBus`, usually from event listeners.
 19. Only handlers and use cases inject/use ports and repositories. Never services, controllers, mappers, assemblers, or policies.
-20. Write path: command handler/use case to domain write port `{Domain}Repository`. Query list/search to application query port `{Domain}QueryPort` (implemented by `{Domain}QueryAdapter`), not `JpaRepository`.
+20. Write path: command handler/use case to domain write port `{Domain}Repository`. Query list/search to application query port `{Domain}QueryPort` (implemented by `{Domain}QueryAdapter`), not `JpaRepository`. Spring Data JPA repositories MUST NOT use native queries (`nativeQuery = true`).
 21. Paged search uses a specification class injected into the query adapter. Results are application view records (`{Domain}View`), not JPA entities.
 22. Cross-module integration events MUST be written under `store/src/main/java/com/grab/store/shared/events/{module}/` organized by module folder name. Consuming modules listen via `@EventListener`.
 23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks`. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding. No proxying owner list/search.

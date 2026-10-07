@@ -4,6 +4,7 @@
 > **Classification:** Architectural Pattern / Platform Infrastructure  
 > **Supporting Modules:** `store/shared/security` / `identity-domain`  
 > **Related Architecture ADRs:** [ADR-005](../system/ADR_005-Api_security_architecture.md), [ADR-001 (Identity)](../domain/identity/architecture/ADR_001-Identity-module-architecture.md), [ADR-002 (Identity)](../domain/identity/architecture/ADR_002-API_security&cookie_architecture.md)
+> **Related Technical Design:** [Security manifest consistency](security-manifest-consistency-tech-spec.md)
 
 ---
 

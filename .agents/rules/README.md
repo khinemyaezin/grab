@@ -66,7 +66,7 @@ Verify all of the following before producing or changing code.
 17. No business logic in handlers. Aggregate or policy owns business rules.
 18. A handler does not call another handler. Cascading work goes through `CommandBus`/`QueryBus`, usually from event listeners.
 19. Only handlers and use cases inject/use ports and repositories. Never services, controllers, mappers, assemblers, or policies.
-20. Write path: command handler/use case to domain write port `{Domain}Repository`. Query list/search to application query port `{Domain}QueryPort` (implemented by `{Domain}QueryAdapter`), not `JpaRepository`.
+20. Write path: command handler/use case to domain write port `{Domain}Repository`. Query list/search to application query port `{Domain}QueryPort` (implemented by `{Domain}QueryAdapter`), not `JpaRepository`. Spring Data JPA repositories MUST NOT use native queries (`nativeQuery = true`).
 21. Paged search uses a specification class injected into the query adapter. Results are application view records (`{Domain}View`), not JPA entities.
 22. Cross-module integration events MUST be written under `store/src/main/java/com/grab/store/shared/events/{module}/` organized by module folder name. Consuming modules listen via `@EventListener`.
 23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks`. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding. No proxying owner list/search.

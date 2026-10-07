@@ -48,6 +48,15 @@ Separate write and query concerns into distinct ports and adapters:
 - Specification encapsulates Criteria API (`CriteriaBuilder` / predicates / joins), or an equivalent dedicated search-query helper under `specification/jpa/`, given filter criteria + `Pageable`.
 - Result shape is a view/summary record suitable for mapping to Query Result then Response DTO.
 
+## Spring Data JPA Repositories (`{Domain}JpaRepository`)
+
+- Spring Data interfaces reside in `com.{name}.adapter.persistence.repository.jpa`.
+- Extend `JpaRepository<{Domain}Entity, Long>` and optionally `JpaSpecificationExecutor<{Domain}Entity>`.
+- Query methods query by `uuid` (`findByUuid(String uuid)`), never by DB numeric `id`.
+- **MUST NOT use native queries (`nativeQuery = true`)**:
+  - Always use Spring Data derived method names, JPQL (`@Query("SELECT ...")`), or Criteria API Specifications.
+  - Never use `@Query(value = "...", nativeQuery = true)`. Database-specific SQL dialects compromise portability, bypass JPA entity lifecycle management and type checking, and couple persistence adapters to specific database implementations.
+
 ## Configuration & Bean Exposure
 
 - `{Domain}PersistenceConfig` exposes beans returning **port interfaces**, not concrete adapter types:
