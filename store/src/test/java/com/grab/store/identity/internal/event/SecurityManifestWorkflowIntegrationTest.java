@@ -16,14 +16,14 @@ import com.grab.store.identity.internal.query.handler.ListWaitingSecurityManifes
 import com.identity.adapter.persistence.specification.jpa.SecurityManifestWaitingSpecification;
 import com.identity.adapter.persistence.mapper.jpa.SecurityCatalogJpaAssembler;
 import com.identity.application.port.outbound.SecurityManifestQueryPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationQueryAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQueryAdapter;
 import com.grab.framework.outbox.*;
 import com.grab.framework.security.*;
 import com.grab.framework.security.ScopeDeclaration.Lifecycle;
 import com.grab.outbox.infrastructure.AbstractOutboxProcessor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
 import com.grab.store.identity.internal.command.handler.RegisterSecurityManifestCommandHandler;
 import com.grab.store.identity.internal.command.handler.RevalidateSecurityManifestCommandHandler;
 import com.identity.adapter.persistence.adapter.*;

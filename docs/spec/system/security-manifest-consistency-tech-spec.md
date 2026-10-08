@@ -4,7 +4,7 @@
 > **Status:** Implemented for local delivery; network transport and deployment-specific alert wiring remain external integration work.
 > **Related ADR:** [ADR-004](../../dev/domain/identity/architecture/ADR_004-Distributed_security_manifest_catalog.md)
 > **Classification:** Architectural Pattern / Cross-Cutting Concern
-> **Supporting Modules:** `framework`, `outbox-infrastructure`, owner application/persistence modules, `identity-domain`, `identity-application`, `identity-adapter-persistence`, `store`
+> **Supporting Modules:** `framework`, `manifest-adapter-persistence`, `outbox-infrastructure`, owner application/persistence modules, `identity-domain`, `identity-application`, `identity-adapter-persistence`, `store`
 > **Related Specifications:** [Identity domain](../domain/identity/architecture/identity-domain-spec.md), [API security](api-security-tech-spec.md), [Transactional outbox](transactional-outbox-tech-spec.md)
 
 ## 1. Why We Need It
@@ -116,7 +116,7 @@ flowchart TB
 | Module-specific event | `store/.../shared/events/{owner}/` | Carries the shared manifest contract through the permitted module boundary. |
 | Startup/scheduled trigger | `store/.../{owner}/internal/event/` | Schedules background publication and dispatches through `CommandBus`. |
 | Declaration handler/use case | `store` / owner application | Persists publication state and outbox payload in the owner's transaction. |
-| Publication port and implementation | `framework` / `outbox-infrastructure` | Technical `SecurityManifestPublicationPort` uses a neutral adapter; owner JPA repositories bind seeded rows and module assembly supplies the event factory. |
+| Publication port and implementation | `framework` / `manifest-adapter-persistence` | Technical `SecurityManifestPublicationPort` uses the reusable adapter and framework eligibility policy; owner JPA repositories bind seeded rows and module assembly supplies the event factory. Generic outbox delivery remains in `outbox-infrastructure`. |
 | Identity listener | `store/.../identity/internal/event/` | Maps immutable input and dispatches a registration command through `CommandBus`. |
 | `SecurityCatalog` aggregate and pure policies | `identity-domain` | Own serialized revision, ownership, conservation, immutable parents, retirement, graph, and dependency decisions from loaded state. |
 | Identity registration use case | `identity-application` | Loads registry state through ports, invokes domain rules, and persists the decision. |

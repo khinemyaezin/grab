@@ -2,7 +2,7 @@ package com.grab.store.catalog.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
 import com.grab.store.shared.events.catalog.CatalogSecurityManifestDeclaredIntegrationEvent;
 import com.catalog.adapter.persistence.repository.jpa.CatalogSecurityManifestPublicationJpaRepository;
 import com.catalog.application.port.inbound.PublishCatalogSecurityManifestUseCase;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationQueryAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQueryAdapter;
 import com.catalog.adapter.persistence.entity.CatalogSecurityManifestPublicationEntity;
 import com.catalog.application.port.inbound.GetCatalogSecurityManifestPublicationStatusUseCase;
 import com.catalog.application.service.GetCatalogSecurityManifestPublicationStatusService;

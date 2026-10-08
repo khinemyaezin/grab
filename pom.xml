@@ -15,6 +15,7 @@
         <module>logger-slf4j</module>
         <module>storage-adapter-s3</module>
         <module>outbox-infrastructure</module>
+        <module>manifest-adapter-persistence</module>
         <module>workflow-infrastructure</module>
         <module>catalog-domain</module>
         <module>catalog-application</module>

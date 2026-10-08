@@ -1,6 +1,6 @@
 package com.identity.adapter.persistence.entity;
 
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationState;
+import com.manifest.adapter.persistence.entity.SecurityManifestPublicationState;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 

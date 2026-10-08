@@ -19,6 +19,7 @@
         <catalog-domain.version>0.0.1</catalog-domain.version>
         <catalog-application.version>0.0.1</catalog-application.version>
         <outbox-infrastructure.version>0.0.1</outbox-infrastructure.version>
+        <manifest-adapter-persistence.version>0.0.1</manifest-adapter-persistence.version>
     </properties>
     <dependencies>
         <dependency>
@@ -39,6 +40,11 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>outbox-infrastructure</artifactId>
             <version>${outbox-infrastructure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>manifest-adapter-persistence</artifactId>
+            <version>${manifest-adapter-persistence.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.khinemyaezin.nested-set</groupId>

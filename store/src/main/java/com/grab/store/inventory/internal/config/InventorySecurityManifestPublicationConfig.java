@@ -2,7 +2,7 @@ package com.grab.store.inventory.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
 import com.grab.store.shared.events.inventory.InventorySecurityManifestDeclaredIntegrationEvent;
 import com.inventory.adapter.persistence.repository.jpa.InventorySecurityManifestPublicationJpaRepository;
 import com.inventory.application.port.inbound.PublishInventorySecurityManifestUseCase;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationQueryAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQueryAdapter;
 import com.inventory.adapter.persistence.entity.InventorySecurityManifestPublicationEntity;
 import com.inventory.application.port.inbound.GetInventorySecurityManifestPublicationStatusUseCase;
 import com.inventory.application.service.GetInventorySecurityManifestPublicationStatusService;

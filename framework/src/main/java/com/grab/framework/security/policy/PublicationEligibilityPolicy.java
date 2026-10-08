@@ -1,4 +1,4 @@
-package com.grab.outbox.infrastructure.security;
+package com.grab.framework.security.policy;
 
 import com.grab.framework.security.SecurityManifest;
 import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;

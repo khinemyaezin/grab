@@ -2,7 +2,7 @@ package com.grab.store.saleschannel.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
 import com.grab.store.shared.events.saleschannel.SalesChannelSecurityManifestDeclaredIntegrationEvent;
 import com.saleschannel.adapter.persistence.repository.jpa.SalesChannelSecurityManifestPublicationJpaRepository;
 import com.saleschannel.application.port.inbound.PublishSalesChannelSecurityManifestUseCase;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationQueryAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQueryAdapter;
 import com.saleschannel.adapter.persistence.entity.SalesChannelSecurityManifestPublicationEntity;
 import com.saleschannel.application.port.inbound.GetSalesChannelSecurityManifestPublicationStatusUseCase;
 import com.saleschannel.application.service.GetSalesChannelSecurityManifestPublicationStatusService;

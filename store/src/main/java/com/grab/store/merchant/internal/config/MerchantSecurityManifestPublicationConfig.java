@@ -2,7 +2,7 @@ package com.grab.store.merchant.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
 import com.grab.store.shared.events.merchant.MerchantSecurityManifestDeclaredIntegrationEvent;
 import com.merchant.adapter.persistence.repository.jpa.MerchantSecurityManifestPublicationJpaRepository;
 import com.merchant.application.port.inbound.PublishMerchantSecurityManifestUseCase;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationQueryAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQueryAdapter;
 import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
 import com.merchant.application.port.inbound.GetMerchantSecurityManifestPublicationStatusUseCase;
 import com.merchant.application.service.GetMerchantSecurityManifestPublicationStatusService;

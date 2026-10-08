@@ -12,6 +12,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <identity-domain.version>0.0.1</identity-domain.version>
+        <manifest-adapter-persistence.version>0.0.1</manifest-adapter-persistence.version>
     </properties>
     <dependencies>
         <dependency>
@@ -36,6 +37,11 @@
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>outbox-infrastructure</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>manifest-adapter-persistence</artifactId>
+            <version>${manifest-adapter-persistence.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
