@@ -103,7 +103,7 @@ class LocationQueryAdapterTest {
     }
 
     private static LocationView locationView(String uuid, String code) {
-        return new LocationView(uuid, code, code + " Name", LocationType.WAREHOUSE,
+        return new LocationView(uuid, "merchant-1", code, code + " Name", LocationType.WAREHOUSE,
                 "123 Main St", null, "Springfield", "IL", "62701", "US", true);
     }
 }

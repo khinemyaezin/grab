@@ -42,6 +42,7 @@ public class LocationSearchSpecification {
         dataQuery.select(cb.construct(
                 LocationView.class,
                 root.get(LocationEntity_.UUID),
+                root.get(LocationEntity_.MERCHANT_ID),
                 root.get(LocationEntity_.CODE),
                 root.get(LocationEntity_.NAME),
                 root.get(LocationEntity_.TYPE),

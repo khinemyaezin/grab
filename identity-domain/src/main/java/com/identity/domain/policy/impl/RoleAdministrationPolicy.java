@@ -4,7 +4,7 @@ import com.grab.framework.id.Id;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.model.Authority;
+import com.identity.domain.aggregate.Authority;
 import com.identity.domain.port.outbound.AuthorityRepository;
 
 import java.util.LinkedHashSet;

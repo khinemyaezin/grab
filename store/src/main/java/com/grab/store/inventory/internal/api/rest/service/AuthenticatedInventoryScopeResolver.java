@@ -3,10 +3,16 @@ package com.grab.store.inventory.internal.api.rest.service;
 import com.grab.framework.security.AccessContext;
 import com.inventory.application.exception.InventoryServiceError;
 import com.inventory.application.exception.InventoryServiceException;
+import com.inventory.application.security.InventoryScopeManifest;
 import com.grab.store.shared.security.PlatformScopes;
 import com.grab.store.shared.security.ScopeResolverHelper;
 import com.grab.store.shared.security.SecurityPrincipal;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class AuthenticatedInventoryScopeResolver {
@@ -27,17 +33,25 @@ public class AuthenticatedInventoryScopeResolver {
             throw buildForbiddenException(principal);
         }
 
-        boolean inventoryCapable = PlatformScopes.MERCHANT_ACCOUNT_SCOPE.equals(context.scopeKey())
-                || PlatformScopes.FULFILLMENT_LOCATION_SCOPE.equals(context.scopeKey());
+        boolean inventoryCapable = InventoryScopeManifest.supports(context.scopeKey());
         if (!inventoryCapable) {
             throw buildForbiddenException(principal);
         }
 
+        Set<String> authorities = authoritiesOf(principal);
         return new ResolvedInventoryAccess(
                 principal.getPlatformUserId(),
                 context.scopeKey(),
-                context.scopeId()
+                context.scopeId(),
+                authorities
         );
+    }
+
+    private Set<String> authoritiesOf(SecurityPrincipal principal) {
+        Collection<? extends GrantedAuthority> grantedAuthorities = principal.getAuthorities();
+        return grantedAuthorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     private InventoryServiceException buildForbiddenException(SecurityPrincipal principal) {

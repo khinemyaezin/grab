@@ -16,6 +16,7 @@ public sealed interface IdentityServiceError extends MessageSource permits
         IdentityServiceError.AccessAssignmentNotFound,
         IdentityServiceError.AccessAssignmentExists,
         IdentityServiceError.AccessScopeForbidden,
+        IdentityServiceError.ScopeOwnershipViolation,
         IdentityServiceError.AccessContextSelectionRequired,
         IdentityServiceError.AccessContextSelectionInvalid,
         IdentityServiceError.AccessInvitationNotFound,
@@ -196,6 +197,23 @@ public sealed interface IdentityServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("scopeKey", scopeKey, "scopeId", scopeId);
+        }
+    }
+
+    record ScopeOwnershipViolation(String actorScopeId, String targetScopeId) implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access.scope_ownership_violation";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("actorScopeId", actorScopeId, "targetScopeId", targetScopeId);
         }
     }
 

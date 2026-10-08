@@ -10,8 +10,8 @@ import com.identity.adapter.persistence.entity.*;
 import com.identity.adapter.persistence.repository.jpa.AccessAssignmentJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.ExternalEntitlementMappingJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.ExternalIdentityJpaRepository;
+import com.identity.adapter.persistence.repository.jpa.ScopeManifestJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.UserJpaRepository;
-import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 import java.util.LinkedHashSet;
@@ -19,13 +19,36 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
 
     private final UserJpaRepository users;
     private final ExternalIdentityJpaRepository externalIdentities;
     private final ExternalEntitlementMappingJpaRepository entitlementMappings;
     private final AccessAssignmentJpaRepository accessAssignments;
+    private final ScopeManifestJpaRepository scopeManifests;
+
+    public IdentityLookupQueryAdapter(
+            UserJpaRepository users,
+            ExternalIdentityJpaRepository externalIdentities,
+            ExternalEntitlementMappingJpaRepository entitlementMappings,
+            AccessAssignmentJpaRepository accessAssignments
+    ) {
+        this(users, externalIdentities, entitlementMappings, accessAssignments, null);
+    }
+
+    public IdentityLookupQueryAdapter(
+            UserJpaRepository users,
+            ExternalIdentityJpaRepository externalIdentities,
+            ExternalEntitlementMappingJpaRepository entitlementMappings,
+            AccessAssignmentJpaRepository accessAssignments,
+            ScopeManifestJpaRepository scopeManifests
+    ) {
+        this.users = users;
+        this.externalIdentities = externalIdentities;
+        this.entitlementMappings = entitlementMappings;
+        this.accessAssignments = accessAssignments;
+        this.scopeManifests = scopeManifests;
+    }
 
     @Override
     public Optional<AuthenticatedActor> resolveByPlatformUserId(String issuer, String userId, AccessContext accessContext) {
@@ -81,6 +104,11 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
     }
 
     private Set<RoleEntity> scopedRoles(UserEntity user, AccessContext context) {
+        if (scopeManifests != null
+                && !"global".equals(context.scopeKey())
+                && !scopeManifests.existsByScopeKeyAndActiveTrue(context.scopeKey())) {
+            throw invalidAccessContext();
+        }
         AccessAssignmentEntity anchor = accessAssignments
                 .findByUuidAndUser_Uuid(context.assignmentId(), user.getUuid())
                 .orElseThrow(this::invalidAccessContext);

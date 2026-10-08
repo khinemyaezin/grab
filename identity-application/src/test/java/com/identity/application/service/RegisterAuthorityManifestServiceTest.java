@@ -3,7 +3,7 @@ package com.identity.application.service;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.security.AuthorityDefinition;
 import com.identity.application.model.write.RegisterAuthorityManifestCommand;
-import com.identity.domain.model.Authority;
+import com.identity.domain.aggregate.Authority;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import org.junit.jupiter.api.Test;
 

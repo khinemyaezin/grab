@@ -12,7 +12,7 @@ import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.enums.UserStatus;
-import com.identity.domain.model.Authority;
+import com.identity.domain.aggregate.Authority;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.RoleRepository;

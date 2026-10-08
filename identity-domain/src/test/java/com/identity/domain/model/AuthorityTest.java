@@ -2,6 +2,7 @@ package com.identity.domain.model;
 
 import com.grab.framework.security.AuthorityDefinition;
 import com.grab.framework.id.impl.CommonId;
+import com.identity.domain.aggregate.Authority;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -92,8 +92,19 @@ class AuthenticatedInventoryScopeResolverTest {
         }
 
         @Test
+        void resolve_withStorefrontScope_shouldReturnAccess() {
+            mockSecurityPrincipal(PlatformScopes.MERCHANT_STOREFRONT_SCOPE, "storefront-789", "user-1");
+
+            ResolvedInventoryAccess access = resolver.resolve(securityPrincipal);
+
+            assertThat(access.actorId()).isEqualTo("user-1");
+            assertThat(access.scopeKey()).isEqualTo(PlatformScopes.MERCHANT_STOREFRONT_SCOPE);
+            assertThat(access.scopeId()).isEqualTo("storefront-789");
+        }
+
+        @Test
         void resolve_withOtherScope_shouldThrowException() {
-            mockSecurityPrincipal("some.other.scope", "value", "user-1");
+            mockSecurityPrincipal("catalog.product", "value", "user-1");
             assertThatThrownBy(() -> resolver.resolve(securityPrincipal))
                     .isInstanceOf(InventoryServiceException.class);
         }

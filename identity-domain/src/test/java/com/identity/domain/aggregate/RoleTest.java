@@ -7,7 +7,6 @@ import com.identity.domain.event.RoleStatusChangedEvent;
 import com.identity.domain.enums.RoleKind;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.model.Authority;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;

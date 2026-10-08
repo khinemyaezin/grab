@@ -1,4 +1,4 @@
-package com.identity.domain.model;
+package com.identity.domain.aggregate;
 
 import com.grab.framework.domain.Entity;
 import com.grab.framework.id.Id;

@@ -4,7 +4,7 @@ import com.merchant.domain.valueobject.MerchantRole;
 
 public final class MerchantAdminAccessProfile {
     public static final String ADMIN_ROLE_CODE = "MERCHANT_ADMIN";
-    public static final String MERCHANT_SCOPE_KEY = "merchant.account";
+    public static final String MERCHANT_SCOPE_KEY = MerchantScopeManifest.ACCOUNT_SCOPE_KEY;
 
     private MerchantAdminAccessProfile() {
     }

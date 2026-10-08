@@ -6,6 +6,7 @@ import com.identity.application.port.inbound.*;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
+import com.identity.application.port.outbound.ScopeOwnershipPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.application.service.*;
 import com.identity.domain.policy.RoleDelegationPolicy;
@@ -104,9 +105,10 @@ public class IdentityUseCaseConfig {
             RoleRepository roles,
             AccessAssignmentRepository assignments,
             RoleDelegationPolicy delegationPolicy,
-            IdGenerator ids
+            IdGenerator ids,
+            ScopeOwnershipPort scopeOwnershipPort
     ) {
-        return new GrantAccessService(users, roles, assignments, delegationPolicy, ids);
+        return new GrantAccessService(users, roles, assignments, delegationPolicy, ids, scopeOwnershipPort);
     }
 
     @Bean
@@ -158,9 +160,44 @@ public class IdentityUseCaseConfig {
     @Bean
     public RegisterAuthorityManifestUseCase registerAuthorityManifestUseCase(
             AuthorityRepository authorityRepository,
-            IdGenerator idGenerator
+            IdGenerator idGenerator,
+            AuthorityManifestVersionRepository versionRepository
     ) {
-        return new RegisterAuthorityManifestService(authorityRepository, idGenerator);
+        return new RegisterAuthorityManifestService(authorityRepository, idGenerator, versionRepository);
+    }
+
+    @Bean
+    public RegisterScopeManifestUseCase registerScopeManifestUseCase(ScopeManifestRepository repository) {
+        return new RegisterScopeManifestService(repository);
+    }
+
+    @Bean
+    public RegisterSecurityManifestUseCase registerSecurityManifestUseCase(
+            SecurityManifestInboxRepository inbox,
+            ScopeManifestRepository scopeManifestRepository,
+            SecurityCatalogLock securityCatalogLock,
+            SecurityManifestRevisionRepository securityManifestRevisionRepository,
+            AuthorityRepository authorityRepository,
+            SecurityManifestModuleRepository securityManifestModuleRepository,
+            SecurityManifestCatalogRepository securityManifestCatalogRepository
+    ) {
+        return new RegisterSecurityManifestService(
+                inbox,
+                scopeManifestRepository,
+                securityCatalogLock,
+                securityManifestRevisionRepository,
+                authorityRepository,
+                securityManifestModuleRepository,
+                securityManifestCatalogRepository
+        );
+    }
+
+    @Bean
+    public RevalidateWaitingSecurityManifestsUseCase revalidateWaitingSecurityManifestsUseCase(
+            SecurityManifestRevisionRepository revisions,
+            RegisterSecurityManifestUseCase registration
+    ) {
+        return new RevalidateWaitingSecurityManifestsService(revisions, registration);
     }
 
     @Bean

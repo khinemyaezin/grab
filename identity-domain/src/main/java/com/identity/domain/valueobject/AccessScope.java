@@ -35,12 +35,32 @@ public record AccessScope(ScopeKey key, String scopeId) {
     }
 
     public boolean encompasses(AccessScope target) {
+        return encompasses(target, ScopeHierarchy.current());
+    }
+
+    public boolean encompasses(AccessScope target, ScopeHierarchy hierarchy) {
         Objects.requireNonNull(target, "target scope is required");
-        return isGlobal() || equals(target);
+        Objects.requireNonNull(hierarchy, "hierarchy is required");
+        if (isGlobal()) {
+            return true;
+        }
+        if (equals(target)) {
+            return true;
+        }
+        if (key.equals(target.key())) {
+            return false;
+        }
+        String actorKey = key.value();
+        String targetKey = target.key().value();
+        return hierarchy.checkAncestorOrSelf(actorKey, targetKey);
     }
 
     public void requireEncompasses(AccessScope target) {
-        if (!encompasses(target)) {
+        requireEncompasses(target, ScopeHierarchy.current());
+    }
+
+    public void requireEncompasses(AccessScope target, ScopeHierarchy hierarchy) {
+        if (!encompasses(target, hierarchy)) {
             throw new IdentityDomainValidationException(
                     new IdentityDomainError.AccessScopeNotEncompassed(
                             key.value(), scopeId, target.key().value(), target.scopeId()

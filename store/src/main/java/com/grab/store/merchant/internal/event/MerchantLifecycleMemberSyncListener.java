@@ -5,6 +5,7 @@ import com.grab.framework.logger.Loggers;
 import com.grab.store.identity.port.AccessManagementPort;
 import com.merchant.domain.event.MerchantClosedEvent;
 import com.merchant.domain.event.MerchantSuspendedEvent;
+import com.merchant.application.security.MerchantAdminAccessProfile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ public class MerchantLifecycleMemberSyncListener {
     public void onMerchantSuspended(MerchantSuspendedEvent event) {
         log.warn("Merchant suspended merchantId={}. Revoking active merchant sessions.", event.merchantId());
         accessManagementPort.revokeSessionsByScope(
-                com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
+                MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
                 event.merchantId()
         );
     }
@@ -29,7 +30,7 @@ public class MerchantLifecycleMemberSyncListener {
     public void onMerchantClosed(MerchantClosedEvent event) {
         log.warn("Merchant closed merchantId={}. Revoking active merchant sessions.", event.merchantId());
         accessManagementPort.revokeSessionsByScope(
-                com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
+                MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
                 event.merchantId()
         );
     }

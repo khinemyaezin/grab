@@ -53,18 +53,31 @@ public class LocationQueryAdapter implements LocationQueryPort {
     }
 
     private LocationView toView(LocationEntity entity) {
+        var uuid = entity.getUuid();
+        var merchantId = entity.getMerchantId();
+        var code = entity.getCode();
+        var name = entity.getName();
+        var type = entity.getType();
+        var street = entity.getStreet();
+        var street2 = entity.getStreet2();
+        var city = entity.getCity();
+        var state = entity.getState();
+        var postalCode = entity.getPostalCode();
+        var country = entity.getCountry();
+        var active = entity.isActive();
         return new LocationView(
-                entity.getUuid(),
-                entity.getCode(),
-                entity.getName(),
-                entity.getType(),
-                entity.getStreet(),
-                entity.getStreet2(),
-                entity.getCity(),
-                entity.getState(),
-                entity.getPostalCode(),
-                entity.getCountry(),
-                entity.isActive()
+                uuid,
+                merchantId,
+                code,
+                name,
+                type,
+                street,
+                street2,
+                city,
+                state,
+                postalCode,
+                country,
+                active
         );
     }
 }

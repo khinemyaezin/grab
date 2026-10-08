@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.grab.store.shared.security.SecurityManifestPublicationCoordinator;
 
 import org.flywaydb.core.Flyway;
 
@@ -70,5 +72,11 @@ public class IdentityDataSourceConfig {
                 .locations("classpath:db/migration/identity")
                 .baselineOnMigrate(true)
                 .load();
+    }
+
+    @Bean("identitySecurityManifestPublicationCoordinator")
+    SecurityManifestPublicationCoordinator identitySecurityManifestPublicationCoordinator(
+            @Qualifier("identityDataSource") DataSource dataSource) {
+        return new SecurityManifestPublicationCoordinator(new JdbcTemplate(dataSource));
     }
 }

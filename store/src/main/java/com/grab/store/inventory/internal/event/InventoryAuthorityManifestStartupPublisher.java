@@ -8,7 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-@Component
+@Deprecated(forRemoval = false)
 @RequiredArgsConstructor
 public class InventoryAuthorityManifestStartupPublisher {
     private final ApplicationEventPublisher events;

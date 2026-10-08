@@ -44,20 +44,25 @@ public final class InventoryQueryResultMapper {
     }
 
     public static GetLocationResult toLocationResult(LocationView view, IdGenerator idGenerator) {
+        var locationId = idGenerator.convertIdFrom(view.uuid());
+        var merchantId = idGenerator.convertIdFrom(view.merchantId());
+        var locationType = view.type() == null ? null : view.type().name();
+        var address = new GetLocationResult.Address(
+                view.street(),
+                view.street2(),
+                view.city(),
+                view.state(),
+                view.postalCode(),
+                view.country()
+        );
         return new GetLocationResult(
-                idGenerator.convertIdFrom(view.uuid()),
+                locationId,
+                merchantId,
                 view.code(),
                 view.name(),
-                view.type() == null ? null : view.type().name(),
+                locationType,
                 view.active(),
-                new GetLocationResult.Address(
-                        view.street(),
-                        view.street2(),
-                        view.city(),
-                        view.state(),
-                        view.postalCode(),
-                        view.country()
-                )
+                address
         );
     }
 

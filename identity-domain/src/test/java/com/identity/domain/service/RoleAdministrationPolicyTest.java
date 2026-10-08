@@ -7,7 +7,7 @@ import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import com.identity.domain.port.outbound.AuthorityRepository;
-import com.identity.domain.model.Authority;
+import com.identity.domain.aggregate.Authority;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

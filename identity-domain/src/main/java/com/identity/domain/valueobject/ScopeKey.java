@@ -13,9 +13,10 @@ public record ScopeKey(String value) {
             throw invalid(null);
         }
         value = value.trim().toLowerCase(Locale.ROOT);
-        if (!GLOBAL_VALUE.equals(value)
-                && !value.matches("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) {
-            throw invalid(value);
+        if (!GLOBAL_VALUE.equals(value)) {
+            if (!value.matches("[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+")) {
+                throw invalid(value);
+            }
         }
     }
 

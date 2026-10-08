@@ -17,6 +17,8 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.grab.store.shared.security.SecurityManifestPublicationCoordinator;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
@@ -90,6 +92,12 @@ public class SalesChannelModuleDataSourceConfig {
                 .locations("classpath:db/migration/saleschannel")
                 .baselineOnMigrate(true)
                 .load();
+    }
+
+    @Bean("salesChannelSecurityManifestPublicationCoordinator")
+    SecurityManifestPublicationCoordinator salesChannelSecurityManifestPublicationCoordinator(
+            @Qualifier("salesChannelDataSource") DataSource dataSource) {
+        return new SecurityManifestPublicationCoordinator(new JdbcTemplate(dataSource));
     }
 
     private Map<String, Object> hibernateProperties() {

@@ -1,7 +1,7 @@
 # Tech Specification: Security Manifest Consistency
 
 > **Summary:** Module-owned security definitions converge into a durable identity catalog through versioned snapshots, transactional delivery, atomic activation, and periodic repair.
-> **Status:** Implemented; durable publication leases, complete manifest contracts, identity candidate outcomes, dependency waiting, validation, version fences, inbox replay, and serialized catalog activation are in place.
+> **Status:** In progress; the durable publication, complete manifest contract, and initial identity consistency path are present while candidate revalidation, persisted authorization snapshots, and PostgreSQL fault verification are being completed.
 > **Classification:** Architectural Pattern / Cross-Cutting Concern
 > **Supporting Modules:** `framework`, `outbox-infrastructure`, owner application/persistence modules, `identity-domain`, `identity-application`, `identity-adapter-persistence`, `store`
 > **Related Specifications:** [Identity domain](../domain/identity/architecture/identity-domain-spec.md), [API security](api-security-tech-spec.md), [Transactional outbox](transactional-outbox-tech-spec.md)
@@ -173,7 +173,7 @@ For extracted services, replace in-process dispatch with a transport adapter: ma
 | `securityRevision` | Positive monotonic release revision shared by scopes and authorities for this module. |
 | `contentDigest` | Identity-recomputed SHA-256 of the canonical complete semantic payload. |
 | `scopes` | Complete owned scope declarations. Each entry contains: `scopeKey` (string), `parentScopeKey` (string, nullable), and `lifecycle` (enum: `ACTIVE`, `RETIRED`). |
-| `authorities` | Complete owned authority definitions. Each entry contains: `code` (string), `category` (string), `name` (string), `description` (string, nullable), and `lifecycle` (enum: `ACTIVE`, `RETIRED`). |
+| `authorities` | Complete owned authority definitions. Each entry contains: `code` (string, normalized to uppercase for compatibility with existing role links), `category` (string), `name` (string), `description` (string, nullable), and `lifecycle` (enum: `ACTIVE`, `RETIRED`). |
 | `dependencies` | Referenced external scope keys and any required minimum owner revisions. |
 | `publishedAt` / trace metadata | Diagnostic values excluded from ordering and semantic digest. |
 

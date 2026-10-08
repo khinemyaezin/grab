@@ -7,6 +7,7 @@ import java.lang.annotation.*;
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Transactional(transactionManager = "identityTransactionManager", readOnly = true)
+@Transactional(transactionManager = "identityTransactionManager", readOnly = true,
+        isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
 public @interface IdentityReadTransactional {
 }

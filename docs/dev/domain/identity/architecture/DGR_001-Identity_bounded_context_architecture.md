@@ -1,37 +1,31 @@
 # Identity Domain Aggregate Diagram
 
-This diagram reflects the identity domain model for authentication and
-authorization with dynamic, database-driven roles.
+This diagram reflects the identity domain model for authentication, authorization,
+scoped access delegation, and distributed security manifest synchronization.
 
 ## Class Diagram
 
-### User Aggregate
+### Core Identity and Access Aggregates
 
 ```mermaid
 classDiagram
     direction TD
 
-    namespace UserAggregate {
+    namespace IdentityDomain {
         class User {
             <<AggregateRoot>>
             +Id id
             +Email email
             +Optional~HashedPassword~ passwordHash
-            +Set~Role~ roles
             +UserStatus status
             +LocalDateTime createdAt
             +LocalDateTime updatedAt
-            +createLocal(id, email, hashedPassword, roles) User
-            +createExternal(id, email, externalIdentity, roles) User
-            +assignRole(role)
-            +revokeRole(role)
+            +createLocal(id, email, password) User
             +activate()
             +suspend()
             +reactivate()
             +isActive() boolean
-            +isPendingApproval() boolean
-            +hasRole(roleCode) boolean
-            +getRoleCodes() Set~String~
+            +getPasswordHash() Optional~HashedPassword~
         }
 
         class Role {
@@ -40,61 +34,111 @@ classDiagram
             +String code
             +String name
             +String description
+            +RoleKind kind
             +boolean active
-            +LocalDateTime createdAt
-            +create(id, code, name, description) Role
-            +deactivate()
-            +activate()
+            +boolean assignable
+            +Set~Authority~ authorities
+            +createCustom(id, code, name, description, authorities) Role
+            +rehydrate(id, code, name, description, kind, active, assignable, authorities) Role
             +updateDetails(name, description)
+            +activate()
+            +deactivate()
             +assignAuthority(authority)
             +revokeAuthority(authority)
+            +requireAssignable()
+            +getAuthorities() Set~Authority~
         }
 
         class Authority {
             <<Entity>>
             +Id id
             +String code
+            +String category
             +String name
             +String description
             +boolean active
+            +create(id, code, category, name, description) Authority
+            +from(id, moduleKey, definition) Authority
         }
 
-        class ExternalIdentity {
-            <<Entity>>
+        class AccessAssignment {
+            <<AggregateRoot>>
             +Id id
-            +String issuer
-            +String subject
-            +LocalDateTime linkedAt
+            +Id userId
+            +String roleCode
+            +AccessScope scope
+            +AccessAssignmentStatus status
+            +Id assignedBy
+            +Instant createdAt
+            +Instant updatedAt
+            +Instant expiresAt
+            +create(id, userId, roleCode, scope, assignedBy, expiresAt) AccessAssignment
+            +suspend()
+            +reactivate(requestedBy)
+            +revoke()
+            +changeStatus(requestedStatus, requestedBy)
+            +expireIfDue(instant) boolean
+            +isEffectiveAt(instant) boolean
+            +statusAt(instant) AccessAssignmentStatus
         }
 
-        class ExternalEntitlementMapping {
-            <<Entity>>
+        class AccessInvitation {
+            <<AggregateRoot>>
             +Id id
-            +String issuer
-            +String entitlement
-            +Id platformRoleId
-        }
-
-        class RefreshSession {
-            <<Entity>>
-            +Id id
+            +Email inviteeEmail
+            +String roleCode
+            +AccessScope scope
             +String tokenHash
-            +String tokenFamilyId
-            +LocalDateTime expiresAt
-            +LocalDateTime revokedAt
+            +Id invitedBy
+            +InvitationStatus status
+            +Instant createdAt
+            +Instant expiresAt
+            +Id acceptedBy
+            +Instant updatedAt
+            +create(id, inviteeEmail, roleCode, scope, tokenHash, invitedBy, inviterEmail, expiresAt) AccessInvitation
+            +accept(userId, acceptorEmail, now)
+            +cancel()
+        }
+
+        class RoleDelegationRule {
+            <<AuthorizationRule>>
+            +Id delegatorRoleId
+            +Id delegatedRoleId
+        }
+
+        class AccessScope {
+            <<ValueObject>>
+            +ScopeKey key
+            +String scopeId
+            +isGlobal() boolean
+            +encompasses(target, hierarchy) boolean
+            +requireEncompasses(target, hierarchy)
+        }
+
+        class ScopeKey {
+            <<ValueObject>>
+            +String value
+            +isGlobal() boolean
+        }
+
+        class ScopeHierarchy {
+            <<ValueObject>>
+            +Map~String, String~ parentOf
+            +Map~String, String~ ownerOf
+            +checkAncestorOrSelf(actorKey, targetKey) boolean
+            +register(declaration)
+            +registerAll(declarations)
+            +replaceModule(moduleKey, declarations)
         }
 
         class Email {
             <<ValueObject>>
             +String value
-            +of(value) Email
-            +validate(value) void
         }
 
         class HashedPassword {
             <<ValueObject>>
             +String hash
-            +of(hash) HashedPassword
         }
 
         class UserStatus {
@@ -103,18 +147,106 @@ classDiagram
             PENDING_APPROVAL
             SUSPENDED
         }
+
+        class RoleKind {
+            <<enumeration>>
+            SYSTEM
+            CUSTOM
+        }
+
+        class AccessAssignmentStatus {
+            <<enumeration>>
+            ACTIVE
+            SUSPENDED
+            REVOKED
+            EXPIRED
+        }
+
+        class InvitationStatus {
+            <<enumeration>>
+            PENDING
+            ACCEPTED
+            CANCELLED
+            EXPIRED
+        }
     }
 
-    User "1" --> "*" Role : "has many"
-    Role "*" --> "*" Authority : "grants"
-    User "1" --> "*" ExternalIdentity : "linked identities"
-    User "1" --> "*" RefreshSession : "local sessions"
     User --> Email : "identity"
-    User --> HashedPassword : "optional local credential"
+    User --> HashedPassword : "local credential"
     User --> UserStatus : "lifecycle"
+    User "1" ..> "*" AccessAssignment : "receives access"
+    AccessAssignment --> AccessScope : "scoped to"
+    AccessAssignment --> AccessAssignmentStatus : "state"
+    AccessScope --> ScopeKey : "namespace"
+    AccessInvitation --> AccessScope : "scoped to"
+    AccessInvitation --> InvitationStatus : "state"
+    Role "1" --> "*" Authority : "authorities granted"
+    Role --> RoleKind : "system vs custom"
+    Role "1" ..> "*" AccessAssignment : "assigned via roleCode"
+    Role "1" ..> "*" AccessInvitation : "offered via roleCode"
+    Role "1" --> "*" RoleDelegationRule : "delegator"
+    Role "1" --> "*" RoleDelegationRule : "delegated"
 ```
 
-### Entity Relationship
+---
+
+### Security Manifest and Dynamic Catalog Model
+
+```mermaid
+classDiagram
+    direction LR
+
+    namespace SecurityManifestModel {
+        class SecurityManifest {
+            <<ValueObject>>
+            +int schemaVersion
+            +String moduleKey
+            +int securityRevision
+            +List~ScopeDeclaration~ scopes
+            +List~AuthorityDefinition~ authorities
+            +List~SecurityDependency~ dependencies
+            +contentDigest() String
+        }
+
+        class ScopeDeclaration {
+            <<ValueObject>>
+            +String scopeKey
+            +String parentScopeKey
+            +Lifecycle lifecycle
+        }
+
+        class AuthorityDefinition {
+            <<ValueObject>>
+            +String code
+            +String name
+            +String description
+            +String category
+            +Lifecycle lifecycle
+        }
+
+        class SecurityDependency {
+            <<ValueObject>>
+            +String scopeKey
+            +int minimumRevision
+        }
+
+        class SecurityManifestCandidateStatus {
+            <<enumeration>>
+            APPLIED
+            SUPERSEDED
+            WAITING_DEPENDENCY
+            QUARANTINED
+        }
+    }
+
+    SecurityManifest "1" *-- "*" ScopeDeclaration
+    SecurityManifest "1" *-- "*" AuthorityDefinition
+    SecurityManifest "1" *-- "*" SecurityDependency
+```
+
+---
+
+## Entity Relationship
 
 ```mermaid
 erDiagram
@@ -122,7 +254,7 @@ erDiagram
         bigserial id PK
         varchar uuid UK
         varchar email UK
-        varchar password_hash "nullable for external-only users"
+        varchar password_hash "nullable"
         varchar status
         timestamp created_at
         timestamp updated_at
@@ -134,20 +266,16 @@ erDiagram
         varchar code UK
         varchar name
         varchar description
+        varchar role_kind
         boolean active
-        timestamp created_at
-    }
-
-    USER_ROLES {
-        bigint user_id FK
-        bigint role_id FK
-        timestamp assigned_at
+        boolean assignable
     }
 
     AUTHORITIES {
         bigserial id PK
         varchar uuid UK
         varchar code UK
+        varchar category
         varchar name
         varchar description
         boolean active
@@ -156,7 +284,57 @@ erDiagram
     ROLE_AUTHORITIES {
         bigint role_id FK
         bigint authority_id FK
-        timestamp assigned_at
+    }
+
+    ROLE_DELEGATION_RULES {
+        bigserial id PK
+        bigint delegator_role_id FK
+        bigint delegated_role_id FK
+    }
+
+    ACCESS_ASSIGNMENTS {
+        bigserial id PK
+        varchar uuid UK
+        bigint user_id FK
+        bigint role_id FK
+        varchar scope_key
+        varchar scope_id
+        varchar status
+        varchar assigned_by
+        timestamp created_at
+        timestamp updated_at
+        timestamp expires_at
+    }
+
+    ACCESS_INVITATIONS {
+        bigserial id PK
+        varchar uuid UK
+        varchar invitee_email
+        bigint role_id FK
+        varchar scope_key
+        varchar scope_id
+        varchar token_hash UK
+        varchar invited_by
+        varchar status
+        timestamp created_at
+        timestamp updated_at
+        timestamp expires_at
+        varchar accepted_by
+    }
+
+    REFRESH_SESSIONS {
+        bigserial id PK
+        bigint user_id FK
+        varchar token_hash UK
+        varchar token_family_id
+        timestamp expires_at
+        timestamp revoked_at
+        bigint replaced_by_id FK
+        timestamp created_at
+        timestamp last_used_at
+        varchar assignment_uuid
+        varchar scope_key
+        varchar scope_id
     }
 
     EXTERNAL_IDENTITIES {
@@ -174,118 +352,153 @@ erDiagram
         bigint role_id FK
     }
 
-    REFRESH_SESSIONS {
+    SECURITY_SCOPE_DEFINITIONS {
         bigserial id PK
-        bigint user_id FK
-        varchar token_hash UK
-        varchar token_family_id
-        timestamp expires_at
-        timestamp revoked_at
-        bigint replaced_by_id FK
+        varchar module_key
+        varchar scope_key UK
+        varchar parent_scope_key
+        int manifest_version
+        boolean active
+        bigint row_version
     }
 
-    USERS ||--o{ USER_ROLES : "has"
-    ROLES ||--o{ USER_ROLES : "assigned to"
-    ROLES ||--o{ ROLE_AUTHORITIES : "grants"
-    AUTHORITIES ||--o{ ROLE_AUTHORITIES : "included in"
+    SECURITY_MANIFEST_MODULE {
+        varchar module_key PK
+        int applied_revision
+        varchar applied_digest
+        bigint row_version
+    }
+
+    SECURITY_MANIFEST_INBOX {
+        varchar event_id PK
+        varchar module_key
+        int revision
+        varchar content_digest
+        timestamp processed_at
+        varchar status
+        varchar error_code
+    }
+
+    SECURITY_CATALOG_STATE {
+        bigint id PK
+        bigint catalog_revision
+        bigint row_version
+    }
+
+    USERS ||--o{ ACCESS_ASSIGNMENTS : "has"
+    ROLES ||--o{ ACCESS_ASSIGNMENTS : "grants role"
+    ROLES ||--o{ ROLE_AUTHORITIES : "has"
+    AUTHORITIES ||--o{ ROLE_AUTHORITIES : "mapped to"
+    ROLES ||--o{ ROLE_DELEGATION_RULES : "delegator"
+    ROLES ||--o{ ROLE_DELEGATION_RULES : "delegated"
+    ROLES ||--o{ ACCESS_INVITATIONS : "offered role"
+    USERS ||--o{ REFRESH_SESSIONS : "owns sessions"
     USERS ||--o{ EXTERNAL_IDENTITIES : "linked to"
-    ROLES ||--o{ EXTERNAL_ENTITLEMENT_MAPPINGS : "mapped from provider access"
-    USERS ||--o{ REFRESH_SESSIONS : "has local sessions"
+    ROLES ||--o{ EXTERNAL_ENTITLEMENT_MAPPINGS : "mapped from provider"
 ```
 
-`EXTERNAL_IDENTITIES` has a unique constraint on `(issuer, subject)`.
-`EXTERNAL_ENTITLEMENT_MAPPINGS` has a unique constraint on
-`(issuer, entitlement, role_id)`.
+---
 
-### User Status Lifecycle
+## User Status Lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ACTIVE : register (customer)
-    [*] --> PENDING_APPROVAL : register (seller role)
+    [*] --> ACTIVE : register (customer / direct)
+    [*] --> PENDING_APPROVAL : applicant registration
 
     PENDING_APPROVAL --> ACTIVE : admin approve
     PENDING_APPROVAL --> SUSPENDED : admin reject
 
     ACTIVE --> SUSPENDED : admin suspend
-
     SUSPENDED --> ACTIVE : admin reactivate
 ```
 
-### Domain Events
+---
+
+## Domain Events
 
 ```mermaid
 classDiagram
     direction LR
 
     class UserRegisteredEvent {
-        <<Event>>
+        <<DomainEvent>>
         +Id userId
         +String email
-        +Set~String~ roleCodes
         +UserStatus status
         +LocalDateTime occurredAt
     }
 
     class UserStatusChangedEvent {
-        <<Event>>
+        <<DomainEvent>>
         +Id userId
         +UserStatus previousStatus
         +UserStatus newStatus
-        +String changedBy
-        +LocalDateTime occurredAt
-    }
-
-    class UserRoleChangedEvent {
-        <<Event>>
-        +Id userId
-        +String roleCode
-        +String action
-        +String changedBy
         +LocalDateTime occurredAt
     }
 
     class RoleCreatedEvent {
-        <<Event>>
+        <<DomainEvent>>
         +Id roleId
         +String code
         +String name
+        +String description
+        +boolean active
+        +Set~String~ authorityCodes
+        +LocalDateTime occurredAt
+    }
+
+    class RoleStatusChangedEvent {
+        <<DomainEvent>>
+        +Id roleId
+        +boolean active
+        +LocalDateTime occurredAt
+    }
+
+    class RoleDetailsUpdatedEvent {
+        <<DomainEvent>>
+        +Id roleId
+        +String name
+        +String description
         +LocalDateTime occurredAt
     }
 
     class RoleAuthorityChangedEvent {
-        <<Event>>
+        <<DomainEvent>>
         +Id roleId
         +String authorityCode
-        +String action
-        +String changedBy
+        +boolean assigned
         +LocalDateTime occurredAt
     }
-```
 
-## Domain Services
-
-### PasswordHasher
-
-```mermaid
-classDiagram
-    direction LR
-
-    class PasswordHasher {
-        <<interface>>
-        +hash(rawPassword String) HashedPassword
-        +verify(rawPassword String, hashedPassword HashedPassword) boolean
+    class AccessAssignmentChangedEvent {
+        <<DomainEvent>>
+        +Id assignmentId
+        +Id userId
+        +String roleCode
+        +String scopeKey
+        +String scopeId
+        +AccessAssignmentStatus previousStatus
+        +AccessAssignmentStatus newStatus
+        +Instant occurredAt
     }
 
-    class BcryptPasswordHasher {
-        +hash(rawPassword String) HashedPassword
-        +verify(rawPassword String, hashedPassword HashedPassword) boolean
+    class AccessInvitationChangedEvent {
+        <<DomainEvent>>
+        +Id invitationId
+        +String inviteeEmail
+        +String roleCode
+        +String scopeKey
+        +String scopeId
+        +InvitationStatus previousStatus
+        +InvitationStatus newStatus
+        +Instant occurredAt
     }
-
-    PasswordHasher <|.. BcryptPasswordHasher : implements
 ```
 
-## Repository Interfaces
+---
+
+## Repository Ports (Domain Layer)
 
 ```mermaid
 classDiagram
@@ -295,7 +508,6 @@ classDiagram
         <<interface>>
         +findById(id Id) Optional~User~
         +findByEmail(email Email) Optional~User~
-        +existsByEmail(email Email) boolean
         +save(user User) User
     }
 
@@ -314,83 +526,65 @@ classDiagram
         +findByCode(code String) Optional~Authority~
         +findAllActive() List~Authority~
         +findByRoleCodes(roleCodes Set~String~) Set~Authority~
+        +findCodesByModule(moduleKey String) Set~String~
+        +findCodesOwnedByOtherModules(moduleKey String) Set~String~
+        +upsertAll(authorities List~Authority~)
+        +retireCodes(moduleKey String, codes Set~String~)
     }
 
-    class ExternalIdentityRepository {
+    class AccessAssignmentRepository {
         <<interface>>
-        +findByIssuerAndSubject(issuer String, subject String) Optional~ExternalIdentity~
-        +save(identity ExternalIdentity) ExternalIdentity
+        +findById(id Id) Optional~AccessAssignment~
+        +findEffectiveByUser(userId Id, instant Instant) List~AccessAssignment~
+        +findByUserAndScope(userId Id, scope AccessScope) List~AccessAssignment~
+        +existsCurrent(userId Id, roleCode String, scope AccessScope) boolean
+        +save(assignment AccessAssignment) AccessAssignment
     }
 
-
-    class ExternalEntitlementMappingRepository {
+    class AccessInvitationRepository {
         <<interface>>
-        +findRoleCodes(issuer String, entitlements Set~String~) Set~String~
-        +save(mapping ExternalEntitlementMapping) ExternalEntitlementMapping
+        +findById(id Id) Optional~AccessInvitation~
+        +findByTokenHash(tokenHash String) Optional~AccessInvitation~
+        +findPendingByEmail(email Email) List~AccessInvitation~
+        +save(invitation AccessInvitation) AccessInvitation
     }
 
-    class RefreshSessionRepository {
+    class RoleDelegationRuleRepository {
         <<interface>>
-        +findByTokenHash(tokenHash String) Optional~RefreshSession~
-        +save(session RefreshSession) RefreshSession
-        +revokeAllByUserId(userId Id)
+        +existsActiveRule(actorRoleCodes Set~String~, requestedRoleCode String) boolean
+        +findDelegableRoleCodes(actorRoleCodes Set~String~) Set~String~
+    }
+
+    class ScopeManifestRepository {
+        <<interface>>
+        +apply(moduleKey String, manifestVersion int, scopes List~ScopeDeclaration~) boolean
+        +loadGraph() Map~String, String~
+        +loadOwners() Map~String, String~
+        +loadActive() List~ScopeDeclaration~
+    }
+
+    class SecurityManifestInboxRepository {
+        <<interface>>
+        +find(eventId String) Optional~SecurityManifestReceipt~
+        +alreadyProcessed(eventId String) boolean
+        +findByModuleRevision(moduleKey String, revision int) Optional~SecurityManifestReceipt~
+        +appliedRevision(moduleKey String) int
+        +recordOutcome(eventId String, moduleKey String, revision int, digest String, status SecurityManifestCandidateStatus, errorCode String)
+    }
+
+    class SecurityCatalogLock {
+        <<interface>>
+        +lockNowait()
+        +recordActivation()
     }
 ```
 
-## External IdP Compatibility
+---
 
-```mermaid
-flowchart LR
-    subgraph now["Self-Hosted (Now)"]
-        DB["roles table"]
-        JWT1["JWT: issuer, subject, roles[]"]
-        DB --> JWT1
-    end
+## Core Architectural Rules & Invariants
 
-    subgraph later["External IdP (Later)"]
-        KC["Keycloak realm roles / client roles / groups"]
-        TOKEN["JWT claims or introspection response"]
-        KC --> TOKEN
-    end
-
-    JWT1 --> Auth["AccessTokenAuthenticator"]
-    TOKEN --> Auth
-    Auth --> EP["ExternalPrincipal"]
-    EP --> Resolver["PlatformIdentityResolver"]
-    Resolver --> Link["Resolve (issuer, subject) to platformUserId"]
-    Link --> Policy["Local roles to stable authorities"]
-    Policy --> AU["AuthenticatedActor"]
-
-    AU --> SC["SecurityContext"]
-    SC --> Auth["hasAuthority('PRODUCT_MODERATE')"]
-```
-
-## Notes
-
-- The User aggregate holds a `Set<Role>` for many-to-many role assignment.
-- Role is an **Aggregate Root** because it has an independent lifecycle and
-  owns its authority assignments. Users reference assigned role identities.
-- Role codes are immutable strings, not enums, enabling runtime creation.
-- Authorities are stable platform capabilities. Dynamic roles become useful by
-  mapping them to authorities without changing endpoint code.
-- Three seed roles (`ADMIN`, `SELLER`, `CUSTOMER`) are created at startup but
-  are not hardcoded.
-- `AccessTokenAuthenticator` normalizes local JWTs, OIDC JWTs, or OAuth2
-  introspection responses into `ExternalPrincipal`.
-- `AuthenticatedActor` carries normalized roles and authorities and never
-  exposes provider-specific claims or SDK types to application code.
-- External accounts link to stable platform users by `(issuer, subject)`;
-  email is not used as the durable identity key.
-- Email is a self-validating value object that enforces format constraints.
-- HashedPassword wraps the BCrypt hash; the domain never stores plaintext. It
-  is optional for users whose credentials exist only at an external provider.
-- Local refresh tokens are stored only as hashes and rotated through
-  `RefreshSession`; external providers own refresh sessions after migration.
-- UserStatus controls authentication eligibility: only ACTIVE users can log in.
-- Sellers register as PENDING_APPROVAL and require admin activation.
-- Seller ownership checks use `AuthenticatedActor.platformUserId` in
-  application handlers after request-level authority checks.
-- Domain events are accumulated via `addEvent()` and published through the
-  outbox pattern.
-- The PasswordHasher interface lives in the domain; the BCrypt implementation
-  lives in infrastructure.
+1. **User Aggregate Decoupling**: The `User` aggregate no longer holds direct references or collections of `Role`. All user access is expressed through independent `AccessAssignment` aggregates.
+2. **Platform & Scoped Access Model**: Applications (`CUSTOMER_APP`, `SELLER_PORTAL`, `ADMIN_CONSOLE`) and scopes (`merchant.account`, `merchant.storefront`, `inventory.fulfillment-location`) are governed by namespaced `ScopeKey` values rather than an isolated `PLATFORM_ROLES` table.
+3. **Role Kinds & System Immutability**: Roles are categorized by `RoleKind` (`SYSTEM` vs `CUSTOM`). `SYSTEM` roles (such as seeded system roles) cannot be updated, activated/deactivated, or have their authorities modified through runtime APIs.
+4. **Hierarchical Scope Encompassing**: An actor possessing access in an ancestor scope (e.g., `merchant.account`) can administer or encompass child scopes (e.g., `merchant.storefront`) via `AccessScope.encompasses()` evaluated against `ScopeHierarchy`. Cross-scope ownership verification is delegated to `ScopeOwnershipPort`.
+5. **Decentralized Security Manifest Synchronization**: Bounded contexts autonomously declare their scopes, authorities, and version dependencies at startup. The Identity module validates SHA-256 digests, ensures backward compatibility, rejects scope cycles, and maintains the authoritative security catalog.

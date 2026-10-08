@@ -8,7 +8,7 @@ import com.identity.application.model.write.ReplaceAccessCommand;
 import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Role;
-import com.identity.domain.model.Authority;
+import com.identity.domain.aggregate.Authority;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.RoleRepository;

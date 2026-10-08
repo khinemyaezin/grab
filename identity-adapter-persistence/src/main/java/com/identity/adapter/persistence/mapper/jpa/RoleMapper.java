@@ -2,7 +2,7 @@ package com.identity.adapter.persistence.mapper.jpa;
 
 import com.grab.framework.mapper.IdMapper;
 import com.identity.domain.aggregate.Role;
-import com.identity.domain.model.Authority;
+import com.identity.domain.aggregate.Authority;
 import com.identity.adapter.persistence.entity.AuthorityEntity;
 import com.identity.adapter.persistence.entity.RoleEntity;
 import lombok.RequiredArgsConstructor;

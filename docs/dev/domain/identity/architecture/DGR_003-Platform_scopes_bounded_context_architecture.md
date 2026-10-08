@@ -1,10 +1,10 @@
 # Platform-Scoped Identity Domain Aggregates
 
-This diagram reflects the extended identity domain model introducing platform-scoped and resource-scoped RBAC, as defined in ADR-003.
+This diagram reflects the extended identity domain model introducing platform-scoped and resource-scoped RBAC, as defined in ADR-003 and implemented in the codebase.
 
 ## Class Diagram
 
-### Platform Access Aggregate
+### Scoped Platform Access Aggregate
 
 ```mermaid
 classDiagram
@@ -13,10 +13,20 @@ classDiagram
     namespace IdentityDomain {
         class User {
             <<AggregateRoot>>
+            +Id id
+            +Email email
+            +UserStatus status
         }
         
         class Role {
             <<AggregateRoot>>
+            +Id id
+            +String code
+            +String name
+            +RoleKind kind
+            +boolean active
+            +boolean assignable
+            +Set~Authority~ authorities
         }
 
         class RoleDelegationRule {
@@ -25,44 +35,37 @@ classDiagram
             +Id delegatedRoleId
         }
 
-        class Platform {
-            <<AggregateRoot>>
-            +String code
-            +String name
-            +boolean active
-        }
-
-        class PlatformRole {
-            <<Entity>>
-            +Id id
-            +String platformCode
-            +Id roleId
-        }
-
         class AccessAssignment {
             <<AggregateRoot>>
             +Id id
             +Id userId
-            +Id platformRoleId
+            +String roleCode
             +AccessScope scope
             +AccessAssignmentStatus status
             +Id assignedBy
-            +LocalDateTime createdAt
-            +LocalDateTime expiresAt
+            +Instant createdAt
+            +Instant updatedAt
+            +Instant expiresAt
             +revoke()
             +suspend()
-            +isActive() boolean
+            +reactivate(requestedBy)
+            +isEffectiveAt(instant) boolean
+            +statusAt(instant) AccessAssignmentStatus
         }
 
         class AccessInvitation {
             <<AggregateRoot>>
             +Id id
             +Email inviteeEmail
-            +Id platformRoleId
+            +String roleCode
             +AccessScope scope
+            +String tokenHash
             +Id invitedBy
             +InvitationStatus status
-            +LocalDateTime expiresAt
+            +Instant createdAt
+            +Instant expiresAt
+            +Id acceptedBy
+            +Instant updatedAt
             +accept(userId, acceptorEmail, now)
             +cancel()
         }
@@ -72,12 +75,18 @@ classDiagram
             +ScopeKey key
             +String scopeId
             +isGlobal() boolean
+            +encompasses(target, hierarchy) boolean
         }
 
         class ScopeKey {
             <<ValueObject>>
             +String value
             +isGlobal() boolean
+        }
+
+        class ScopeHierarchy {
+            <<ValueObject>>
+            +checkAncestorOrSelf(actorKey, targetKey) boolean
         }
 
         class AccessAssignmentStatus {
@@ -97,58 +106,70 @@ classDiagram
         }
     }
 
-    Platform "1" --> "*" PlatformRole : supports
-    Role "1" --> "*" PlatformRole : mapped to
-    Role "1" --> "*" RoleDelegationRule : delegates from
-    Role "1" --> "*" RoleDelegationRule : delegates to
-    User "1" --> "*" AccessAssignment : receives
-    PlatformRole "1" --> "*" AccessAssignment : assigned via
-    AccessAssignment --> AccessScope : restricted by
-    AccessAssignment --> AccessAssignmentStatus : state
-    AccessScope --> ScopeKey : identifies resource namespace
-    AccessInvitation --> AccessScope : restricted by
-    PlatformRole "1" --> "*" AccessInvitation : grants
-    AccessInvitation --> InvitationStatus : state
+    User "1" ..> "*" AccessAssignment : "receives"
+    Role "1" ..> "*" AccessAssignment : "assigned via roleCode"
+    Role "1" ..> "*" AccessInvitation : "offered via roleCode"
+    Role "1" --> "*" RoleDelegationRule : "delegator"
+    Role "1" --> "*" RoleDelegationRule : "delegated"
+    AccessAssignment --> AccessScope : "restricted by"
+    AccessAssignment --> AccessAssignmentStatus : "state"
+    AccessScope --> ScopeKey : "namespaced resource key"
+    AccessScope ..> ScopeHierarchy : "hierarchical evaluation"
+    AccessInvitation --> AccessScope : "restricted by"
+    AccessInvitation --> InvitationStatus : "state"
 ```
+
+---
 
 ## Entity Relationship
 
 ```mermaid
 erDiagram
-    PLATFORMS {
-        varchar code PK
-        varchar name
-        boolean active
+    USERS {
+        bigserial id PK
+        varchar uuid UK
+        varchar email UK
+        varchar status
     }
 
-    PLATFORM_ROLES {
+    ROLES {
         bigserial id PK
-        varchar platform_code FK
-        bigint role_id FK
+        varchar uuid UK
+        varchar code UK
+        varchar name
+        varchar role_kind
+        boolean active
+        boolean assignable
     }
 
     ACCESS_ASSIGNMENTS {
         bigserial id PK
+        varchar uuid UK
         bigint user_id FK
-        bigint platform_role_id FK
+        bigint role_id FK
         varchar scope_key
         varchar scope_id
         varchar status
-        bigint assigned_by
+        varchar assigned_by
         timestamp created_at
+        timestamp updated_at
         timestamp expires_at
     }
 
     ACCESS_INVITATIONS {
         bigserial id PK
+        varchar uuid UK
         varchar invitee_email
-        bigint platform_role_id FK
+        bigint role_id FK
         varchar scope_key
         varchar scope_id
+        varchar token_hash UK
+        varchar invited_by
         varchar status
-        bigint invited_by
         timestamp created_at
+        timestamp updated_at
         timestamp expires_at
+        varchar accepted_by
     }
 
     ROLE_DELEGATION_RULES {
@@ -157,66 +178,84 @@ erDiagram
         bigint delegated_role_id FK
     }
 
-    PLATFORMS ||--o{ PLATFORM_ROLES : "supports"
-    ROLES ||--o{ PLATFORM_ROLES : "defines"
-    ROLES ||--o{ ROLE_DELEGATION_RULES : "delegator"
-    ROLES ||--o{ ROLE_DELEGATION_RULES : "delegated role"
+    SECURITY_SCOPE_DEFINITIONS {
+        bigserial id PK
+        varchar module_key
+        varchar scope_key UK
+        varchar parent_scope_key
+        int manifest_version
+        boolean active
+        bigint row_version
+    }
+
+    REFRESH_SESSIONS {
+        bigserial id PK
+        bigint user_id FK
+        varchar token_hash UK
+        varchar token_family_id
+        timestamp expires_at
+        varchar assignment_uuid
+        varchar scope_key
+        varchar scope_id
+    }
+
     USERS ||--o{ ACCESS_ASSIGNMENTS : "has"
-    PLATFORM_ROLES ||--o{ ACCESS_ASSIGNMENTS : "assigns"
-    PLATFORM_ROLES ||--o{ ACCESS_INVITATIONS : "offers"
+    ROLES ||--o{ ACCESS_ASSIGNMENTS : "grants role"
+    ROLES ||--o{ ACCESS_INVITATIONS : "offers role"
+    ROLES ||--o{ ROLE_DELEGATION_RULES : "delegator"
+    ROLES ||--o{ ROLE_DELEGATION_RULES : "delegated"
+    USERS ||--o{ REFRESH_SESSIONS : "owns sessions"
 ```
 
-## Domain Aggregate Descriptions
+---
 
-This section details the primary aggregates and value objects in the Platform-Scoped Identity model and explains their specific responsibilities.
+## Domain Aggregate & Value Object Descriptions
 
-### 1. `Platform`
-Represents a distinct logical application boundary within the Grab ecosystem, such as `CUSTOMER_APP`, `SELLER_PORTAL`, or `ADMIN_CONSOLE`. It acts as a gatekeeper to ensure users only access the appropriate application interfaces.
+### 1. `AccessScope` (Value Object)
+Defines the boundary of an access grant. It consists of:
+- A namespaced `ScopeKey` (for example, `merchant.account`, `merchant.storefront`, `inventory.fulfillment-location`, or `global`).
+- A `scopeId` representing the specific business aggregate identifier (or `*` for global scope).
 
-### 2. `PlatformRole` (Mapping Entity)
-A critical junction that defines which `Role`s are allowed to be used on which `Platform`. This prevents invalid configurations, such as assigning a `CUSTOMER` role to the `SELLER_PORTAL`.
+### 2. `ScopeHierarchy` (In-Memory Tree & Dynamic Catalog)
+Maintains the graph of scope relationships (e.g., `merchant.account` is the parent of `merchant.storefront`).
+When an actor operates with a parent scope, `AccessScope.encompasses(target)` allows managing descendants automatically. Cross-module verification of resource links is performed via `ScopeOwnershipPort`.
 
-### 3. `AccessScope` (Value Object)
-Defines the specific business boundary that an assignment is limited to. It
-consists of a namespaced key (for example `merchant.account`,
-`merchant.storefront`, or `inventory.fulfillment-location`) and an ID. The
-built-in `global` key uses `*` for its ID. Identity validates the reference
-format while the owning bounded context defines the resource's meaning and
-relationships.
+### 3. `AccessAssignment` (Aggregate Root)
+Binds a `User` to a `Role` within an `AccessScope`.
+Replaces static user-to-role mappings. A single user can have separate assignments:
+- `CUSTOMER` role in `global` scope.
+- `MERCHANT_OWNER` in scope `merchant.account` with ID `merchant-123`.
+- `STORE_MANAGER` in scope `merchant.storefront` with ID `store-456`.
 
-### 4. `AccessAssignment`
-The core aggregate replacing the traditional global "User-to-Role" mapping. It explicitly binds a `User` to a `PlatformRole` within a strict `AccessScope`. When a user logs in, the system loads only the assignments valid for the platform they are accessing.
+### 4. `AccessInvitation` (Aggregate Root)
+Secures staff onboarding. Records an invitation for an email address to receive a role within a specific scope.
+Stores a cryptographic `tokenHash` and expires after a defined TTL. Upon acceptance by the intended user, creates an `AccessAssignment`.
 
-An access context is not the same thing as an assignment. Assignments with the
-same `platformCode`, `scopeKey`, and `scopeId` form one context, and all of their
-effective roles are combined. Users choose a merchant or storefront scope, not
-a role.
+### 5. `RoleDelegationRule` (Authorization Rule)
+Explicit active-role relationship declaring whether a delegator role can assign or invite another role. Evaluated by `RoleDelegationPolicy` during access granting and invitation creation.
 
-### 5. `AccessInvitation`
-Handles the workflow of onboarding staff. It records an offer for a specific email address to receive an `AccessAssignment` (Platform + Role + Scope). It ensures that pending invites have an expiration and are securely tracked until the user registers or logs in to accept them.
-
-### 6. `RoleDelegationRule`
-Defines one explicit active-role relationship that permits a delegator role to
-grant or administer a delegated role. Missing relationships deny delegation;
-there is no implicit administrator wildcard in domain code.
-
+---
 
 ## Flowcharts
 
 ### Context-Bound Token Issuance Flow
 
-This flowchart illustrates how a user's context is resolved into a scoped access token when they log in or switch contexts.
-
 ```mermaid
 flowchart TD
-    Login[User Authenticates] --> SelectPlatform[Select Platform<br/>e.g., SELLER_PORTAL]
-    SelectPlatform --> LoadAssignments[Load Active AccessAssignments<br/>for User & Platform]
-    LoadAssignments --> GroupScopes[Group Assignments by<br/>Platform + Scope]
-    GroupScopes --> CheckMulti{Multiple<br/>Scopes?}
-    CheckMulti -- No --> CombineRoles[Combine Effective Roles<br/>in Selected Scope]
-    CheckMulti -- Yes --> SelectionToken[Issue Context-Free<br/>Selection Token]
-    SelectionToken --> ClientSelects[Client Prompts User<br/>to Select Merchant/Store]
-    ClientSelects --> VerifySelection[Verify Selection]
-    VerifySelection --> CombineRoles
-    CombineRoles --> IssueToken[Issue Context-Bound<br/>Access Token]
+    Login[User Authenticates with Email & Password] --> LoadAssignments[Load Active AccessAssignments for User]
+    LoadAssignments --> GroupScopes[Group Assignments by Scope: scopeKey + scopeId]
+    GroupScopes --> CheckMulti{Distinct Scopes Count?}
+    
+    CheckMulti -- 0 --> FreeToken0[Issue Context-Free Token Pair]
+    CheckMulti -- 1 Scope --> AutoSelect[Auto-select Scope & Combine Effective Roles]
+    CheckMulti -- >1 Scopes --> SelectionToken[Issue Context-Free Token Pair]
+    
+    SelectionToken --> PromptSelect[Client Calls GET /identity/access-contexts]
+    PromptSelect --> ClientSelects[User Selects Target Merchant/Store Scope]
+    ClientSelects --> PostSelect[POST /identity/access-contexts/{assignmentId}/select]
+    PostSelect --> CombineRoles[Combine Effective Roles in Selected Scope]
+    
+    AutoSelect --> IssueBound[Issue Context-Bound Access & Refresh Token]
+    CombineRoles --> IssueBound
+    IssueBound --> SetCookies[Set HttpOnly Cookies & Return 200 OK]
 ```

@@ -9,7 +9,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-public record AuthorityManifest(String moduleKey, int version, List<AuthorityDefinition> definitions) {
+public record AuthorityManifest(
+        String moduleKey,
+        int version,
+        List<AuthorityDefinition> definitions
+) {
     public AuthorityManifest {
         Objects.requireNonNull(moduleKey, "module key is required");
         Objects.requireNonNull(definitions, "authority definitions are required");

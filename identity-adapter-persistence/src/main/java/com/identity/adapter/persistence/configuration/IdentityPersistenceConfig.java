@@ -14,9 +14,18 @@ import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
+import com.identity.domain.port.outbound.AuthorityManifestVersionRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
+import com.identity.domain.port.outbound.ScopeManifestRepository;
+import com.identity.domain.port.outbound.SecurityCatalogLock;
+import com.identity.domain.port.outbound.SecurityManifestCatalogRepository;
+import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
+import com.identity.domain.port.outbound.SecurityManifestModuleRepository;
+import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.RoleRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grab.framework.id.IdGenerator;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
@@ -165,8 +174,66 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public AuthorityRepository authorityRepository(AuthorityJpaRepository jpaRepository, IdMapper ids) {
-        return new AuthorityRepositoryAdapter(jpaRepository, ids);
+    public AuthorityRepository authorityRepository(
+            AuthorityJpaRepository jpaRepository,
+            IdMapper ids,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new AuthorityRepositoryAdapter(jpaRepository, ids, executor);
+    }
+
+    @Bean
+    public ScopeManifestRepository scopeManifestRepository(
+            ScopeManifestJpaRepository repository,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new ScopeManifestRepositoryAdapter(repository, executor);
+    }
+
+    @Bean
+    public AuthorityManifestVersionRepository authorityManifestVersionRepository(
+            AuthorityManifestVersionJpaRepository repository
+    ) {
+        return new AuthorityManifestVersionRepositoryAdapter(repository);
+    }
+
+    @Bean
+    public SecurityManifestInboxRepository securityManifestInboxRepository(
+            SecurityManifestInboxJpaRepository repository,
+            SecurityManifestConflictJpaRepository conflicts
+    ) {
+        return new SecurityManifestInboxRepositoryAdapter(repository, conflicts);
+    }
+
+    @Bean
+    public SecurityCatalogLock securityCatalogLock(
+            SecurityCatalogStateJpaRepository repository
+    ) {
+        return new SecurityCatalogLockAdapter(repository);
+    }
+
+    @Bean
+    public SecurityManifestRevisionRepository securityManifestRevisionRepository(
+            SecurityManifestRevisionJpaRepository repository,
+            ObjectMapper objectMapper
+    ) {
+        return new SecurityManifestRevisionRepositoryAdapter(repository, objectMapper);
+    }
+
+    @Bean
+    public SecurityManifestModuleRepository securityManifestModuleRepository(
+            SecurityManifestModuleJpaRepository repository
+    ) {
+        return new SecurityManifestModuleRepositoryAdapter(repository);
+    }
+
+    @Bean
+    public SecurityManifestCatalogRepository securityManifestCatalogRepository(
+            AuthorityRepository authorities,
+            ScopeManifestRepository scopes,
+            IdGenerator ids
+    ) {
+        return new SecurityManifestCatalogRepositoryAdapter(authorities, scopes, ids);
     }
 
     @Bean
@@ -247,9 +314,10 @@ public class IdentityPersistenceConfig {
             UserJpaRepository users,
             ExternalIdentityJpaRepository externalIdentities,
             ExternalEntitlementMappingJpaRepository entitlementMappings,
-            AccessAssignmentJpaRepository accessAssignments) {
+            AccessAssignmentJpaRepository accessAssignments,
+            ScopeManifestJpaRepository scopeManifests) {
         return new IdentityLookupQueryAdapter(
-                users, externalIdentities, entitlementMappings, accessAssignments
+                users, externalIdentities, entitlementMappings, accessAssignments, scopeManifests
         );
     }
 }

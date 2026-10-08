@@ -7,6 +7,7 @@ import com.identity.application.model.write.AccessAssignmentResult;
 import com.identity.application.model.write.GrantAccessCommand;
 import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
+import com.identity.application.port.outbound.ScopeOwnershipPort;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
@@ -14,17 +15,42 @@ import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
-import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 
-@RequiredArgsConstructor
 public class GrantAccessService implements GrantAccessUseCase {
     private final UserRepository users;
     private final RoleRepository roles;
     private final AccessAssignmentRepository assignments;
     private final RoleDelegationPolicy delegationPolicy;
     private final IdGenerator ids;
+    private final ScopeOwnershipPort scopeOwnershipPort;
+
+    public GrantAccessService(
+            UserRepository users,
+            RoleRepository roles,
+            AccessAssignmentRepository assignments,
+            RoleDelegationPolicy delegationPolicy,
+            IdGenerator ids
+    ) {
+        this(users, roles, assignments, delegationPolicy, ids, null);
+    }
+
+    public GrantAccessService(
+            UserRepository users,
+            RoleRepository roles,
+            AccessAssignmentRepository assignments,
+            RoleDelegationPolicy delegationPolicy,
+            IdGenerator ids,
+            ScopeOwnershipPort scopeOwnershipPort
+    ) {
+        this.users = users;
+        this.roles = roles;
+        this.assignments = assignments;
+        this.delegationPolicy = delegationPolicy;
+        this.ids = ids;
+        this.scopeOwnershipPort = scopeOwnershipPort;
+    }
 
     public AccessAssignmentResult execute(GrantAccessCommand command) {
         users.findById(command.userId()).orElseThrow(() -> new IdentityServiceException(
@@ -39,8 +65,26 @@ public class GrantAccessService implements GrantAccessUseCase {
         );
         role.requireAssignable();
         AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
-        AccessScope.from(command.actorScopeKey(), command.actorScopeId()).requireEncompasses(scope);
+        AccessScope actorScope = AccessScope.from(command.actorScopeKey(), command.actorScopeId());
+        actorScope.requireEncompasses(scope);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());
+        if (scopeOwnershipPort != null && !command.actorScopeKey().equals(command.scopeKey())) {
+            boolean owned = scopeOwnershipPort.isResourceOwnedByScope(
+                    command.actorScopeKey(),
+                    command.actorScopeId(),
+                    command.scopeKey(),
+                    command.scopeId()
+            );
+            if (!owned) {
+                throw new IdentityServiceException(
+                        new IdentityServiceError.ScopeOwnershipViolation(
+                                command.actorScopeId(),
+                                command.scopeId()
+                        ),
+                        "Target resource does not belong to actor scope"
+                );
+            }
+        }
         expirePreviousAssignmentIfDue(command, scope);
         if (assignments.existsCurrent(command.userId(), command.roleCode(), scope)) {
             throw new IdentityServiceException(

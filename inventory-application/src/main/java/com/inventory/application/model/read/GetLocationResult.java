@@ -4,6 +4,7 @@ import com.grab.framework.id.Id;
 
 public record GetLocationResult(
         Id id,
+        Id merchantId,
         String code,
         String name,
         String type,

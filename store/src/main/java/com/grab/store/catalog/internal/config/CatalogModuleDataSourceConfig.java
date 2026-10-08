@@ -19,6 +19,8 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.jdbc.core.JdbcTemplate;
+import com.grab.store.shared.security.SecurityManifestPublicationCoordinator;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -96,5 +98,11 @@ public class CatalogModuleDataSourceConfig {
                 .locations("classpath:db/migration/catalog")
                 .baselineOnMigrate(true)
                 .load();
+    }
+
+    @Bean("catalogSecurityManifestPublicationCoordinator")
+    SecurityManifestPublicationCoordinator catalogSecurityManifestPublicationCoordinator(
+            @Qualifier("catalogDataSource") DataSource dataSource) {
+        return new SecurityManifestPublicationCoordinator(new JdbcTemplate(dataSource));
     }
 }
