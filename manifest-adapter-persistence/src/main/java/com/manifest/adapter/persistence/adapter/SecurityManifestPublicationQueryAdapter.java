@@ -1,7 +1,8 @@
-package com.grab.outbox.infrastructure.security;
+package com.manifest.adapter.persistence.adapter;
 
 import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import com.manifest.adapter.persistence.entity.SecurityManifestPublicationState;
 import jakarta.persistence.EntityManager;
 
 public class SecurityManifestPublicationQueryAdapter implements SecurityManifestPublicationQueryPort {

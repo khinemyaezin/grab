@@ -11,6 +11,7 @@ COPY mvnw .
 COPY framework/pom.xml framework/
 
 COPY outbox-infrastructure/pom.xml outbox-infrastructure/
+COPY manifest-adapter-persistence/pom.xml manifest-adapter-persistence/
 
 COPY catalog-domain/pom.xml catalog-domain/
 COPY catalog-application/pom.xml catalog-application/
@@ -62,6 +63,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 COPY framework/src framework/src
 COPY outbox-infrastructure/src outbox-infrastructure/src
+COPY manifest-adapter-persistence/src manifest-adapter-persistence/src
 
 COPY catalog-domain/src catalog-domain/src
 COPY catalog-application/src catalog-application/src

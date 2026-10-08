@@ -1,4 +1,4 @@
-package com.grab.outbox.infrastructure.security;
+package com.manifest.adapter.persistence.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;

@@ -2,7 +2,7 @@ package com.grab.store.identity.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
 import com.grab.store.shared.events.identity.IdentitySecurityManifestDeclaredIntegrationEvent;
 import com.identity.adapter.persistence.repository.jpa.IdentitySecurityManifestPublicationJpaRepository;
 import com.identity.application.port.inbound.PublishIdentitySecurityManifestUseCase;
@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
-import com.grab.outbox.infrastructure.security.SecurityManifestPublicationQueryAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQueryAdapter;
 import com.identity.adapter.persistence.entity.IdentitySecurityManifestPublicationEntity;
 import com.identity.application.port.inbound.GetIdentitySecurityManifestPublicationStatusUseCase;
 import com.identity.application.service.GetIdentitySecurityManifestPublicationStatusService;

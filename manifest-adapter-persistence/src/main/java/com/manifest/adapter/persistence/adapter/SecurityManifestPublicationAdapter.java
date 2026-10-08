@@ -1,10 +1,12 @@
-package com.grab.outbox.infrastructure.security;
+package com.manifest.adapter.persistence.adapter;
 
 import com.grab.framework.domain.Event;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.security.SecurityManifest;
 import com.grab.framework.security.SecurityManifestEnvelope;
 import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.policy.PublicationEligibilityPolicy;
+import com.manifest.adapter.persistence.entity.SecurityManifestPublicationState;
 
 import java.time.Clock;
 import java.time.Duration;

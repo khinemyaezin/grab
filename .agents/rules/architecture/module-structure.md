@@ -8,7 +8,7 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
   - Domain: `{name}-domain/`
   - Application: `{name}-application/`
   - Persistence Adapter: `{name}-adapter-persistence/`
-  - Infrastructure & Adapters: `storage-adapter-s3/`, `outbox-infrastructure/`, `workflow-infrastructure/`, `logger-slf4j/`
+  - Infrastructure & Adapters: `storage-adapter-s3/`, `outbox-infrastructure/`, `manifest-adapter-persistence/`, `workflow-infrastructure/`, `logger-slf4j/`
   - Web & Application Assembly: `store/`
 - Dependency direction (Hexagonal / Ports & Adapters):
   - `framework` <- `{name}-domain`
@@ -16,6 +16,7 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
   - `{name}-domain` + `{name}-application` <- `{name}-adapter-persistence`
   - `{name}-application` + `{name}-adapter-persistence` <- `store`
   - `framework` <- `outbox-infrastructure` <- `store`
+  - `framework` <- `manifest-adapter-persistence` <- persistence adapters / `store`
   - `framework` <- `workflow-infrastructure` <- `store`
   - `framework` <- `logger-slf4j` <- `store`
   - `framework` <- `storage-adapter-s3` <- `store`
@@ -39,4 +40,4 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
 - Persistence Adapter (`{name}-adapter-persistence/`): Strictly INTRA-module persistence. Outbound persistence adapters (`adapter/*RepositoryAdapter`, `adapter/*QueryAdapter`, `adapter/*PersistenceExecutor`), JPA entities, Spring Data JPA repositories (`repository/jpa/*JpaRepository`), specifications (`specification/jpa/`), mappers/assemblers (`mapper/`), outbox producers/processors (`outbox/`), and Spring bean configuration (`config/*PersistenceConfig`). Never contains cross-module adapters.
 - Storage Adapter (`storage-adapter-s3/`): Outbound file storage adapter implementing `FileStoragePort` using AWS S3 / MinIO.
 - Web & App Assembly (`store/`): REST controllers, request/response DTOs, mappers, HATEOAS model assemblers, CQRS command/query handlers delegating to use cases, event listeners, application policies, provider public ports (`{domain}/port/*`), provider adapters (`{domain}/internal/api/adapter/*`), consumer cross-module adapters (`{domain}/internal/adapter/*`), and application configuration.
-
+- Manifest Adapter Persistence (`manifest-adapter-persistence/`): reusable security manifest persistence state and publication/query adapters under `com.manifest.adapter.persistence.adapter` and `com.manifest.adapter.persistence.entity`. Pure eligibility policy belongs in `framework`; generic transactional outbox mechanics remain in `outbox-infrastructure`.
