@@ -1,29 +1,19 @@
 # Tech Specification: Security Manifest Consistency
 
 > **Summary:** Module-owned security definitions converge into a durable identity catalog through versioned snapshots, transactional delivery, atomic activation, and periodic repair.
-> **Status:** In progress; the durable publication, complete manifest contract, and initial identity consistency path are present while candidate revalidation, persisted authorization snapshots, and PostgreSQL fault verification are being completed.
+> **Status:** Implemented for local delivery; network transport and deployment-specific alert wiring remain external integration work.
+> **Related ADR:** [ADR-004](../../dev/domain/identity/architecture/ADR_004-Distributed_security_manifest_catalog.md)
 > **Classification:** Architectural Pattern / Cross-Cutting Concern
 > **Supporting Modules:** `framework`, `outbox-infrastructure`, owner application/persistence modules, `identity-domain`, `identity-application`, `identity-adapter-persistence`, `store`
 > **Related Specifications:** [Identity domain](../domain/identity/architecture/identity-domain-spec.md), [API security](api-security-tech-spec.md), [Transactional outbox](transactional-outbox-tech-spec.md)
 
 ## 1. Why We Need It
 
-### Current implementation and gaps
+### Problem and implemented boundary
 
-This assessment includes the current working-tree changes, including the newly introduced scope manifests. Authorities are persisted today; scope declarations are registered in process memory. There are currently **7 startup publishers** across 5 modules: merchant (authority + scope), inventory (authority + scope), catalog (authority), sales-channel (authority), and identity (authority).
+Each owner publishes a complete immutable declaration. Publication must survive process loss without coupling startup availability to identity. Identity must preserve catalog invariants across duplicates, conflicting payloads, old replicas, missing dependencies, and partial database failures.
 
-| Evidence | Current behavior | Consistency risk |
-| :--- | :--- | :--- |
-| [Startup publisher example](../../../store/src/main/java/com/grab/store/inventory/internal/event/InventoryScopeManifestStartupPublisher.java) | Startup calls `ApplicationEventPublisher` directly. | A declaration has no durable delivery record or replay after identity misses it. |
-| [Authority registration](../../../identity-application/src/main/java/com/identity/application/service/RegisterAuthorityManifestService.java) | Upserts definitions without checking `manifestVersion`. | An older deployment can overwrite newer metadata. |
-| [Authority SQL](../../../identity-adapter-persistence/src/main/java/com/identity/adapter/persistence/repository/jpa/AuthorityJpaRepository.java) | Conflict on code updates category and descriptive fields. | Another module can claim an existing code; omitted definitions remain active. |
-| [Scope registration](../../../identity-application/src/main/java/com/identity/application/service/RegisterScopeManifestService.java) | Writes to static `ScopeHierarchy`. | Scope definitions are lost on restart and differ between replicas. |
-| [Scope hierarchy](../../../identity-domain/src/main/java/com/identity/domain/valueobject/ScopeHierarchy.java) | Mutates one declaration at a time. | A later validation failure can leave earlier declarations installed despite transaction rollback. |
-| [Manifest digest](../../../framework/src/main/java/com/grab/framework/security/AuthorityManifest.java) | Computes an order-independent authority digest. | Registration does not use it to detect conflicting same-version payloads. |
-| Separate scope and authority events | Each event is independently registered. | A module's related definitions can become visible at different times. |
-| [Identity lookup](../../../identity-adapter-persistence/src/main/java/com/identity/adapter/persistence/adapter/IdentityLookupQueryAdapter.java) | Resolves current roles and active authorities from identity persistence. | This supports retirement enforcement, but scope lifecycle checks still need integration. |
-
-No custom asynchronous event multicaster or `@Async` manifest listener was found in the inspected Java sources. Spring's default multicaster invokes listeners in the publishing thread, so these publishers also do not currently establish the asynchronous startup behavior required by R17. See [Spring's multicaster contract](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/context/event/SimpleApplicationEventMulticaster.html).
+The implementation replaces the JDBC coordinator with a technical publication port, moves catalog decisions into a domain aggregate, and reads persisted lifecycle metadata for runtime authorization. Legacy partial-manifest listeners and command handlers are disabled; stored legacy contracts remain readable but cannot write the authoritative catalog.
 
 ### Decision and alternatives
 
@@ -68,7 +58,7 @@ flowchart LR
     Producer -. "Periodic complete republication" .-> Buffer
 ```
 
-These diagrams describe the proposed architecture, not existing runtime behavior.
+These diagrams describe the local runtime path. A future network adapter replaces delivery while retaining the transaction and domain contracts.
 
 ### Candidate lifecycle
 
@@ -126,13 +116,13 @@ flowchart TB
 | Module-specific event | `store/.../shared/events/{owner}/` | Carries the shared manifest contract through the permitted module boundary. |
 | Startup/scheduled trigger | `store/.../{owner}/internal/event/` | Schedules background publication and dispatches through `CommandBus`. |
 | Declaration handler/use case | `store` / owner application | Persists publication state and outbox payload in the owner's transaction. |
-| Owner publication repository adapter | Owner persistence module | Implements an intra-module domain write port using mapping, `PersistenceExecutor`, and `DomainEventProducer`. Consider a shared publication infrastructure in `framework` or `outbox-infrastructure` (parameterized by module key and manifest supplier) to avoid near-identical adapters across 5+ modules; each owner module then registers its manifest supplier rather than implementing a full publication adapter. |
+| Publication port and implementation | `framework` / `outbox-infrastructure` | Technical `SecurityManifestPublicationPort` uses a neutral adapter; owner JPA repositories bind seeded rows and module assembly supplies the event factory. |
 | Identity listener | `store/.../identity/internal/event/` | Maps immutable input and dispatches a registration command through `CommandBus`. |
-| Identity registry aggregate and validation | `identity-domain` | Enforces version, ownership, lifecycle, and graph rules using supplied domain data. |
+| `SecurityCatalog` aggregate and pure policies | `identity-domain` | Own serialized revision, ownership, conservation, immutable parents, retirement, graph, and dependency decisions from loaded state. |
 | Identity registration use case | `identity-application` | Loads registry state through ports, invokes domain rules, and persists the decision. |
 | Identity write/query adapters | `identity-adapter-persistence` | Persist catalog/inbox state and return immutable view projections for reads. |
 
-Transactions begin on handlers using `@{Owner}Transactional` or `@IdentityTransactional`. Pure policies receive loaded data and never inject repositories; query handlers use application query ports and do not load write aggregates.
+Transactions begin on owner handlers using `@{Owner}Transactional`; registration and individual revalidation handlers use `@IdentityTransactional(propagation = REQUIRES_NEW)`, including identity self-delivery. Pure policies receive loaded data and never inject repositories; query handlers use application query ports and do not load write aggregates.
 
 ### Runtime delivery
 
@@ -201,7 +191,7 @@ where field(value):
   otherwise:       write int32(byte_length) then write utf8_bytes(value)
 ```
 
-Collections are sorted by their stable natural key before hashing. Keys are normalized (trimmed, lowercased) before encoding. Null and empty string are distinct: null produces the sentinel `int32(-1)`, empty string produces `int32(0)`.
+Collections are sorted by their stable natural key before hashing. Module and scope keys are normalized by their contracts; authority codes remain uppercase. Descriptive fields retain their content. Null and empty string are distinct: null produces the sentinel `int32(-1)`, empty string produces `int32(0)`.
 
 Release validation must reject cyclic minimum-revision dependencies that cannot be satisfied from already applied baselines. Keep dependency requirements minimal; a durable waiting state cannot resolve a mutually blocked deployment on its own.
 
@@ -233,7 +223,7 @@ Store unique constraints on module/revision, authority code, and scope key, plus
 - **C-01:** Every scope key and authority code **MUST** have one persistent owner; upsert **MUST NOT** change that owner.
 - **C-02:** Registration **MUST** validate the whole candidate against the proposed effective graph before any active definition changes.
 - **C-03:** Duplicate keys, unknown parents, self-parenting, cycles, invalid codes, unsupported schemas, and owner impersonation **MUST NOT** activate.
-- **C-04:** An absent dependency **MUST** become durable waiting state and **MUST** be reconsidered after catalog changes and by a periodic sweep.
+- **C-04:** An absent dependency **MUST** become durable waiting state and **MUST** be reconsidered after catalog changes and by a periodic sweep. Invalid, self-owned, or permanently retired prerequisites **MUST** be quarantined before waiting eligibility is considered.
 - **C-05:** Scope hierarchy edges **MUST NOT** be silently changed for an existing key; use a new key and an explicit grant/resource migration.
 - **C-06:** Disappearance from a snapshot **MUST NOT** mean deletion or retirement; missing previously owned entries **MUST** reject the candidate unless explicit retirement tombstones are included.
 - **C-07:** Retirement **MUST** be retained durably; existing role/grant references **MUST NOT** be physically deleted by manifest reconciliation.
@@ -250,7 +240,7 @@ Producer authenticity is separate from digest integrity. The monolith maps concr
 
 ### Durable storage
 
-Logical names below are proposed tables, subject to the next unused module migration versions.
+Storage is introduced through additive Flyway migrations; existing authority identifiers and grants are preserved.
 
 | Store | Essential state and constraints |
 | :--- | :--- |
@@ -258,12 +248,14 @@ Logical names below are proposed tables, subject to the next unused module migra
 | Owner outbox | Stable message identity and complete payload persisted atomically with publication state. |
 | Identity `security_manifest_inbox` | Event identity, payload fingerprint, receipt outcome, and error/trace metadata. |
 | Identity `security_manifest_revision` | Immutable module/revision/digest/payload, candidate state, and dependency errors. |
-| Identity `security_manifest_module` | Applied revision/digest and highest accepted candidate revision. |
+| Identity `security_manifest_module` | Applied revision/digest; highest accepted revision is derived from applied and waiting candidates, excluding quarantine. |
 | Identity `security_catalog_state` | Singleton activation lock and monotonically increasing catalog revision. |
-| Identity `scope_definition` | Unique scope key, immutable owner, parent, source revision, lifecycle, and local enablement. |
+| Identity `security_scope_definitions` | Unique scope key, immutable owner, parent, source revision, lifecycle, and local enablement. |
 | Identity `authorities` extension | Persistent owner/source revision/provider lifecycle separate from local enablement, retaining existing UUIDs and role links. |
 
-Inbox receipt, active rows, watermarks, and any identity outbox event **MUST** commit atomically for an applied outcome. Waiting/quarantine outcomes **MUST** commit receipt plus candidate state without changing the active catalog.
+Canonical module/revision identity **MUST NOT** change after first acceptance. Database guards protect canonical payload/event identity and publication revision/digest. Scope key uniqueness **MUST** be established only after auditing existing collisions.
+
+Inbox receipt, active rows, watermarks, and any identity outbox event **MUST** commit atomically for an applied outcome. Waiting/quarantine outcomes **MUST** commit receipt plus candidate state without changing the active catalog. Conflicting attempts **MUST** instead commit separate conflict evidence, preserving existing canonical identity and the original receipt.
 
 Inbox retention **MUST** exceed the supported transport replay horizon. Revision/digest history, applied watermarks, ownership, and retirement tombstones survive inbox cleanup so a new message ID cannot circumvent semantic replay protection.
 
@@ -271,13 +263,13 @@ Inbox retention **MUST** exceed the supported transport replay horizon. Revision
 
 Start with persisted identity views and an immutable graph supplied to domain decisions. Remove the static mutable registry as the production source of authorization data; `ScopeKey` retains syntax validation while relevant use cases check catalog registration and lifecycle.
 
-Authorization queries **MUST** read effective scope state, role/authority state, and catalog revision from a coherent database snapshot on the identity primary. Use a single joined projection or an appropriate repeatable snapshot; a read-only transaction alone does not make multiple reads at default isolation mutually consistent.
+Authorization queries **MUST** read effective scope state, role/authority state, and catalog revision from a coherent database snapshot on the identity primary. The public identity lookup adapter **MUST** begin a fresh `REQUIRES_NEW`, repeatable-read transaction; its datasource **MUST** point to the primary. A read-only transaction alone does not make multiple reads at default isolation mutually consistent.
 
 Registration/list/search query use cases **MUST** return application views, and assignment command use cases **MUST** load required domain state through ports. Unknown or ineffective scopes/authorities **MUST** fail closed even for equal scope keys or a global caller; registration absence is not bypassed by structural hierarchy shortcuts.
 
 Requests whose identity decision starts after a retirement commit **MUST** observe the retired state. Already authorized or in-flight requests may complete; stronger cancellation or business-write commit fencing requires a separate cross-system protocol and is not claimed here.
 
-The current request filter already invokes identity resolution and the lookup filters inactive authorities, so access-token TTL is not the current catalog refresh boundary. Extend that path with effective scope validation and preserve online resolution after extraction if immediate observation of committed identity changes is required.
+The request filter invokes identity resolution. Lookup checks effective scope ancestry and excludes authorities with retired, locally disabled, or unestablished provider metadata. Access-token TTL is not the catalog refresh boundary; extraction **MUST** preserve online resolution for immediate retirement observation.
 
 Identity unavailability **MUST NOT** trigger fallback to token roles, allow-all behavior, or an unbounded stale cache. Restrict affected operations through the normal authorization/dependency-error path; do not introduce a startup metadata readiness filter returning 503 or block unrelated endpoints.
 
@@ -303,17 +295,22 @@ Deploy additions in expand/enable order: publish backward-compatible definitions
 
 For retirement, first enforce restrictive checks at the resource owner if urgent, then publish the retirement and verify identity application before removing old runtime paths. A binary rollback keeps additive definitions or publishes a new higher corrective revision; it never decrements catalog revision or reactivates retired keys.
 
-Periodic repair is asynchronous anti-entropy, not a synchronous cross-module pull dependency. An optional operational catalog-status interface must follow R10: public provider port with nested records, provider adapter delegating only to inbound query use cases with `@IdentityReadTransactional`, and consumer ACL adapters in `store`.
+Periodic repair is asynchronous anti-entropy, not a synchronous cross-module pull dependency. Operational status interfaces follow R10: public provider port with nested records, provider adapter delegating only to inbound query use cases with `@IdentityReadTransactional`, and consumer ACL adapters in `store`.
 
-### Proposed operational defaults
+### Operational interfaces and defaults
 
-These are implementation targets to validate under fault and load tests, not existing guarantees.
+Identity's public `SecurityCatalogQuery.status(moduleKey)` returns applied revision/digest, catalog revision, highest accepted revision, oldest waiting timestamp, and conflict count. Each owner exposes `{Owner}SecurityManifestPublicationQuery.status()` returning enqueued revision/digest, last enqueue time, pending count, and oldest pending timestamp. Provider adapters delegate to inbound use cases under module read transactions; consumers must use approved public interfaces.
+
+Deployment and restore controls **MUST** compare these values with an approved external release baseline before enabling sensitive features. The baseline supplies exact revision/digest pairs and lives outside restored identity backups. There is no startup readiness wait and no stale authorization cache.
+
+The scheduler values below are implemented defaults; latency and alert thresholds require deployment monitoring.
 
 | Knob or signal | Initial value | Meaning |
 | :--- | :--- | :--- |
-| Complete republication interval | 5 minutes, randomized by ±20% | Repairs missed receipts without synchronized startup floods. |
-| Pending dependency sweep | 30 seconds | Revalidates waiting candidates even if a notification is lost. |
-| Local enqueue retry | Exponential backoff from 1 second, capped at 60 seconds, with jitter | Recovers owner database/worker failures independently of delivery retry. |
+| Complete republication interval | 5 minutes (`security.manifest.republish.fixed-delay-ms=300000`) | Repairs missed receipts without synchronized startup floods. |
+| Pending dependency sweep | 30 seconds (`security.manifest.revalidation.fixed-delay-ms=30000`) | Revalidates waiting candidates even if a notification is lost. |
+| Waiting candidate batch | 100 (`security.manifest.revalidation.batch-size`) | Bounded projection followed by independently committing commands. |
+| Local enqueue retry | Next full publication sweep | Recovers enqueue failure without coupling owner startup to identity. |
 | Healthy-path activation target | p99 under 30 seconds | Measures owner enqueue commit to identity activation when dependencies are available. |
 | Dependency-wait alert | 5 minutes | Indicates missing owner/dependency rollout or incompatible declarations. |
 | Quarantine/conflicting digest alert | Immediate | Requires release correction rather than blind retries. |
@@ -321,33 +318,30 @@ These are implementation targets to validate under fault and load tests, not exi
 
 Reuse the current relay's supported retry controls before adding new delivery knobs. The inspected `AbstractOutboxProcessor` retries `FAILED` rows; bounded retry/dead-letter behavior described in the existing outbox spec must be verified rather than assumed to exist.
 
-Expose owner enqueue age, oldest pending delivery, applied module revision/digest, catalog revision, dependency-wait age, quarantine counts, and duplicate/stale outcomes. Do not use repeated identical delivery to reset activation age or hide a dependency backlog.
+Operational queries expose enqueue/delivery timestamps, backlog count, applied module revision/digest, catalog revision, dependency-wait timestamp, and conflict count. Candidate/quarantine errors remain durable revision evidence; duplicate/stale outcomes are returned by registration. Do not use repeated identical delivery to reset activation age or hide a dependency backlog.
 
-## 5. Implementation Plan
+## 5. Implementation and rollout
 
-| Phase | Work | Completion criterion |
-| :--- | :--- | :--- |
-| 0. Inventory and cleanup | Inventory all 7 current startup publishers, existing authority codes/UUIDs/role links, scope constants, and static hierarchy callers. Flag ownership collisions, orphaned role references, and resolve any ambiguous category assignments. | Complete ownership map reviewed; no unresolved collisions or orphaned references remain. |
-| 1a. Unified contract | Define the complete `SecurityManifest` record in `framework`, including `securityRevision`, canonical digest algorithm, `lifecycle` enum (`ACTIVE`/`RETIRED`), and dependency declarations. | Contract compiles, digest is deterministic across implementations, and legacy `AuthorityManifest` is marked for deprecation. |
-| 1b. Module consolidation | Consolidate each module's separate scope and authority declarations into a single `SecurityManifest` per module in `{owner}-application/.../security/`. Assign the initial `securityRevision` as `max(legacy_authority_version, legacy_scope_version) + 1`. | All 5 modules have a single reviewed `SecurityManifest` with verified ownership. |
-| 1c. Shared events | Create module-specific shared integration events in `store/.../shared/events/{owner}/` carrying the unified `SecurityManifest` contract. Replace the 7 legacy startup publishers with the new event shape. | Legacy scope and authority events are no longer published; all modules emit a single complete snapshot event. |
-| 2. Durable identity registry | Add domain registry/graph validation, ports, identity migrations, inbox/watermarks, persistence adapters, and a combined registration use case/handler. | Duplicate, stale, conflicting, and concurrent candidates cannot partially change the active catalog. |
-| 3. Durable owner publication | Add owner publication state and command/use case wiring; replace direct startup delivery with background enqueue into each existing module outbox. | Startup returns without identity availability and committed snapshots survive owner crashes. |
-| 4. Authorization integration | Replace static hierarchy dependence with supplied immutable persisted state; enforce lifecycle in lookup, assignment, role-authority management, and synchronization prerequisites. | Every identity replica returns the same effective decision after activation; missing definitions never grant partial authority sets. |
-| 5. Repair and operations | Add leased periodic full publication, pending sweeps, status projections, metrics, conflict alerts, and restore/rollback runbooks. Evaluate per-module lock partitioning if singleton lock contention is measured. | A missed declaration, lost notification, or rebuilt identity catalog recovers without requiring owner restarts. |
-| 6. Rolling rollout and extraction boundary | Enable the new path, retire legacy consumers, exercise mixed versions, and define the transport adapter contract. | Old binaries cannot downgrade active definitions and extraction does not change identity registration semantics. |
+| Area | Implementation |
+| :--- | :--- |
+| Publication | Five explicit release revisions, application use cases, technical publication/query ports, owner JPA row bindings, neutral outbox helpers, and store event factories. |
+| Catalog | Non-anemic aggregate, pure validation, immutable revision payloads, independent receipts/conflicts, preserved UUIDs/grants and local disablement. |
+| Retry isolation | `REQUIRES_NEW` registration and candidate commands; bounded waiting query followed by individual dispatch outside its transaction. |
+| Authorization | Persisted immutable graph for query paths, loaded catalog domain state for commands, ancestor lifecycle checks, complete requested authority validation, and fresh online primary reads. |
+| Recovery | Activation outbox notification, periodic repair/sweep, operational public query capabilities, migration guards, and external baseline runbook. |
+| Extraction | Stable versioned envelope; authenticated network adapters and broker integration are deferred. |
 
 ### Migration and rollout details
 
-1. Inventory current authority codes, category ownership, UUIDs, role links, scope constants, and all static hierarchy callers; flag collisions or orphaned role references before backfill.
-2. Introduce additive identity schema without dropping or recreating authority rows; backfill owner/lifecycle from reviewed declarations, and quarantine entries whose ownership cannot be established.
-3. Persist the declared scope baseline and validate the entire graph; do not import a replica's potentially partial static map as authoritative state.
-4. Stage the new registry as a shadow validation path while legacy writers remain active; shadow candidates must not enforce retirements or serve production authorization yet.
-5. Switch each module's scope and authority writers together under a release flag, disable its legacy listeners before enabling authoritative complete-snapshot activation, and track the routing state explicitly.
-6. Switch authorization to persisted catalog views only after baseline catalog checks pass; remove production static registration and retain rollback through persisted views and higher corrective manifests.
-7. Enable periodic repair and prove restore/replay before removing legacy event contracts; any compatibility adapter must stage complete snapshots and must not activate two independent partial events.
+1. Audit authority category ownership and duplicate scope keys before migration. The additive identity migration rejects ambiguous ownership or collisions; it preserves existing UUIDs, grants, local disablement, and provider tombstones. Legacy numeric large-object payload references are converted to JSON text before canonical identity is guarded.
+2. Apply owner seed/guard migrations and identity ownership/lifecycle/immutability migrations. Source revision is backfilled from applied module watermarks; undeclared authority metadata is ineffective until established by a complete manifest.
+3. Deploy unified consumers with legacy partial-manifest listeners and handlers disabled. Stop older identity consumers before authoritative activation; owner database guards prevent legacy publication regression during rolling deployment.
+4. Compare applied module revision/digest and required references with the approved external release baseline before enabling sensitive features. Fresh or restored databases recover through full owner republication, while feature enablement remains a deployment control.
+5. Exercise replay, failure recovery, and retirement before removing compatibility event contracts. A corrective rollback uses a higher revision and never reactivates retired keys.
 
-Existing working-tree Java changes are inputs to this plan and are not rewritten by this proposal. Select the next unused Flyway migration version per owner and identity module during implementation; do not edit existing migration history.
+See the [runbook](../../runbook/security-manifest-consistency.md) for operational checks. Publication outcomes are `ENQUEUED`, `NOT_DUE`, `SUPERSEDED`, or `CONFLICT`; registration returns outcome, revision/digest, error code, and whether activation occurred.
+
+The network envelope uses logical event type `security.manifest.declared`, version `1`, producer/module identity, event ID, timestamp, supplied digest, and complete manifest. Java type names **MUST NOT** become public transport identifiers. Producer authentication and owner permissions are separate from digest verification.
 
 ### Required verification
 

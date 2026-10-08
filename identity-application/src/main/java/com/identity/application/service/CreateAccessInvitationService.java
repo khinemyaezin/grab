@@ -18,9 +18,11 @@ import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 
 @RequiredArgsConstructor
 public class CreateAccessInvitationService implements CreateAccessInvitationUseCase {
+    private final SecurityCatalogRepository catalogs;
     private final RoleRepository roles;
     private final UserRepository users;
     private final AccessInvitationRepository invitations;
@@ -43,7 +45,10 @@ public class CreateAccessInvitationService implements CreateAccessInvitationUseC
                 )
         );
         AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
-        AccessScope.from(command.actorScopeKey(), command.actorScopeId()).requireEncompasses(scope);
+        var catalog = catalogs.loadForUpdate();
+        var hierarchy = catalog.hierarchy();
+        AccessScope actorScope = AccessScope.from(command.actorScopeKey(), command.actorScopeId());
+        actorScope.requireEncompasses(scope, hierarchy);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());
         String acceptanceToken = invitationTokens.generate();
         AccessInvitation saved = invitations.save(AccessInvitation.create(

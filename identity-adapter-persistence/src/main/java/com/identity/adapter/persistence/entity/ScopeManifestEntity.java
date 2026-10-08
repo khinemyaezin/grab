@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "security_scope_definitions", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_security_scope_module_key", columnNames = {"module_key", "scope_key"})
+        @UniqueConstraint(name = "uk_security_scope_key", columnNames = {"scope_key"})
 })
 public class ScopeManifestEntity {
     @Id
@@ -21,7 +21,7 @@ public class ScopeManifestEntity {
     @Column(name = "scope_key", nullable = false, updatable = false)
     private String scopeKey;
 
-    @Column(name = "parent_scope_key")
+    @Column(name = "parent_scope_key", updatable = false)
     private String parentScopeKey;
 
     @Column(name = "manifest_version", nullable = false)
@@ -33,4 +33,13 @@ public class ScopeManifestEntity {
     @Version
     @Column(name = "row_version", nullable = false)
     private Long rowVersion;
+    @Column(name = "provider_lifecycle", nullable = false)
+    private String providerLifecycle = "ACTIVE";
+
+    @Column(name = "source_revision", nullable = false)
+    private int sourceRevision;
+
+    public boolean isEffective() {
+        return active && "ACTIVE".equals(providerLifecycle) && sourceRevision > 0 && moduleKey != null && !moduleKey.isBlank();
+    }
 }

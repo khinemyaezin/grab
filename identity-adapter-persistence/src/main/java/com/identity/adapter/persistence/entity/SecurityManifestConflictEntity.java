@@ -35,4 +35,9 @@ public class SecurityManifestConflictEntity {
 
     @Column(name = "received_at", nullable = false)
     private Instant receivedAt;
+    @Column(name = "supplied_digest")
+    private String suppliedDigest;
+
+    @Column(columnDefinition = "TEXT")
+    private String payload;
 }

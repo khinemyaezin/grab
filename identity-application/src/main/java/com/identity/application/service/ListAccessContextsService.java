@@ -6,6 +6,7 @@ import com.identity.application.model.read.AccessContextResult;
 import com.identity.application.model.read.ListAccessContextsQuery;
 import com.identity.application.model.read.AccessAssignmentView;
 import lombok.RequiredArgsConstructor;
+import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -17,14 +18,18 @@ import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class ListAccessContextsService implements ListAccessContextsUseCase {
+    private final ScopeCatalogQueryPort scopes;
     private final AccessAssignmentQueryPort assignments;
 
     public List<AccessContextResult> execute(ListAccessContextsQuery query) {
+        var catalog = scopes.load();
+        var hierarchy = catalog.hierarchy();
         Instant now = Instant.now();
         List<AccessAssignmentView> views = assignments.findEffectiveByUser(query.userId().getValue(), now);
 
         Map<ContextKey, List<AccessAssignmentView>> contexts = views
                 .stream()
+                .filter(assignment -> hierarchy.isEffective(assignment.scopeKey()))
                 .collect(Collectors.groupingBy(
                         assignment -> new ContextKey(assignment.scopeKey(), assignment.scopeId()),
                         LinkedHashMap::new,

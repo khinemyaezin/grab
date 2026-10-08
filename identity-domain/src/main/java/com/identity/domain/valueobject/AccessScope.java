@@ -41,6 +41,9 @@ public record AccessScope(ScopeKey key, String scopeId) {
     public boolean encompasses(AccessScope target, ScopeHierarchy hierarchy) {
         Objects.requireNonNull(target, "target scope is required");
         Objects.requireNonNull(hierarchy, "hierarchy is required");
+        if (!hierarchy.isEffective(key.value()) || !hierarchy.isEffective(target.key().value())) {
+            return false;
+        }
         if (isGlobal()) {
             return true;
         }

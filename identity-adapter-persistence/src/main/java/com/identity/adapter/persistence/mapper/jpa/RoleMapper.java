@@ -16,7 +16,7 @@ public class RoleMapper {
 
     public Role toDomain(RoleEntity entity) {
         Set<Authority> authorities = entity.getAuthorities().stream()
-                .filter(AuthorityEntity::isActive)
+                .filter(AuthorityEntity::isEffective)
                 .map(authority -> Authority.rehydrate(
                         ids.map(authority.getUuid()),
                         authority.getCode(),

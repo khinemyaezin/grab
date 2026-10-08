@@ -13,12 +13,14 @@ import com.identity.domain.aggregate.Role;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 
 import java.time.Instant;
 
 public class GrantAccessService implements GrantAccessUseCase {
+    private final SecurityCatalogRepository catalogs;
     private final UserRepository users;
     private final RoleRepository roles;
     private final AccessAssignmentRepository assignments;
@@ -26,30 +28,16 @@ public class GrantAccessService implements GrantAccessUseCase {
     private final IdGenerator ids;
     private final ScopeOwnershipPort scopeOwnershipPort;
 
-    public GrantAccessService(
-            UserRepository users,
-            RoleRepository roles,
-            AccessAssignmentRepository assignments,
-            RoleDelegationPolicy delegationPolicy,
-            IdGenerator ids
-    ) {
-        this(users, roles, assignments, delegationPolicy, ids, null);
-    }
-
-    public GrantAccessService(
-            UserRepository users,
-            RoleRepository roles,
-            AccessAssignmentRepository assignments,
-            RoleDelegationPolicy delegationPolicy,
-            IdGenerator ids,
-            ScopeOwnershipPort scopeOwnershipPort
-    ) {
+    public GrantAccessService(UserRepository users, RoleRepository roles, AccessAssignmentRepository assignments,
+            RoleDelegationPolicy delegationPolicy, IdGenerator ids, ScopeOwnershipPort scopeOwnershipPort,
+            SecurityCatalogRepository catalogs) {
         this.users = users;
         this.roles = roles;
         this.assignments = assignments;
         this.delegationPolicy = delegationPolicy;
         this.ids = ids;
         this.scopeOwnershipPort = scopeOwnershipPort;
+        this.catalogs = catalogs;
     }
 
     public AccessAssignmentResult execute(GrantAccessCommand command) {
@@ -66,9 +54,11 @@ public class GrantAccessService implements GrantAccessUseCase {
         role.requireAssignable();
         AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
         AccessScope actorScope = AccessScope.from(command.actorScopeKey(), command.actorScopeId());
-        actorScope.requireEncompasses(scope);
+        var catalog = catalogs.loadForUpdate();
+        var hierarchy = catalog.hierarchy();
+        actorScope.requireEncompasses(scope, hierarchy);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());
-        if (scopeOwnershipPort != null && !command.actorScopeKey().equals(command.scopeKey())) {
+        if (!actorScope.isGlobal() && !command.actorScopeKey().equals(command.scopeKey())) {
             boolean owned = scopeOwnershipPort.isResourceOwnedByScope(
                     command.actorScopeKey(),
                     command.actorScopeId(),

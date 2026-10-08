@@ -11,7 +11,7 @@ public record RegisterSecurityManifestCommand(
         String eventId,
         String suppliedContentDigest,
         Instant publishedAt
-) implements Command<Void> {
+) implements Command<RegisterSecurityManifestResult> {
     public RegisterSecurityManifestCommand(SecurityManifest manifest, String eventId) {
         this(manifest, eventId, manifest.contentDigest(), null);
     }

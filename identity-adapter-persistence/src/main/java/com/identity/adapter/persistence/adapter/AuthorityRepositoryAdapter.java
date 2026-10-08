@@ -25,6 +25,7 @@ public class AuthorityRepositoryAdapter implements AuthorityRepository {
         return executor.query("Authority", () -> {
             List<AuthorityEntity> entities = jpaRepository.findByCodeInAndActiveTrue(codes);
             return entities.stream()
+                    .filter(AuthorityEntity::isEffective)
                     .map(this::toDomain)
                     .collect(Collectors.toUnmodifiableSet());
         });
@@ -69,6 +70,9 @@ public class AuthorityRepositoryAdapter implements AuthorityRepository {
                     entity.setActive(true);
                 }
                 entity.setCategory(authority.getCategory());
+                if (entity.getOwnerKey() == null) {
+                    entity.setOwnerKey(authority.getCategory());
+                }
                 entity.setName(authority.getName());
                 entity.setDescription(authority.getDescription());
                 jpaRepository.save(entity);

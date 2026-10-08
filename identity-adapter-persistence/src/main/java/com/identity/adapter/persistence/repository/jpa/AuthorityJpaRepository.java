@@ -24,6 +24,9 @@ public interface AuthorityJpaRepository extends JpaRepository<AuthorityEntity, L
             entity.setActive(true);
         }
         entity.setCategory(category);
+        if (entity.getOwnerKey() == null) {
+            entity.setOwnerKey(category);
+        }
         entity.setName(name);
         entity.setDescription(description);
         saveAndFlush(entity);

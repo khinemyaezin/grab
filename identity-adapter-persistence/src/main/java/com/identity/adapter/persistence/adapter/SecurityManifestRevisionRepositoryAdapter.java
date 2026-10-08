@@ -10,7 +10,6 @@ import com.identity.domain.security.SecurityManifestCandidate;
 import com.identity.domain.security.SecurityManifestCandidateStatus;
 import lombok.RequiredArgsConstructor;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,43 +25,41 @@ public class SecurityManifestRevisionRepositoryAdapter implements SecurityManife
 
     @Override
     public int highestAcceptedRevision(String moduleKey) {
-        return repository.findTopByModuleKeyOrderByRevisionDesc(moduleKey)
+        List<String> accepted = List.of(SecurityManifestCandidateStatus.WAITING_DEPENDENCY.name(),
+                SecurityManifestCandidateStatus.APPLIED.name());
+        return repository.findTopByModuleKeyAndStatusInOrderByRevisionDesc(moduleKey, accepted)
                 .map(SecurityManifestRevisionEntity::getRevision).orElse(0);
     }
 
     @Override
-    public List<SecurityManifestCandidate> findWaiting() {
-        return repository.findByStatusOrderByReceivedAtAsc(SecurityManifestCandidateStatus.WAITING_DEPENDENCY.name())
-                .stream().map(this::toCandidate).toList();
-    }
-
-    @Override
-    public void record(String eventId, SecurityManifest manifest, SecurityManifestCandidateStatus status, String errorCode) {
-        SecurityManifestRevisionEntity entity = repository.findByModuleKeyAndRevision(
-                        manifest.moduleKey(), manifest.securityRevision())
-                .orElseGet(SecurityManifestRevisionEntity::new);
-        entity.setEventId(eventId);
-        entity.setModuleKey(manifest.moduleKey());
-        entity.setRevision(manifest.securityRevision());
-        entity.setContentDigest(manifest.contentDigest());
-        entity.setPayload(writePayload(manifest));
-        entity.setStatus(status.name());
-        entity.setDependencyError(errorCode);
-        if (entity.getReceivedAt() == null) {
-            entity.setReceivedAt(Instant.now());
+    public void save(SecurityManifestCandidate candidate) {
+        var manifest = candidate.manifest();
+        var existing = repository.findByModuleKeyAndRevision(manifest.moduleKey(), manifest.securityRevision());
+        String digest = manifest.contentDigest();
+        if (existing.isPresent() && !digest.equals(existing.get().getContentDigest())) {
+            throw new IllegalStateException("Canonical security manifest payload is immutable");
         }
-        if (status == SecurityManifestCandidateStatus.APPLIED && entity.getAppliedAt() == null) {
-            entity.setAppliedAt(Instant.now());
+        SecurityManifestRevisionEntity entity = existing.orElseGet(SecurityManifestRevisionEntity::new);
+        if (existing.isEmpty()) {
+            entity.setEventId(candidate.eventId());
+            entity.setModuleKey(manifest.moduleKey());
+            entity.setRevision(manifest.securityRevision());
+            entity.setContentDigest(digest);
+            entity.setPayload(writePayload(manifest));
+            entity.setReceivedAt(candidate.receivedAt());
         }
+        entity.setStatus(candidate.status().name());
+        entity.setDependencyError(candidate.errorCode());
+        entity.setAppliedAt(candidate.appliedAt());
         repository.save(entity);
     }
 
     private SecurityManifestCandidate toCandidate(SecurityManifestRevisionEntity entity) {
         try {
-            return new SecurityManifestCandidate(
-                    entity.getEventId(), objectMapper.readValue(entity.getPayload(), SecurityManifest.class),
-                    SecurityManifestCandidateStatus.valueOf(entity.getStatus()), entity.getDependencyError(),
-                    entity.getReceivedAt(), entity.getAppliedAt());
+            var manifest = objectMapper.readValue(entity.getPayload(), SecurityManifest.class);
+            var status = SecurityManifestCandidateStatus.valueOf(entity.getStatus());
+            return new SecurityManifestCandidate(entity.getEventId(), manifest, status,
+                    entity.getDependencyError(), entity.getReceivedAt(), entity.getAppliedAt());
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Stored security manifest payload is invalid", exception);
         }

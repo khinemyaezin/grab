@@ -9,21 +9,22 @@ import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.Authority;
+import com.identity.domain.policy.AuthoritySelectionPolicy;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.valueobject.AccessScope;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ReplaceAccessService implements ReplaceAccessUseCase {
+    private final SecurityCatalogRepository catalogs;
     private final UserRepository users;
     private final RoleRepository roles;
     private final AuthorityRepository authorities;
@@ -37,23 +38,16 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
             AuthorityRepository authorities,
             AccessAssignmentRepository assignments,
             SessionStore sessions,
-            IdGenerator ids
+            IdGenerator ids,
+            SecurityCatalogRepository catalogs
     ) {
+        this.catalogs = catalogs;
         this.users = users;
         this.roles = roles;
         this.authorities = authorities;
         this.assignments = assignments;
         this.sessions = sessions;
         this.ids = ids;
-    }
-
-    public ReplaceAccessService(
-            UserRepository users,
-            AccessAssignmentRepository assignments,
-            SessionStore sessions,
-            IdGenerator ids
-    ) {
-        this(users, null, null, assignments, sessions, ids);
     }
 
     @Override
@@ -72,6 +66,10 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
         );
 
         String replacementRole = command.replacementRoleCode();
+        if (replacementRole != null && !replacementRole.isBlank()) {
+            var catalog = catalogs.loadForUpdate();
+            catalog.requireEffectiveScope(scope.key().value());
+        }
         if (replacementRole != null && !replacementRole.isBlank()) {
             replacementRole = replacementRole.trim().toUpperCase(Locale.ROOT);
         }
@@ -133,30 +131,15 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
     }
 
     private void ensureRoleExists(String roleCode, Set<String> requestedAuthorityCodes) {
-        if (roles == null) {
-            return;
-        }
-
+        Set<String> validCodes = AuthoritySelectionPolicy.normalize(requestedAuthorityCodes);
+        Set<Authority> activeAuthorities = validCodes.isEmpty() ? Set.of() : authorities.findActiveByCodes(validCodes);
+        AuthoritySelectionPolicy.requireComplete(validCodes, activeAuthorities);
         if (roles.findByCode(roleCode).isPresent()) {
             return;
         }
-
-        Set<String> validCodes = requestedAuthorityCodes == null ? Set.of() : requestedAuthorityCodes.stream()
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .map(code -> code.toUpperCase(Locale.ROOT))
-                .filter(code -> code.matches("[A-Z][A-Z0-9_]*"))
-                .collect(Collectors.toSet());
-
-        Set<Authority> activeAuthorities = authorities != null && !validCodes.isEmpty()
-                ? authorities.findActiveByCodes(validCodes)
-                : Set.of();
-
-        if (activeAuthorities.isEmpty()) {
-            throw new IdentityServiceException(
-                    new IdentityServiceError.RoleNotFound(roleCode),
-                    "Role " + roleCode + " does not exist and cannot be created without active authorities"
-            );
+        if (validCodes.isEmpty()) {
+            var error = new IdentityServiceError.RoleNotFound(roleCode);
+            throw new IdentityServiceException(error, "Role cannot be created without active authorities");
         }
 
         Role newRole = Role.createCustom(

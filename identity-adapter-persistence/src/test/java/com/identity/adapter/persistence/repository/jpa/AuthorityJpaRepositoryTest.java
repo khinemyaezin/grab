@@ -31,6 +31,8 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
         readAuthority.setUuid("authority-read");
         readAuthority.setCode("READ");
         readAuthority.setCategory("identity");
+        readAuthority.setOwnerKey("identity");
+        readAuthority.setSourceRevision(1);
         readAuthority.setName("Read Permission");
         readAuthority.setDescription("Allows read access");
         readAuthority.setActive(true);
@@ -39,6 +41,8 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
         writeAuthority.setUuid("authority-write");
         writeAuthority.setCode("WRITE");
         writeAuthority.setCategory("identity");
+        writeAuthority.setOwnerKey("identity");
+        writeAuthority.setSourceRevision(1);
         writeAuthority.setName("Write Permission");
         writeAuthority.setDescription("Allows write access");
         writeAuthority.setActive(false);
@@ -89,6 +93,8 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
         deleteAuthority.setUuid("authority-delete");
         deleteAuthority.setCode("DELETE");
         deleteAuthority.setCategory("identity");
+        deleteAuthority.setOwnerKey("identity");
+        deleteAuthority.setSourceRevision(1);
         deleteAuthority.setName("Delete Permission");
         deleteAuthority.setActive(true);
 

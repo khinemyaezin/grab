@@ -18,10 +18,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Collections;
+import java.util.Map;
+import com.identity.application.model.read.ScopeCatalogView;
+import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -63,7 +68,9 @@ class IdentityLookupQueryAdapterTest {
         )).thenReturn(List.of(owner, manager, otherMerchant));
 
         var actor = new IdentityLookupQueryAdapter(
-                users, externalIdentities, entitlementMappings, assignments
+                users, externalIdentities, entitlementMappings, assignments,
+                () -> new ScopeCatalogView(Collections.singletonMap("merchant.account", null),
+                        Map.of("merchant.account", "merchant"), Set.of())
         ).resolveByPlatformUserId(
                 "local-issuer",
                 "user-1",
@@ -74,6 +81,50 @@ class IdentityLookupQueryAdapterTest {
 
         assertThat(actor.roles()).containsExactlyInAnyOrder("MERCHANT_OWNER", "STORE_MANAGER");
         assertThat(actor.authorities()).containsExactlyInAnyOrder("MERCHANT_WRITE", "INVENTORY_WRITE");
+    }
+
+    @Test
+    void resolve_retiredAncestor_rejectsSelectedDescendantBeforeAssignmentLookup() {
+        var user = new UserEntity();
+        user.setUuid("user-1");
+        user.setStatus(UserStatus.ACTIVE);
+        when(users.findByUuid("user-1")).thenReturn(Optional.of(user));
+        var parents = new java.util.HashMap<String, String>();
+        parents.put("merchant.account", null);
+        parents.put("inventory.location", "merchant.account");
+        var view = new ScopeCatalogView(parents, Map.of("merchant.account", "merchant", "inventory.location", "inventory"), Set.of("merchant.account"));
+        var adapter = new IdentityLookupQueryAdapter(users, externalIdentities, entitlementMappings, assignments, () -> view);
+        var context = new AccessContext("assignment-1", "inventory.location", "location-1");
+        assertThatThrownBy(() -> adapter.resolveByPlatformUserId("local", "user-1", context))
+                .isInstanceOf(com.identity.domain.exception.IdentityDomainValidationException.class);
+    }
+
+    @Test
+    void resolve_unknownScope_failsClosed() {
+        var user = new UserEntity();
+        user.setUuid("user-1");
+        user.setStatus(UserStatus.ACTIVE);
+        when(users.findByUuid("user-1")).thenReturn(Optional.of(user));
+        var view = new ScopeCatalogView(Map.of(), Map.of(), Set.of());
+        var adapter = new IdentityLookupQueryAdapter(users, externalIdentities, entitlementMappings, assignments, () -> view);
+        var context = new AccessContext("assignment-1", "unknown.scope", "resource-1");
+        assertThatThrownBy(() -> adapter.resolveByPlatformUserId("local", "user-1", context))
+                .isInstanceOf(com.identity.domain.exception.IdentityDomainValidationException.class);
+    }
+
+    @Test
+    void authority_ineffectiveProviderMetadata_neverGrantsPermission() {
+        var authority = new AuthorityEntity();
+        authority.setActive(true);
+        assertThat(authority.isEffective()).isFalse();
+        authority.setOwnerKey("merchant");
+        authority.setSourceRevision(2);
+        assertThat(authority.isEffective()).isTrue();
+        authority.setProviderLifecycle("RETIRED");
+        assertThat(authority.isEffective()).isFalse();
+        authority.setProviderLifecycle("ACTIVE");
+        authority.setActive(false);
+        assertThat(authority.isEffective()).isFalse();
     }
 
     private AccessAssignmentEntity assignment(
@@ -87,6 +138,8 @@ class IdentityLookupQueryAdapterTest {
         authority.setUuid("authority-" + authorityCode);
         authority.setCode(authorityCode);
         authority.setCategory("identity");
+        authority.setOwnerKey("identity");
+        authority.setSourceRevision(1);
         authority.setName(authorityCode);
         authority.setActive(true);
 

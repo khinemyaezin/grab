@@ -1,5 +1,7 @@
 package com.identity.adapter.persistence.configuration;
 
+import com.identity.adapter.persistence.mapper.jpa.SecurityCatalogJpaAssembler;
+
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
@@ -11,26 +13,28 @@ import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.AuthorityManifestVersionRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
 import com.identity.domain.port.outbound.ScopeManifestRepository;
-import com.identity.domain.port.outbound.SecurityCatalogLock;
-import com.identity.domain.port.outbound.SecurityManifestCatalogRepository;
 import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
-import com.identity.domain.port.outbound.SecurityManifestModuleRepository;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.framework.id.IdGenerator;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
+import com.identity.application.port.outbound.SecurityManifestQueryPort;
+import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.adapter.persistence.adapter.*;
+import com.identity.adapter.persistence.specification.jpa.SecurityManifestWaitingSpecification;
+import com.identity.adapter.persistence.entity.SecurityManifestRevisionEntity;
 import com.identity.adapter.persistence.mapper.jpa.RoleJpaAssembler;
 import com.identity.adapter.persistence.mapper.jpa.UserJpaAssembler;
 import com.identity.adapter.persistence.mapper.jpa.AccessAssignmentJpaAssembler;
@@ -200,17 +204,12 @@ public class IdentityPersistenceConfig {
     @Bean
     public SecurityManifestInboxRepository securityManifestInboxRepository(
             SecurityManifestInboxJpaRepository repository,
-            SecurityManifestConflictJpaRepository conflicts
+            SecurityManifestConflictJpaRepository conflicts,
+            ObjectMapper objectMapper
     ) {
-        return new SecurityManifestInboxRepositoryAdapter(repository, conflicts);
+        return new SecurityManifestInboxRepositoryAdapter(repository, conflicts, objectMapper);
     }
 
-    @Bean
-    public SecurityCatalogLock securityCatalogLock(
-            SecurityCatalogStateJpaRepository repository
-    ) {
-        return new SecurityCatalogLockAdapter(repository);
-    }
 
     @Bean
     public SecurityManifestRevisionRepository securityManifestRevisionRepository(
@@ -220,20 +219,30 @@ public class IdentityPersistenceConfig {
         return new SecurityManifestRevisionRepositoryAdapter(repository, objectMapper);
     }
 
+
+
     @Bean
-    public SecurityManifestModuleRepository securityManifestModuleRepository(
-            SecurityManifestModuleJpaRepository repository
-    ) {
-        return new SecurityManifestModuleRepositoryAdapter(repository);
+    public ScopeCatalogQueryPort scopeCatalogQueryPort(ScopeManifestJpaRepository scopes) {
+        return new ScopeCatalogQueryAdapter(scopes);
     }
 
     @Bean
-    public SecurityManifestCatalogRepository securityManifestCatalogRepository(
-            AuthorityRepository authorities,
-            ScopeManifestRepository scopes,
-            IdGenerator ids
-    ) {
-        return new SecurityManifestCatalogRepositoryAdapter(authorities, scopes, ids);
+    public SecurityManifestQueryPort securityManifestQueryPort(SecurityManifestRevisionJpaRepository revisions,
+            SecurityManifestModuleJpaRepository modules, SecurityCatalogStateJpaRepository states,
+            SecurityManifestConflictJpaRepository conflicts, JpaContext context) {
+        var entityManager = context.getEntityManagerByManagedType(SecurityManifestRevisionEntity.class);
+        var waiting = new SecurityManifestWaitingSpecification(entityManager);
+        return new SecurityManifestQueryAdapter(waiting, revisions, modules, states, conflicts);
+    }
+
+    @Bean
+    public SecurityCatalogRepository securityCatalogRepository(
+            SecurityCatalogStateJpaRepository states, SecurityManifestModuleJpaRepository modules,
+            ScopeManifestJpaRepository scopes, AuthorityJpaRepository authorities, IdGenerator ids,
+            @Qualifier("identityDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
+        var assembler = new SecurityCatalogJpaAssembler(ids);
+        return new SecurityCatalogRepositoryAdapter(states, modules, scopes, authorities, assembler, outbox, executor);
     }
 
     @Bean
@@ -315,9 +324,9 @@ public class IdentityPersistenceConfig {
             ExternalIdentityJpaRepository externalIdentities,
             ExternalEntitlementMappingJpaRepository entitlementMappings,
             AccessAssignmentJpaRepository accessAssignments,
-            ScopeManifestJpaRepository scopeManifests) {
+            ScopeCatalogQueryPort scopes) {
         return new IdentityLookupQueryAdapter(
-                users, externalIdentities, entitlementMappings, accessAssignments, scopeManifests
+                users, externalIdentities, entitlementMappings, accessAssignments, scopes
         );
     }
 }

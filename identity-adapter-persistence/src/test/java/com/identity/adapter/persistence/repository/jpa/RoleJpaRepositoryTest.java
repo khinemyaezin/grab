@@ -35,6 +35,8 @@ public class RoleJpaRepositoryTest extends RepositoryTestConfig {
         readAuth.setUuid("authority-read");
         readAuth.setCode("READ");
         readAuth.setCategory("identity");
+        readAuth.setOwnerKey("identity");
+        readAuth.setSourceRevision(1);
         readAuth.setName("Read");
         readAuth.setActive(true);
 
@@ -42,6 +44,8 @@ public class RoleJpaRepositoryTest extends RepositoryTestConfig {
         writeAuth.setUuid("authority-write");
         writeAuth.setCode("WRITE");
         writeAuth.setCategory("identity");
+        writeAuth.setOwnerKey("identity");
+        writeAuth.setSourceRevision(1);
         writeAuth.setName("Write");
         writeAuth.setActive(true);
 

@@ -18,6 +18,10 @@ import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
+import com.identity.domain.aggregate.SecurityCatalog;
+import com.identity.domain.security.CatalogScope;
+import com.grab.framework.security.ScopeDeclaration.Lifecycle;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.domain.valueobject.HashedPassword;
@@ -67,6 +71,9 @@ class ReplaceAccessServiceTest {
     @Mock
     private IdGenerator idGenerator;
 
+    @Mock
+    private SecurityCatalogRepository catalogs;
+
     private ReplaceAccessService service;
 
     private Id userId;
@@ -75,11 +82,18 @@ class ReplaceAccessServiceTest {
 
     @BeforeEach
     void setUp() {
+        var scope = new CatalogScope(SCOPE_KEY, "merchant", null, Lifecycle.ACTIVE, true, 2);
+        var catalog = SecurityCatalog.rehydrate(new CommonId("catalog"), 1, List.of(scope), List.of(), List.of());
+        lenient().when(catalogs.loadForUpdate()).thenReturn(catalog);
+        lenient().when(roleRepository.findByCode(any())).thenReturn(Optional.of(mock(Role.class)));
         service = new ReplaceAccessService(
                 userRepository,
+                roleRepository,
+                authorityRepository,
                 assignmentRepository,
                 sessionStore,
-                idGenerator
+                idGenerator,
+                catalogs
         );
 
         userId = () -> "usr-100";
@@ -422,7 +436,8 @@ class ReplaceAccessServiceTest {
                 authorityRepository,
                 assignmentRepository,
                 sessionStore,
-                idGenerator
+                idGenerator,
+                catalogs
         );
 
         ReplaceAccessCommand command = new ReplaceAccessCommand(
@@ -432,6 +447,7 @@ class ReplaceAccessServiceTest {
         Role existingRole = mock(Role.class);
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
         when(roleRepository.findByCode(REPLACEMENT_ROLE)).thenReturn(Optional.of(existingRole));
+        when(authorityRepository.findActiveByCodes(Set.of("USER_READ"))).thenReturn(Set.of(authority("USER_READ")));
         when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class))).thenReturn(List.of());
         when(idGenerator.generateId()).thenReturn(newAssignmentId);
         when(assignmentRepository.save(any(AccessAssignment.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -440,7 +456,7 @@ class ReplaceAccessServiceTest {
 
         assertThat(result.roleCode()).isEqualTo(REPLACEMENT_ROLE);
         verify(roleRepository, never()).save(any());
-        verify(authorityRepository, never()).findActiveByCodes(any());
+        verify(authorityRepository).findActiveByCodes(Set.of("USER_READ"));
     }
 
     @Test
@@ -451,10 +467,11 @@ class ReplaceAccessServiceTest {
                 authorityRepository,
                 assignmentRepository,
                 sessionStore,
-                idGenerator
+                idGenerator,
+                catalogs
         );
 
-        Set<String> requestedAuths = Set.of("USER_READ", "INVALID_CODE!#", "*");
+        Set<String> requestedAuths = Set.of("USER_READ");
         ReplaceAccessCommand command = new ReplaceAccessCommand(
                 userId, null, REPLACEMENT_ROLE, SCOPE_KEY, SCOPE_ID, requestedAuths
         );
@@ -479,14 +496,15 @@ class ReplaceAccessServiceTest {
     }
 
     @Test
-    void shouldThrowRoleNotFound_whenRoleDoesNotExistAndNoActiveAuthoritiesMatch() {
+    void shouldRejectUnknownAuthority_withoutPersistingPartialAccess() {
         ReplaceAccessService serviceWithRoles = new ReplaceAccessService(
                 userRepository,
                 roleRepository,
                 authorityRepository,
                 assignmentRepository,
                 sessionStore,
-                idGenerator
+                idGenerator,
+                catalogs
         );
 
         ReplaceAccessCommand command = new ReplaceAccessCommand(
@@ -494,15 +512,10 @@ class ReplaceAccessServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
-        when(roleRepository.findByCode(REPLACEMENT_ROLE)).thenReturn(Optional.empty());
         when(authorityRepository.findActiveByCodes(Set.of("UNKNOWN_AUTH"))).thenReturn(Set.of());
 
         assertThatThrownBy(() -> serviceWithRoles.execute(command))
-                .isInstanceOf(IdentityServiceException.class)
-                .satisfies(ex -> {
-                    IdentityServiceException isEx = (IdentityServiceException) ex;
-                    assertThat(isEx.getMessageSource()).isInstanceOf(IdentityServiceError.RoleNotFound.class);
-                });
+                .isInstanceOf(com.identity.domain.exception.IdentityDomainValidationException.class);
 
         verify(roleRepository, never()).save(any());
         verify(assignmentRepository, never()).save(any());

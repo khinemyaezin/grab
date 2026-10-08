@@ -8,6 +8,7 @@ import com.identity.application.port.inbound.IdentityLookupUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import org.springframework.transaction.annotation.Propagation;
 import java.util.Optional;
 import java.util.Set;
 
@@ -18,13 +19,13 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQuery {
     private final IdentityLookupUseCase identityLookupUseCase;
 
     @Override
-    @IdentityReadTransactional
+    @IdentityReadTransactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<AuthenticatedActor> resolveByPlatformUserId(String issuer, String userId, AccessContext accessContext) {
         return identityLookupUseCase.resolveByPlatformUserId(issuer, userId, accessContext);
     }
 
     @Override
-    @IdentityReadTransactional
+    @IdentityReadTransactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<AuthenticatedActor> resolveByExternalIdentity(
             String issuer,
             String subject,

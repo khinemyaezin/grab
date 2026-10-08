@@ -28,4 +28,8 @@ public interface SecurityManifestDeclaredIntegrationEvent extends Event {
     default Instant publishedAt() {
         return null;
     }
+    default SecurityManifestEnvelope envelope() {
+        return new SecurityManifestEnvelope(SecurityManifestEnvelope.TYPE, SecurityManifestEnvelope.VERSION,
+                moduleKey(), eventId(), publishedAt(), suppliedContentDigest(), manifest());
+    }
 }

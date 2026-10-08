@@ -28,7 +28,6 @@ public class SecurityManifestRevisionEntity {
     @Column(name = "content_digest", nullable = false, updatable = false)
     private String contentDigest;
 
-    @Lob
     @Column(name = "payload", nullable = false, updatable = false, columnDefinition = "TEXT")
     private String payload;
 

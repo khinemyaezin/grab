@@ -7,9 +7,7 @@ import com.grab.framework.security.ScopeManifestDeclaredIntegrationEvent;
 import com.identity.application.model.write.RegisterScopeManifestCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 
-@Component
 @RequiredArgsConstructor
 public class IdentityScopeManifestRegistrationListener {
     private static final Logger log = Loggers.getLogger(IdentityScopeManifestRegistrationListener.class);

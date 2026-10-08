@@ -5,9 +5,7 @@ import com.grab.store.identity.internal.config.IdentityTransactional;
 import com.identity.application.model.write.RegisterScopeManifestCommand;
 import com.identity.application.port.inbound.RegisterScopeManifestUseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
 @RequiredArgsConstructor
 public class RegisterScopeManifestCommandHandler
         implements CommandHandler<RegisterScopeManifestCommand, Void> {

@@ -4,6 +4,8 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.identity.application.port.inbound.*;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
+import com.identity.application.port.outbound.SecurityManifestQueryPort;
+import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.ScopeOwnershipPort;
@@ -43,26 +45,29 @@ public class IdentityUseCaseConfig {
             AccessAssignmentRepository assignments,
             RoleRepository roles,
             InvitationTokenService invitationTokens,
-            IdGenerator ids
+            IdGenerator ids,
+            SecurityCatalogRepository catalogs
     ) {
-        return new AcceptAccessInvitationService(invitations, assignments, roles, invitationTokens, ids);
+        return new AcceptAccessInvitationService(catalogs, invitations, assignments, roles, invitationTokens, ids);
     }
 
     @Bean
     public CancelAccessInvitationUseCase cancelAccessInvitationUseCase(
             AccessInvitationRepository invitations,
-            RoleDelegationPolicy delegationPolicy
+            RoleDelegationPolicy delegationPolicy,
+            SecurityCatalogRepository catalogs
     ) {
-        return new CancelAccessInvitationService(invitations, delegationPolicy);
+        return new CancelAccessInvitationService(catalogs, invitations, delegationPolicy);
     }
 
     @Bean
     public ChangeAccessStatusUseCase changeAccessStatusUseCase(
             AccessAssignmentRepository assignments,
             SessionStore sessions,
-            RoleDelegationPolicy delegationPolicy
+            RoleDelegationPolicy delegationPolicy,
+            SecurityCatalogRepository catalogs
     ) {
-        return new ChangeAccessStatusService(assignments, sessions, delegationPolicy);
+        return new ChangeAccessStatusService(catalogs, assignments, sessions, delegationPolicy);
     }
 
     @Bean
@@ -80,9 +85,10 @@ public class IdentityUseCaseConfig {
             AccessInvitationRepository invitations,
             RoleDelegationPolicy delegationPolicy,
             InvitationTokenService invitationTokens,
-            IdGenerator ids
+            IdGenerator ids,
+            SecurityCatalogRepository catalogs
     ) {
-        return new CreateAccessInvitationService(roles, users, invitations, delegationPolicy, invitationTokens, ids);
+        return new CreateAccessInvitationService(catalogs, roles, users, invitations, delegationPolicy, invitationTokens, ids);
     }
 
     @Bean
@@ -106,21 +112,23 @@ public class IdentityUseCaseConfig {
             AccessAssignmentRepository assignments,
             RoleDelegationPolicy delegationPolicy,
             IdGenerator ids,
-            ScopeOwnershipPort scopeOwnershipPort
+            ScopeOwnershipPort scopeOwnershipPort,
+            SecurityCatalogRepository catalogs
     ) {
-        return new GrantAccessService(users, roles, assignments, delegationPolicy, ids, scopeOwnershipPort);
+        return new GrantAccessService(users, roles, assignments, delegationPolicy, ids, scopeOwnershipPort, catalogs);
     }
 
     @Bean
-    public ListAccessAssignmentsUseCase listAccessAssignmentsUseCase(AccessAssignmentQueryPort assignments) {
-        return new ListAccessAssignmentsService(assignments);
+    public ListAccessAssignmentsUseCase listAccessAssignmentsUseCase(AccessAssignmentQueryPort assignments, ScopeCatalogQueryPort scopes) {
+        return new ListAccessAssignmentsService(scopes, assignments);
     }
 
     @Bean
     public ListAccessContextsUseCase listAccessContextsUseCase(
-            AccessAssignmentQueryPort assignments
+            AccessAssignmentQueryPort assignments,
+            ScopeCatalogQueryPort scopes
     ) {
-        return new ListAccessContextsService(assignments);
+        return new ListAccessContextsService(scopes, assignments);
     }
 
     @Bean
@@ -158,46 +166,28 @@ public class IdentityUseCaseConfig {
     }
 
     @Bean
-    public RegisterAuthorityManifestUseCase registerAuthorityManifestUseCase(
-            AuthorityRepository authorityRepository,
-            IdGenerator idGenerator,
-            AuthorityManifestVersionRepository versionRepository
-    ) {
-        return new RegisterAuthorityManifestService(authorityRepository, idGenerator, versionRepository);
-    }
-
-    @Bean
-    public RegisterScopeManifestUseCase registerScopeManifestUseCase(ScopeManifestRepository repository) {
-        return new RegisterScopeManifestService(repository);
-    }
-
-    @Bean
     public RegisterSecurityManifestUseCase registerSecurityManifestUseCase(
-            SecurityManifestInboxRepository inbox,
-            ScopeManifestRepository scopeManifestRepository,
-            SecurityCatalogLock securityCatalogLock,
-            SecurityManifestRevisionRepository securityManifestRevisionRepository,
-            AuthorityRepository authorityRepository,
-            SecurityManifestModuleRepository securityManifestModuleRepository,
-            SecurityManifestCatalogRepository securityManifestCatalogRepository
-    ) {
-        return new RegisterSecurityManifestService(
-                inbox,
-                scopeManifestRepository,
-                securityCatalogLock,
-                securityManifestRevisionRepository,
-                authorityRepository,
-                securityManifestModuleRepository,
-                securityManifestCatalogRepository
-        );
+            SecurityCatalogRepository catalogs, SecurityManifestRevisionRepository revisions,
+            SecurityManifestInboxRepository inbox) {
+        return new RegisterSecurityManifestService(catalogs, revisions, inbox);
     }
 
     @Bean
-    public RevalidateWaitingSecurityManifestsUseCase revalidateWaitingSecurityManifestsUseCase(
-            SecurityManifestRevisionRepository revisions,
-            RegisterSecurityManifestUseCase registration
-    ) {
-        return new RevalidateWaitingSecurityManifestsService(revisions, registration);
+    public GetSecurityCatalogStatusUseCase getSecurityCatalogStatusUseCase(SecurityManifestQueryPort manifests) {
+        return new GetSecurityCatalogStatusService(manifests);
+    }
+
+    @Bean
+    public ListWaitingSecurityManifestCandidatesUseCase listWaitingSecurityManifestCandidatesUseCase(
+            SecurityManifestQueryPort manifests) {
+        return new ListWaitingSecurityManifestCandidatesService(manifests);
+    }
+
+    @Bean
+    public RevalidateSecurityManifestUseCase revalidateSecurityManifestUseCase(
+            SecurityManifestRevisionRepository revisions, RegisterSecurityManifestUseCase registration,
+            SecurityCatalogRepository catalogs) {
+        return new RevalidateSecurityManifestService(catalogs, revisions, registration);
     }
 
     @Bean
@@ -222,9 +212,10 @@ public class IdentityUseCaseConfig {
             AuthorityRepository authorities,
             AccessAssignmentRepository assignments,
             SessionStore sessions,
-            IdGenerator ids
+            IdGenerator ids,
+            SecurityCatalogRepository catalogs
     ) {
-        return new ReplaceAccessService(users, roles, authorities, assignments, sessions, ids);
+        return new ReplaceAccessService(users, roles, authorities, assignments, sessions, ids, catalogs);
     }
 
     @Bean

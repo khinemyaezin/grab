@@ -2,26 +2,20 @@ package com.identity.application.service;
 
 import com.grab.framework.security.ScopeDeclaration;
 import com.identity.application.model.write.RegisterScopeManifestCommand;
-import com.identity.domain.valueobject.ScopeHierarchy;
+import com.identity.domain.port.outbound.ScopeManifestRepository;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RegisterScopeManifestServiceTest {
     @Test
-    void registersScopeDeclarationsWithoutIdentityKnowingModuleKeys() {
-        var service = new RegisterScopeManifestService();
-        var declarations = List.of(
-                new ScopeDeclaration("test.account", null),
-                new ScopeDeclaration("test.store", "test.account")
-        );
-
-        service.execute(new RegisterScopeManifestCommand("test", 1, declarations));
-
-        assertThat(ScopeHierarchy.isRegistered("test.account")).isTrue();
-        assertThat(ScopeHierarchy.parentOf("test.store")).contains("test.account");
-        assertThat(ScopeHierarchy.isAncestorOrSelf("test.account", "test.store")).isTrue();
+    void execute_rejectedPersistence_doesNotFallBackToStaticState() {
+        ScopeManifestRepository repository = (owner, revision, declarations) -> false;
+        var service = new RegisterScopeManifestService(repository);
+        var declarations = List.of(new ScopeDeclaration("test.account", null));
+        var command = new RegisterScopeManifestCommand("test", 1, declarations);
+        assertThatThrownBy(() -> service.execute(command)).isInstanceOf(IllegalStateException.class);
     }
 }

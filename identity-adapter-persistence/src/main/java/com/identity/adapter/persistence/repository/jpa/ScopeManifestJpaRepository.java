@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Optional;
 
 public interface ScopeManifestJpaRepository extends JpaRepository<ScopeManifestEntity, Long> {
     List<ScopeManifestEntity> findByModuleKey(String moduleKey);
@@ -21,7 +22,7 @@ public interface ScopeManifestJpaRepository extends JpaRepository<ScopeManifestE
 
     boolean existsByScopeKeyAndActiveTrue(String scopeKey);
 
-    List<ScopeManifestEntity> findByScopeKey(String scopeKey);
+    Optional<ScopeManifestEntity> findByScopeKey(String scopeKey);
 
     List<ScopeManifestEntity> findByActiveTrue();
 }

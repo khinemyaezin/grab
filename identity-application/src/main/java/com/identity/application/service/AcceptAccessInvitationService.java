@@ -16,11 +16,13 @@ import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 
 import java.time.Instant;
 
 @RequiredArgsConstructor
 public class AcceptAccessInvitationService implements AcceptAccessInvitationUseCase {
+    private final SecurityCatalogRepository catalogs;
     private final AccessInvitationRepository invitations;
     private final AccessAssignmentRepository assignments;
     private final RoleRepository roles;
@@ -33,6 +35,8 @@ public class AcceptAccessInvitationService implements AcceptAccessInvitationUseC
                         new IdentityServiceError.AccessInvitationNotFound(),
                         "Access invitation not found"
                 ));
+        var catalog = catalogs.loadForUpdate();
+        catalog.requireEffectiveScope(invitation.getScope().key().value());
         Instant now = Instant.now();
         invitation.accept(command.userId(), new Email(command.userEmail()), now);
         Role role = roles.findByCode(invitation.getRoleCode()).orElseThrow(() ->

@@ -19,8 +19,14 @@ public final class ScopeHierarchy {
 
     private final Map<String, String> parentOf;
     private final Map<String, String> ownerOf;
+    private final Set<String> inactive;
 
     public ScopeHierarchy(Map<String, String> parentOf, Map<String, String> ownerOf) {
+        this(parentOf, ownerOf, Set.of());
+    }
+
+    public ScopeHierarchy(Map<String, String> parentOf, Map<String, String> ownerOf, Set<String> inactive) {
+        this.inactive = Set.copyOf(inactive);
         this.parentOf = Collections.unmodifiableMap(new LinkedHashMap<>(parentOf));
         this.ownerOf = Collections.unmodifiableMap(new LinkedHashMap<>(ownerOf));
     }
@@ -125,6 +131,9 @@ public final class ScopeHierarchy {
     }
 
     public boolean checkAncestorOrSelf(String actorKey, String targetKey) {
+        if (!isEffective(actorKey) || !isEffective(targetKey)) {
+            return false;
+        }
         if (actorKey.equals(targetKey)) {
             return true;
         }
@@ -143,6 +152,19 @@ public final class ScopeHierarchy {
             }
         }
         return false;
+    }
+
+    public boolean isEffective(String key) {
+        if (key == null || key.isBlank()) return false;
+        var visited = new LinkedHashSet<String>();
+        String current = key;
+        while (current != null && !ScopeKey.GLOBAL_VALUE.equals(current)) {
+            if (!visited.add(current) || !parentOf.containsKey(current) || inactive.contains(current)) {
+                return false;
+            }
+            current = parentOf.get(current);
+        }
+        return true;
     }
 
     public Optional<String> getParent(String scopeKey) {

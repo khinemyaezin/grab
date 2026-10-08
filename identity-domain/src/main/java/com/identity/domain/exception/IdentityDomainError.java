@@ -44,7 +44,10 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.SecurityManifestUnknownParentScope,
         IdentityDomainError.SecurityManifestScopeOwnerConflict,
         IdentityDomainError.SecurityManifestScopeCycle,
-        IdentityDomainError.SecurityManifestAuthorityOwnerConflict {
+        IdentityDomainError.SecurityManifestAuthorityOwnerConflict,
+        IdentityDomainError.SecurityManifestOmittedScope,
+        IdentityDomainError.SecurityManifestReactivation,
+        IdentityDomainError.SecurityManifestInvalidDependency {
 
     record AuthorityManifestVersionConflict(String moduleKey, int version) implements IdentityDomainError {
         @Override
@@ -578,4 +581,31 @@ public sealed interface IdentityDomainError extends MessageSource permits
         @Override
         public Map<String, Object> args() { return Map.of("authorityCode", authorityCode); }
     }
+    record SecurityManifestOmittedScope(String moduleKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.omitted_scope"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey); }
+    }
+
+    record SecurityManifestReactivation(String key) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.reactivation"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("key", key); }
+    }
+
+    record SecurityManifestInvalidDependency(String dependencyKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.invalid_dependency"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("dependencyKey", dependencyKey); }
+    }
+
 }

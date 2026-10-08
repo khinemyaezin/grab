@@ -13,8 +13,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.jdbc.core.JdbcTemplate;
-import com.grab.store.shared.security.SecurityManifestPublicationCoordinator;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -75,9 +73,4 @@ public class MerchantModuleDataSourceConfig {
         return new JpaTransactionManager(entityManagerFactory);
     }
 
-    @Bean("merchantSecurityManifestPublicationCoordinator")
-    SecurityManifestPublicationCoordinator merchantSecurityManifestPublicationCoordinator(
-            @Qualifier("merchantDataSource") DataSource dataSource) {
-        return new SecurityManifestPublicationCoordinator(new JdbcTemplate(dataSource));
-    }
 }

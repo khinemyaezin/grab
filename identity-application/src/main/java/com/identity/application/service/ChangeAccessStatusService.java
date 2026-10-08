@@ -13,9 +13,11 @@ import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import lombok.RequiredArgsConstructor;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 
 @RequiredArgsConstructor
 public class ChangeAccessStatusService implements ChangeAccessStatusUseCase {
+    private final SecurityCatalogRepository catalogs;
     private final AccessAssignmentRepository assignments;
     private final SessionStore sessions;
     private final RoleDelegationPolicy delegationPolicy;
@@ -26,8 +28,10 @@ public class ChangeAccessStatusService implements ChangeAccessStatusUseCase {
                         "Access assignment not found"
                 )
         );
-        AccessScope.from(command.actorScopeKey(), command.actorScopeId())
-                .requireEncompasses(assignment.getScope());
+        var catalog = catalogs.loadForUpdate();
+        var hierarchy = catalog.hierarchy();
+        AccessScope actorScope = AccessScope.from(command.actorScopeKey(), command.actorScopeId());
+        actorScope.requireEncompasses(assignment.getScope(), hierarchy);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), assignment.getRoleCode());
         assignment.changeStatus(command.requestedStatus(), command.actorId());
         AccessAssignment saved = assignments.save(assignment);

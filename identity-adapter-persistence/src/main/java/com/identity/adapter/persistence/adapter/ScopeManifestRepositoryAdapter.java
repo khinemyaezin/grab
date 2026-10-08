@@ -8,6 +8,8 @@ import com.identity.domain.port.outbound.ScopeManifestRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -112,10 +114,9 @@ public class ScopeManifestRepositoryAdapter implements ScopeManifestRepository {
     public Map<String, String> loadGraph() {
         return executor.query("ScopeManifest", () -> {
             List<ScopeManifestEntity> all = repository.findAll();
-            return all.stream().collect(Collectors.toUnmodifiableMap(
-                    ScopeManifestEntity::getScopeKey,
-                    ScopeManifestEntity::getParentScopeKey,
-                    (left, right) -> left));
+            Map<String, String> graph = new HashMap<>();
+            all.forEach(scope -> graph.put(scope.getScopeKey(), scope.getParentScopeKey()));
+            return Collections.unmodifiableMap(graph);
         });
     }
 
