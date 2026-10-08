@@ -18,7 +18,7 @@ public class AuthModelAssembler implements RepresentationModelAssembler<AuthResp
     public EntityModel<AuthResponse> toModel(AuthResponse response) {
         EntityModel<AuthResponse> entity = EntityModel.of(response);
         entity.add(linkTo(methodOn(AuthController.class)
-                .login(null, null))
+                .login(null))
                 .withRel("login"));
 
         if (response.accessToken() != null && !response.accessToken().isBlank()) {
@@ -28,7 +28,7 @@ public class AuthModelAssembler implements RepresentationModelAssembler<AuthResp
         }
         if (response.contextSelectionRequired()) {
             entity.add(linkTo(methodOn(AccessContextController.class)
-                    .listContexts(null, null))
+                    .listContexts(null))
                     .withRel("select-access-context"));
         }
         return entity;

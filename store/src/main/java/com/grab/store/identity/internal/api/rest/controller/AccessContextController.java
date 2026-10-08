@@ -8,7 +8,6 @@ import com.grab.store.identity.internal.api.rest.service.AccessCommandService;
 import com.grab.store.identity.internal.api.rest.service.AccessQueryService;
 import com.grab.store.shared.security.util.AuthCookieHelper;
 import com.grab.store.shared.security.SecurityPrincipal;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -35,17 +34,12 @@ public class AccessContextController {
 
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<AccessContextResponse>>> listContexts(
-            @RequestHeader(value = "X-Platform") @NotBlank String platformCode,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        List<EntityModel<AccessContextResponse>> contexts = queryService
-                .listContexts(principal.getPlatformUserId(), platformCode)
-                .stream()
-                .map(contextModelAssembler::toModel)
-                .toList();
-        CollectionModel<EntityModel<AccessContextResponse>> model = CollectionModel.of(contexts);
+        List<AccessContextResponse> responses = queryService.listContexts(principal.getPlatformUserId());
+        CollectionModel<EntityModel<AccessContextResponse>> model = contextModelAssembler.toCollectionModel(responses);
         model.add(linkTo(methodOn(AccessContextController.class)
-                .listContexts(platformCode, null))
+                .listContexts(null))
                 .withRel("list-access-contexts"));
         return ResponseEntity.ok(model);
     }

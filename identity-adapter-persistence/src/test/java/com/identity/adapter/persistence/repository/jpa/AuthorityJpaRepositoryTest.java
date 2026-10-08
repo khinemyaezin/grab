@@ -5,6 +5,7 @@ import com.identity.adapter.persistence.repository.jpa.config.RepositoryTestConf
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,9 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
     @Autowired
     private AuthorityJpaRepository authorityJpaRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     private AuthorityEntity readAuthority;
     private AuthorityEntity writeAuthority;
 
@@ -24,13 +28,21 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
         authorityJpaRepository.deleteAll();
 
         readAuthority = new AuthorityEntity();
+        readAuthority.setUuid("authority-read");
         readAuthority.setCode("READ");
+        readAuthority.setCategory("identity");
+        readAuthority.setOwnerKey("identity");
+        readAuthority.setSourceRevision(1);
         readAuthority.setName("Read Permission");
         readAuthority.setDescription("Allows read access");
         readAuthority.setActive(true);
 
         writeAuthority = new AuthorityEntity();
+        writeAuthority.setUuid("authority-write");
         writeAuthority.setCode("WRITE");
+        writeAuthority.setCategory("identity");
+        writeAuthority.setOwnerKey("identity");
+        writeAuthority.setSourceRevision(1);
         writeAuthority.setName("Write Permission");
         writeAuthority.setDescription("Allows write access");
         writeAuthority.setActive(false);
@@ -43,6 +55,8 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
         Optional<AuthorityEntity> result = authorityJpaRepository.findByCode("READ");
 
         assertThat(result).isPresent();
+        assertThat(result.get().getUuid()).isEqualTo("authority-read");
+        assertThat(result.get().getCategory()).isEqualTo("identity");
         assertThat(result.get().getName()).isEqualTo("Read Permission");
         assertThat(result.get().getDescription()).isEqualTo("Allows read access");
         assertThat(result.get().isActive()).isTrue();
@@ -76,7 +90,11 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
     @Test
     void save_persistsNewAuthority() {
         AuthorityEntity deleteAuthority = new AuthorityEntity();
+        deleteAuthority.setUuid("authority-delete");
         deleteAuthority.setCode("DELETE");
+        deleteAuthority.setCategory("identity");
+        deleteAuthority.setOwnerKey("identity");
+        deleteAuthority.setSourceRevision(1);
         deleteAuthority.setName("Delete Permission");
         deleteAuthority.setActive(true);
 
@@ -84,5 +102,40 @@ public class AuthorityJpaRepositoryTest extends RepositoryTestConfig {
 
         assertThat(saved.getId()).isNotNull();
         assertThat(authorityJpaRepository.findByCode("DELETE")).isPresent();
+    }
+
+    @Test
+    void upsertByCode_updatesMetadataAndPreservesInactiveStatus() {
+        authorityJpaRepository.saveAndFlush(writeAuthority);
+
+        authorityJpaRepository.upsertByCode(
+                "authority-replacement",
+                "WRITE",
+                "merchant",
+                "Updated write permission",
+                "Updated description"
+        );
+        entityManager.clear();
+
+        AuthorityEntity updated = authorityJpaRepository.findByCode("WRITE").orElseThrow();
+        assertThat(updated.getUuid()).isEqualTo("authority-write");
+        assertThat(updated.getCategory()).isEqualTo("merchant");
+        assertThat(updated.getName()).isEqualTo("Updated write permission");
+        assertThat(updated.getDescription()).isEqualTo("Updated description");
+        assertThat(updated.isActive()).isFalse();
+        assertThat(authorityJpaRepository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void upsertByCode_insertsNewAuthorityAsActiveAndIsIdempotent() {
+        authorityJpaRepository.upsertByCode("authority-new", "NEW", "identity", "New permission", "New description");
+        authorityJpaRepository.upsertByCode("authority-new", "NEW", "identity", "New permission v2", "New description v2");
+        entityManager.clear();
+
+        AuthorityEntity created = authorityJpaRepository.findByCode("NEW").orElseThrow();
+        assertThat(created.getName()).isEqualTo("New permission v2");
+        assertThat(created.getDescription()).isEqualTo("New description v2");
+        assertThat(created.isActive()).isTrue();
+        assertThat(authorityJpaRepository.count()).isEqualTo(3);
     }
 }

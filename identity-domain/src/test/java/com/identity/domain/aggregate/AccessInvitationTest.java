@@ -24,7 +24,6 @@ class AccessInvitationTest {
         AccessInvitation invitation = AccessInvitation.create(
                 new CommonId("invitation-1"),
                 new Email("STAFF@example.com"),
-                sellerPlatform(),
                 "STOREFRONT_MANAGER",
                 new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                 TOKEN_HASH,
@@ -69,7 +68,6 @@ class AccessInvitationTest {
                 () -> AccessInvitation.create(
                         new CommonId("invitation-1"),
                         new Email("owner@example.com"),
-                        sellerPlatform(),
                         "STOREFRONT_MANAGER",
                         new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                         TOKEN_HASH,
@@ -100,14 +98,13 @@ class AccessInvitationTest {
     }
 
     @Test
-    void create_withUnsupportedPlatformRole_shouldRejectInvitation() {
+    void create_withInvalidRoleCode_shouldRejectInvitation() {
         IdentityDomainValidationException exception = assertThrows(
                 IdentityDomainValidationException.class,
                 () -> AccessInvitation.create(
                         new CommonId("invitation-1"),
                         new Email("staff@example.com"),
-                        sellerPlatform(),
-                        "SUPER_ADMIN",
+                        "invalid-role-code!",
                         new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                         TOKEN_HASH,
                         new CommonId("owner-1"),
@@ -116,7 +113,7 @@ class AccessInvitationTest {
                 )
         );
 
-        assertInstanceOf(IdentityDomainError.PlatformRoleNotSupported.class,
+        assertInstanceOf(IdentityDomainError.InvalidAccessCode.class,
                 exception.getMessageSource());
     }
 
@@ -125,7 +122,6 @@ class AccessInvitationTest {
         return new AccessInvitation(
                 new CommonId("invitation-1"),
                 new Email("staff@example.com"),
-                "SELLER_PORTAL",
                 "STOREFRONT_MANAGER",
                 new AccessScope(new ScopeKey("merchant.storefront"), "storefront-1"),
                 TOKEN_HASH,
@@ -135,16 +131,6 @@ class AccessInvitationTest {
                 expiresAt,
                 null,
                 createdAt
-        );
-    }
-
-    private Platform sellerPlatform() {
-        return new Platform(
-                new CommonId("seller-platform"),
-                "SELLER_PORTAL",
-                "Seller Portal",
-                true,
-                java.util.Set.of("STOREFRONT_MANAGER")
         );
     }
 }

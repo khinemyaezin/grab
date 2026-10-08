@@ -1,8 +1,7 @@
 # Identity Security Architecture Diagram
 
-This diagram describes the authentication and authorization architecture for
-the platform. It keeps the application contract stable while credential and
-token infrastructure changes from self-hosted JWT to an external provider.
+This diagram describes the authentication, authorization, access context resolution,
+and distributed security manifest synchronization architecture for the platform.
 
 ## Overview: Provider-Neutral Authentication Architecture
 
@@ -12,80 +11,81 @@ flowchart TD
 
     %% --- Key Components ---
     subgraph FilterLayer["Security Filter Chain"]
-        AuthFilter["Authentication Filter\n(Intercepts Request)"]
+        AuthFilter["ProviderBearerAuthenticationFilter\n(Inspects Header & HttpOnly Cookies)"]
     end
 
     subgraph AuthLayer["Authentication & Identity"]
-        JwtAuth["JWT Authenticator\n(Verifies Signature)"]
-        IdentityResolver["Identity Resolver\n(Builds User Principal)"]
-        TokenIssuer["Token Issuer\n(Handles Login / Refresh)"]
+        JwtAuth["LocalJwtAccessTokenAuthenticator\n(Verifies RSA Signature & Claims)"]
+        IdentityResolver["PlatformIdentityResolver / IdentityResolver\n(Resolves Actor & Scoped Entitlements)"]
+        TokenLifeCycle["TokenLifeCycle\n(Handles Issuance & Refresh Rotation)"]
     end
 
     subgraph DataLayer["Infrastructure & Persistence"]
         KeyConfig["RSA Key Pair\n(Signing / Verification)"]
-        UserDB[(Users, Roles & Authorities)]
+        UserDB[(Users, Roles, Authorities, Access Assignments)]
         SessionDB[(Refresh Sessions)]
+        ManifestDB[(Security Manifests & Scopes)]
     end
 
-    subgraph AppLayer["Application"]
-        Controllers["Secured Controllers & Services"]
+    subgraph AppLayer["Application Layer"]
+        Controllers["Secured Controllers & CQRS Handlers"]
     end
 
     %% --- Token Issuance Flow ---
-    TokenIssuer -- "Signs JWT" --> KeyConfig
-    TokenIssuer -- "Manages Family Rotation" --> SessionDB
+    TokenLifeCycle -- "Signs JWT" --> KeyConfig
+    TokenLifeCycle -- "Manages Family Rotation" --> SessionDB
 
     %% --- API Request Flow ---
-    Client -- "1. Request + Bearer Token" --> AuthFilter
+    Client -- "1. Request (Bearer Token or Cookie)" --> AuthFilter
     
     AuthFilter -- "2. Validate Token" --> JwtAuth
     JwtAuth -. "Read Public Key" .-> KeyConfig
-    JwtAuth -- "3. Valid Token Subject" --> IdentityResolver
+    JwtAuth -- "3. Valid ExternalPrincipal" --> IdentityResolver
     
-    IdentityResolver -. "Fetch User & Entitlements" .-> UserDB
-    IdentityResolver -- "4. Return Authenticated Actor" --> AuthFilter
+    IdentityResolver -. "Fetch User & Scoped Effective Roles" .-> UserDB
+    IdentityResolver -- "4. Return AuthenticatedActor" --> AuthFilter
     
-    AuthFilter -- "5. Forward Request" --> Controllers
-    
-    %% Styling for clarity
-    classDef auth fill:#003F54,stroke:#333,stroke-width:2px;
-    classDef db fill:#00470E,stroke:#333,stroke-width:2px;
-    
-    class AuthFilter filter;
-    class JwtAuth,IdentityResolver,TokenIssuer auth;
-    class UserDB,SessionDB,KeyConfig db;
-
+    AuthFilter -- "5. Set SecurityPrincipal in SecurityContext" --> Controllers
 ```
+
+---
 
 ## Authentication Flow
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Filter as Spring Bearer Token Filter
+    participant Filter as ProviderBearerAuthenticationFilter
+    participant CookieHelper as AuthCookieHelper
     participant Auth as AccessTokenAuthenticator
     participant Resolver as PlatformIdentityResolver
-    participant Identity as Platform Identity
+    participant Identity as IdentityLookupQueryPort
     participant SC as SecurityContext
     participant Controller
     participant Handler
 
-    Client->>Filter: HTTP Request with Bearer token
-    Filter->>Filter: Extract token from Authorization header
-    Filter->>Auth: authenticate(bearerToken)
-    Auth->>Auth: Validate local JWT, OIDC JWT, or opaque token
-    Auth-->>Filter: ExternalPrincipal
-    Filter->>Resolver: resolve(externalPrincipal)
-    Resolver->>Identity: Resolve identity, status, roles, authorities
-    Identity-->>Resolver: Platform user and effective access
-    Resolver-->>Filter: AuthenticatedActor
-    Filter->>SC: Set SecurityContext with SecurityPrincipal
-    Filter->>Controller: Continue filter chain
-    Controller->>Controller: @AuthenticationPrincipal SecurityPrincipal
-    Controller->>Handler: Dispatch via CQRS bus
-    Handler-->>Controller: Result
-    Controller-->>Client: HTTP Response
+    Client->>Filter: HTTP Request (Bearer token or accessToken cookie)
+    Filter->>Filter: Extract token from Authorization header or cookie
+    alt Token Missing
+        Filter->>Controller: Continue filter chain (anonymous access)
+    else Token Present
+        Filter->>Auth: authenticate(token)
+        Auth->>Auth: Validate RSA signature, issuer, audience, expiry, type
+        Auth-->>Filter: ExternalPrincipal (with optional AccessContext)
+        Filter->>Resolver: resolve(externalPrincipal)
+        Resolver->>Identity: resolveByPlatformUserId(issuer, subject, accessContext)
+        Identity-->>Resolver: Platform user, active status, effective roles & authorities
+        Resolver-->>Filter: AuthenticatedActor
+        Filter->>SC: Set SecurityContext with SecurityPrincipal
+        Filter->>Controller: Continue filter chain
+        Controller->>Controller: @AuthenticationPrincipal SecurityPrincipal
+        Controller->>Handler: Dispatch via CQRS CommandBus/QueryBus
+        Handler-->>Controller: Result
+        Controller-->>Client: HTTP Response
+    end
 ```
+
+---
 
 ## Login Flow
 
@@ -96,26 +96,46 @@ sequenceDiagram
     participant CommandService as AuthCommandService
     participant Bus as CommandBus
     participant Handler as LoginCommandHandler
-    participant Repo as UserRepository
+    participant UseCase as LoginService
+    participant UserRepo as UserRepository
     participant Hasher as PasswordHasher
-    participant Issuer as Local TokenIssuer
+    participant AssignRepo as AccessAssignmentRepository
+    participant Resolver as PlatformIdentityResolver
+    participant Issuer as TokenLifeCycle
+    participant CookieHelper as AuthCookieHelper
 
     Client->>AuthController: POST /api/v1/identity/auth/login {email, password}
     AuthController->>CommandService: login(request)
     CommandService->>Bus: dispatch(LoginCommand)
     Bus->>Handler: handle(LoginCommand)
-    Handler->>Repo: findByEmail(email)
-    Repo-->>Handler: User aggregate
-    Handler->>Handler: Validate status is ACTIVE
-    Handler->>Hasher: verify(rawPassword, user.passwordHash)
-    Hasher-->>Handler: true
-    Handler->>Issuer: issue(AuthenticatedActor)
-    Issuer-->>Handler: TokenPair(accessToken with roles[] claim, refreshToken, expiresIn)
-    Handler-->>Bus: LoginResult
-    Bus-->>CommandService: LoginResult
+    Handler->>UseCase: execute(command)
+    UseCase->>UserRepo: findByEmail(email)
+    UserRepo-->>UseCase: User aggregate
+    UseCase->>UseCase: Validate user is ACTIVE
+    UseCase->>Hasher: verify(rawPassword, passwordHash)
+    Hasher-->>UseCase: true
+
+    UseCase->>AssignRepo: findEffectiveByUser(userId, now)
+    AssignRepo-->>UseCase: List<AccessAssignment>
+
+    alt Single Distinct Scope
+        UseCase->>UseCase: Auto-select single scope context
+    else Multiple Scopes or Zero Scopes
+        UseCase->>UseCase: Context-free token (requires subsequent context selection)
+    end
+
+    UseCase->>Resolver: resolve(ExternalPrincipal with resolved context)
+    Resolver-->>UseCase: AuthenticatedActor
+    UseCase->>Issuer: issue(actor)
+    Issuer-->>UseCase: TokenPair (access + refresh token)
+    UseCase-->>Bus: AuthResult
+    Bus-->>CommandService: AuthResult
     CommandService-->>AuthController: AuthResponse
-    AuthController-->>Client: 200 OK {accessToken, refreshToken, expiresIn, role}
+    AuthController->>CookieHelper: createTokenCookies(...)
+    AuthController-->>Client: 200 OK + Set-Cookie (accessToken, refreshToken) + AuthResponse body
 ```
+
+---
 
 ## Registration Flow
 
@@ -125,69 +145,84 @@ sequenceDiagram
     participant AuthController
     participant CommandService as AuthCommandService
     participant Bus as CommandBus
-    participant Handler as RegisterUserCommandHandler
-    participant Repo as UserRepository
+    participant Handler as RegisterCommandHandler
+    participant UseCase as RegisterService
+    participant UserRepo as UserRepository
     participant Hasher as PasswordHasher
-    participant Issuer as Local TokenIssuer
+    participant EventPub as UserRegistrationIntegrationEventPublisher
+    participant CustomerModule as CustomerBoundedContext
 
-    Client->>AuthController: POST /api/v1/identity/auth/register {email, password, role}
+    Client->>AuthController: POST /api/v1/identity/auth/register {email, password}
     AuthController->>CommandService: register(request)
-    CommandService->>Bus: dispatch(RegisterUserCommand)
-    Bus->>Handler: handle(RegisterUserCommand)
-    Handler->>Repo: existsByEmail(email)
-    Repo-->>Handler: false
-    Handler->>Hasher: hash(rawPassword)
-    Hasher-->>Handler: HashedPassword
-    Handler->>Handler: Create User aggregate (status based on role)
-    Handler->>Repo: save(user)
-    Repo-->>Handler: saved User
+    CommandService->>Bus: dispatch(RegisterCommand)
+    Bus->>Handler: handle(RegisterCommand)
+    Handler->>UseCase: execute(RegisterCommand)
+    UseCase->>UserRepo: findByEmail(email)
+    UserRepo-->>UseCase: Optional.empty()
+    UseCase->>Hasher: hash(rawPassword)
+    Hasher-->>UseCase: HashedPassword
+    UseCase->>UseCase: User.createLocal(id, email, password)
+    UseCase->>UserRepo: save(user)
+    UserRepo-->>UseCase: saved User
+    UseCase-->>Bus: UserProfileResult
+    Bus-->>CommandService: UserProfileResult
+    CommandService-->>AuthController: UserProfileResponse
 
-    alt Customer (ACTIVE)
-        Handler->>Issuer: issue(AuthenticatedActor)
-        Issuer-->>Handler: TokenPair
-        Handler-->>Client: 201 {accessToken, refreshToken, expiresIn}
-    else Seller (PENDING_APPROVAL)
-        Handler-->>Client: 201 {message: "Pending admin approval"}
-    end
+    Note over UseCase,EventPub: Domain event UserRegisteredEvent emitted
+    EventPub->>EventPub: onUserRegistered(UserRegisteredEvent)
+    EventPub-->>CustomerModule: UserRegisteredIntegrationEvent
+    CustomerModule->>CustomerModule: AttachUserToCustomer / create customer profile
+
+    AuthController-->>Client: 201 Created (UserProfileResponse)
 ```
 
-## External Provider Flow (Future)
+---
+
+## Distributed Security Manifest Synchronization Flow
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant IdP as Keycloak
-    participant Security as Spring Resource Server
-    participant Auth as AccessTokenAuthenticator
-    participant Resolver as PlatformIdentityResolver
-    participant Identity as Platform Identity
-    participant Controller
+    participant ModulePub as {Module}SecurityManifestStartupPublisher
+    participant Outbox as Transactional Outbox
+    participant Listener as IdentitySecurityManifestRegistrationListener
+    participant Bus as CommandBus
+    participant Handler as RegisterSecurityManifestCommandHandler
+    participant Service as RegisterSecurityManifestService
+    participant Lock as SecurityCatalogLock
+    participant Inbox as SecurityManifestInboxRepository
+    participant Adapter as SecurityManifestCatalogRepositoryAdapter
+    participant DB as Identity Database
+    participant Memory as ScopeHierarchy (In-Memory)
 
-    Client->>IdP: Login / refresh / logout
-    IdP-->>Client: Provider token pair
-    Client->>Security: API request with access token
-    Security->>Auth: Authenticate JWT or opaque bearer token
-    Auth->>Auth: Use discovery/JWKS or token introspection
-    Auth-->>Security: ExternalPrincipal
-    Security->>Resolver: Resolve provider principal
-    Resolver->>Identity: Resolve identity and provider-entitlement mappings
-    Identity-->>Resolver: platformUserId, status, roles, authorities
-    Resolver-->>Security: AuthenticatedActor
-    Security->>Controller: Continue with the same application principal
+    ModulePub->>Outbox: Produce SecurityManifestDeclaredIntegrationEvent
+    Outbox-->>Listener: Receive SecurityManifestDeclaredIntegrationEvent
+    Listener->>Listener: Verify module ownership against event class
+    Listener->>Bus: dispatch(RegisterSecurityManifestCommand)
+    Bus->>Handler: handle(command) [@IdentityTransactional]
+    Handler->>Service: execute(command)
+
+    Service->>Lock: lockNowait() (Pessimistic lock)
+    Service->>Service: Verify SHA-256 content digest
+    Service->>Inbox: Check idempotency & revision conflicts
+    Service->>Service: Verify cross-module dependencies (minimum revision)
+    Service->>Service: SecurityManifestValidator.validate()
+    Service->>Adapter: catalog.apply(manifest)
+    Adapter->>DB: Upsert Authorities & Apply Scopes
+    Service->>DB: Record applied module revision & bump catalog revision
+    Service->>Inbox: Record status = APPLIED
+    Memory-->>Memory: Hierarchy available for scope encompasses checks
 ```
 
-Keycloak replaces local credential and token endpoints. It does not replace
-the platform user, seller approval, local role-to-authority policy, or
-resource-ownership checks.
+---
 
 ## Authorization: Endpoint Access Matrix
 
 ```mermaid
 flowchart LR
     subgraph public["Public (No Auth)"]
-        P1["POST /auth/register"]
-        P2["POST /auth/login"]
-        P3["POST /auth/refresh"]
+        P1["POST /identity/auth/register"]
+        P2["POST /identity/auth/login"]
+        P3["POST /identity/auth/refresh"]
         P4["GET /api/v1"]
         P5["GET /catalog/products/*"]
         P6["GET /catalog/categories/**"]
@@ -203,76 +238,67 @@ flowchart LR
         A5["*/identity/admin/**"]
     end
 
-    subgraph commerce["Commerce Authorities"]
-        S1["POST/PUT/DELETE /products/**"]
-        S2["/inventory/**"]
+    subgraph commerce["Scoped Commerce Authorities"]
+        S1["POST/PUT/DELETE /products/** (MERCHANT_WRITE)"]
+        S2["/inventory/** (INVENTORY_MANAGE)"]
+        S3["POST /identity/access-contexts/{id}/select"]
     end
 
     subgraph authenticated["Any Authenticated"]
         AU1["GET /identity/profile"]
-        AU2["All other endpoints"]
+        AU2["GET /identity/access-contexts"]
     end
 ```
 
-The moderation routes require `PRODUCT_MODERATE` or the corresponding finer
-authority. Product mutation requires `PRODUCT_WRITE_OWN` or
-`PRODUCT_WRITE_ANY`; inventory mutation requires `INVENTORY_MANAGE_OWN` or
-`INVENTORY_MANAGE_ANY`. Identity administration uses authorities such as
-`SELLER_APPROVE`, `USER_SUSPEND`, and `ROLE_MANAGE`. Roles receive these
-authorities through database mappings. Handlers separately verify that the
-authenticated `platformUserId` owns seller-scoped resources.
+---
 
-## Module Dependency After Security
+## Hexagonal Module Architecture & Dependencies
 
 ```mermaid
 flowchart BT
-    framework["framework"]
-    identityDomain["identity-domain"]
-    identityInfra["identity-infrastructure"]
-    catalogDomain["catalog-domain"]
-    catalogInfra["catalog-infrastructure"]
-    inventoryDomain["inventory-domain"]
-    inventoryInfra["inventory-infrastructure"]
+    framework["framework\n(Core domain, Security types, CQRS)"]
+    
+    subgraph identityBC["Identity Bounded Context"]
+        identityDomain["identity-domain\n(User, Role, AccessAssignment, Scopes)"]
+        identityApp["identity-application\n(Use Cases, Commands, Queries, Services)"]
+        identityPersistence["identity-adapter-persistence\n(JPA Entities, Repositories, Adapters)"]
+    end
+
+    subgraph otherBCs["Catalog, Merchant, Inventory Bounded Contexts"]
+        otherDomain["{bc}-domain"]
+        otherApp["{bc}-application"]
+        otherPersistence["{bc}-adapter-persistence"]
+    end
+
     outbox["outbox-infrastructure"]
     logger["logger-slf4j"]
-    store["store"]
+    store["store\n(REST Controllers, Security Filters, Modulith Root)"]
 
     identityDomain --> framework
-    identityInfra --> identityDomain
-    catalogDomain --> framework
-    catalogInfra --> catalogDomain
-    inventoryDomain --> framework
-    inventoryInfra --> inventoryDomain
-    outbox --> framework
-    logger --> framework
-    store --> identityInfra
-    store --> catalogInfra
-    store --> inventoryInfra
+    identityApp --> identityDomain
+    identityPersistence --> identityApp
+    identityPersistence --> identityDomain
+
+    otherDomain --> framework
+    otherApp --> otherDomain
+    otherPersistence --> otherApp
+    otherPersistence --> otherDomain
+
+    store --> identityPersistence
+    store --> identityApp
+    store --> identityDomain
+    store --> otherPersistence
+    store --> otherApp
+    store --> otherDomain
     store --> outbox
     store --> logger
 ```
 
+---
+
 ## Notes
 
-- The `AuthenticatedActor` record lives in `framework`, allowing modules to
-  consume identity without depending on Spring Security or an IdP SDK.
-- `AccessTokenAuthenticator` hides token format and provider SDKs. Its
-  implementations validate local JWTs, OIDC JWTs through discovery/JWKS, or
-  OAuth2 opaque tokens through introspection.
-- Every authenticator returns the same `ExternalPrincipal`; raw JWT claims and
-  introspection responses do not enter controllers or handlers.
-- The API accepts bearer access tokens only. OIDC ID tokens are not valid API
-  access tokens.
-- `PlatformIdentityResolver` supports configurable realm-role, client-role,
-  group, scope, or introspection-field mappings and hides those formats from
-  the application.
-- `(issuer, subject)` resolves to a stable local `platformUserId`; email is not
-  used as a permanent identity key.
-- Local roles and role-to-authority mappings remain the commerce authorization
-  source after Keycloak adoption.
-- `TokenIssuer` is local identity infrastructure. Keycloak replaces local
-  login, issuance, refresh, and logout rather than implementing that port.
-- Error responses for 401 and 403 follow the existing RFC 7807 ProblemDetail
-  format from `GlobalApiExceptionHandler`.
-- Dashed lines represent future external JWT/JWKS or opaque-token
-  introspection infrastructure.
+- **Decoupled Roles**: The `User` aggregate does not store roles or refresh tokens. Roles and scopes are assigned dynamically via `AccessAssignment`.
+- **HttpOnly Cookies & Bearer Tokens**: `ProviderBearerAuthenticationFilter` inspects both the `Authorization: Bearer` header and `accessToken` cookies, ensuring secure browser execution while supporting headless API clients.
+- **Scope Hierarchy**: Scope parent-child relationships (e.g. `merchant.storefront` owned by `merchant.account`) are published via manifests and cached in `ScopeHierarchy` for zero-IO permission encompassing checks.
+- **Provider Neutrality**: Token parsing emits `ExternalPrincipal`, resolved into `AuthenticatedActor` by `PlatformIdentityResolver`, allowing easy migration from local RSA JWTs to external OIDC providers (Keycloak, Auth0, Cognito).

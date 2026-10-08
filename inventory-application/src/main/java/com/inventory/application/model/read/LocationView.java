@@ -4,6 +4,7 @@ import com.inventory.domain.enums.LocationType;
 
 public record LocationView(
         String uuid,
+        String merchantId,
         String code,
         String name,
         LocationType type,

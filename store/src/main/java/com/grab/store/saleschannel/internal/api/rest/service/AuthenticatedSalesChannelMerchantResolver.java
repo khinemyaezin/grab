@@ -21,7 +21,6 @@ public class AuthenticatedSalesChannelMerchantResolver {
         }
         return ScopeResolverHelper.resolveScopeId(
                         principal,
-                        PlatformScopes.SELLER_PORTAL,
                         PlatformScopes.MERCHANT_ACCOUNT_SCOPE)
                 .orElseThrow(() -> buildForbiddenException(principal));
     }
@@ -29,7 +28,6 @@ public class AuthenticatedSalesChannelMerchantResolver {
     public String resolveCurrentMerchantId(SecurityPrincipal principal) {
         return ScopeResolverHelper.resolveScopeId(
                         principal,
-                        PlatformScopes.SELLER_PORTAL,
                         PlatformScopes.MERCHANT_ACCOUNT_SCOPE)
                 .orElseThrow(() -> buildForbiddenException(principal));
     }
@@ -45,7 +43,7 @@ public class AuthenticatedSalesChannelMerchantResolver {
     private SalesChannelServiceException forbidden(String scopeKey, String scopeId) {
         return new SalesChannelServiceException(
                 new SalesChannelServiceError.MerchantScopeRequired(safe(scopeKey), safe(scopeId)),
-                "A Seller Portal merchant account scope is required"
+                "A merchant account scope is required"
         );
     }
 

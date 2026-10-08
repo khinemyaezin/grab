@@ -11,46 +11,41 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssignmentEntity, Long> {
-    @EntityGraph(attributePaths = {"user", "platformRole", "platformRole.platform", "platformRole.role", "platformRole.role.authorities"})
+    @EntityGraph(attributePaths = {"user", "role", "role.authorities"})
     Optional<AccessAssignmentEntity> findByUuid(String uuid);
 
-    @EntityGraph(attributePaths = {"user", "platformRole", "platformRole.platform", "platformRole.role", "platformRole.role.authorities"})
+    @EntityGraph(attributePaths = {"user", "role", "role.authorities"})
+    Optional<AccessAssignmentEntity> findByUuidAndUser_Uuid(String uuid, String userId);
+
+    @EntityGraph(attributePaths = {"user", "role", "role.authorities"})
     @Query("""
             select assignment from AccessAssignmentEntity assignment
             where assignment.user.uuid = :userId
-              and assignment.platformRole.platform.code = :platformCode
-              and assignment.platformRole.platform.active = true
-              and assignment.platformRole.active = true
-              and assignment.platformRole.role.active = true
+              and assignment.role.active = true
               and assignment.status = com.identity.domain.enums.AccessAssignmentStatus.ACTIVE
               and (assignment.expiresAt is null or assignment.expiresAt > :now)
             order by assignment.createdAt
             """)
-    List<AccessAssignmentEntity> findEffectiveByUserAndPlatform(
+    List<AccessAssignmentEntity> findEffectiveByUser(
             @Param("userId") String userId,
-            @Param("platformCode") String platformCode,
             @Param("now") Instant now
     );
 
-    @EntityGraph(attributePaths = {"user", "platformRole", "platformRole.platform", "platformRole.role", "platformRole.role.authorities"})
     @Query("""
             select assignment from AccessAssignmentEntity assignment
             where assignment.uuid = :assignmentId
               and assignment.user.uuid = :userId
-              and assignment.platformRole.platform.code = :platformCode
             """)
     Optional<AccessAssignmentEntity> findForContext(
             @Param("assignmentId") String assignmentId,
-            @Param("userId") String userId,
-            @Param("platformCode") String platformCode
+            @Param("userId") String userId
     );
 
-    @EntityGraph(attributePaths = {"user", "platformRole", "platformRole.platform", "platformRole.role"})
+    @EntityGraph(attributePaths = {"user", "role"})
     @Query("""
             select assignment from AccessAssignmentEntity assignment
             where assignment.user.uuid = :userId
-              and assignment.platformRole.platform.code = :platformCode
-              and assignment.platformRole.role.code = :roleCode
+              and assignment.role.code = :roleCode
               and assignment.scopeKey = :scopeKey
               and assignment.scopeId = :scopeId
               and assignment.status in (
@@ -60,8 +55,24 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             """)
     Optional<AccessAssignmentEntity> findCurrent(
             @Param("userId") String userId,
-            @Param("platformCode") String platformCode,
             @Param("roleCode") String roleCode,
+            @Param("scopeKey") String scopeKey,
+            @Param("scopeId") String scopeId
+    );
+
+    @EntityGraph(attributePaths = {"user", "role"})
+    @Query("""
+            select assignment from AccessAssignmentEntity assignment
+            where assignment.user.uuid = :userId
+              and assignment.scopeKey = :scopeKey
+              and assignment.scopeId = :scopeId
+              and assignment.status in (
+                  com.identity.domain.enums.AccessAssignmentStatus.ACTIVE,
+                  com.identity.domain.enums.AccessAssignmentStatus.SUSPENDED
+              )
+            """)
+    List<AccessAssignmentEntity> findCurrentByUserAndScope(
+            @Param("userId") String userId,
             @Param("scopeKey") String scopeKey,
             @Param("scopeId") String scopeId
     );
@@ -69,19 +80,15 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
     @Query("""
             select (count(assignment) > 0) from AccessAssignmentEntity assignment
             where assignment.user.uuid = :userId
-              and assignment.platformRole.platform.code = :platformCode
-              and assignment.platformRole.role.code = :roleCode
+              and assignment.role.code = :roleCode
               and assignment.scopeKey = :scopeKey
               and assignment.scopeId = :scopeId
               and assignment.status = com.identity.domain.enums.AccessAssignmentStatus.ACTIVE
-              and assignment.platformRole.platform.active = true
-              and assignment.platformRole.active = true
-              and assignment.platformRole.role.active = true
+              and assignment.role.active = true
               and (assignment.expiresAt is null or assignment.expiresAt > :now)
             """)
     boolean existsEffective(
             @Param("userId") String userId,
-            @Param("platformCode") String platformCode,
             @Param("roleCode") String roleCode,
             @Param("scopeKey") String scopeKey,
             @Param("scopeId") String scopeId,
@@ -91,8 +98,7 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
     @Query("""
             select (count(assignment) > 0) from AccessAssignmentEntity assignment
             where assignment.user.uuid = :userId
-              and assignment.platformRole.platform.code = :platformCode
-              and assignment.platformRole.role.code = :roleCode
+              and assignment.role.code = :roleCode
               and assignment.scopeKey = :scopeKey
               and assignment.scopeId = :scopeId
               and assignment.status in (
@@ -102,12 +108,12 @@ public interface AccessAssignmentJpaRepository extends JpaRepository<AccessAssig
             """)
     boolean existsCurrent(
             @Param("userId") String userId,
-            @Param("platformCode") String platformCode,
             @Param("roleCode") String roleCode,
             @Param("scopeKey") String scopeKey,
             @Param("scopeId") String scopeId
     );
 
-    @EntityGraph(attributePaths = {"user", "platformRole", "platformRole.platform", "platformRole.role"})
+    @EntityGraph(attributePaths = {"user", "role"})
     List<AccessAssignmentEntity> findByUser_UuidOrderByCreatedAt(String userId);
 }
+

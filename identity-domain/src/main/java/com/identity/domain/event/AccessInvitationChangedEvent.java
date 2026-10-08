@@ -9,7 +9,6 @@ import java.time.Instant;
 public record AccessInvitationChangedEvent(
         Id invitationId,
         String inviteeEmail,
-        String platformCode,
         String roleCode,
         String scopeKey,
         String scopeId,

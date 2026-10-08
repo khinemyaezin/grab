@@ -71,7 +71,7 @@ class MerchantQueryServiceTest {
 
     private SecurityPrincipal principal() {
         AccessContext context = new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1");
+                "assignment-1", "merchant.account", "merchant-1");
         AuthenticatedActor actor = new AuthenticatedActor(
                 "staff-1",
                 "local",

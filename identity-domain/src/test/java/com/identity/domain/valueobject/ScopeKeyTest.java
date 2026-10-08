@@ -36,4 +36,10 @@ class ScopeKeyTest {
         assertThrows(IdentityDomainValidationException.class, () -> new ScopeKey("merchant..account"));
         assertThrows(IdentityDomainValidationException.class, () -> new ScopeKey("merchant_account"));
     }
+
+    @Test
+    void create_withCustomNamespacedResource_shouldAcceptValidFormat() {
+        ScopeKey key = new ScopeKey("custom.namespace-key");
+        assertEquals("custom.namespace-key", key.value());
+    }
 }

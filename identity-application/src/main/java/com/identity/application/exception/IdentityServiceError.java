@@ -12,34 +12,16 @@ public sealed interface IdentityServiceError extends MessageSource permits
         IdentityServiceError.InvalidStatusTransition,
         IdentityServiceError.RoleExists,
         IdentityServiceError.RoleNotFound,
-        IdentityServiceError.RolePlatformBindingInvalid,
         IdentityServiceError.UserNotFound,
-        IdentityServiceError.PlatformNotFound,
-        IdentityServiceError.PlatformAccessUnavailable,
         IdentityServiceError.AccessAssignmentNotFound,
         IdentityServiceError.AccessAssignmentExists,
         IdentityServiceError.AccessScopeForbidden,
+        IdentityServiceError.ScopeOwnershipViolation,
         IdentityServiceError.AccessContextSelectionRequired,
         IdentityServiceError.AccessContextSelectionInvalid,
         IdentityServiceError.AccessInvitationNotFound,
         IdentityServiceError.InvalidCredentials {
 
-    record RolePlatformBindingInvalid(String roleCode) implements IdentityServiceError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BUSINESS_RULE;
-        }
-
-        @Override
-        public String code() {
-            return "idt.service.role.platform_binding_invalid";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("roleCode", roleCode);
-        }
-    }
 
     record EmailExists(String email) implements IdentityServiceError {
         @Override
@@ -161,39 +143,6 @@ public sealed interface IdentityServiceError extends MessageSource permits
         }
     }
 
-    record PlatformNotFound(String platformCode) implements IdentityServiceError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.NOT_FOUND;
-        }
-
-        @Override
-        public String code() {
-            return "idt.service.platform.not_found";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode);
-        }
-    }
-
-    record PlatformAccessUnavailable(String platformCode) implements IdentityServiceError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.FORBIDDEN;
-        }
-
-        @Override
-        public String code() {
-            return "idt.service.platform.access_unavailable";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode);
-        }
-    }
 
     record AccessAssignmentNotFound(String assignmentId) implements IdentityServiceError {
         @Override
@@ -212,7 +161,7 @@ public sealed interface IdentityServiceError extends MessageSource permits
         }
     }
 
-    record AccessAssignmentExists(String userId, String platformCode, String roleCode, String scopeId)
+    record AccessAssignmentExists(String userId, String roleCode, String scopeId)
             implements IdentityServiceError {
         @Override
         public ErrorCategory kind() {
@@ -228,7 +177,6 @@ public sealed interface IdentityServiceError extends MessageSource permits
         public Map<String, Object> args() {
             return Map.of(
                     "userId", userId,
-                    "platformCode", platformCode,
                     "roleCode", roleCode,
                     "scopeId", scopeId
             );
@@ -252,7 +200,24 @@ public sealed interface IdentityServiceError extends MessageSource permits
         }
     }
 
-    record AccessContextSelectionRequired(String platformCode, int availableContexts)
+    record ScopeOwnershipViolation(String actorScopeId, String targetScopeId) implements IdentityServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.access.scope_ownership_violation";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("actorScopeId", actorScopeId, "targetScopeId", targetScopeId);
+        }
+    }
+
+    record AccessContextSelectionRequired(int availableContexts)
             implements IdentityServiceError {
         @Override
         public ErrorCategory kind() {
@@ -267,7 +232,6 @@ public sealed interface IdentityServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of(
-                    "platformCode", platformCode,
                     "availableContexts", availableContexts
             );
         }

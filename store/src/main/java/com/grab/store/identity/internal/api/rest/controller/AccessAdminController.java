@@ -36,12 +36,9 @@ public class AccessAdminController {
             @PathVariable String userId,
             @AuthenticationPrincipal SecurityPrincipal principal
     ) {
-        List<EntityModel<AccessAssignmentResponse>> assignments = queryService
-                .listAssignments(userId, principal)
-                .stream()
-                .map(modelAssembler::toModel)
-                .toList();
-        return ResponseEntity.ok(CollectionModel.of(assignments));
+        List<AccessAssignmentResponse> responses = queryService.listAssignments(userId, principal);
+        CollectionModel<EntityModel<AccessAssignmentResponse>> collectionModel = modelAssembler.toCollectionModel(responses);
+        return ResponseEntity.ok(collectionModel);
     }
 
     @PostMapping

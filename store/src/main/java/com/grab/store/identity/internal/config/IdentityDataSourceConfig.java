@@ -1,5 +1,6 @@
 package com.grab.store.identity.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,11 +14,9 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import org.flywaydb.core.Flyway;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import javax.sql.DataSource;
 import java.util.Map;
-import java.util.HashMap;
 
 @Configuration
 @ComponentScan(
@@ -40,8 +39,9 @@ public class IdentityDataSourceConfig {
     }
 
     @Bean("identityDataSource")
-    DataSource dataSource(@Qualifier("identityDataSourceProperties") DataSourceProperties p) {
-        return p.initializeDataSourceBuilder().build();
+    @ConfigurationProperties("identity.datasource.hikari")
+    HikariDataSource dataSource(@Qualifier("identityDataSourceProperties") DataSourceProperties p) {
+        return p.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean("identityEntityManagerFactory")
@@ -64,29 +64,12 @@ public class IdentityDataSourceConfig {
 
     @Bean(initMethod = "migrate")
     @ConditionalOnProperty(prefix = "identity.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public Flyway identityFlyway(@Qualifier("identityDataSource") DataSource dataSource, Environment env) {
-        Map<String, String> placeholders = new HashMap<>();
-        String adminEmail = env.getProperty("identity.seed.admin-email");
-        String adminPassword = env.getProperty("identity.seed.admin-password");
-        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
-        if (adminEmail != null && !adminEmail.isBlank() && adminPassword != null && !adminPassword.isBlank()) {
-            placeholders.put("adminEmail", adminEmail.toLowerCase());
-            placeholders.put("adminPasswordHash", passwordEncoder.encode(adminPassword));
-            placeholders.put("seedAdmin", "true");
-        } else {
-            placeholders.put("seedAdmin", "false");
-        }
-
-        placeholders.put("demoEmail", "a@a.com");
-        placeholders.put("demoPasswordHash", passwordEncoder.encode("123123123"));
-        placeholders.put("seedDemo", "true");
-
+    public Flyway identityFlyway(@Qualifier("identityDataSource") DataSource dataSource) {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/identity")
                 .baselineOnMigrate(true)
-                .placeholders(placeholders)
                 .load();
     }
+
 }

@@ -3,7 +3,6 @@ package com.grab.store.identity.internal.api.rest.dto.response;
 public record AccessAssignmentResponse(
         String id,
         String userId,
-        String platformCode,
         String roleCode,
         String scopeKey,
         String scopeId,

@@ -1,7 +1,8 @@
 package com.identity.adapter.persistence.configuration;
 
+import com.identity.adapter.persistence.mapper.jpa.SecurityCatalogJpaAssembler;
+
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.id.IdGenerator;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -12,19 +13,28 @@ import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
-import com.identity.domain.port.outbound.PlatformRepository;
+import com.identity.domain.port.outbound.AuthorityManifestVersionRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
+import com.identity.domain.port.outbound.ScopeManifestRepository;
+import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
+import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.RoleRepository;
-import com.identity.application.port.outbound.IdentityLookupPort;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grab.framework.id.IdGenerator;
+import com.identity.application.port.outbound.IdentityLookupQueryPort;
+import com.identity.application.port.outbound.SecurityManifestQueryPort;
+import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
-import com.identity.application.port.outbound.MerchantViewQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.adapter.persistence.adapter.*;
+import com.identity.adapter.persistence.specification.jpa.SecurityManifestWaitingSpecification;
+import com.identity.adapter.persistence.entity.SecurityManifestRevisionEntity;
 import com.identity.adapter.persistence.mapper.jpa.RoleJpaAssembler;
 import com.identity.adapter.persistence.mapper.jpa.UserJpaAssembler;
 import com.identity.adapter.persistence.mapper.jpa.AccessAssignmentJpaAssembler;
@@ -145,20 +155,18 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public UserQueryPort userQueryPort(
-            UserQueryRepository userQueryRepository,
             UserJpaRepository userJpaRepository,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new UserQueryAdapter(userQueryRepository, userJpaRepository, executor);
+        return new UserQueryAdapter(userJpaRepository, executor);
     }
 
     @Bean
     public RoleQueryPort roleQueryPort(
             RoleJpaRepository jpaRepository,
-            PlatformJpaRepository platformJpaRepository,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new RoleQueryAdapter(jpaRepository, platformJpaRepository, executor);
+        return new RoleQueryAdapter(jpaRepository, executor);
     }
 
     @Bean
@@ -170,13 +178,71 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public MerchantViewQueryPort merchantViewQueryPort(MerchantViewJpaRepository merchantViewJpaRepository) {
-        return new MerchantViewQueryAdapter(merchantViewJpaRepository);
+    public AuthorityRepository authorityRepository(
+            AuthorityJpaRepository jpaRepository,
+            IdMapper ids,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new AuthorityRepositoryAdapter(jpaRepository, ids, executor);
     }
 
     @Bean
-    public AuthorityRepository authorityRepository(AuthorityJpaRepository jpaRepository) {
-        return new AuthorityRepositoryAdapter(jpaRepository);
+    public ScopeManifestRepository scopeManifestRepository(
+            ScopeManifestJpaRepository repository,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new ScopeManifestRepositoryAdapter(repository, executor);
+    }
+
+    @Bean
+    public AuthorityManifestVersionRepository authorityManifestVersionRepository(
+            AuthorityManifestVersionJpaRepository repository
+    ) {
+        return new AuthorityManifestVersionRepositoryAdapter(repository);
+    }
+
+    @Bean
+    public SecurityManifestInboxRepository securityManifestInboxRepository(
+            SecurityManifestInboxJpaRepository repository,
+            SecurityManifestConflictJpaRepository conflicts,
+            ObjectMapper objectMapper
+    ) {
+        return new SecurityManifestInboxRepositoryAdapter(repository, conflicts, objectMapper);
+    }
+
+
+    @Bean
+    public SecurityManifestRevisionRepository securityManifestRevisionRepository(
+            SecurityManifestRevisionJpaRepository repository,
+            ObjectMapper objectMapper
+    ) {
+        return new SecurityManifestRevisionRepositoryAdapter(repository, objectMapper);
+    }
+
+
+
+    @Bean
+    public ScopeCatalogQueryPort scopeCatalogQueryPort(ScopeManifestJpaRepository scopes) {
+        return new ScopeCatalogQueryAdapter(scopes);
+    }
+
+    @Bean
+    public SecurityManifestQueryPort securityManifestQueryPort(SecurityManifestRevisionJpaRepository revisions,
+            SecurityManifestModuleJpaRepository modules, SecurityCatalogStateJpaRepository states,
+            SecurityManifestConflictJpaRepository conflicts, JpaContext context) {
+        var entityManager = context.getEntityManagerByManagedType(SecurityManifestRevisionEntity.class);
+        var waiting = new SecurityManifestWaitingSpecification(entityManager);
+        return new SecurityManifestQueryAdapter(waiting, revisions, modules, states, conflicts);
+    }
+
+    @Bean
+    public SecurityCatalogRepository securityCatalogRepository(
+            SecurityCatalogStateJpaRepository states, SecurityManifestModuleJpaRepository modules,
+            ScopeManifestJpaRepository scopes, AuthorityJpaRepository authorities, IdGenerator ids,
+            @Qualifier("identityDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
+        var assembler = new SecurityCatalogJpaAssembler(ids);
+        return new SecurityCatalogRepositoryAdapter(states, modules, scopes, authorities, assembler, outbox, executor);
     }
 
     @Bean
@@ -190,30 +256,18 @@ public class IdentityPersistenceConfig {
     @Bean
     public AccessAssignmentJpaAssembler accessAssignmentJpaAssembler(
             UserJpaRepository users,
-            PlatformRoleJpaRepository platformRoles,
+            RoleJpaRepository roles,
             IdMapper ids
     ) {
-        return new AccessAssignmentJpaAssemblerImpl(users, platformRoles, ids);
+        return new AccessAssignmentJpaAssemblerImpl(users, roles, ids);
     }
 
     @Bean
     public AccessInvitationJpaAssembler accessInvitationJpaAssembler(
-            PlatformRoleJpaRepository platformRoles,
+            RoleJpaRepository roles,
             IdMapper ids
     ) {
-        return new AccessInvitationJpaAssemblerImpl(platformRoles, ids);
-    }
-
-    @Bean
-    public PlatformRepository platformRepository(
-            PlatformJpaRepository platforms,
-            RoleJpaRepository roles,
-            AuthorityJpaRepository authorities,
-            IdMapper ids,
-            IdGenerator idGenerator,
-            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
-    ) {
-        return new PlatformRepositoryAdapter(platforms, roles, authorities, ids, idGenerator, executor);
+        return new AccessInvitationJpaAssemblerImpl(roles, ids);
     }
 
     @Bean
@@ -238,7 +292,7 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public SessionStore refreshSessionStore(RefreshSessionJpaRepository sessionRepository, UserJpaRepository userRepository) {
-        return new JpaSessionStoreAdapter(sessionRepository, userRepository);
+        return new SessionStoreAdapter(sessionRepository, userRepository);
     }
 
     @Bean
@@ -265,13 +319,14 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public IdentityLookupPort identityLookupPort(
+    public IdentityLookupQueryPort identityLookupQueryPort(
             UserJpaRepository users,
             ExternalIdentityJpaRepository externalIdentities,
             ExternalEntitlementMappingJpaRepository entitlementMappings,
-            AccessAssignmentJpaRepository accessAssignments) {
-        return new IdentityLookupAdapter(
-                users, externalIdentities, entitlementMappings, accessAssignments
+            AccessAssignmentJpaRepository accessAssignments,
+            ScopeCatalogQueryPort scopes) {
+        return new IdentityLookupQueryAdapter(
+                users, externalIdentities, entitlementMappings, accessAssignments, scopes
         );
     }
 }

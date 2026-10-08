@@ -1,12 +1,11 @@
 package com.identity.domain.policy;
 
-import com.identity.domain.aggregate.Platform;
 import com.identity.domain.valueobject.AccessScope;
 
 public interface AccessPlacementPolicy {
     String placementRoleCode();
 
-    AccessPlacementPlan plan(Platform platform, AccessScope accessScope);
+    AccessPlacementPlan plan(AccessScope accessScope);
 
     record AccessPlacementPlan(
             String previousRoleCode,

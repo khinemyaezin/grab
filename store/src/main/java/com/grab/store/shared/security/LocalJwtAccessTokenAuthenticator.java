@@ -53,19 +53,18 @@ public class LocalJwtAccessTokenAuthenticator implements AccessTokenAuthenticato
     }
 
     private AccessContext accessContext(Claims claims) {
-        String platform = claims.get("platform", String.class);
         String assignmentId = claims.get("assignment_id", String.class);
         String scopeKey = claims.get("scope_key", String.class);
         String scopeId = claims.get("scope_id", String.class);
-        if (platform == null && assignmentId == null && scopeKey == null && scopeId == null) {
+        if (assignmentId == null && scopeKey == null && scopeId == null) {
             return null;
         }
-        if (platform == null || assignmentId == null || scopeKey == null || scopeId == null) {
+        if (assignmentId == null || scopeKey == null || scopeId == null) {
             throw new IdentityAuthenticationException(
                     new IdentitySecurityError.InvalidToken(),
                     "Access context claims are incomplete"
             );
         }
-        return new AccessContext(platform, assignmentId, scopeKey, scopeId);
+        return new AccessContext(assignmentId, scopeKey, scopeId);
     }
 }

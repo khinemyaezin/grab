@@ -40,9 +40,6 @@ public class RefreshSessionEntity {
     @Column(name = "last_used_at")
     private Instant lastUsedAt;
 
-    @Column(name = "platform_code")
-    private String platformCode;
-
     @Column(name = "assignment_uuid")
     private String assignmentUuid;
 

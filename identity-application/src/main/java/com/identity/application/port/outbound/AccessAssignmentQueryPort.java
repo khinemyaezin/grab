@@ -8,5 +8,5 @@ import java.util.List;
 public interface AccessAssignmentQueryPort {
     List<AccessAssignmentView> findByUser(String userId);
 
-    List<AccessAssignmentView> findEffectiveByUserAndPlatform(String userId, String platformCode, Instant now);
+    List<AccessAssignmentView> findEffectiveByUser(String userId, Instant now);
 }

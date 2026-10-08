@@ -25,7 +25,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -71,7 +70,7 @@ public class CartPersistenceConfig {
     }
 
     @Bean
-    CartOutboxEventProcessor processor(
+    CartOutboxEventProcessor cartOutboxEventProcessor(
             @Qualifier("cartOutboxStore") OutboxStore<CartOutboxEvent, Long> store,
             @Qualifier("cartOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("cartOutboxEventDispatcher") OutboxEventDispatcher dispatcher,

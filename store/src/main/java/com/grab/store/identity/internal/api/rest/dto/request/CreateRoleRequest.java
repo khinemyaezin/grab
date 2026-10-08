@@ -11,7 +11,6 @@ public record CreateRoleRequest(
 
         @NotBlank String name,
         String description,
-        @NotBlank @Pattern(regexp = "[A-Z][A-Z0-9_]*") String platformCode,
         @NotEmpty Set<@Pattern(regexp = "[A-Z][A-Z0-9_]*") String> authorityCodes
 ) {
 }

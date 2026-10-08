@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class UserQueryRepositoryTest extends RepositoryTestConfig {
 
     @Autowired
-    private UserQueryRepository userQueryRepository;
+    private UserJpaRepository userQueryRepository;
 
     @Autowired
     private UserJpaRepository userJpaRepository;
@@ -51,7 +51,6 @@ public class UserQueryRepositoryTest extends RepositoryTestConfig {
         assertThat(view.userStatus()).isEqualTo("ACTIVE");
         assertThat(view.createdAt()).isNotNull();
         assertThat(view.assignmentId()).isNull();
-        assertThat(view.platformCode()).isNull();
         assertThat(view.roleCode()).isNull();
         assertThat(view.scopeKey()).isNull();
         assertThat(view.scopeId()).isNull();
@@ -70,13 +69,6 @@ public class UserQueryRepositoryTest extends RepositoryTestConfig {
 
     @Test
     void queryUserProfileByUserId_returnsMultipleAssignments_whenUserHasMultipleAssignments() {
-        // Setup Platform
-        com.identity.adapter.persistence.entity.PlatformEntity platform = new com.identity.adapter.persistence.entity.PlatformEntity();
-        platform.setUuid("uuid-platform");
-        platform.setCode("PLATFORM_1");
-        platform.setName("Platform 1");
-        entityManager.persist(platform);
-
         // Setup Roles
         com.identity.adapter.persistence.entity.RoleEntity role1 = new com.identity.adapter.persistence.entity.RoleEntity();
         role1.setUuid("uuid-role-1");
@@ -90,24 +82,11 @@ public class UserQueryRepositoryTest extends RepositoryTestConfig {
         role2.setName("Role 2");
         entityManager.persist(role2);
 
-        // Setup PlatformRoles
-        com.identity.adapter.persistence.entity.PlatformRoleEntity pr1 = new com.identity.adapter.persistence.entity.PlatformRoleEntity();
-        pr1.setUuid("uuid-pr-1");
-        pr1.setPlatform(platform);
-        pr1.setRole(role1);
-        entityManager.persist(pr1);
-
-        com.identity.adapter.persistence.entity.PlatformRoleEntity pr2 = new com.identity.adapter.persistence.entity.PlatformRoleEntity();
-        pr2.setUuid("uuid-pr-2");
-        pr2.setPlatform(platform);
-        pr2.setRole(role2);
-        entityManager.persist(pr2);
-
         // Setup AccessAssignments
         com.identity.adapter.persistence.entity.AccessAssignmentEntity assignment1 = new com.identity.adapter.persistence.entity.AccessAssignmentEntity();
         assignment1.setUuid("uuid-assign-1");
         assignment1.setUser(activeUser);
-        assignment1.setPlatformRole(pr1);
+        assignment1.setRole(role1);
         assignment1.setScopeKey("GLOBAL");
         assignment1.setScopeId("ALL");
         assignment1.setStatus(AccessAssignmentStatus.ACTIVE);
@@ -118,7 +97,7 @@ public class UserQueryRepositoryTest extends RepositoryTestConfig {
         com.identity.adapter.persistence.entity.AccessAssignmentEntity assignment2 = new com.identity.adapter.persistence.entity.AccessAssignmentEntity();
         assignment2.setUuid("uuid-assign-2");
         assignment2.setUser(activeUser);
-        assignment2.setPlatformRole(pr2);
+        assignment2.setRole(role2);
         assignment2.setScopeKey("MERCHANT");
         assignment2.setScopeId("M-123");
         assignment2.setStatus(AccessAssignmentStatus.ACTIVE);

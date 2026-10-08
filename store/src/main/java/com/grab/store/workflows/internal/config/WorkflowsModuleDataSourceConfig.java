@@ -1,5 +1,6 @@
 package com.grab.store.workflows.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -45,10 +46,13 @@ public class WorkflowsModuleDataSourceConfig {
     }
 
     @Bean("workflowsDataSource")
-    public DataSource workflowsDataSource(
+    @ConfigurationProperties("workflows.datasource.hikari")
+    public HikariDataSource workflowsDataSource(
             @Qualifier("workflowsDataSourceProperties") DataSourceProperties workflowsDataSourceProperties
     ) {
-        return workflowsDataSourceProperties.initializeDataSourceBuilder().build();
+        return workflowsDataSourceProperties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean("workflowsEntityManagerFactory")

@@ -1,5 +1,6 @@
 package com.grab.store.storefrontquery.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -42,10 +43,13 @@ public class StorefrontQueryModuleDataSourceConfig {
     }
 
     @Bean("storefrontQueryDataSource")
-    public DataSource storefrontQueryDataSource(
+    @ConfigurationProperties("storefrontquery.datasource.hikari")
+    public HikariDataSource storefrontQueryDataSource(
             @Qualifier("storefrontQueryDataSourceProperties") DataSourceProperties properties
     ) {
-        return properties.initializeDataSourceBuilder().build();
+        return properties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean("storefrontQueryEntityManagerFactory")

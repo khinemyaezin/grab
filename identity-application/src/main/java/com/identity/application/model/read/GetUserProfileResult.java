@@ -12,7 +12,6 @@ public record GetUserProfileResult(
 ) {
     public record AccessContextInfo(
             String assignmentId,
-            String platformCode,
             String roleCode,
             String scopeKey,
             String scopeId,

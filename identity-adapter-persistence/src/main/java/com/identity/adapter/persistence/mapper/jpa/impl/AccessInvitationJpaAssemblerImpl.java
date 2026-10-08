@@ -6,12 +6,12 @@ import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import com.identity.adapter.persistence.entity.AccessInvitationEntity;
 import com.identity.adapter.persistence.mapper.jpa.AccessInvitationJpaAssembler;
-import com.identity.adapter.persistence.repository.jpa.PlatformRoleJpaRepository;
+import com.identity.adapter.persistence.repository.jpa.RoleJpaRepository;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class AccessInvitationJpaAssemblerImpl implements AccessInvitationJpaAssembler {
-    private final PlatformRoleJpaRepository platformRoles;
+    private final RoleJpaRepository roles;
     private final IdMapper ids;
 
     @Override
@@ -22,8 +22,8 @@ public class AccessInvitationJpaAssemblerImpl implements AccessInvitationJpaAsse
         AccessInvitationEntity entity = destination == null ? new AccessInvitationEntity() : destination;
         entity.setUuid(source.getId().getValue());
         entity.setInviteeEmail(source.getInviteeEmail().value());
-        entity.setPlatformRole(platformRoles
-                .findByPlatform_CodeAndRole_CodeAndActiveTrue(source.getPlatformCode(), source.getRoleCode())
+        entity.setRole(roles
+                .findByCode(source.getRoleCode())
                 .orElseThrow());
         entity.setScopeKey(source.getScope().key().value());
         entity.setScopeId(source.getScope().scopeId());
@@ -42,8 +42,7 @@ public class AccessInvitationJpaAssemblerImpl implements AccessInvitationJpaAsse
         return new AccessInvitation(
                 ids.map(source.getUuid()),
                 new Email(source.getInviteeEmail()),
-                source.getPlatformRole().getPlatform().getCode(),
-                source.getPlatformRole().getRole().getCode(),
+                source.getRole().getCode(),
                 AccessScope.from(source.getScopeKey(), source.getScopeId()),
                 source.getTokenHash(),
                 ids.map(source.getInvitedBy()),

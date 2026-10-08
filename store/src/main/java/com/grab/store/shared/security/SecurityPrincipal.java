@@ -36,9 +36,6 @@ public record SecurityPrincipal(
         return Optional.ofNullable(actor.accessContext());
     }
 
-    public Optional<String> getPlatformCode() {
-        return getAccessContext().map(AccessContext::platformCode);
-    }
 
     public Optional<String> getScopeKey() {
         return getAccessContext().map(AccessContext::scopeKey);

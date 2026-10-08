@@ -40,8 +40,8 @@ public class AccessInvitationEntity {
     private String inviteeEmail;
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
-    @JoinColumn(name = "platform_role_id", nullable = false)
-    private PlatformRoleEntity platformRole;
+    @JoinColumn(name = "role_id", nullable = false)
+    private RoleEntity role;
 
     @Column(name = "scope_key", nullable = false)
     private String scopeKey;

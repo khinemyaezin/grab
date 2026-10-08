@@ -9,18 +9,6 @@ public record RoleListView(
         String kind,
         boolean active,
         boolean assignable,
-        Set<String> authorityCodes,
-        Set<String> platformCodes
+        Set<String> authorityCodes
 ) {
-    public RoleListView(
-            String code,
-            String name,
-            String description,
-            String kind,
-            boolean active,
-            boolean assignable,
-            Set<String> authorityCodes
-    ) {
-        this(code, name, description, kind, active, assignable, authorityCodes, Set.of());
-    }
 }

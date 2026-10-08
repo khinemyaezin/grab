@@ -1,5 +1,6 @@
 package com.grab.store.inventory.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -51,8 +52,11 @@ public class InventoryModuleDataSourceConfig {
     }
 
     @Bean("inventoryDataSource")
-    public DataSource inventoryDataSource(@Qualifier("inventoryDataSourceProperties") DataSourceProperties inventoryDataSourceProperties) {
-        return inventoryDataSourceProperties.initializeDataSourceBuilder().build();
+    @ConfigurationProperties("inventory.datasource.hikari")
+    public HikariDataSource inventoryDataSource(@Qualifier("inventoryDataSourceProperties") DataSourceProperties inventoryDataSourceProperties) {
+        return inventoryDataSourceProperties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean("inventoryEntityManagerFactory")
@@ -84,6 +88,7 @@ public class InventoryModuleDataSourceConfig {
                 .baselineOnMigrate(true)
                 .load();
     }
+
 
     private Map<String, Object> hibernateProperties() {
         Map<String, Object> properties = new HashMap<>();

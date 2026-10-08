@@ -3,6 +3,7 @@
 > **Bounded Context:** Identity  
 > **Primary Purpose:** Manages platform-wide users, credentials, role-based access assignments, platform scopes, and token sessions.  
 > **Module Root:** `identity-domain` / `identity-infrastructure` / `store/identity`  
+> **Related Technical Design:** [Security manifest consistency](../../../system/security-manifest-consistency-tech-spec.md)
 
 ---
 

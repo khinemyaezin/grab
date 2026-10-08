@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 public class Role extends AggregateRoot<Id> {
@@ -25,10 +26,10 @@ public class Role extends AggregateRoot<Id> {
     private final RoleKind kind;
     private boolean active;
     private final boolean assignable;
-    private final Set<String> authorityCodes;
+    private final Set<Authority> authorities;
 
-    public Role(Id id, String code, String name, String description, boolean active, Set<String> authorityCodes) {
-        this(id, code, name, description, RoleKind.CUSTOM, active, true, authorityCodes);
+    public Role(Id id, String code, String name, String description, boolean active, Set<Authority> authorities) {
+        this(id, code, name, description, RoleKind.CUSTOM, active, true, authorities);
     }
 
     public Role(
@@ -39,7 +40,7 @@ public class Role extends AggregateRoot<Id> {
             RoleKind kind,
             boolean active,
             boolean assignable,
-            Set<String> authorityCodes
+            Set<Authority> authorities
     ) {
         super(id);
         this.code = normalizeRoleCode(code);
@@ -48,7 +49,7 @@ public class Role extends AggregateRoot<Id> {
         this.kind = Objects.requireNonNull(kind, "role kind is required");
         this.active = active;
         this.assignable = assignable;
-        this.authorityCodes = normalizeCodes(authorityCodes);
+        this.authorities = normalizeAuthorities(authorities);
     }
 
     public static Role createCustom(
@@ -56,9 +57,9 @@ public class Role extends AggregateRoot<Id> {
             String code,
             String name,
             String description,
-            Set<String> authorityCodes
+            Set<Authority> authorities
     ) {
-        Set<String> normalizedAuthorities = normalizeCodes(authorityCodes);
+        Set<Authority> normalizedAuthorities = normalizeAuthorities(authorities);
         if (normalizedAuthorities.isEmpty()) {
             throw authoritiesRequired();
         }
@@ -73,7 +74,7 @@ public class Role extends AggregateRoot<Id> {
                 normalizedAuthorities
         );
         role.addEvent(new RoleCreatedEvent(
-                id, role.code, role.name, description, role.active, role.authorityCodes, LocalDateTime.now()
+                id, role.code, role.name, description, role.active, role.authorityCodes(), LocalDateTime.now()
         ));
         return role;
     }
@@ -86,9 +87,9 @@ public class Role extends AggregateRoot<Id> {
             RoleKind kind,
             boolean active,
             boolean assignable,
-            Set<String> authorityCodes
+            Set<Authority> authorities
     ) {
-        return new Role(id, code, name, description, kind, active, assignable, authorityCodes);
+        return new Role(id, code, name, description, kind, active, assignable, authorities);
     }
 
     public void updateDetails(String name, String description) {
@@ -114,27 +115,27 @@ public class Role extends AggregateRoot<Id> {
         }
     }
 
-    public void assignAuthority(String code) {
+    public void assignAuthority(Authority authority) {
         requireCustomRole();
-        String normalizedCode = normalizeAuthorityCode(code);
-        if (authorityCodes.add(normalizedCode)) {
-            addEvent(new RoleAuthorityChangedEvent(getId(), normalizedCode, true, LocalDateTime.now()));
+        Authority requiredAuthority = Objects.requireNonNull(authority, "authority is required");
+        if (authorities.add(requiredAuthority)) {
+            addEvent(new RoleAuthorityChangedEvent(getId(), requiredAuthority.getCode(), true, LocalDateTime.now()));
         }
     }
 
-    public void revokeAuthority(String code) {
+    public void revokeAuthority(Authority authority) {
         requireCustomRole();
-        String normalizedCode = normalizeAuthorityCode(code);
-        if (authorityCodes.contains(normalizedCode) && authorityCodes.size() == 1) {
+        Authority requiredAuthority = Objects.requireNonNull(authority, "authority is required");
+        if (authorities.contains(requiredAuthority) && authorities.size() == 1) {
             throw authoritiesRequired();
         }
-        if (authorityCodes.remove(normalizedCode)) {
-            addEvent(new RoleAuthorityChangedEvent(getId(), normalizedCode, false, LocalDateTime.now()));
+        if (authorities.remove(requiredAuthority)) {
+            addEvent(new RoleAuthorityChangedEvent(getId(), requiredAuthority.getCode(), false, LocalDateTime.now()));
         }
     }
 
-    public Set<String> getAuthorityCodes() {
-        return Set.copyOf(authorityCodes);
+    public Set<Authority> getAuthorities() {
+        return Set.copyOf(authorities);
     }
 
     public void requireAssignable() {
@@ -155,11 +156,15 @@ public class Role extends AggregateRoot<Id> {
         }
     }
 
-    private static LinkedHashSet<String> normalizeCodes(Set<String> codes) {
-        Objects.requireNonNull(codes, "authorityCodes are required");
-        LinkedHashSet<String> normalizedCodes = new LinkedHashSet<>();
-        codes.forEach(code -> normalizedCodes.add(normalizeAuthorityCode(code)));
-        return normalizedCodes;
+    private Set<String> authorityCodes() {
+        return authorities.stream().map(Authority::getCode).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static LinkedHashSet<Authority> normalizeAuthorities(Set<Authority> values) {
+        Objects.requireNonNull(values, "authorities are required");
+        LinkedHashSet<Authority> normalizedAuthorities = new LinkedHashSet<>();
+        values.forEach(authority -> normalizedAuthorities.add(Objects.requireNonNull(authority, "authority is required")));
+        return normalizedAuthorities;
     }
 
     private static String normalizeRoleCode(String value) {
@@ -169,17 +174,6 @@ public class Role extends AggregateRoot<Id> {
         String normalized = normalizeCode(value);
         if (normalized == null) {
             throw invalidRoleCode(value);
-        }
-        return normalized;
-    }
-
-    private static String normalizeAuthorityCode(String value) {
-        String normalized = normalizeCode(value);
-        if (normalized == null) {
-            throw new IdentityDomainValidationException(
-                    new IdentityDomainError.InvalidAuthorityCode(String.valueOf(value)),
-                    "Invalid authority code"
-            );
         }
         return normalized;
     }

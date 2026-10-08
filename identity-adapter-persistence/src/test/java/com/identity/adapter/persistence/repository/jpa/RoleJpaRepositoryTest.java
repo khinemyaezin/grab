@@ -32,12 +32,20 @@ public class RoleJpaRepositoryTest extends RepositoryTestConfig {
         authorityJpaRepository.deleteAll();
 
         AuthorityEntity readAuth = new AuthorityEntity();
+        readAuth.setUuid("authority-read");
         readAuth.setCode("READ");
+        readAuth.setCategory("identity");
+        readAuth.setOwnerKey("identity");
+        readAuth.setSourceRevision(1);
         readAuth.setName("Read");
         readAuth.setActive(true);
 
         AuthorityEntity writeAuth = new AuthorityEntity();
+        writeAuth.setUuid("authority-write");
         writeAuth.setCode("WRITE");
+        writeAuth.setCategory("identity");
+        writeAuth.setOwnerKey("identity");
+        writeAuth.setSourceRevision(1);
         writeAuth.setName("Write");
         writeAuth.setActive(true);
 
@@ -94,6 +102,24 @@ public class RoleJpaRepositoryTest extends RepositoryTestConfig {
         assertThat(result.get().getAuthorities())
                 .extracting(AuthorityEntity::getCode)
                 .containsExactlyInAnyOrder("READ", "WRITE");
+    }
+
+    @Test
+    void roleAuthorities_canBeSharedAcrossRoles() {
+        RoleEntity admin = roleJpaRepository.findByCode("ADMIN").orElseThrow();
+        RoleEntity user = roleJpaRepository.findByCode("USER").orElseThrow();
+
+        AuthorityEntity adminRead = admin.getAuthorities().stream()
+                .filter(authority -> authority.getCode().equals("READ"))
+                .findFirst()
+                .orElseThrow();
+        AuthorityEntity userRead = user.getAuthorities().stream()
+                .filter(authority -> authority.getCode().equals("READ"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(adminRead.getId()).isEqualTo(userRead.getId());
+        assertThat(adminRead.getUuid()).isEqualTo("authority-read");
     }
 
     @Test

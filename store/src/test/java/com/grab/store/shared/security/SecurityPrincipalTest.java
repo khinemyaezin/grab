@@ -21,7 +21,6 @@ class SecurityPrincipalTest {
         ));
 
         assertThat(principal.getAccessContext()).isEmpty();
-        assertThat(principal.getPlatformCode()).isEmpty();
         assertThat(principal.getScopeKey()).isEmpty();
         assertThat(principal.getScopeId()).isEmpty();
     }

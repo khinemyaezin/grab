@@ -9,7 +9,6 @@ import java.time.Instant;
 
 public record CreateAccessInvitationRequest(
         @Email @NotBlank String inviteeEmail,
-        @NotBlank String platformCode,
         @NotBlank String roleCode,
         @NotBlank String scopeKey,
         @NotBlank String scopeId,

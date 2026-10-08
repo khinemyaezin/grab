@@ -1,5 +1,6 @@
 package com.grab.store.saleschannel.internal.api.rest.config;
 
+import com.saleschannel.application.security.SalesChannelAuthorityManifest;
 import com.grab.store.shared.security.ModuleSecurityConfigurer;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,6 +14,6 @@ public class SalesChannelSecurityConfigurer implements ModuleSecurityConfigurer 
         auth.requestMatchers(HttpMethod.GET, "/api/v1/sales-channels")
                 .permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/sales-channels/**")
-                .hasAuthority("SALES_CHANNEL_READ");
+                .hasAuthority(SalesChannelAuthorityManifest.READ);
     }
 }

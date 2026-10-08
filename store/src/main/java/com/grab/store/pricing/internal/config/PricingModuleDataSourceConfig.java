@@ -1,5 +1,6 @@
 package com.grab.store.pricing.internal.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,8 +41,9 @@ public class PricingModuleDataSourceConfig {
     }
 
     @Bean("pricingDataSource")
-    DataSource dataSource(@Qualifier("pricingDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().build();
+    @ConfigurationProperties("pricing.datasource.hikari")
+    HikariDataSource dataSource(@Qualifier("pricingDataSourceProperties") DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean(name = "pricingFlyway", initMethod = "migrate")

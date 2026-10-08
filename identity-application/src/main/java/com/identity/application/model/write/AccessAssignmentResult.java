@@ -7,7 +7,6 @@ import java.time.Instant;
 public record AccessAssignmentResult(
         String id,
         String userId,
-        String platformCode,
         String roleCode,
         String scopeKey,
         String scopeId,
@@ -25,7 +24,6 @@ public record AccessAssignmentResult(
         return new AccessAssignmentResult(
                 assignment.getId().getValue(),
                 assignment.getUserId().getValue(),
-                assignment.getPlatformCode(),
                 assignment.getRoleCode(),
                 assignment.getScope().key().value(),
                 assignment.getScope().scopeId(),
@@ -34,6 +32,22 @@ public record AccessAssignmentResult(
                 assignment.getCreatedAt().toString(),
                 assignment.getUpdatedAt().toString(),
                 assignment.getExpiresAt() == null ? null : assignment.getExpiresAt().toString()
+        );
+    }
+
+    public static AccessAssignmentResult revoked(String userId, String scopeKey, String scopeId) {
+        Instant now = Instant.now();
+        return new AccessAssignmentResult(
+                null,
+                userId,
+                null,
+                scopeKey,
+                scopeId,
+                "REVOKED",
+                null,
+                now.toString(),
+                now.toString(),
+                null
         );
     }
 }

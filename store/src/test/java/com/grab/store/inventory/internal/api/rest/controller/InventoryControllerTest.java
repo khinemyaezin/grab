@@ -376,7 +376,7 @@ class InventoryControllerTest {
     @Test
     void searchInventoryItems_withoutSellerId_shouldReturn403() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
-                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN")));
 
         SearchInventoryRequest request = new SearchInventoryRequest(null, null, null, null);
 
@@ -418,7 +418,7 @@ class InventoryControllerTest {
     @Test
     void checkExistence_withoutSellerId_shouldReturn403() throws Exception {
         when(scopeResolver.resolveOwnerMerchantId(any())).thenThrow(new InventoryServiceException(
-                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN", "UNKNOWN")));
+                new InventoryServiceError.InventoryScopeForbidden("UNKNOWN", "UNKNOWN")));
 
         CheckInventoryExistenceRequest request = new CheckInventoryExistenceRequest(
                 "loc-1",

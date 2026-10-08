@@ -97,8 +97,8 @@ public class CatalogUseCaseConfig {
         return new CreateStagedMediaUploadService(fileStoragePort, idGenerator, mediaUploadValidator);
     }
     @Bean
-    public DeleteCategoryUseCase deleteCategoryUseCase(CategoryRepository categoryRepository, CategoryHierarchyPort categoryHierarchyPort, ProductRepository productRepository) {
-        return new DeleteCategoryService(categoryRepository, categoryHierarchyPort, productRepository);
+    public DeleteCategoryUseCase deleteCategoryUseCase(CategoryRepository categoryRepository, CategoryHierarchyQueryPort categoryHierarchyQueryPort, CategoryHierarchyRepository categoryHierarchyRepository, ProductRepository productRepository) {
+        return new DeleteCategoryService(categoryRepository, categoryHierarchyQueryPort, categoryHierarchyRepository, productRepository);
     }
     @Bean
     public DeleteProductUseCase deleteProductUseCase(ProductRepository productRepository) {
@@ -129,12 +129,12 @@ public class CatalogUseCaseConfig {
         return new GetCategoryTreeService(categoryQueryRepository);
     }
     @Bean
-    public GetProductAuditUseCase getProductAuditUseCase(ProductAuditPort productAuditPort, ProductQueryPort productQueryPort) {
-        return new GetProductAuditService(productAuditPort, productQueryPort);
+    public GetProductAuditUseCase getProductAuditUseCase(ProductAuditQueryPort productAuditQueryPort, ProductQueryPort productQueryPort) {
+        return new GetProductAuditService(productAuditQueryPort, productQueryPort);
     }
     @Bean
-    public GetProductBySlugUseCase getProductBySlugUseCase(ProductQueryPort productQueryPort, VariantOptionQueryPort variantOptionQueryRepository, MerchantAvailabilityPort merchantAvailabilityPort, IdGenerator idGenerator, ProductMediaConverter productMediaConverter) {
-        return new GetProductBySlugService(productQueryPort, variantOptionQueryRepository, merchantAvailabilityPort, productMediaConverter, idGenerator);
+    public GetProductBySlugUseCase getProductBySlugUseCase(ProductQueryPort productQueryPort, VariantOptionQueryPort variantOptionQueryRepository, MerchantAvailabilityQueryPort merchantAvailabilityQueryPort, IdGenerator idGenerator, ProductMediaConverter productMediaConverter) {
+        return new GetProductBySlugService(productQueryPort, variantOptionQueryRepository, merchantAvailabilityQueryPort, productMediaConverter, idGenerator);
     }
     @Bean
     public GetProductUseCase getProductUseCase(ProductQueryPort productQueryRepository, VariantOptionQueryPort variantOptionQueryRepository, IdGenerator idGenerator, CategoryQueryPort categoryQueryRepository, MatrixKeyGenerator matrixKeyGenerator, ProductMediaConverter productMediaConverter) {
@@ -209,8 +209,8 @@ public class CatalogUseCaseConfig {
         return new UpdateVariantService(productRepository);
     }
     @Bean
-    public UpsertMerchantAvailabilityUseCase upsertMerchantAvailabilityUseCase(MerchantAvailabilityPort merchantAvailabilityPort) {
-        return new UpsertMerchantAvailabilityService(merchantAvailabilityPort);
+    public UpsertMerchantAvailabilityUseCase upsertMerchantAvailabilityUseCase(MerchantAvailabilityRepository merchantAvailabilityRepository) {
+        return new UpsertMerchantAvailabilityService(merchantAvailabilityRepository);
     }
     @Bean
     public VariationMatrixUseCase variationMatrixUseCase(MatrixCombinationService matrixCombinationService, MatrixKeyGenerator matrixKeyGenerator, IdGenerator idGenerator, VariationMatrixMatcher matcher) {

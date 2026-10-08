@@ -9,34 +9,28 @@ import com.identity.application.exception.IdentityServiceError;
 import com.identity.application.exception.IdentityServiceException;
 import com.identity.domain.service.InvitationTokenService;
 import com.identity.domain.aggregate.AccessInvitation;
-import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.User;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
-import com.identity.domain.port.outbound.PlatformRepository;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 
 @RequiredArgsConstructor
 public class CreateAccessInvitationService implements CreateAccessInvitationUseCase {
-    private final PlatformRepository platforms;
+    private final SecurityCatalogRepository catalogs;
     private final RoleRepository roles;
     private final UserRepository users;
     private final AccessInvitationRepository invitations;
     private final RoleDelegationPolicy delegationPolicy;
     private final InvitationTokenService invitationTokens;
     private final IdGenerator ids;
+
     public AccessInvitationResult execute(CreateAccessInvitationCommand command) {
-        Platform platform = platforms.findByCode(command.platformCode()).orElseThrow(() ->
-                new IdentityServiceException(
-                        new IdentityServiceError.PlatformNotFound(command.platformCode()),
-                        "Platform not found"
-                )
-        );
         Role role = roles.findByCode(command.roleCode()).orElseThrow(() ->
                 new IdentityServiceException(
                         new IdentityServiceError.RoleNotFound(command.roleCode()),
@@ -51,13 +45,15 @@ public class CreateAccessInvitationService implements CreateAccessInvitationUseC
                 )
         );
         AccessScope scope = AccessScope.from(command.scopeKey(), command.scopeId());
-        AccessScope.from(command.actorScopeKey(), command.actorScopeId()).requireEncompasses(scope);
+        var catalog = catalogs.loadForUpdate();
+        var hierarchy = catalog.hierarchy();
+        AccessScope actorScope = AccessScope.from(command.actorScopeKey(), command.actorScopeId());
+        actorScope.requireEncompasses(scope, hierarchy);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), command.roleCode());
         String acceptanceToken = invitationTokens.generate();
         AccessInvitation saved = invitations.save(AccessInvitation.create(
                 ids.generateId(),
                 new Email(command.inviteeEmail()),
-                platform,
                 command.roleCode(),
                 scope,
                 invitationTokens.hash(acceptanceToken),
@@ -68,7 +64,6 @@ public class CreateAccessInvitationService implements CreateAccessInvitationUseC
         return new AccessInvitationResult(
                 saved.getId().getValue(),
                 saved.getInviteeEmail().value(),
-                saved.getPlatformCode(),
                 saved.getRoleCode(),
                 saved.getScope().key().value(),
                 saved.getScope().scopeId(),

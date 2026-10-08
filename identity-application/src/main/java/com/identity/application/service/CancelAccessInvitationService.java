@@ -11,9 +11,11 @@ import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.valueobject.AccessScope;
 import lombok.RequiredArgsConstructor;
+import com.identity.domain.port.outbound.SecurityCatalogRepository;
 
 @RequiredArgsConstructor
 public class CancelAccessInvitationService implements CancelAccessInvitationUseCase {
+    private final SecurityCatalogRepository catalogs;
     private final AccessInvitationRepository invitations;
     private final RoleDelegationPolicy delegationPolicy;
     public AccessInvitationResult execute(CancelAccessInvitationCommand command) {
@@ -23,15 +25,16 @@ public class CancelAccessInvitationService implements CancelAccessInvitationUseC
                         "Access invitation not found"
                 )
         );
-        AccessScope.from(command.actorScopeKey(), command.actorScopeId())
-                .requireEncompasses(invitation.getScope());
+        var catalog = catalogs.loadForUpdate();
+        var hierarchy = catalog.hierarchy();
+        AccessScope actorScope = AccessScope.from(command.actorScopeKey(), command.actorScopeId());
+        actorScope.requireEncompasses(invitation.getScope(), hierarchy);
         delegationPolicy.requireCanDelegate(command.actorRoleCodes(), invitation.getRoleCode());
         invitation.cancel();
         AccessInvitation saved = invitations.save(invitation);
         return new AccessInvitationResult(
                 saved.getId().getValue(),
                 saved.getInviteeEmail().value(),
-                saved.getPlatformCode(),
                 saved.getRoleCode(),
                 saved.getScope().key().value(),
                 saved.getScope().scopeId(),

@@ -9,7 +9,9 @@ public sealed interface MerchantServiceError extends MessageSource permits
         MerchantServiceError.MerchantNotFound,
         MerchantServiceError.MerchantScopeForbidden,
         MerchantServiceError.ApplicantAccessForbidden,
-        MerchantServiceError.StorefrontNotFound {
+        MerchantServiceError.StorefrontNotFound,
+        MerchantServiceError.MemberNotFound,
+        MerchantServiceError.UnauthorizedMemberOperation {
 
     record MerchantNotFound(String merchantId) implements MerchantServiceError {
         @Override
@@ -28,7 +30,7 @@ public sealed interface MerchantServiceError extends MessageSource permits
         }
     }
 
-    record MerchantScopeForbidden(String platformCode, String scopeKey, String scopeId)
+    record MerchantScopeForbidden(String scopeKey, String scopeId)
             implements MerchantServiceError {
         @Override
         public ErrorCategory kind() {
@@ -43,7 +45,6 @@ public sealed interface MerchantServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of(
-                    "platformCode", platformCode,
                     "scopeKey", scopeKey,
                     "scopeId", scopeId
             );
@@ -81,6 +82,40 @@ public sealed interface MerchantServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("storefrontId", storefrontId);
+        }
+    }
+
+    record MemberNotFound(String memberId) implements MerchantServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.NOT_FOUND;
+        }
+
+        @Override
+        public String code() {
+            return "mer.service.member.not_found";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("memberId", memberId);
+        }
+    }
+
+    record UnauthorizedMemberOperation(String actorId, String operation) implements MerchantServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        @Override
+        public String code() {
+            return "mer.service.member.unauthorized";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("actorId", actorId, "operation", operation);
         }
     }
 }

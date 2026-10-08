@@ -9,7 +9,6 @@ import java.time.Instant;
 public record AccessAssignmentChangedEvent(
         Id assignmentId,
         Id userId,
-        String platformCode,
         String roleCode,
         String scopeKey,
         String scopeId,

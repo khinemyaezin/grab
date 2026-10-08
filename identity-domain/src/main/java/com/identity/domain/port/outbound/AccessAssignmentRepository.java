@@ -13,18 +13,22 @@ public interface AccessAssignmentRepository {
 
     Optional<AccessAssignment> findCurrent(
             Id userId,
-            String platformCode,
             String roleCode,
             AccessScope scope
     );
 
-    List<AccessAssignment> findEffectiveByUserAndPlatform(Id userId, String platformCode, Instant now);
+    List<AccessAssignment> findEffectiveByUser(Id userId, Instant now);
+
+    List<AccessAssignment> findCurrentByUserAndScope(
+            Id userId,
+            AccessScope scope
+    );
 
     List<AccessAssignment> findByUser(Id userId);
 
-    boolean existsEffective(Id userId, String platformCode, String roleCode, AccessScope scope, Instant now);
+    boolean existsEffective(Id userId, String roleCode, AccessScope scope, Instant now);
 
-    boolean existsCurrent(Id userId, String platformCode, String roleCode, AccessScope scope);
+    boolean existsCurrent(Id userId, String roleCode, AccessScope scope);
 
     AccessAssignment save(AccessAssignment assignment);
 }

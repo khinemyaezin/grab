@@ -32,19 +32,32 @@ public class AccessAssignmentRepositoryAdapter implements AccessAssignmentReposi
     @Override
     public Optional<AccessAssignment> findCurrent(
             Id userId,
-            String platformCode,
             String roleCode,
             AccessScope scope
     ) {
         return executor.query("AccessAssignment", () -> assignments.findCurrent(
-                userId.getValue(), platformCode, roleCode, scope.key().value(), scope.scopeId()
+                userId.getValue(), roleCode, scope.key().value(), scope.scopeId()
         ).map(assembler::toDomain));
     }
 
     @Override
-    public List<AccessAssignment> findEffectiveByUserAndPlatform(Id userId, String platformCode, Instant now) {
+    public List<AccessAssignment> findEffectiveByUser(Id userId, Instant now) {
         return executor.query("AccessAssignment", () -> assignments
-                .findEffectiveByUserAndPlatform(userId.getValue(), platformCode, now)
+                .findEffectiveByUser(userId.getValue(), now)
+                .stream()
+                .map(assembler::toDomain)
+                .toList());
+    }
+
+    @Override
+    public List<AccessAssignment> findCurrentByUserAndScope(
+            Id userId,
+            AccessScope scope
+    ) {
+        return executor.query("AccessAssignment", () -> assignments
+                .findCurrentByUserAndScope(
+                        userId.getValue(), scope.key().value(), scope.scopeId()
+                )
                 .stream()
                 .map(assembler::toDomain)
                 .toList());
@@ -62,21 +75,20 @@ public class AccessAssignmentRepositoryAdapter implements AccessAssignmentReposi
     @Override
     public boolean existsEffective(
             Id userId,
-            String platformCode,
             String roleCode,
             AccessScope scope,
             Instant now
     ) {
         return executor.query("AccessAssignment", () -> assignments.existsEffective(
-                userId.getValue(), platformCode, roleCode,
+                userId.getValue(), roleCode,
                 scope.key().value(), scope.scopeId(), now
         ));
     }
 
     @Override
-    public boolean existsCurrent(Id userId, String platformCode, String roleCode, AccessScope scope) {
+    public boolean existsCurrent(Id userId, String roleCode, AccessScope scope) {
         return executor.query("AccessAssignment", () -> assignments.existsCurrent(
-                userId.getValue(), platformCode, roleCode, scope.key().value(), scope.scopeId()
+                userId.getValue(), roleCode, scope.key().value(), scope.scopeId()
         ));
     }
 

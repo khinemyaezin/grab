@@ -8,7 +8,6 @@ import java.util.Set;
 
 public record GrantAccessCommand(
         Id userId,
-        String platformCode,
         String roleCode,
         String scopeKey,
         String scopeId,

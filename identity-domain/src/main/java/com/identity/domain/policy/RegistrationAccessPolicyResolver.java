@@ -14,13 +14,13 @@ public class RegistrationAccessPolicyResolver {
 
         this.policies = policies.stream()
                 .collect(Collectors.toMap(
-                        RegistrationAccessPolicy::platformCode,
+                        RegistrationAccessPolicy::policyCode,
                         Function.identity()));
     }
 
-    public RegistrationAccessPolicy resolve(String platformCode) {
-        return Optional.ofNullable(policies.get(platformCode))
+    public RegistrationAccessPolicy resolve(String code) {
+        return Optional.ofNullable(policies.get(code))
                 .orElseThrow(() ->
-                        new UnsupportedOperationException(platformCode));
+                        new UnsupportedOperationException(code));
     }
 }

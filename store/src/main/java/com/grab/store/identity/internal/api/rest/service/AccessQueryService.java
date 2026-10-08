@@ -7,6 +7,7 @@ import com.grab.store.identity.internal.api.rest.dto.response.AccessAssignmentRe
 import com.grab.store.identity.internal.api.rest.mapper.ListAccessAssignmentsRequestMapper;
 import com.identity.application.model.write.AccessAssignmentResult;
 import com.identity.application.model.read.AccessContextResult;
+import com.identity.application.model.read.ListAccessAssignmentsQuery;
 import com.identity.application.model.read.ListAccessContextsQuery;
 import com.grab.store.shared.security.SecurityPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +23,8 @@ public class AccessQueryService {
     private final ListAccessAssignmentsRequestMapper assignmentMapper;
     private final AuthenticatedAccessScopeResolver actorScopes;
 
-    public List<AccessContextResponse> listContexts(String userId, String platformCode) {
-        ListAccessContextsQuery query = mapper.toQuery(userId, platformCode);
+    public List<AccessContextResponse> listContexts(String userId) {
+        ListAccessContextsQuery query = mapper.toQuery(userId);
         List<AccessContextResult> results = queryBus.dispatch(query);
         return results.stream().map(mapper::toResponse).toList();
     }
@@ -33,11 +34,12 @@ public class AccessQueryService {
             SecurityPrincipal principal
     ) {
         var actorScope = actorScopes.resolve(principal);
-        List<AccessAssignmentResult> results = queryBus.dispatch(assignmentMapper.toQuery(
+        ListAccessAssignmentsQuery query = assignmentMapper.toQuery(
                 userId,
                 actorScope.key(),
                 actorScope.id()
-        ));
+        );
+        List<AccessAssignmentResult> results = queryBus.dispatch(query);
         return results.stream().map(assignmentMapper::toResponse).toList();
     }
 }

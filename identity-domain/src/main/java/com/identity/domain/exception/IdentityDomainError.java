@@ -12,10 +12,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.InvalidRoleCode,
         IdentityDomainError.InvalidRoleName,
         IdentityDomainError.InvalidUserStatusTransition,
-        IdentityDomainError.InvalidPlatformCode,
-        IdentityDomainError.InvalidPlatformName,
-        IdentityDomainError.PlatformRoleNotSupported,
-        IdentityDomainError.PlatformAuthorityNotSupported,
         IdentityDomainError.SystemRoleModificationForbidden,
         IdentityDomainError.RoleAuthoritiesRequired,
         IdentityDomainError.AuthoritiesUnavailable,
@@ -33,7 +29,36 @@ public sealed interface IdentityDomainError extends MessageSource permits
         IdentityDomainError.AccessInvitationExpired,
         IdentityDomainError.SelfAccessInvitationForbidden,
         IdentityDomainError.AccessInvitationRecipientMismatch,
-        IdentityDomainError.AccountNotActive {
+        IdentityDomainError.AccountNotActive,
+        IdentityDomainError.AuthorityManifestVersionConflict,
+        IdentityDomainError.SecurityManifestDigestMismatch,
+        IdentityDomainError.SecurityManifestPayloadConflict,
+        IdentityDomainError.SecurityManifestRevisionConflict,
+        IdentityDomainError.SecurityManifestStaleRevision,
+        IdentityDomainError.SecurityManifestLowerThanPending,
+        IdentityDomainError.SecurityManifestMissingDependency,
+        IdentityDomainError.SecurityManifestOmittedAuthority,
+        IdentityDomainError.SecurityManifestUnsupportedSchema,
+        IdentityDomainError.SecurityManifestProtectedModule,
+        IdentityDomainError.SecurityManifestInvalidScopeParent,
+        IdentityDomainError.SecurityManifestUnknownParentScope,
+        IdentityDomainError.SecurityManifestScopeOwnerConflict,
+        IdentityDomainError.SecurityManifestScopeCycle,
+        IdentityDomainError.SecurityManifestAuthorityOwnerConflict,
+        IdentityDomainError.SecurityManifestOmittedScope,
+        IdentityDomainError.SecurityManifestReactivation,
+        IdentityDomainError.SecurityManifestInvalidDependency {
+
+    record AuthorityManifestVersionConflict(String moduleKey, int version) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+
+        @Override
+        public String code() { return "idt.domain.authority.manifest_version_conflict"; }
+
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey, "version", version); }
+    }
 
     record SystemRoleModificationForbidden(String roleCode) implements IdentityDomainError {
         @Override
@@ -79,19 +104,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         public Map<String, Object> args() { return Map.of("roleCode", roleCode); }
     }
 
-    record PlatformAuthorityNotSupported(String platformCode, String authorityCode)
-            implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
-
-        @Override
-        public String code() { return "idt.domain.platform.authority_not_supported"; }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode, "authorityCode", authorityCode);
-        }
-    }
 
     record AccountNotActive(String userId) implements IdentityDomainError {
         @Override
@@ -213,56 +225,6 @@ public sealed interface IdentityDomainError extends MessageSource permits
         }
     }
 
-    record InvalidPlatformCode(String platformCode) implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.code_invalid";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode);
-        }
-    }
-
-    record InvalidPlatformName() implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.name_invalid";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of();
-        }
-    }
-
-    record PlatformRoleNotSupported(String platformCode, String roleCode) implements IdentityDomainError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.BAD_REQUEST;
-        }
-
-        @Override
-        public String code() {
-            return "idt.domain.platform.role_not_supported";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("platformCode", platformCode, "roleCode", roleCode);
-        }
-    }
 
     record InvalidAccessCode(String field, String value) implements IdentityDomainError {
         @Override
@@ -493,4 +455,157 @@ public sealed interface IdentityDomainError extends MessageSource permits
             return Map.of();
         }
     }
+
+    record SecurityManifestDigestMismatch(String expected, String actual) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.digest_mismatch"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("expected", expected, "actual", actual); }
+    }
+
+    record SecurityManifestPayloadConflict(String eventId) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.event_payload_conflict"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("eventId", eventId); }
+    }
+
+    record SecurityManifestRevisionConflict(String moduleKey, int revision) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.revision_payload_conflict"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey, "revision", revision); }
+    }
+
+    record SecurityManifestStaleRevision(String moduleKey, int revision, int appliedRevision) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.stale_revision"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey, "revision", revision, "appliedRevision", appliedRevision); }
+    }
+
+    record SecurityManifestLowerThanPending(String moduleKey, int revision, int pendingRevision) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.lower_than_pending"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey, "revision", revision, "pendingRevision", pendingRevision); }
+    }
+
+    record SecurityManifestMissingDependency(String dependencyKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BUSINESS_RULE; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.missing_dependency"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("dependencyKey", dependencyKey); }
+    }
+
+    record SecurityManifestOmittedAuthority(String moduleKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.omitted_authority"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey); }
+    }
+
+    record SecurityManifestUnsupportedSchema(int schemaVersion) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.unsupported_schema"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("schemaVersion", schemaVersion); }
+    }
+
+    record SecurityManifestProtectedModule(String moduleKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.FORBIDDEN; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.protected_module"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey); }
+    }
+
+    record SecurityManifestInvalidScopeParent(String scopeKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.invalid_scope_parent"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("scopeKey", scopeKey); }
+    }
+
+    record SecurityManifestUnknownParentScope(String parentScopeKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.unknown_parent_scope"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("parentScopeKey", parentScopeKey); }
+    }
+
+    record SecurityManifestScopeOwnerConflict(String scopeKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.scope_owner_conflict"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("scopeKey", scopeKey); }
+    }
+
+    record SecurityManifestScopeCycle(String scopeKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BUSINESS_RULE; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.scope_cycle"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("scopeKey", scopeKey); }
+    }
+
+    record SecurityManifestAuthorityOwnerConflict(String authorityCode) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.authority_owner_conflict"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("authorityCode", authorityCode); }
+    }
+    record SecurityManifestOmittedScope(String moduleKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.omitted_scope"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("moduleKey", moduleKey); }
+    }
+
+    record SecurityManifestReactivation(String key) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.CONFLICT; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.reactivation"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("key", key); }
+    }
+
+    record SecurityManifestInvalidDependency(String dependencyKey) implements IdentityDomainError {
+        @Override
+        public ErrorCategory kind() { return ErrorCategory.BAD_REQUEST; }
+        @Override
+        public String code() { return "idt.domain.security_manifest.invalid_dependency"; }
+        @Override
+        public Map<String, Object> args() { return Map.of("dependencyKey", dependencyKey); }
+    }
+
 }

@@ -1,16 +1,17 @@
 package com.identity.domain.policy.impl;
 
 import com.grab.framework.id.Id;
-import com.identity.domain.aggregate.Platform;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
+import com.identity.domain.aggregate.Authority;
 import com.identity.domain.port.outbound.AuthorityRepository;
 
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class RoleAdministrationPolicy {
     private final AuthorityRepository authorities;
@@ -24,28 +25,23 @@ public final class RoleAdministrationPolicy {
             String code,
             String name,
             String description,
-            Platform platform,
             Set<String> requestedAuthorityCodes
     ) {
-        Set<String> authorityCodes = requireActiveAuthorities(requestedAuthorityCodes);
-        platform.requireSupportedAuthorities(authorityCodes);
-        Role role = Role.createCustom(roleId, code, name, description, authorityCodes);
-        platform.addRole(role.getCode());
-        return role;
+        Set<Authority> authorities = requireActiveAuthorities(requestedAuthorityCodes);
+        return Role.createCustom(roleId, code, name, description, authorities);
     }
 
-    public void changeAuthority(Role role, Platform platform, String authorityCode, boolean assign) {
-        Set<String> authorityCodes = requireActiveAuthorities(Set.of(authorityCode));
-        platform.requireSupportedAuthorities(authorityCodes);
-        String normalizedAuthorityCode = authorityCodes.iterator().next();
+    public void changeAuthority(Role role, String authorityCode, boolean assign) {
+        Set<Authority> resolvedAuthorities = requireActiveAuthorities(Set.of(authorityCode));
+        Authority authority = resolvedAuthorities.iterator().next();
         if (assign) {
-            role.assignAuthority(normalizedAuthorityCode);
+            role.assignAuthority(authority);
         } else {
-            role.revokeAuthority(normalizedAuthorityCode);
+            role.revokeAuthority(authority);
         }
     }
 
-    private Set<String> requireActiveAuthorities(Set<String> requestedAuthorityCodes) {
+    private Set<Authority> requireActiveAuthorities(Set<String> requestedAuthorityCodes) {
         Objects.requireNonNull(requestedAuthorityCodes, "authority codes are required");
         LinkedHashSet<String> normalizedCodes = new LinkedHashSet<>();
         for (String requestedAuthorityCode : requestedAuthorityCodes) {
@@ -59,7 +55,10 @@ public final class RoleAdministrationPolicy {
                     "A custom role requires at least one authority"
             );
         }
-        Set<String> activeCodes = authorities.findActiveCodes(normalizedCodes);
+        Set<Authority> activeAuthorities = authorities.findActiveByCodes(normalizedCodes);
+        Set<String> activeCodes = activeAuthorities.stream()
+                .map(Authority::getCode)
+                .collect(Collectors.toSet());
         if (!activeCodes.equals(normalizedCodes)) {
             LinkedHashSet<String> unavailableCodes = new LinkedHashSet<>(normalizedCodes);
             unavailableCodes.removeAll(activeCodes);
@@ -68,6 +67,6 @@ public final class RoleAdministrationPolicy {
                     "One or more authorities are unavailable"
             );
         }
-        return Set.copyOf(normalizedCodes);
+        return Set.copyOf(activeAuthorities);
     }
 }

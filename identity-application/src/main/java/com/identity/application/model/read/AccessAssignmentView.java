@@ -7,7 +7,6 @@ import java.time.Instant;
 public record AccessAssignmentView(
         String id,
         String userId,
-        String platformCode,
         String roleCode,
         String scopeKey,
         String scopeId,

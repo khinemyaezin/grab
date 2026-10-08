@@ -8,7 +8,6 @@ import java.util.Set;
 
 public record CreateAccessInvitationCommand(
         String inviteeEmail,
-        String platformCode,
         String roleCode,
         String scopeKey,
         String scopeId,

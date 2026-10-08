@@ -29,10 +29,10 @@ public final class SharedErrors {
         );
     }
 
-    public static SharedException workflowScopeForbidden(String platformCode, String scopeKey, String scopeId) {
+    public static SharedException workflowScopeForbidden(String scopeKey, String scopeId) {
         return new SharedException(
-                new SharedError.WorkflowScopeForbidden(platformCode, scopeKey, scopeId),
-                "A Seller Portal merchant account scope is required for workflows."
+                new SharedError.WorkflowScopeForbidden(scopeKey, scopeId),
+                "A merchant account scope is required for workflows."
         );
     }
 

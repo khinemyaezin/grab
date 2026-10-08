@@ -2,9 +2,9 @@ package com.grab.store.identity.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.identity.internal.config.IdentityTransactional;
-import com.identity.application.port.inbound.RegisterUseCase;
 import com.identity.application.model.write.RegisterCommand;
 import com.identity.application.model.write.UserProfileResult;
+import com.identity.application.port.inbound.RegisterUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

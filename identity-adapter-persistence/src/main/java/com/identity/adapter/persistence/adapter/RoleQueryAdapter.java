@@ -6,21 +6,18 @@ import com.identity.application.model.read.RoleListView;
 import com.identity.application.model.read.RoleNameView;
 import com.identity.application.model.read.RoleView;
 import com.identity.adapter.persistence.entity.AuthorityEntity;
-import com.identity.adapter.persistence.repository.jpa.PlatformJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.RoleJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class RoleQueryAdapter implements RoleQueryPort {
 
     private final RoleJpaRepository jpaRepository;
-    private final PlatformJpaRepository platformJpaRepository;
     private final PersistenceExecutor executor;
 
     @Override
@@ -41,15 +38,7 @@ public class RoleQueryAdapter implements RoleQueryPort {
                 role.isAssignable(),
                 role.getAuthorities().stream()
                         .map(AuthorityEntity::getCode)
-                        .collect(Collectors.toSet()),
-                platformCodesFor(role.getCode())
+                        .collect(Collectors.toSet())
         )));
-    }
-
-    private Set<String> platformCodesFor(String roleCode) {
-        return platformJpaRepository.findDistinctByPlatformRoles_Role_CodeAndPlatformRoles_ActiveTrue(roleCode)
-                .stream()
-                .map(platform -> platform.getCode())
-                .collect(Collectors.toSet());
     }
 }

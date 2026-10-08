@@ -1,7 +1,7 @@
 package com.grab.store.storefrontquery.internal.query.handler;
 
 import com.grab.framework.cqrs.query.QueryHandler;
-import com.grab.store.saleschannel.query.SalesChannelQueryPort;
+import com.grab.store.saleschannel.port.SalesChannelQuery;
 import com.grab.store.storefrontquery.internal.config.StorefrontQueryTransactional;
 import com.grab.store.storefrontquery.internal.exception.StorefrontQueryServiceError;
 import com.grab.store.storefrontquery.internal.exception.StorefrontQueryServiceException;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 public class GetBuyableOfferBySlugQueryHandler
         implements QueryHandler<GetBuyableOfferBySlugQuery, BuyableOfferResult> {
     private final BuyableOfferJpaRepository offers;
-    private final SalesChannelQueryPort salesChannels;
+    private final SalesChannelQuery salesChannels;
 
     @Override
     @StorefrontQueryTransactional(readOnly = true)

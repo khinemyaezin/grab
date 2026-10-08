@@ -9,7 +9,7 @@ import com.merchant.application.model.write.ChangeMerchantLifecycleCommand;
 import com.merchant.domain.event.MerchantApplicationSubmittedEvent;
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.port.outbound.MerchantAccountRepository;
-import com.merchant.domain.service.MerchantApprovalPolicy;
+import com.merchant.domain.policy.MerchantApprovalPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

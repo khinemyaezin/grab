@@ -8,23 +8,30 @@ import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.merchant.domain.port.outbound.MerchantAccountRepository;
+import com.merchant.domain.port.outbound.MerchantMemberRepository;
 import com.merchant.domain.port.outbound.StorefrontChannelBrandRepository;
 import com.merchant.domain.port.outbound.StorefrontRepository;
 import com.merchant.adapter.persistence.entity.StorefrontEntity;
 import com.merchant.adapter.persistence.mapper.jpa.impl.MerchantAccountJpaAssembler;
+import com.merchant.adapter.persistence.mapper.jpa.impl.MerchantMemberJpaAssembler;
 import com.merchant.adapter.persistence.mapper.jpa.impl.StorefrontJpaAssembler;
 import com.merchant.adapter.persistence.mapper.jpa.MerchantAccountEntityMapper;
+import com.merchant.adapter.persistence.mapper.jpa.MerchantMemberEntityMapper;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontChannelBrandEntityMapper;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontChannelBrandJpaAssembler;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontChannelBrandMapper;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontEntityMapper;
 import com.merchant.adapter.persistence.mapper.jpa.impl.StorefrontChannelBrandJpaAssemblerImpl;
+import com.merchant.adapter.persistence.repository.jpa.MerchantMemberJpaRepository;
 import com.merchant.adapter.persistence.repository.jpa.StorefrontChannelBrandJpaRepository;
 import com.merchant.adapter.persistence.repository.jpa.StorefrontJpaRepository;
 import com.merchant.application.port.outbound.MerchantAccountQueryPort;
+import com.merchant.application.port.outbound.MerchantMemberQueryPort;
 import com.merchant.application.port.outbound.StorefrontQueryPort;
 import com.merchant.adapter.persistence.adapter.MerchantAccountQueryAdapter;
 import com.merchant.adapter.persistence.adapter.MerchantAccountRepositoryAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantMemberQueryAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantMemberRepositoryAdapter;
 import com.merchant.adapter.persistence.adapter.MerchantPersistenceExecutor;
 import com.merchant.adapter.persistence.adapter.StorefrontChannelBrandRepositoryAdapter;
 import com.merchant.adapter.persistence.adapter.StorefrontQueryAdapter;
@@ -163,5 +170,26 @@ public class MerchantPersistenceConfig {
             MerchantAccountJpaRepository merchants,
             @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
         return new MerchantAccountQueryAdapter(merchants, executor);
+    }
+
+    @Bean
+    MerchantMemberJpaAssembler merchantMemberAssembler(MerchantMemberEntityMapper entityMapper, IdMapper ids) {
+        return new MerchantMemberJpaAssembler(entityMapper, ids);
+    }
+
+    @Bean
+    MerchantMemberRepository merchantMemberRepository(
+            MerchantMemberJpaRepository members,
+            MerchantMemberJpaAssembler assembler,
+            @Qualifier("merchantDomainEventProducer") DomainEventProducer events,
+            @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
+        return new MerchantMemberRepositoryAdapter(members, assembler, events, executor);
+    }
+
+    @Bean
+    MerchantMemberQueryPort merchantMemberQueryPort(
+            MerchantMemberJpaRepository members,
+            @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
+        return new MerchantMemberQueryAdapter(members, executor);
     }
 }

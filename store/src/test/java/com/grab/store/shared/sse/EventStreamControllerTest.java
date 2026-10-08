@@ -67,7 +67,7 @@ class EventStreamControllerTest {
                 "seller@example.com",
                 Set.of(),
                 Set.of(),
-                new AccessContext("SELLER_PORTAL", "assign-1", "MERCHANT_ACCOUNT", "merchant-1")
+                new AccessContext("assign-1", "MERCHANT_ACCOUNT", "merchant-1")
         ));
     }
 

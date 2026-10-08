@@ -125,18 +125,18 @@ class DefaultIdentityResolverClientTest {
         when(properties.issuer()).thenReturn("test-issuer");
         String userId = UUID.randomUUID().toString();
         AccessContext context = new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-1"
+                "assignment-1", "merchant.account", "merchant-1"
         );
         ExternalPrincipal principal = new ExternalPrincipal(
                 "test-issuer", userId, "owner@example.com", Set.of(), context
         );
         
-        AuthenticatedActor mockActor = new AuthenticatedActor(userId, "test-issuer", userId, "owner@example.com", Set.of("MERCHANT_OWNER"), Set.of("MERCHANT_WRITE_OWN"), context);;
+        AuthenticatedActor mockActor = new AuthenticatedActor(userId, "test-issuer", userId, "owner@example.com", Set.of("MERCHANT_ADMIN"), Set.of("MERCHANT_WRITE_OWN"), context);
         when(identityLookup.resolveByPlatformUser("test-issuer", userId, context)).thenReturn(Optional.of(mockActor));
 
         AuthenticatedActor actor = resolver.resolve(principal);
 
-        assertEquals(Set.of("MERCHANT_OWNER"), actor.roles());
+        assertEquals(Set.of("MERCHANT_ADMIN"), actor.roles());
         assertEquals(Set.of("MERCHANT_WRITE_OWN"), actor.authorities());
         assertEquals(context, actor.accessContext());
     }
@@ -146,7 +146,7 @@ class DefaultIdentityResolverClientTest {
         when(properties.issuer()).thenReturn("test-issuer");
         String userId = UUID.randomUUID().toString();
         AccessContext context = new AccessContext(
-                "SELLER_PORTAL", "assignment-1", "merchant.account", "merchant-other"
+                "assignment-1", "merchant.account", "merchant-other"
         );
         ExternalPrincipal principal = new ExternalPrincipal(
                 "test-issuer", userId, "", Set.of(), context
