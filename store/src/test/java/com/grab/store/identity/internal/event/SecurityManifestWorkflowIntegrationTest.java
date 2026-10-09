@@ -542,9 +542,12 @@ class SecurityManifestWorkflowIntegrationTest {
         @Bean IdentitySecurityManifestRevalidationScheduler scheduler(QueryBus queries, CommandBus commands) { return new IdentitySecurityManifestRevalidationScheduler(queries, commands, 100); }
         @Bean CommandBus commands(RegisterSecurityManifestCommandHandler registration, RevalidateSecurityManifestCommandHandler revalidation) { return new DefaultCommandBus(List.of(registration, revalidation)); }
         @Bean("merchantPublication") SecurityManifestPublicationPort publication(MerchantSecurityManifestPublicationJpaRepository repository,
-                @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store) {
+                @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store,
+                @Qualifier("merchantTransactionManager") PlatformTransactionManager transactions) {
             var producer = new MerchantOutboxEventProducer(store, new JsonOutboxEventSerializer());
-            return new SecurityManifestPublicationAdapter(repository::lockByModuleKey, producer,
+            var stateProvider = com.grab.store.shared.security.SecurityManifestPublicationStateProvider.lockingProvider(
+                    repository, repository::lockByModuleKey, MerchantSecurityManifestPublicationEntity::new, transactions);
+            return new SecurityManifestPublicationAdapter(stateProvider, producer,
                     envelope -> new MerchantSecurityManifestDeclaredIntegrationEvent(envelope.manifest(), envelope.eventId(), envelope.suppliedContentDigest(), envelope.publishedAt()),
                     Clock.systemUTC(), Duration.ofMinutes(5));
         }

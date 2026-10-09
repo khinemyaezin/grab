@@ -7,9 +7,12 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface MerchantSecurityManifestPublicationJpaRepository
         extends JpaRepository<MerchantSecurityManifestPublicationEntity, String> {
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select state from MerchantSecurityManifestPublicationEntity state where state.moduleKey = :moduleKey")
-    MerchantSecurityManifestPublicationEntity lockByModuleKey(@Param("moduleKey") String moduleKey);
+    Optional<MerchantSecurityManifestPublicationEntity> lockByModuleKey(@Param("moduleKey") String moduleKey);
 }

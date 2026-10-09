@@ -6,6 +6,7 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Version;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @MappedSuperclass
 public abstract class SecurityManifestPublicationState {
@@ -20,16 +21,29 @@ public abstract class SecurityManifestPublicationState {
     private Instant lastEnqueuedAt;
     @Column(name = "lease_until")
     private Instant nextPublicationAt;
-    @Version
-    @Column(name = "row_version", nullable = false)
-    private long rowVersion;
 
+    protected SecurityManifestPublicationState() {
+    }
+
+    protected SecurityManifestPublicationState(String moduleKey) {
+        this.moduleKey = Objects.requireNonNull(moduleKey, "moduleKey must not be null");
+        this.revision = 0;
+        this.digest = "";
+    }
+
+    public String moduleKey() { return moduleKey; }
     public Instant lastEnqueuedAt() { return lastEnqueuedAt; }
     public int revision() { return revision; }
     public String digest() { return digest; }
     public Instant nextPublicationAt() { return nextPublicationAt; }
 
     public void recordEnqueued(int revision, String digest, Instant now, Instant nextPublicationAt) {
+        if (revision < this.revision) {
+            throw new IllegalStateException("Security publication revision cannot regress from " + this.revision + " to " + revision);
+        }
+        if (revision == this.revision && this.digest != null && !this.digest.isEmpty() && !this.digest.equals(digest)) {
+            throw new IllegalStateException("Security publication digest conflict for revision " + revision);
+        }
         this.revision = revision;
         this.digest = digest;
         this.lastEnqueuedAt = now;

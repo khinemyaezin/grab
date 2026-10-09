@@ -17,9 +17,15 @@ import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQuery
 import com.saleschannel.adapter.persistence.entity.SalesChannelSecurityManifestPublicationEntity;
 import com.saleschannel.application.port.inbound.GetSalesChannelSecurityManifestPublicationStatusUseCase;
 import com.saleschannel.application.service.GetSalesChannelSecurityManifestPublicationStatusService;
+import com.grab.framework.security.SecurityManifest;
 import org.springframework.data.jpa.repository.JpaContext;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+
+import com.grab.store.shared.security.SecurityManifestPublicationStateProvider;
+import org.springframework.transaction.PlatformTransactionManager;
+import java.util.function.Function;
 
 @Configuration
 public class SalesChannelSecurityManifestPublicationConfig {
@@ -27,15 +33,22 @@ public class SalesChannelSecurityManifestPublicationConfig {
     public SecurityManifestPublicationPort saleschannelPublicationPort(
             SalesChannelSecurityManifestPublicationJpaRepository repository,
             @Qualifier("salesChannelDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
             @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
         Clock clock = Clock.systemUTC();
         Duration interval = Duration.ofMillis(intervalMs);
-        return new SecurityManifestPublicationAdapter(repository::lockByModuleKey, outbox,
+        Function<String, SalesChannelSecurityManifestPublicationEntity> stateProvider =
+                SecurityManifestPublicationStateProvider.lockingProvider(
+                        repository,
+                        repository::lockByModuleKey,
+                        SalesChannelSecurityManifestPublicationEntity::new,
+                        transactionManager);
+        return new SecurityManifestPublicationAdapter(stateProvider, outbox,
                 envelope -> {
-                    var manifest = envelope.manifest();
+                    SecurityManifest manifest = envelope.manifest();
                     String eventId = envelope.eventId();
                     String digest = envelope.suppliedContentDigest();
-                    var publishedAt = envelope.publishedAt();
+                    Instant publishedAt = envelope.publishedAt();
                     return new SalesChannelSecurityManifestDeclaredIntegrationEvent(manifest, eventId, digest, publishedAt);
                 }, clock, interval);
     }
@@ -47,7 +60,7 @@ public class SalesChannelSecurityManifestPublicationConfig {
     }
     @Bean("saleschannelSecurityManifestPublicationQueryPort")
     public SecurityManifestPublicationQueryPort saleschannelPublicationQueryPort(JpaContext context) {
-        var entityManager = context.getEntityManagerByManagedType(SalesChannelSecurityManifestPublicationEntity.class);
+        jakarta.persistence.EntityManager entityManager = context.getEntityManagerByManagedType(SalesChannelSecurityManifestPublicationEntity.class);
         return new SecurityManifestPublicationQueryAdapter(entityManager, SalesChannelSecurityManifestPublicationEntity.class,
                 "SalesChannelOutboxEvent");
     }

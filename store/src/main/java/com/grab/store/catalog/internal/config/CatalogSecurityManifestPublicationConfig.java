@@ -17,9 +17,15 @@ import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQuery
 import com.catalog.adapter.persistence.entity.CatalogSecurityManifestPublicationEntity;
 import com.catalog.application.port.inbound.GetCatalogSecurityManifestPublicationStatusUseCase;
 import com.catalog.application.service.GetCatalogSecurityManifestPublicationStatusService;
+import com.grab.framework.security.SecurityManifest;
 import org.springframework.data.jpa.repository.JpaContext;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+
+import com.grab.store.shared.security.SecurityManifestPublicationStateProvider;
+import org.springframework.transaction.PlatformTransactionManager;
+import java.util.function.Function;
 
 @Configuration
 public class CatalogSecurityManifestPublicationConfig {
@@ -27,15 +33,22 @@ public class CatalogSecurityManifestPublicationConfig {
     public SecurityManifestPublicationPort catalogPublicationPort(
             CatalogSecurityManifestPublicationJpaRepository repository,
             @Qualifier("catalogDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager,
             @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
         Clock clock = Clock.systemUTC();
         Duration interval = Duration.ofMillis(intervalMs);
-        return new SecurityManifestPublicationAdapter(repository::lockByModuleKey, outbox,
+        Function<String, CatalogSecurityManifestPublicationEntity> stateProvider =
+                SecurityManifestPublicationStateProvider.lockingProvider(
+                        repository,
+                        repository::lockByModuleKey,
+                        CatalogSecurityManifestPublicationEntity::new,
+                        transactionManager);
+        return new SecurityManifestPublicationAdapter(stateProvider, outbox,
                 envelope -> {
-                    var manifest = envelope.manifest();
+                    SecurityManifest manifest = envelope.manifest();
                     String eventId = envelope.eventId();
                     String digest = envelope.suppliedContentDigest();
-                    var publishedAt = envelope.publishedAt();
+                    Instant publishedAt = envelope.publishedAt();
                     return new CatalogSecurityManifestDeclaredIntegrationEvent(manifest, eventId, digest, publishedAt);
                 }, clock, interval);
     }
@@ -47,7 +60,7 @@ public class CatalogSecurityManifestPublicationConfig {
     }
     @Bean("catalogSecurityManifestPublicationQueryPort")
     public SecurityManifestPublicationQueryPort catalogPublicationQueryPort(JpaContext context) {
-        var entityManager = context.getEntityManagerByManagedType(CatalogSecurityManifestPublicationEntity.class);
+        jakarta.persistence.EntityManager entityManager = context.getEntityManagerByManagedType(CatalogSecurityManifestPublicationEntity.class);
         return new SecurityManifestPublicationQueryAdapter(entityManager, CatalogSecurityManifestPublicationEntity.class,
                 "CatalogOutboxEvent");
     }

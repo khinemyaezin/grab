@@ -17,9 +17,15 @@ import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQuery
 import com.identity.adapter.persistence.entity.IdentitySecurityManifestPublicationEntity;
 import com.identity.application.port.inbound.GetIdentitySecurityManifestPublicationStatusUseCase;
 import com.identity.application.service.GetIdentitySecurityManifestPublicationStatusService;
+import com.grab.framework.security.SecurityManifest;
 import org.springframework.data.jpa.repository.JpaContext;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+
+import com.grab.store.shared.security.SecurityManifestPublicationStateProvider;
+import org.springframework.transaction.PlatformTransactionManager;
+import java.util.function.Function;
 
 @Configuration
 public class IdentitySecurityManifestPublicationConfig {
@@ -27,15 +33,22 @@ public class IdentitySecurityManifestPublicationConfig {
     public SecurityManifestPublicationPort identityPublicationPort(
             IdentitySecurityManifestPublicationJpaRepository repository,
             @Qualifier("identityDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("identityTransactionManager") PlatformTransactionManager transactionManager,
             @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
         Clock clock = Clock.systemUTC();
         Duration interval = Duration.ofMillis(intervalMs);
-        return new SecurityManifestPublicationAdapter(repository::lockByModuleKey, outbox,
+        Function<String, IdentitySecurityManifestPublicationEntity> stateProvider =
+                SecurityManifestPublicationStateProvider.lockingProvider(
+                        repository,
+                        repository::lockByModuleKey,
+                        IdentitySecurityManifestPublicationEntity::new,
+                        transactionManager);
+        return new SecurityManifestPublicationAdapter(stateProvider, outbox,
                 envelope -> {
-                    var manifest = envelope.manifest();
+                    SecurityManifest manifest = envelope.manifest();
                     String eventId = envelope.eventId();
                     String digest = envelope.suppliedContentDigest();
-                    var publishedAt = envelope.publishedAt();
+                    Instant publishedAt = envelope.publishedAt();
                     return new IdentitySecurityManifestDeclaredIntegrationEvent(manifest, eventId, digest, publishedAt);
                 }, clock, interval);
     }
@@ -47,7 +60,7 @@ public class IdentitySecurityManifestPublicationConfig {
     }
     @Bean("identitySecurityManifestPublicationQueryPort")
     public SecurityManifestPublicationQueryPort identityPublicationQueryPort(JpaContext context) {
-        var entityManager = context.getEntityManagerByManagedType(IdentitySecurityManifestPublicationEntity.class);
+        jakarta.persistence.EntityManager entityManager = context.getEntityManagerByManagedType(IdentitySecurityManifestPublicationEntity.class);
         return new SecurityManifestPublicationQueryAdapter(entityManager, IdentitySecurityManifestPublicationEntity.class,
                 "IdentityOutboxEvent");
     }

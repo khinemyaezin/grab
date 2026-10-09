@@ -17,9 +17,15 @@ import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQuery
 import com.inventory.adapter.persistence.entity.InventorySecurityManifestPublicationEntity;
 import com.inventory.application.port.inbound.GetInventorySecurityManifestPublicationStatusUseCase;
 import com.inventory.application.service.GetInventorySecurityManifestPublicationStatusService;
+import com.grab.framework.security.SecurityManifest;
 import org.springframework.data.jpa.repository.JpaContext;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+
+import com.grab.store.shared.security.SecurityManifestPublicationStateProvider;
+import org.springframework.transaction.PlatformTransactionManager;
+import java.util.function.Function;
 
 @Configuration
 public class InventorySecurityManifestPublicationConfig {
@@ -27,15 +33,22 @@ public class InventorySecurityManifestPublicationConfig {
     public SecurityManifestPublicationPort inventoryPublicationPort(
             InventorySecurityManifestPublicationJpaRepository repository,
             @Qualifier("inventoryDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
             @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
         Clock clock = Clock.systemUTC();
         Duration interval = Duration.ofMillis(intervalMs);
-        return new SecurityManifestPublicationAdapter(repository::lockByModuleKey, outbox,
+        Function<String, InventorySecurityManifestPublicationEntity> stateProvider =
+                SecurityManifestPublicationStateProvider.lockingProvider(
+                        repository,
+                        repository::lockByModuleKey,
+                        InventorySecurityManifestPublicationEntity::new,
+                        transactionManager);
+        return new SecurityManifestPublicationAdapter(stateProvider, outbox,
                 envelope -> {
-                    var manifest = envelope.manifest();
+                    SecurityManifest manifest = envelope.manifest();
                     String eventId = envelope.eventId();
                     String digest = envelope.suppliedContentDigest();
-                    var publishedAt = envelope.publishedAt();
+                    Instant publishedAt = envelope.publishedAt();
                     return new InventorySecurityManifestDeclaredIntegrationEvent(manifest, eventId, digest, publishedAt);
                 }, clock, interval);
     }
@@ -47,7 +60,7 @@ public class InventorySecurityManifestPublicationConfig {
     }
     @Bean("inventorySecurityManifestPublicationQueryPort")
     public SecurityManifestPublicationQueryPort inventoryPublicationQueryPort(JpaContext context) {
-        var entityManager = context.getEntityManagerByManagedType(InventorySecurityManifestPublicationEntity.class);
+        jakarta.persistence.EntityManager entityManager = context.getEntityManagerByManagedType(InventorySecurityManifestPublicationEntity.class);
         return new SecurityManifestPublicationQueryAdapter(entityManager, InventorySecurityManifestPublicationEntity.class,
                 "InventoryOutboxEvent");
     }

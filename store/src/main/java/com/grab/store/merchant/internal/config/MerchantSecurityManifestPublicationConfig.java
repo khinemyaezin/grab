@@ -17,9 +17,15 @@ import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationQuery
 import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
 import com.merchant.application.port.inbound.GetMerchantSecurityManifestPublicationStatusUseCase;
 import com.merchant.application.service.GetMerchantSecurityManifestPublicationStatusService;
+import com.grab.framework.security.SecurityManifest;
 import org.springframework.data.jpa.repository.JpaContext;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
+
+import com.grab.store.shared.security.SecurityManifestPublicationStateProvider;
+import org.springframework.transaction.PlatformTransactionManager;
+import java.util.function.Function;
 
 @Configuration
 @MerchantEnabled
@@ -28,15 +34,22 @@ public class MerchantSecurityManifestPublicationConfig {
     public SecurityManifestPublicationPort merchantPublicationPort(
             MerchantSecurityManifestPublicationJpaRepository repository,
             @Qualifier("merchantDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
             @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
         Clock clock = Clock.systemUTC();
         Duration interval = Duration.ofMillis(intervalMs);
-        return new SecurityManifestPublicationAdapter(repository::lockByModuleKey, outbox,
+        Function<String, MerchantSecurityManifestPublicationEntity> stateProvider =
+                SecurityManifestPublicationStateProvider.lockingProvider(
+                        repository,
+                        repository::lockByModuleKey,
+                        MerchantSecurityManifestPublicationEntity::new,
+                        transactionManager);
+        return new SecurityManifestPublicationAdapter(stateProvider, outbox,
                 envelope -> {
-                    var manifest = envelope.manifest();
+                    SecurityManifest manifest = envelope.manifest();
                     String eventId = envelope.eventId();
                     String digest = envelope.suppliedContentDigest();
-                    var publishedAt = envelope.publishedAt();
+                    Instant publishedAt = envelope.publishedAt();
                     return new MerchantSecurityManifestDeclaredIntegrationEvent(manifest, eventId, digest, publishedAt);
                 }, clock, interval);
     }
@@ -48,7 +61,7 @@ public class MerchantSecurityManifestPublicationConfig {
     }
     @Bean("merchantSecurityManifestPublicationQueryPort")
     public SecurityManifestPublicationQueryPort merchantPublicationQueryPort(JpaContext context) {
-        var entityManager = context.getEntityManagerByManagedType(MerchantSecurityManifestPublicationEntity.class);
+        jakarta.persistence.EntityManager entityManager = context.getEntityManagerByManagedType(MerchantSecurityManifestPublicationEntity.class);
         return new SecurityManifestPublicationQueryAdapter(entityManager, MerchantSecurityManifestPublicationEntity.class,
                 "MerchantOutboxEvent");
     }

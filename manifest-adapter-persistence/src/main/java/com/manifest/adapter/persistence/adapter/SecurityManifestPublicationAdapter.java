@@ -40,7 +40,9 @@ public class SecurityManifestPublicationAdapter implements SecurityManifestPubli
     @Override
     public PublicationResult enqueue(SecurityManifest manifest) {
         SecurityManifestPublicationState state = lock.apply(manifest.moduleKey());
-        Objects.requireNonNull(state, "Seeded publication state is missing");
+        if (state == null) {
+            throw new IllegalStateException("Publication state is missing for module: " + manifest.moduleKey());
+        }
         Instant now = clock.instant();
         PublicationResult result = PublicationEligibilityPolicy.decide(
                 manifest, state.revision(), state.digest(), state.nextPublicationAt(), now);
@@ -49,7 +51,7 @@ public class SecurityManifestPublicationAdapter implements SecurityManifestPubli
         }
         String digest = manifest.contentDigest();
         String eventId = UUID.randomUUID().toString();
-        var envelope = new SecurityManifestEnvelope(SecurityManifestEnvelope.TYPE, SecurityManifestEnvelope.VERSION,
+        SecurityManifestEnvelope envelope = new SecurityManifestEnvelope(SecurityManifestEnvelope.TYPE, SecurityManifestEnvelope.VERSION,
                 manifest.moduleKey(), eventId, now, digest, manifest);
         Event event = eventFactory.apply(envelope);
         Instant nextPublicationAt = now.plus(interval);

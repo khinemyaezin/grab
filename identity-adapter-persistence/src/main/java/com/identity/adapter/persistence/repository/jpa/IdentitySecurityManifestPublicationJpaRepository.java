@@ -7,9 +7,12 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface IdentitySecurityManifestPublicationJpaRepository
         extends JpaRepository<IdentitySecurityManifestPublicationEntity, String> {
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select state from IdentitySecurityManifestPublicationEntity state where state.moduleKey = :moduleKey")
-    IdentitySecurityManifestPublicationEntity lockByModuleKey(@Param("moduleKey") String moduleKey);
+    Optional<IdentitySecurityManifestPublicationEntity> lockByModuleKey(@Param("moduleKey") String moduleKey);
 }
