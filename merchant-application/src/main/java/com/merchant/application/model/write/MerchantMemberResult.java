@@ -16,8 +16,26 @@ public record MerchantMemberResult(
         Instant joinedAt,
         Instant createdAt,
         Instant updatedAt,
-        long version
+        long version,
+        String accessProvisioningStatus,
+        String accessProvisioningError
 ) {
+    public MerchantMemberResult(
+            String memberId,
+            String merchantId,
+            String userId,
+            String role,
+            String status,
+            String invitedBy,
+            Instant invitationExpiresAt,
+            Instant joinedAt,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
+    ) {
+        this(memberId, merchantId, userId, role, status, invitedBy, invitationExpiresAt, joinedAt, createdAt, updatedAt, version, null, null);
+    }
+
     public static MerchantMemberResult from(MerchantMember member) {
         return new MerchantMemberResult(
                 member.getId().getValue(),
@@ -30,7 +48,9 @@ public record MerchantMemberResult(
                 member.getJoinedAt(),
                 member.getCreatedAt(),
                 member.getUpdatedAt(),
-                member.getVersion()
+                member.getVersion(),
+                member.getAccessProvisioningStatus() == null ? null : member.getAccessProvisioningStatus().name(),
+                member.getAccessProvisioningError()
         );
     }
 
@@ -46,7 +66,9 @@ public record MerchantMemberResult(
                 view.joinedAt(),
                 view.createdAt(),
                 view.updatedAt(),
-                view.version()
+                view.version(),
+                view.accessProvisioningStatus(),
+                view.accessProvisioningError()
         );
     }
 }

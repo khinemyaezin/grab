@@ -25,7 +25,7 @@ public class Role extends AggregateRoot<Id> {
     private String description;
     private final RoleKind kind;
     private boolean active;
-    private final boolean assignable;
+    private boolean assignable;
     private final Set<Authority> authorities;
 
     public Role(Id id, String code, String name, String description, boolean active, Set<Authority> authorities) {
@@ -132,6 +132,19 @@ public class Role extends AggregateRoot<Id> {
         if (authorities.remove(requiredAuthority)) {
             addEvent(new RoleAuthorityChangedEvent(getId(), requiredAuthority.getCode(), false, LocalDateTime.now()));
         }
+    }
+
+    public void reconcileSystemAuthorities(Set<Authority> reconciledAuthorities, boolean assignable) {
+        if (this.kind != RoleKind.SYSTEM) {
+            throw new IllegalStateException("reconcileSystemAuthorities only applies to SYSTEM roles");
+        }
+        this.authorities.clear();
+        if (reconciledAuthorities != null) {
+            this.authorities.addAll(normalizeAuthorities(reconciledAuthorities));
+        }
+        this.assignable = assignable;
+        this.active = true;
+        addEvent(new RoleAuthorityChangedEvent(getId(), code, true, LocalDateTime.now()));
     }
 
     public Set<Authority> getAuthorities() {

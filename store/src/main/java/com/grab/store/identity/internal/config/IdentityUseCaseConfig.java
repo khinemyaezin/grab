@@ -242,4 +242,24 @@ public class IdentityUseCaseConfig {
     public RevokeSessionsByScopeUseCase revokeSessionsByScopeUseCase(SessionStore sessionStore) {
         return new RevokeSessionsByScopeService(sessionStore);
     }
+
+    @Bean
+    public RegisterRoleDeclarationUseCase registerRoleDeclarationUseCase(
+            SecurityCatalogRepository catalogs,
+            RoleRepository roles,
+            AuthorityRepository authorities
+    ) {
+        return new RegisterRoleDeclarationService(catalogs, roles, authorities);
+    }
+
+    @Bean
+    public FulfillAdminAccessAssignmentUseCase fulfillAdminAccessAssignmentUseCase(
+            UserRepository users,
+            RoleRepository roles,
+            AccessAssignmentRepository assignments,
+            IdGenerator ids
+    ) {
+        return new FulfillAdminAccessAssignmentService(users, roles, assignments, ids);
+    }
 }
+
