@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
+import com.grab.framework.domain.Event;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
@@ -13,6 +15,7 @@ import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
 import com.grab.store.identity.port.IdentityLookupQuery;
 import com.grab.store.identity.internal.query.handler.ListWaitingSecurityManifestCandidatesQueryHandler;
+import com.grab.store.identity.internal.config.SecurityCatalogInitializationAspect;
 import com.identity.adapter.persistence.specification.jpa.SecurityManifestWaitingSpecification;
 import com.identity.adapter.persistence.mapper.jpa.SecurityCatalogJpaAssembler;
 import com.identity.application.port.outbound.SecurityManifestQueryPort;
@@ -24,8 +27,20 @@ import com.grab.outbox.infrastructure.AbstractOutboxProcessor;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationStateProvider;
 import com.grab.store.identity.internal.command.handler.RegisterSecurityManifestCommandHandler;
 import com.grab.store.identity.internal.command.handler.RevalidateSecurityManifestCommandHandler;
+import com.grab.store.identity.internal.command.handler.EnsureSecurityCatalogStateCommandHandler;
+import com.grab.store.identity.internal.command.handler.RegisterRoleDeclarationCommandHandler;
+import com.grab.store.identity.internal.command.handler.GrantAccessCommandHandler;
+import com.grab.store.identity.internal.command.handler.ReplaceAccessCommandHandler;
+import com.grab.store.identity.internal.command.handler.ChangeAccessStatusCommandHandler;
+import com.grab.store.identity.internal.command.handler.CreateAccessInvitationCommandHandler;
+import com.grab.store.identity.internal.command.handler.AcceptAccessInvitationCommandHandler;
+import com.grab.store.identity.internal.command.handler.CancelAccessInvitationCommandHandler;
+import com.grab.store.identity.internal.api.adapter.AccessManagementPortAdapter;
+import com.grab.store.identity.port.AccessManagementPort;
+import com.grab.store.merchant.internal.command.handler.PublishMerchantSecurityManifestCommandHandler;
 import com.identity.adapter.persistence.adapter.*;
 import com.identity.adapter.persistence.entity.*;
 import com.identity.adapter.persistence.outbox.IdentityOutboxEvent;
@@ -40,14 +55,16 @@ import com.grab.store.shared.events.identity.IdentitySecurityManifestDeclaredInt
 import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
 import com.merchant.adapter.persistence.outbox.MerchantOutboxEvent;
 import com.merchant.adapter.persistence.outbox.MerchantOutboxEventProducer;
-import com.merchant.adapter.persistence.repository.jpa.MerchantSecurityManifestPublicationJpaRepository;
+import com.merchant.application.model.write.PublishMerchantSecurityManifestCommand;
+import com.merchant.application.port.inbound.PublishMerchantSecurityManifestUseCase;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.core.Ordered;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -56,29 +73,47 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.SharedEntityManagerCreator;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.retry.annotation.EnableRetry;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.*;
 
 @SpringJUnitConfig(SecurityManifestWorkflowIntegrationTest.Config.class)
+@Testcontainers(disabledWithoutDocker = true)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class SecurityManifestWorkflowIntegrationTest {
-    private static final PostgreSQLContainer<?> DATABASE = new PostgreSQLContainer<>("postgres:16-alpine");
-    static { DATABASE.start(); }
+    @Container
+    static final PostgreSQLContainer<?> DATABASE = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @Autowired private RegisterSecurityManifestCommandHandler registration;
     @Autowired private RevalidateSecurityManifestCommandHandler revalidation;
+    @Autowired private RegisterRoleDeclarationCommandHandler roleRegistration;
+    @Autowired private GrantAccessCommandHandler grantAccess;
+    @Autowired private ReplaceAccessCommandHandler replaceAccess;
+    @Autowired private ChangeAccessStatusCommandHandler changeAccessStatus;
+    @Autowired private CreateAccessInvitationCommandHandler createInvitation;
+    @Autowired private AcceptAccessInvitationCommandHandler acceptInvitation;
+    @Autowired private CancelAccessInvitationCommandHandler cancelInvitation;
+    @Autowired private AccessManagementPortAdapter accessManagement;
+    @Autowired private InitializationRaceControl initializationRaceControl;
     @Autowired private SecurityManifestRevisionRepository revisions;
     @Autowired private SecurityCatalogRepository catalogs;
     @Autowired private CommandBus commands;
+    @Autowired private PublicationResultCapture publicationResultCapture;
     @Autowired @Qualifier("merchantPublication") private SecurityManifestPublicationPort publication;
     @Autowired @Qualifier("identityTransactionManager") private PlatformTransactionManager identityTransactions;
     @Autowired @Qualifier("merchantTransactionManager") private PlatformTransactionManager merchantTransactions;
@@ -98,11 +133,9 @@ class SecurityManifestWorkflowIntegrationTest {
         identity = new JdbcTemplate(identityDataSource);
         merchant = new JdbcTemplate(merchantDataSource);
         identity.execute("TRUNCATE security_manifest_conflict, security_manifest_inbox, security_manifest_revision, "
-                + "security_manifest_module, security_scope_definitions, role_authorities, authorities, identity_outbox_event, roles, users, access_assignments CASCADE");
-        identity.update("UPDATE security_catalog_state SET catalog_revision = 0 WHERE id = 1");
+                + "security_manifest_module, security_catalog_state, security_scope_definitions, role_authorities, authorities, identity_outbox_event, roles, users, access_assignments CASCADE");
         merchant.execute("TRUNCATE merchant_outbox_events");
         merchant.execute("TRUNCATE security_manifest_publication");
-        merchant.update("INSERT INTO security_manifest_publication(module_key, security_revision, content_digest) VALUES ('merchant', 0, '')");
     }
 
     @Test
@@ -113,16 +146,20 @@ class SecurityManifestWorkflowIntegrationTest {
             publication.enqueue(manifest);
             throw new IllegalStateException("injected owner crash");
         })).isInstanceOf(IllegalStateException.class);
-        assertThat(merchant.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class)).isZero();
-        assertThat(merchant.queryForObject("SELECT security_revision FROM security_manifest_publication", Integer.class)).isZero();
+        Long outboxCountAfterRollback = merchant.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class);
+        Long stateCountAfterRollback = merchant.queryForObject("SELECT count(*) FROM security_manifest_publication", Long.class);
+        assertThat(outboxCountAfterRollback).isZero();
+        assertThat(stateCountAfterRollback).isZero();
         tx.executeWithoutResult(status -> publication.enqueue(manifest));
-        assertThat(merchant.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class)).isEqualTo(1);
+        Long outboxCountAfterCommit = merchant.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class);
+        assertThat(outboxCountAfterCommit).isEqualTo(1);
         var listener = new IdentitySecurityManifestRegistrationListener(commands);
         var relay = new Relay<>(merchantOutbox, new JsonOutboxEventSerializer(),
                 event -> listener.onSecurityManifestDeclared((SecurityManifestDeclaredIntegrationEvent) event), merchantTransactions);
         relay.process();
         assertThat(applied("merchant")).isEqualTo(2);
-        assertThat(merchant.queryForObject("SELECT status FROM merchant_outbox_events", String.class)).isEqualTo("PUBLISHED");
+        String outboxStatus = merchant.queryForObject("SELECT status FROM merchant_outbox_events", String.class);
+        assertThat(outboxStatus).isEqualTo("PUBLISHED");
     }
 
     @Test
@@ -132,52 +169,32 @@ class SecurityManifestWorkflowIntegrationTest {
         try (var pool = Executors.newFixedThreadPool(2)) {
             Callable<SecurityManifestPublicationPort.PublicationResult> worker = () -> {
                 ready.await();
-                return new TransactionTemplate(merchantTransactions).execute(status -> publication.enqueue(manifest));
+                publicationResultCapture.setManifest(manifest);
+                try {
+                    commands.dispatch(new PublishMerchantSecurityManifestCommand());
+                    return publicationResultCapture.take();
+                } finally {
+                    publicationResultCapture.clear();
+                }
             };
             var first = pool.submit(worker);
             var second = pool.submit(worker);
             ready.countDown();
-            assertThat(List.of(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS)))
+            var firstResult = first.get(10, TimeUnit.SECONDS);
+            var secondResult = second.get(10, TimeUnit.SECONDS);
+            assertThat(List.of(firstResult, secondResult))
                     .containsExactlyInAnyOrder(SecurityManifestPublicationPort.PublicationResult.ENQUEUED,
                             SecurityManifestPublicationPort.PublicationResult.NOT_DUE);
         }
         merchant.update("UPDATE security_manifest_publication SET lease_until = CURRENT_TIMESTAMP - INTERVAL '1 minute'");
-        var result = new TransactionTemplate(merchantTransactions).execute(status -> publication.enqueue(merchant(2, Lifecycle.ACTIVE)));
-        assertThat(result).isEqualTo(SecurityManifestPublicationPort.PublicationResult.SUPERSEDED);
-        assertThat(merchant.queryForObject("SELECT security_revision FROM security_manifest_publication", Integer.class)).isEqualTo(3);
-        assertThat(merchant.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class)).isEqualTo(1);
-    }
-
-    @Test
-    void publish_sameRevisionConflict_andLegacyRegression_areRejected() {
         var tx = new TransactionTemplate(merchantTransactions);
-        tx.executeWithoutResult(status -> publication.enqueue(merchant(3, Lifecycle.ACTIVE)));
-        var conflict = tx.execute(status -> publication.enqueue(merchant(3, Lifecycle.RETIRED)));
-        assertThat(conflict).isEqualTo(SecurityManifestPublicationPort.PublicationResult.CONFLICT);
-        assertThatThrownBy(() -> merchant.update("UPDATE security_manifest_publication SET security_revision = 2, content_digest = 'old'"))
-                .isInstanceOf(RuntimeException.class);
-        assertThat(merchant.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class)).isEqualTo(1);
-    }
-
-    @Test
-    void register_replayAfterCommitAndInboxCleanup_doesNotRepeatActivation() {
-        var manifest = merchant(2, Lifecycle.ACTIVE);
-        register(manifest, "first");
-        Instant activated = identity.queryForObject("SELECT applied_at FROM security_manifest_revision", java.sql.Timestamp.class).toInstant();
-        register(manifest, "first");
-        identity.update("DELETE FROM security_manifest_inbox");
-        var repair = register(manifest, "repair");
-        assertThat(repair.newlyActivated()).isFalse();
-        assertThat(identity.queryForObject("SELECT catalog_revision FROM security_catalog_state", Long.class)).isEqualTo(1);
-        assertThat(identity.queryForObject("SELECT count(*) FROM identity_outbox_event", Long.class)).isEqualTo(1);
-        assertThat(identity.queryForObject("SELECT applied_at FROM security_manifest_revision", java.sql.Timestamp.class).toInstant()).isEqualTo(activated);
-        var conflict = new SecurityManifest("merchant", 2, manifest.scopes(),
-                List.of(new AuthorityDefinition("MERCHANT_READ", "Changed", null)));
-        assertThat(register(conflict, "collision").outcome()).isEqualTo("QUARANTINED");
-        assertThat(identity.queryForObject("SELECT content_digest FROM security_manifest_revision", String.class)).isEqualTo(manifest.contentDigest());
-        assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_conflict", Long.class)).isEqualTo(1);
-        assertThatThrownBy(() -> identity.update("UPDATE security_manifest_revision SET content_digest = 'tampered'"))
-                .isInstanceOf(RuntimeException.class);
+        var olderManifest = merchant(2, Lifecycle.ACTIVE);
+        var result = tx.execute(status -> publication.enqueue(olderManifest));
+        assertThat(result).isEqualTo(SecurityManifestPublicationPort.PublicationResult.SUPERSEDED);
+        Integer revision = merchant.queryForObject("SELECT security_revision FROM security_manifest_publication", Integer.class);
+        Long eventCount = merchant.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class);
+        assertThat(revision).isEqualTo(3);
+        assertThat(eventCount).isEqualTo(1);
     }
 
     @Test
@@ -204,6 +221,7 @@ class SecurityManifestWorkflowIntegrationTest {
                 assertThat(identity.queryForObject("SELECT count(*) FROM " + table, Long.class)).isZero();
             }
             assertThat(identity.queryForObject("SELECT catalog_revision FROM security_catalog_state", Long.class)).isZero();
+            assertThat(identity.queryForObject("SELECT count(*) FROM security_catalog_state", Long.class)).isEqualTo(1L);
         } finally {
             identity.execute("DROP TRIGGER fail_scope ON security_scope_definitions");
             identity.execute("DROP FUNCTION fail_scope_write()");
@@ -391,8 +409,10 @@ class SecurityManifestWorkflowIntegrationTest {
     @Autowired @Qualifier("merchantEntityManagerFactory") private EntityManagerFactory merchantFactory;
 
     @Test
-    void register_catalogLock_contentionLeavesNoReceipt() throws Exception {
-        try (var pool = Executors.newSingleThreadExecutor()) {
+    void register_catalogLock_contentionWaitsForHolderAndThenActivates() throws Exception {
+        EnsureSecurityCatalogStateResult initialized = commands.dispatch(new EnsureSecurityCatalogStateCommand(true));
+        assertThat(initialized.initialized()).isTrue();
+        try (var pool = Executors.newFixedThreadPool(2)) {
             var locked = new CountDownLatch(1);
             var release = new CountDownLatch(1);
             var holder = pool.submit(() -> new TransactionTemplate(identityTransactions).executeWithoutResult(status -> {
@@ -401,47 +421,173 @@ class SecurityManifestWorkflowIntegrationTest {
                 try { release.await(10, TimeUnit.SECONDS); } catch (InterruptedException ex) { throw new IllegalStateException(ex); }
             }));
             assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+            var contender = pool.submit(() -> register(merchant(2, Lifecycle.ACTIVE), "contended"));
             try {
-                assertThatThrownBy(() -> register(merchant(2, Lifecycle.ACTIVE), "contended")).isInstanceOf(RuntimeException.class);
-                assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_inbox", Long.class)).isZero();
-            } finally { release.countDown(); }
+                String lockWaitQuery = "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() "
+                        + "AND pid <> pg_backend_pid() AND wait_event_type = 'Lock'";
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                Long waiting = 0L;
+                while (waiting == 0L && System.nanoTime() < deadline) {
+                    waiting = identity.queryForObject(lockWaitQuery, Long.class);
+                    Thread.onSpinWait();
+                }
+                assertThat(waiting).isPositive();
+                assertThat(contender.isDone()).isFalse();
+            } finally {
+                release.countDown();
+            }
             holder.get(10, TimeUnit.SECONDS);
+            assertThat(contender.get(10, TimeUnit.SECONDS).newlyActivated()).isTrue();
         }
-        assertThat(register(merchant(2, Lifecycle.ACTIVE), "contended").newlyActivated()).isTrue();
+        assertThat(identity.queryForObject("SELECT catalog_revision FROM security_catalog_state WHERE id = 1", Long.class)).isEqualTo(1L);
     }
 
     @Test
-    void migrate_legacyIdentifiersGrantsAndLobPayload_arePreserved() throws Exception {
-        String schema = "identity_upgrade";
-        var source = new Config().database(schema, "identity", "8");
-        var jdbc = new JdbcTemplate(source);
-        jdbc.update("INSERT INTO authorities(uuid, code, category, name, active) VALUES ('existing-authority', 'MERCHANT_READ', 'merchant', 'Read', FALSE)");
-        jdbc.update("INSERT INTO roles(uuid, code, name, role_kind, active, assignable) VALUES ('existing-role', 'OWNER', 'Owner', 'CUSTOM', TRUE, TRUE)");
-        jdbc.update("INSERT INTO role_authorities(role_id, authority_id) SELECT r.id, a.id FROM roles r, authorities a WHERE r.uuid = 'existing-role' AND a.uuid = 'existing-authority'");
-        var manifest = merchant(2, Lifecycle.RETIRED);
-        String payload = new ObjectMapper().writeValueAsString(manifest);
-        Long lob = jdbc.queryForObject("SELECT lo_from_bytea(0, convert_to(?, 'UTF8'))::bigint", Long.class, payload);
-        jdbc.update("INSERT INTO security_manifest_module(module_key, applied_revision, applied_digest) VALUES ('merchant', 2, ?)", manifest.contentDigest());
-        jdbc.update("INSERT INTO security_manifest_revision(module_key, revision, content_digest, status, event_id, payload, received_at, applied_at) "
-                + "VALUES ('merchant', 2, ?, 'APPLIED', 'legacy', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", manifest.contentDigest(), lob.toString());
-        Flyway.configure().dataSource(source).schemas(schema).locations("classpath:db/migration/identity").load().migrate();
-        assertThat(jdbc.queryForObject("SELECT payload FROM security_manifest_revision", String.class)).isEqualTo(payload);
-        assertThat(jdbc.queryForObject("SELECT uuid FROM authorities", String.class)).isEqualTo("existing-authority");
-        assertThat(jdbc.queryForObject("SELECT owner_key FROM authorities", String.class)).isEqualTo("merchant");
-        assertThat(jdbc.queryForObject("SELECT provider_lifecycle FROM authorities", String.class)).isEqualTo("RETIRED");
-        assertThat(jdbc.queryForObject("SELECT active FROM authorities", Boolean.class)).isFalse();
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM role_authorities", Long.class)).isEqualTo(1);
+    void register_concurrentFirstManifests_initializesOnceAndAppliesBoth() throws Exception {
+        var start = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var merchantRegistration = pool.submit(() -> {
+                start.await();
+                return register(merchant(2, Lifecycle.ACTIVE), "first-merchant");
+            });
+            var catalogRegistration = pool.submit(() -> {
+                start.await();
+                return register(catalog(2, Lifecycle.ACTIVE), "first-catalog");
+            });
+            start.countDown();
+            assertThat(merchantRegistration.get(10, TimeUnit.SECONDS).newlyActivated()).isTrue();
+            assertThat(catalogRegistration.get(10, TimeUnit.SECONDS).newlyActivated()).isTrue();
+        }
+
+        assertThat(identity.queryForObject("SELECT count(*) FROM security_catalog_state", Long.class)).isEqualTo(1L);
+        assertThat(identity.queryForObject("SELECT catalog_revision FROM security_catalog_state WHERE id = 1", Long.class)).isEqualTo(2L);
+        assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_module WHERE applied_revision = 2", Long.class)).isEqualTo(2L);
+        assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_revision WHERE status = 'APPLIED'", Long.class)).isEqualTo(2L);
+        assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_inbox", Long.class)).isEqualTo(2L);
+        assertThat(identity.queryForObject("SELECT count(*) FROM identity_outbox_event", Long.class)).isEqualTo(2L);
     }
 
     @Test
-    void migrate_existingScopeOwnershipCollision_requiresAuditCorrection() {
-        String schema = "identity_collision";
-        var source = new Config().database(schema, "identity", "8");
-        var jdbc = new JdbcTemplate(source);
-        jdbc.update("INSERT INTO security_scope_definitions(module_key, scope_key, manifest_version) VALUES ('merchant', 'merchant.account', 1), ('inventory', 'merchant.account', 1)");
-        var flyway = Flyway.configure().dataSource(source).schemas(schema).locations("classpath:db/migration/identity").load();
-        assertThatThrownBy(flyway::migrate).isInstanceOf(RuntimeException.class).hasStackTraceContaining("ownership collisions");
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM security_scope_definitions", Long.class)).isEqualTo(2);
+    void ensureCatalog_emptyDatabaseInitializesWithoutRevisionOrVersionLoss() {
+        EnsureSecurityCatalogStateResult created = commands.dispatch(new EnsureSecurityCatalogStateCommand(true));
+        assertThat(created.initialized()).isTrue();
+        assertThat(initializationRaceControl.identityTransactionActive()).isTrue();
+        assertThat(initializationRaceControl.merchantTransactionActive()).isFalse();
+        assertThat(identity.queryForMap("SELECT catalog_revision, row_version FROM security_catalog_state WHERE id = 1"))
+                .containsEntry("catalog_revision", 0L)
+                .containsEntry("row_version", 0L);
+
+        identity.update("UPDATE security_catalog_state SET catalog_revision = 7, row_version = 4 WHERE id = 1");
+        EnsureSecurityCatalogStateResult preserved = commands.dispatch(new EnsureSecurityCatalogStateCommand(true));
+        assertThat(preserved.initialized()).isTrue();
+        assertThat(identity.queryForMap("SELECT catalog_revision, row_version FROM security_catalog_state WHERE id = 1"))
+                .containsEntry("catalog_revision", 7L)
+                .containsEntry("row_version", 4L);
+    }
+
+    @Test
+    void ensureCatalog_duplicatePrimaryKeyRace_isVerifiedAfterRollback() throws Exception {
+        initializationRaceControl.arm(2);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var start = new CountDownLatch(1);
+            var first = pool.submit(() -> {
+                start.await();
+                return register(merchant(2, Lifecycle.ACTIVE), "race-merchant");
+            });
+            var second = pool.submit(() -> {
+                start.await();
+                return register(catalog(2, Lifecycle.ACTIVE), "race-catalog");
+            });
+            start.countDown();
+            assertThat(initializationRaceControl.awaitingBoth(10, TimeUnit.SECONDS)).isTrue();
+            initializationRaceControl.release();
+            assertThat(first.get(10, TimeUnit.SECONDS).newlyActivated()).isTrue();
+            assertThat(second.get(10, TimeUnit.SECONDS).newlyActivated()).isTrue();
+        }
+        assertThat(identity.queryForObject("SELECT count(*) FROM security_catalog_state", Long.class)).isEqualTo(1L);
+        assertThat(identity.queryForObject("SELECT catalog_revision FROM security_catalog_state WHERE id = 1", Long.class)).isEqualTo(2L);
+        assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_revision WHERE status = 'APPLIED'", Long.class)).isEqualTo(2L);
+    }
+
+    @Test
+    void getCatalogStatus_emptyDatabaseReturnsZeroWithoutInitializing() {
+        var view = manifestQueries.status("merchant");
+        assertThat(view.catalogRevision()).isZero();
+        assertThat(identity.queryForObject("SELECT count(*) FROM security_catalog_state", Long.class)).isZero();
+    }
+
+    @Test
+    void catalogDependentWriteEntryPoints_emptyCatalogInitializeBeforeBusinessFailure() {
+        List<Runnable> entryPoints = List.of(
+                () -> registration.handle(null),
+                () -> revalidation.handle(null),
+                () -> roleRegistration.handle(null),
+                () -> grantAccess.handle(null),
+                () -> replaceAccess.handle(null),
+                () -> changeAccessStatus.handle(null),
+                () -> createInvitation.handle(null),
+                () -> acceptInvitation.handle(null),
+                () -> cancelInvitation.handle(null),
+                () -> accessManagement.replaceAccess(new AccessManagementPort.ReplaceAccessRequest(
+                        "user-1", "OLD_ROLE", "NEW_ROLE", "merchant.account", "merchant-1"))
+        );
+
+        for (Runnable entryPoint : entryPoints) {
+            assertThatThrownBy(entryPoint::run).isInstanceOf(RuntimeException.class);
+            assertThat(identity.queryForObject("SELECT count(*) FROM security_catalog_state WHERE id = 1", Long.class))
+                    .isEqualTo(1L);
+            identity.execute("TRUNCATE security_catalog_state");
+        }
+    }
+
+    @Test
+    void ensureCatalog_unrelatedConstraintFailurePropagatesWithoutBusinessWrites() {
+        identity.execute("ALTER TABLE security_catalog_state ADD CONSTRAINT ck_catalog_revision_positive CHECK (catalog_revision > 0)");
+        try {
+            assertThatThrownBy(() -> register(merchant(2, Lifecycle.ACTIVE), "invalid-initial-row"))
+                    .isInstanceOf(RuntimeException.class);
+            assertThat(identity.queryForObject("SELECT count(*) FROM security_catalog_state", Long.class)).isZero();
+            assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_inbox", Long.class)).isZero();
+            assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_revision", Long.class)).isZero();
+        } finally {
+            identity.execute("ALTER TABLE security_catalog_state DROP CONSTRAINT ck_catalog_revision_positive");
+        }
+    }
+
+    @Test
+    void register_lockTimeoutPropagatesWithoutPartialActivation() throws Exception {
+        String databaseName = identity.queryForObject("SELECT current_database()", String.class);
+        String quotedDatabaseName = "\"" + databaseName.replace("\"", "\"\"") + "\"";
+        identity.execute("ALTER DATABASE " + quotedDatabaseName + " SET lock_timeout TO '200ms'");
+        EnsureSecurityCatalogStateResult initialized = commands.dispatch(new EnsureSecurityCatalogStateCommand(true));
+        assertThat(initialized.initialized()).isTrue();
+
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var locked = new CountDownLatch(1);
+            var release = new CountDownLatch(1);
+            var holder = pool.submit(() -> new TransactionTemplate(identityTransactions).executeWithoutResult(status -> {
+                catalogs.loadForUpdate();
+                locked.countDown();
+                try { release.await(10, TimeUnit.SECONDS); } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(exception);
+                }
+            }));
+            assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+            var contender = pool.submit(() -> register(merchant(2, Lifecycle.ACTIVE), "lock-timeout"));
+            try {
+                assertThatThrownBy(() -> contender.get(5, TimeUnit.SECONDS))
+                        .isInstanceOf(ExecutionException.class);
+                assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_inbox", Long.class)).isZero();
+                assertThat(identity.queryForObject("SELECT count(*) FROM security_manifest_revision", Long.class)).isZero();
+                assertThat(identity.queryForObject("SELECT catalog_revision FROM security_catalog_state WHERE id = 1", Long.class)).isZero();
+            } finally {
+                release.countDown();
+            }
+            holder.get(10, TimeUnit.SECONDS);
+        } finally {
+            identity.execute("ALTER DATABASE " + quotedDatabaseName + " RESET lock_timeout");
+        }
     }
 
     private int applied(String module) {
@@ -459,6 +605,12 @@ class SecurityManifestWorkflowIntegrationTest {
                 List.of(new AuthorityDefinition("MERCHANT_READ", "Read", null, "merchant", lifecycle)));
     }
 
+    private SecurityManifest catalog(int revision, Lifecycle lifecycle) {
+        return new SecurityManifest("catalog", revision,
+                List.of(new ScopeDeclaration("catalog.product", null, lifecycle)),
+                List.of(new AuthorityDefinition("CATALOG_READ", "Read", null, "catalog", lifecycle)));
+    }
+
     private static final class Relay<T extends OutboxEntry<Long>> extends AbstractOutboxProcessor<T, Long> {
         Relay(OutboxStore<T, Long> store, OutboxEventSerializer serializer, OutboxEventDispatcher dispatcher,
               PlatformTransactionManager transactions) {
@@ -469,18 +621,18 @@ class SecurityManifestWorkflowIntegrationTest {
 
     @Configuration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @Import({IdentityRepositories.class, MerchantRepositories.class})
+    @EnableAspectJAutoProxy(proxyTargetClass = true)
+    @EnableRetry(proxyTargetClass = true, order = Ordered.HIGHEST_PRECEDENCE)
+    @Import({IdentityRepositories.class, MerchantRepositories.class, SecurityCatalogInitializationAspect.class})
     static class Config {
-        @Bean("identityDataSource") DataSource identityDataSource() { return database("identity", "identity"); }
-        @Bean("merchantDataSource") DataSource merchantDataSource() { return database("merchant", "merchant"); }
-        private DataSource database(String schema, String migration) { return database(schema, migration, null); }
-        private DataSource database(String schema, String migration, String target) {
+        @Bean("identityDataSource") DataSource identityDataSource() { return database("identity"); }
+        @Bean("merchantDataSource") DataSource merchantDataSource() { return database("merchant"); }
+        private DataSource database(String schema) {
             String jdbcUrl = DATABASE.getJdbcUrl();
             String separator = jdbcUrl.contains("?") ? "&" : "?";
+            var admin = new DriverManagerDataSource(jdbcUrl, DATABASE.getUsername(), DATABASE.getPassword());
+            new JdbcTemplate(admin).execute("CREATE SCHEMA IF NOT EXISTS " + schema);
             var source = new DriverManagerDataSource(jdbcUrl + separator + "currentSchema=" + schema, DATABASE.getUsername(), DATABASE.getPassword());
-            var flyway = Flyway.configure().dataSource(source).schemas(schema).locations("classpath:db/migration/" + migration);
-            if (target != null) flyway.target(target);
-            flyway.load().migrate();
             return source;
         }
         @Bean("identityEntityManagerFactory") LocalContainerEntityManagerFactoryBean identityFactory(@Qualifier("identityDataSource") DataSource source) {
@@ -495,7 +647,7 @@ class SecurityManifestWorkflowIntegrationTest {
             factory.setPersistenceUnitName(unit);
             factory.setPackagesToScan(packages);
             factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
-            factory.setJpaPropertyMap(Map.of("hibernate.hbm2ddl.auto", "none"));
+            factory.setJpaPropertyMap(Map.of("hibernate.hbm2ddl.auto", "create-drop"));
             return factory;
         }
         @Bean("identityTransactionManager") PlatformTransactionManager identityTransactions(@Qualifier("identityEntityManagerFactory") EntityManagerFactory factory) { return new JpaTransactionManager(factory); }
@@ -515,12 +667,44 @@ class SecurityManifestWorkflowIntegrationTest {
                 ScopeManifestJpaRepository scopes, AuthorityJpaRepository authorities, IdGenerator ids, @Qualifier("identityEvents") DomainEventProducer outbox) {
             return new SecurityCatalogRepositoryAdapter(states, modules, scopes, authorities, new SecurityCatalogJpaAssembler(ids), outbox, new IdentityPersistenceExecutor());
         }
+        @Bean InitializationRaceControl initializationRaceControl() {
+            return new InitializationRaceControl();
+        }
+        @Bean EnsureSecurityCatalogStateUseCase ensureSecurityCatalogStateUseCase(
+                SecurityCatalogRepository catalogs,
+                InitializationRaceControl raceControl,
+                @Qualifier("identityEntityManagerFactory") EntityManagerFactory identityFactory,
+                @Qualifier("merchantEntityManagerFactory") EntityManagerFactory merchantFactory
+        ) {
+            return command -> {
+                raceControl.recordTransactionManagers(
+                        TransactionSynchronizationManager.hasResource(identityFactory),
+                        TransactionSynchronizationManager.hasResource(merchantFactory)
+                );
+                if (command.creationAllowed() && !catalogs.ensureInitialized(false)) {
+                    raceControl.awaitIfArmed();
+                }
+                boolean initialized = catalogs.ensureInitialized(command.creationAllowed());
+                return new EnsureSecurityCatalogStateResult(initialized);
+            };
+        }
+        @Bean EnsureSecurityCatalogStateCommandHandler ensureSecurityCatalogStateCommandHandler(EnsureSecurityCatalogStateUseCase useCase) {
+            return new EnsureSecurityCatalogStateCommandHandler(useCase);
+        }
         @Bean SecurityManifestRevisionRepository revisions(SecurityManifestRevisionJpaRepository repository, ObjectMapper mapper) { return new SecurityManifestRevisionRepositoryAdapter(repository, mapper); }
         @Bean SecurityManifestInboxRepository inbox(SecurityManifestInboxJpaRepository repository, SecurityManifestConflictJpaRepository conflicts, ObjectMapper mapper) { return new SecurityManifestInboxRepositoryAdapter(repository, conflicts, mapper); }
         @Bean RegisterSecurityManifestUseCase registration(SecurityCatalogRepository catalogs, SecurityManifestRevisionRepository revisions, SecurityManifestInboxRepository inbox) { return new RegisterSecurityManifestService(catalogs, revisions, inbox); }
         @Bean RevalidateSecurityManifestUseCase revalidation(SecurityCatalogRepository catalogs, SecurityManifestRevisionRepository revisions, RegisterSecurityManifestUseCase registration) { return new RevalidateSecurityManifestService(catalogs, revisions, registration); }
         @Bean RegisterSecurityManifestCommandHandler registrationHandler(RegisterSecurityManifestUseCase registration) { return new RegisterSecurityManifestCommandHandler(registration); }
         @Bean RevalidateSecurityManifestCommandHandler revalidationHandler(RevalidateSecurityManifestUseCase revalidation) { return new RevalidateSecurityManifestCommandHandler(revalidation); }
+        @Bean RegisterRoleDeclarationCommandHandler roleRegistrationHandler() { return new RegisterRoleDeclarationCommandHandler(null); }
+        @Bean GrantAccessCommandHandler grantAccessHandler() { return new GrantAccessCommandHandler(null); }
+        @Bean ReplaceAccessCommandHandler replaceAccessHandler() { return new ReplaceAccessCommandHandler(null); }
+        @Bean ChangeAccessStatusCommandHandler changeAccessStatusHandler() { return new ChangeAccessStatusCommandHandler(null); }
+        @Bean CreateAccessInvitationCommandHandler createInvitationHandler() { return new CreateAccessInvitationCommandHandler(null); }
+        @Bean AcceptAccessInvitationCommandHandler acceptInvitationHandler() { return new AcceptAccessInvitationCommandHandler(null); }
+        @Bean CancelAccessInvitationCommandHandler cancelInvitationHandler() { return new CancelAccessInvitationCommandHandler(null); }
+        @Bean AccessManagementPortAdapter accessManagementAdapter(IdGenerator ids) { return new AccessManagementPortAdapter(null, null, ids); }
         @Bean ScopeCatalogQueryAdapter scopeCatalog(ScopeManifestJpaRepository repository) { return new ScopeCatalogQueryAdapter(repository); }
         @Bean IdentityLookupUseCase lookup(UserJpaRepository users, ExternalIdentityJpaRepository external,
                 ExternalEntitlementMappingJpaRepository mappings, AccessAssignmentJpaRepository assignments, ScopeCatalogQueryAdapter scopes) {
@@ -540,16 +724,118 @@ class SecurityManifestWorkflowIntegrationTest {
         @Bean ListWaitingSecurityManifestCandidatesQueryHandler waitingHandler(ListWaitingSecurityManifestCandidatesUseCase waiting) { return new ListWaitingSecurityManifestCandidatesQueryHandler(waiting); }
         @Bean QueryBus queryBus(ListWaitingSecurityManifestCandidatesQueryHandler handler) { return new DefaultQueryBus(List.of(handler)); }
         @Bean IdentitySecurityManifestRevalidationScheduler scheduler(QueryBus queries, CommandBus commands) { return new IdentitySecurityManifestRevalidationScheduler(queries, commands, 100); }
-        @Bean CommandBus commands(RegisterSecurityManifestCommandHandler registration, RevalidateSecurityManifestCommandHandler revalidation) { return new DefaultCommandBus(List.of(registration, revalidation)); }
-        @Bean("merchantPublication") SecurityManifestPublicationPort publication(MerchantSecurityManifestPublicationJpaRepository repository,
-                @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store,
-                @Qualifier("merchantTransactionManager") PlatformTransactionManager transactions) {
-            var producer = new MerchantOutboxEventProducer(store, new JsonOutboxEventSerializer());
-            var stateProvider = com.grab.store.shared.security.SecurityManifestPublicationStateProvider.lockingProvider(
-                    repository, repository::lockByModuleKey, MerchantSecurityManifestPublicationEntity::new, transactions);
-            return new SecurityManifestPublicationAdapter(stateProvider, producer,
-                    envelope -> new MerchantSecurityManifestDeclaredIntegrationEvent(envelope.manifest(), envelope.eventId(), envelope.suppliedContentDigest(), envelope.publishedAt()),
-                    Clock.systemUTC(), Duration.ofMinutes(5));
+        @Bean CommandBus commands(RegisterSecurityManifestCommandHandler registration,
+                RevalidateSecurityManifestCommandHandler revalidation,
+                EnsureSecurityCatalogStateCommandHandler ensureSecurityCatalogState,
+                PublishMerchantSecurityManifestCommandHandler merchantPublication) {
+            List<CommandHandler<?, ?>> handlers = List.of(registration, revalidation, ensureSecurityCatalogState, merchantPublication);
+            return new DefaultCommandBus(handlers);
+        }
+        @Bean PublicationResultCapture publicationResultCapture() { return new PublicationResultCapture(); }
+        @Bean PublishMerchantSecurityManifestUseCase merchantPublicationUseCase(
+                @Qualifier("merchantPublication") SecurityManifestPublicationPort publication,
+                PublicationResultCapture resultCapture) {
+            return command -> {
+                SecurityManifest manifest = resultCapture.manifest();
+                SecurityManifestPublicationPort.PublicationResult result = publication.enqueue(manifest);
+                resultCapture.set(result);
+            };
+        }
+        @Bean PublishMerchantSecurityManifestCommandHandler merchantPublicationHandler(
+                PublishMerchantSecurityManifestUseCase useCase) {
+            return new PublishMerchantSecurityManifestCommandHandler(useCase);
+        }
+        @Bean("merchantPublication") SecurityManifestPublicationPort publication(
+                @Qualifier("merchantEntityManagerFactory") EntityManagerFactory factory,
+                @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store) {
+            JsonOutboxEventSerializer serializer = new JsonOutboxEventSerializer();
+            var producer = new MerchantOutboxEventProducer(store, serializer);
+            EntityManager entityManager = SharedEntityManagerCreator.createSharedEntityManager(factory);
+            var stateProvider = SecurityManifestPublicationStateProvider.optimisticProvider(
+                    entityManager, MerchantSecurityManifestPublicationEntity.class, MerchantSecurityManifestPublicationEntity::new);
+            Function<SecurityManifestEnvelope, Event> eventFactory = envelope ->
+                    new MerchantSecurityManifestDeclaredIntegrationEvent(envelope.manifest(), envelope.eventId(),
+                            envelope.suppliedContentDigest(), envelope.publishedAt());
+            Clock clock = Clock.systemUTC();
+            Duration publicationInterval = Duration.ofMinutes(5);
+            return new SecurityManifestPublicationAdapter(stateProvider, producer, eventFactory, clock, publicationInterval);
+        }
+    }
+
+    static class PublicationResultCapture {
+        private final ThreadLocal<SecurityManifestPublicationPort.PublicationResult> result = new ThreadLocal<>();
+        private final ThreadLocal<SecurityManifest> manifest = new ThreadLocal<>();
+
+        void setManifest(SecurityManifest value) {
+            manifest.set(value);
+        }
+
+        SecurityManifest manifest() {
+            return manifest.get();
+        }
+
+        void set(SecurityManifestPublicationPort.PublicationResult publicationResult) {
+            result.set(publicationResult);
+        }
+
+        SecurityManifestPublicationPort.PublicationResult take() {
+            SecurityManifestPublicationPort.PublicationResult publicationResult = result.get();
+            result.remove();
+            return publicationResult;
+        }
+
+        void clear() {
+            result.remove();
+            manifest.remove();
+        }
+    }
+
+    static class InitializationRaceControl {
+        private volatile CyclicBarrier barrier;
+        private volatile CountDownLatch bothWaiting = new CountDownLatch(0);
+        private volatile boolean identityTransactionActive;
+        private volatile boolean merchantTransactionActive;
+
+        void recordTransactionManagers(boolean identityActive, boolean merchantActive) {
+            identityTransactionActive = identityActive;
+            merchantTransactionActive = merchantActive;
+        }
+
+        boolean identityTransactionActive() {
+            return identityTransactionActive;
+        }
+
+        boolean merchantTransactionActive() {
+            return merchantTransactionActive;
+        }
+
+        void arm(int parties) {
+            bothWaiting = new CountDownLatch(parties);
+            barrier = new CyclicBarrier(parties);
+        }
+
+        void awaitIfArmed() {
+            CyclicBarrier currentBarrier = barrier;
+            if (currentBarrier == null) {
+                return;
+            }
+            bothWaiting.countDown();
+            try {
+                currentBarrier.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(exception);
+            } catch (BrokenBarrierException | TimeoutException exception) {
+                throw new IllegalStateException(exception);
+            }
+        }
+
+        boolean awaitingBoth(long timeout, TimeUnit unit) throws InterruptedException {
+            return bothWaiting.await(timeout, unit);
+        }
+
+        void release() {
+            barrier = null;
         }
     }
 

@@ -216,9 +216,15 @@ All modules, including authority-only modules, publish explicit empty scope list
 
 Store applied and highest accepted candidate revisions separately. If revision 3 is waiting and revision 2 arrives, retain revision 2 as superseded rather than activating it behind revision 3; revalidate only the highest non-quarantined accepted candidate above the applied revision.
 
-Initially serialize activation with a singleton identity catalog row lock, acquired before module and definition locks. This small, infrequent critical section prevents concurrent cross-module updates from each passing validation and jointly creating a cycle; per-module locks alone do not protect the global graph. Acquire the lock with `SELECT FOR UPDATE NOWAIT`; if the lock is unavailable, the handler **MUST** throw a retryable exception so the outbox relay redelivers. A lock holder that crashes mid-activation releases the lock on connection termination. Evaluate transitioning to per-module lock partitioning in Phase 5 if measured activation latency exceeds the healthy-path p99 target.
+Before a catalog-dependent identity write starts its business transaction, the identity command boundary **MUST** dispatch the singleton initializer through the command bus. The initializer handler **MUST** use an independent `REQUIRES_NEW` identity transaction and commit the row before the write continues. Initialization creates only `id = 1`, catalog revision `0`, and JPA version `0`; it preserves an existing row. A PostgreSQL duplicate-primary-key race **MUST** be verified in a fresh initializer transaction after the losing insert has rolled back. Other integrity failures **MUST** propagate.
 
-Store unique constraints on module/revision, authority code, and scope key, plus inbox event identity. Handle concurrent first registration through insert-on-conflict and reload under the catalog lock; use one lock order for all activations and bounded retries for database deadlocks.
+Serialize activation with the singleton identity catalog row lock, acquired before module and definition locks. The row lock prevents concurrent cross-module updates from each passing validation and jointly creating a cycle; per-module locks alone do not protect the global graph. Use `PESSIMISTIC_WRITE` without a zero-timeout hint, allowing the configured database lock timeout to govern waiting. Lock timeouts and deadlocks **MUST** propagate to the existing outbox recovery path. Database lock scheduling does not guarantee FIFO order or a fixed wait duration. A lock holder that crashes mid-activation releases the lock on connection termination.
+
+Initialization adds one short identity transaction before each catalog-dependent write. If a caller already holds an identity transaction, the independent initializer may require another pool connection while the caller's connection is suspended; size the identity pool for that concurrency.
+
+Concurrency acceptance is validated against PostgreSQL 16 with fresh Hibernate-created schemas. Other database engines remain unverified. Migration-specific checks are separately tagged and remain unvalidated because the Flyway source directories are empty in this checkout.
+
+Store unique constraints on module/revision, authority code, and scope key, plus inbox event identity. Acquire the catalog lock before reading module and definition state and keep activation, receipts, and outbox writes in the same business transaction. Use one lock order for all activations; lock timeouts and deadlocks propagate to delivery recovery rather than application retries.
 
 ### Ownership, validation, and retirement
 
@@ -251,7 +257,7 @@ Storage is introduced through additive Flyway migrations; existing authority ide
 | Identity `security_manifest_inbox` | Event identity, payload fingerprint, receipt outcome, and error/trace metadata. |
 | Identity `security_manifest_revision` | Immutable module/revision/digest/payload, candidate state, and dependency errors. |
 | Identity `security_manifest_module` | Applied revision/digest; highest accepted revision is derived from applied and waiting candidates, excluding quarantine. |
-| Identity `security_catalog_state` | Singleton activation lock and monotonically increasing catalog revision. |
+| Identity `security_catalog_state` | Demand-created singleton activation lock and monotonically increasing catalog revision. |
 | Identity `security_scope_definitions` | Unique scope key, immutable owner, parent, source revision, lifecycle, and local enablement. |
 | Identity `authorities` extension | Persistent owner/source revision/provider lifecycle separate from local enablement, retaining existing UUIDs and role links. |
 

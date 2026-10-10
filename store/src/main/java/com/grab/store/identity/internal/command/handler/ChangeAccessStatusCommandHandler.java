@@ -2,6 +2,7 @@ package com.grab.store.identity.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.identity.internal.config.IdentityTransactional;
+import com.grab.store.identity.internal.config.RequiresSecurityCatalog;
 import com.identity.application.port.inbound.ChangeAccessStatusUseCase;
 import com.identity.application.model.write.ChangeAccessStatusCommand;
 import com.identity.application.model.write.AccessAssignmentResult;
@@ -15,6 +16,7 @@ public class ChangeAccessStatusCommandHandler implements CommandHandler<ChangeAc
     private final ChangeAccessStatusUseCase changeAccessStatusUseCase;
 
     @Override
+    @RequiresSecurityCatalog
     @IdentityTransactional
     public AccessAssignmentResult handle(ChangeAccessStatusCommand command) {
         return changeAccessStatusUseCase.execute(command);

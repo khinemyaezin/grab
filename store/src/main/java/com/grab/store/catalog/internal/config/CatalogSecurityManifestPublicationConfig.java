@@ -19,9 +19,11 @@ import com.catalog.application.port.inbound.GetCatalogSecurityManifestPublicatio
 import com.catalog.application.service.GetCatalogSecurityManifestPublicationStatusService;
 import com.grab.framework.security.SecurityManifest;
 import org.springframework.data.jpa.repository.JpaContext;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.function.Function;
 
 import jakarta.persistence.EntityManager;
 
@@ -35,8 +37,12 @@ public class CatalogSecurityManifestPublicationConfig {
         Clock clock = Clock.systemUTC();
         Duration interval = Duration.ofMillis(intervalMs);
         EntityManager entityManager = context.getEntityManagerByManagedType(CatalogSecurityManifestPublicationEntity.class);
-        var stateProvider = SecurityManifestPublicationStateProvider.optimisticProvider(
-                entityManager, CatalogSecurityManifestPublicationEntity.class, CatalogSecurityManifestPublicationEntity::new);
+        Function<String, CatalogSecurityManifestPublicationEntity> stateProvider = SecurityManifestPublicationStateProvider
+                .optimisticProvider(
+                        entityManager,
+                        CatalogSecurityManifestPublicationEntity.class,
+                        CatalogSecurityManifestPublicationEntity::new);
+
         return new SecurityManifestPublicationAdapter(stateProvider, outbox,
                 envelope -> {
                     SecurityManifest manifest = envelope.manifest();
@@ -52,6 +58,7 @@ public class CatalogSecurityManifestPublicationConfig {
             @Qualifier("catalogSecurityManifestPublicationPort") SecurityManifestPublicationPort publication) {
         return new PublishCatalogSecurityManifestService(publication);
     }
+
     @Bean("catalogSecurityManifestPublicationQueryPort")
     public SecurityManifestPublicationQueryPort catalogPublicationQueryPort(JpaContext context) {
         EntityManager entityManager = context.getEntityManagerByManagedType(CatalogSecurityManifestPublicationEntity.class);

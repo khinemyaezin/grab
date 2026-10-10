@@ -40,6 +40,13 @@ public class IdentityUseCaseConfig {
     }
 
     @Bean
+    public EnsureSecurityCatalogStateUseCase ensureSecurityCatalogStateUseCase(
+            SecurityCatalogRepository catalogs
+    ) {
+        return new EnsureSecurityCatalogStateService(catalogs);
+    }
+
+    @Bean
     public AcceptAccessInvitationUseCase acceptAccessInvitationUseCase(
             AccessInvitationRepository invitations,
             AccessAssignmentRepository assignments,
@@ -262,4 +269,3 @@ public class IdentityUseCaseConfig {
         return new FulfillAdminAccessAssignmentService(users, roles, assignments, ids);
     }
 }
-

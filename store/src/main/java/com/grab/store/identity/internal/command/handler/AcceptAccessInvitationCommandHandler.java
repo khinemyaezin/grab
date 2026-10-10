@@ -2,6 +2,7 @@ package com.grab.store.identity.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.identity.internal.config.IdentityTransactional;
+import com.grab.store.identity.internal.config.RequiresSecurityCatalog;
 import com.identity.application.port.inbound.AcceptAccessInvitationUseCase;
 import com.identity.application.model.write.AcceptAccessInvitationCommand;
 import com.identity.application.model.write.AccessAssignmentResult;
@@ -15,6 +16,7 @@ public class AcceptAccessInvitationCommandHandler implements CommandHandler<Acce
     private final AcceptAccessInvitationUseCase acceptAccessInvitationUseCase;
 
     @Override
+    @RequiresSecurityCatalog
     @IdentityTransactional
     public AccessAssignmentResult handle(AcceptAccessInvitationCommand command) {
         return acceptAccessInvitationUseCase.execute(command);

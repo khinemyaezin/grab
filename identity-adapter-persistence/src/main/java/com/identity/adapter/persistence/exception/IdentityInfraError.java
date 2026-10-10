@@ -7,7 +7,9 @@ import java.util.Map;
 
 public sealed interface IdentityInfraError extends MessageSource permits
         IdentityInfraError.PersistenceConflict,
-        IdentityInfraError.PersistenceInternal {
+        IdentityInfraError.PersistenceInternal,
+        IdentityInfraError.SecurityCatalogStateMissing,
+        IdentityInfraError.SecurityCatalogInitializationRace {
 
     record PersistenceConflict(String resource, String reason) implements IdentityInfraError {
         @Override
@@ -46,6 +48,40 @@ public sealed interface IdentityInfraError extends MessageSource permits
                     "resource", resource,
                     "reason", reason
             );
+        }
+    }
+
+    record SecurityCatalogInitializationRace(String constraintName) implements IdentityInfraError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.CONFLICT;
+        }
+
+        @Override
+        public String code() {
+            return "identity.infra.security_catalog.initialization_race";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("constraintName", constraintName);
+        }
+    }
+
+    record SecurityCatalogStateMissing() implements IdentityInfraError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.INTERNAL;
+        }
+
+        @Override
+        public String code() {
+            return "identity.infra.security_catalog.state_missing";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
         }
     }
 }

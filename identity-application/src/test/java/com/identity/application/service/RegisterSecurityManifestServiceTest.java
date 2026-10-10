@@ -58,6 +58,9 @@ class RegisterSecurityManifestServiceTest {
         private int conflicts;
 
         @Override
+        public boolean ensureInitialized(boolean creationAllowed) { return true; }
+
+        @Override
         public SecurityCatalog loadForUpdate() { return catalog; }
         @Override
         public void save(SecurityCatalog catalog) { activations++; }
