@@ -116,13 +116,15 @@ flowchart TB
 | Module-specific event | `store/.../shared/events/{owner}/` | Carries the shared manifest contract through the permitted module boundary. |
 | Startup/scheduled trigger | `store/.../{owner}/internal/event/` | Schedules background publication and dispatches through `CommandBus`. |
 | Declaration handler/use case | `store` / owner application | Persists publication state and outbox payload in the owner's transaction. |
-| Publication port and implementation | `framework` / `manifest-adapter-persistence` | Technical `SecurityManifestPublicationPort` uses the reusable adapter and framework eligibility policy; owner JPA repositories bind seeded rows and module assembly supplies the event factory. Generic outbox delivery remains in `outbox-infrastructure`. |
+| Publication port and implementation | `framework` / `manifest-adapter-persistence` | Technical `SecurityManifestPublicationPort` uses a JPA-only reusable state provider and framework eligibility policy; owner assembly supplies its transaction-bound entity manager, entity factory, and event factory. Generic outbox delivery remains in `outbox-infrastructure`. |
 | Identity listener | `store/.../identity/internal/event/` | Maps immutable input and dispatches a registration command through `CommandBus`. |
 | `SecurityCatalog` aggregate and pure policies | `identity-domain` | Own serialized revision, ownership, conservation, immutable parents, retirement, graph, and dependency decisions from loaded state. |
 | Identity registration use case | `identity-application` | Loads registry state through ports, invokes domain rules, and persists the decision. |
 | Identity write/query adapters | `identity-adapter-persistence` | Persist catalog/inbox state and return immutable view projections for reads. |
 
-Transactions begin on owner handlers using `@{Owner}Transactional`; registration and individual revalidation handlers use `@IdentityTransactional(propagation = REQUIRES_NEW)`, including identity self-delivery. Pure policies receive loaded data and never inject repositories; query handlers use application query ports and do not load write aggregates.
+Transactions begin on owner handlers using `@{Owner}Transactional`; publication handlers use `REQUIRES_NEW` with bounded retry advice outside the transaction advisor. Registration and individual revalidation handlers use `@IdentityTransactional(propagation = REQUIRES_NEW)`, including identity self-delivery. Pure policies receive loaded data and never inject repositories; query handlers use application query ports and do not load write aggregates.
+
+Owner publication state is loaded or initialized inside that handler transaction. A missing row is inserted and flushed before eligibility and outbox work. Concurrent inserts or updates fail and roll back the complete attempt; the retry starts a fresh transaction, reloads the committed row, and evaluates the manifest again.
 
 ### Runtime delivery
 
@@ -244,7 +246,7 @@ Storage is introduced through additive Flyway migrations; existing authority ide
 
 | Store | Essential state and constraints |
 | :--- | :--- |
-| Owner `security_manifest_publication` | Release revision/digest, last enqueue time, and a database lease used to coordinate publication across owner replicas. |
+| Owner `security_manifest_publication` | Release revision/digest, last enqueue time, publication lease timestamp, and a JPA version used to detect concurrent state changes. |
 | Owner outbox | Stable message identity and complete payload persisted atomically with publication state. |
 | Identity `security_manifest_inbox` | Event identity, payload fingerprint, receipt outcome, and error/trace metadata. |
 | Identity `security_manifest_revision` | Immutable module/revision/digest/payload, candidate state, and dependency errors. |
@@ -254,6 +256,8 @@ Storage is introduced through additive Flyway migrations; existing authority ide
 | Identity `authorities` extension | Persistent owner/source revision/provider lifecycle separate from local enablement, retaining existing UUIDs and role links. |
 
 Canonical module/revision identity **MUST NOT** change after first acceptance. Database guards protect canonical payload/event identity and publication revision/digest. Scope key uniqueness **MUST** be established only after auditing existing collisions.
+
+Each owner publication table uses `version BIGINT NOT NULL DEFAULT 0`. The version is managed by JPA optimistic locking. A missing owner state row is created in the same transaction as its publication state update and outbox event; database seed rows are not required. Owner publication command handlers **MUST** retry optimistic-lock and state-insert conflicts up to three total attempts, with a fresh transaction and state read for each attempt. Exhausted or non-retryable failures **MUST** propagate.
 
 Inbox receipt, active rows, watermarks, and any identity outbox event **MUST** commit atomically for an applied outcome. Waiting/quarantine outcomes **MUST** commit receipt plus candidate state without changing the active catalog. Conflicting attempts **MUST** instead commit separate conflict evidence, preserving existing canonical identity and the original receipt.
 
@@ -282,10 +286,12 @@ Caching is deferred until measured need. Any later cache design must state a max
 - **C-14:** Outbox-dispatched identity listeners **MUST** use synchronous `@EventListener` processing so failures reach the existing relay.
 - **C-15:** Transient identity failures **MUST** propagate before receipt commit; waiting and quarantine outcomes **MUST** have durable ownership before delivery acknowledgement. From the outbox relay's perspective, `WAITING_DEPENDENCY` and `QUARANTINED` outcomes are **successful deliveries** (identity durably owns the candidate), so the listener **MUST** return normally and the relay **MUST** mark the publication as `DELIVERED`. Only transient failures (connection errors, lock contention) propagate as exceptions to trigger relay retry.
 - **C-16:** Repair **MUST** periodically republish the complete immutable snapshot, even when the revision is unchanged, using a new event ID and the same semantic digest.
-- **C-17:** Older owner replicas **MUST NOT** replace the owner's newest published snapshot or identity's newer applied catalog during a rolling deployment.
+- **C-17:** Older owner replicas **MUST NOT** replace the owner's newest published snapshot or identity's newer applied catalog. Publishers that do not update the JPA version **MUST NOT** overlap with optimistic publishers for the same owner table.
 - **C-18:** Required security metadata **MUST NOT** cause membership/access synchronization to silently filter unknown authority codes and persist a partial grant.
 
-Owner workers use a database lease so only one replica schedules each repair interval. Track the newest published owner revision; an old binary skips publication when it sees a newer revision, while identity's monotonic check remains the final protection against already queued old messages.
+Every owner replica may trigger the scheduled repair. The persisted next-publication timestamp and optimistic version ensure that only an eligible transaction commits for a given interval. Track the newest published owner revision; an old binary skips publication when it sees a newer revision, while identity's monotonic check remains the final protection against already queued old messages.
+
+Optimistic publication does not coordinate with legacy publishers that leave the version unchanged. Switch each owner module in a coordinated sequence: stop and drain all legacy publisher workers, apply the additive version-column change, deploy the optimistic publisher, then resume its asynchronous startup and scheduled repair. Do not run old and new publishers against the same owner table at the same time.
 
 Fresh identity databases recover from periodic complete republication; identity restarts recover immediately from identity persistence. Restoring an old backup restores its old watermark too, so latest snapshots and emergency tombstones must be replayed before enabling sensitive authorization; restored watermarks alone cannot prove current freshness.
 
@@ -311,6 +317,7 @@ The scheduler values below are implemented defaults; latency and alert threshold
 | Pending dependency sweep | 30 seconds (`security.manifest.revalidation.fixed-delay-ms=30000`) | Revalidates waiting candidates even if a notification is lost. |
 | Waiting candidate batch | 100 (`security.manifest.revalidation.batch-size`) | Bounded projection followed by independently committing commands. |
 | Local enqueue retry | Next full publication sweep | Recovers enqueue failure without coupling owner startup to identity. |
+| Publication transaction retry | 3 attempts; 50 ms initial delay, multiplier 2, 200 ms maximum delay | Retries optimistic state conflicts in a new owner transaction. |
 | Healthy-path activation target | p99 under 30 seconds | Measures owner enqueue commit to identity activation when dependencies are available. |
 | Dependency-wait alert | 5 minutes | Indicates missing owner/dependency rollout or incompatible declarations. |
 | Quarantine/conflicting digest alert | Immediate | Requires release correction rather than blind retries. |

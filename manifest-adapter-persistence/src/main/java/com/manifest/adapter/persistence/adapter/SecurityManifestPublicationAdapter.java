@@ -17,17 +17,17 @@ import java.util.UUID;
 import java.util.function.Function;
 
 public class SecurityManifestPublicationAdapter implements SecurityManifestPublicationPort {
-    private final Function<String, ? extends SecurityManifestPublicationState> lock;
+    private final Function<String, ? extends SecurityManifestPublicationState> stateProvider;
     private final DomainEventProducer outbox;
     private final Function<SecurityManifestEnvelope, Event> eventFactory;
     private final Clock clock;
     private final Duration interval;
 
     public SecurityManifestPublicationAdapter(
-            Function<String, ? extends SecurityManifestPublicationState> lock,
+            Function<String, ? extends SecurityManifestPublicationState> stateProvider,
             DomainEventProducer outbox, Function<SecurityManifestEnvelope, Event> eventFactory,
             Clock clock, Duration interval) {
-        this.lock = Objects.requireNonNull(lock);
+        this.stateProvider = Objects.requireNonNull(stateProvider);
         this.outbox = Objects.requireNonNull(outbox);
         this.eventFactory = Objects.requireNonNull(eventFactory);
         this.clock = Objects.requireNonNull(clock);
@@ -39,7 +39,7 @@ public class SecurityManifestPublicationAdapter implements SecurityManifestPubli
 
     @Override
     public PublicationResult enqueue(SecurityManifest manifest) {
-        SecurityManifestPublicationState state = lock.apply(manifest.moduleKey());
+        SecurityManifestPublicationState state = stateProvider.apply(manifest.moduleKey());
         if (state == null) {
             throw new IllegalStateException("Publication state is missing for module: " + manifest.moduleKey());
         }

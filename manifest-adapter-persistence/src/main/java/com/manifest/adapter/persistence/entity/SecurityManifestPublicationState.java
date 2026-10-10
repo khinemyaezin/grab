@@ -13,6 +13,9 @@ public abstract class SecurityManifestPublicationState {
     @Id
     @Column(name = "module_key", updatable = false)
     private String moduleKey;
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
     @Column(name = "security_revision", nullable = false)
     private int revision;
     @Column(name = "content_digest", nullable = false)
@@ -32,6 +35,7 @@ public abstract class SecurityManifestPublicationState {
     }
 
     public String moduleKey() { return moduleKey; }
+    public Long version() { return version; }
     public Instant lastEnqueuedAt() { return lastEnqueuedAt; }
     public int revision() { return revision; }
     public String digest() { return digest; }

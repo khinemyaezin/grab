@@ -22,6 +22,7 @@ class SecurityManifestPublicationStateTest {
         TestPublicationState state = new TestPublicationState("saleschannel");
 
         assertEquals("saleschannel", state.moduleKey());
+        assertNull(state.version());
         assertEquals(0, state.revision());
         assertEquals("", state.digest());
         assertNull(state.lastEnqueuedAt());
