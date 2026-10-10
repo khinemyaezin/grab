@@ -17,9 +17,7 @@ import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
-import com.identity.domain.port.outbound.AuthorityManifestVersionRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
-import com.identity.domain.port.outbound.ScopeManifestRepository;
 import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.RoleDeclarationRepository;
@@ -208,21 +206,6 @@ public class IdentityPersistenceConfig {
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new AuthorityRepositoryAdapter(jpaRepository, ids, executor);
-    }
-
-    @Bean
-    public ScopeManifestRepository scopeManifestRepository(
-            ScopeManifestJpaRepository repository,
-            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
-    ) {
-        return new ScopeManifestRepositoryAdapter(repository, executor);
-    }
-
-    @Bean
-    public AuthorityManifestVersionRepository authorityManifestVersionRepository(
-            AuthorityManifestVersionJpaRepository repository
-    ) {
-        return new AuthorityManifestVersionRepositoryAdapter(repository);
     }
 
     @Bean
