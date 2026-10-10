@@ -1,6 +1,7 @@
 package com.grab.framework.security.role;
 
 import java.util.Objects;
+import java.util.Locale;
 
 public record RolePermissionReference(
         String owner,
@@ -9,8 +10,8 @@ public record RolePermissionReference(
     public RolePermissionReference {
         Objects.requireNonNull(owner, "owner is required");
         Objects.requireNonNull(code, "code is required");
-        owner = owner.trim().toLowerCase(java.util.Locale.ROOT);
-        code = code.trim().toUpperCase(java.util.Locale.ROOT);
+        owner = owner.trim().toLowerCase(Locale.ROOT);
+        code = code.trim().toUpperCase(Locale.ROOT);
         if (owner.isBlank()) {
             throw new IllegalArgumentException("owner cannot be blank");
         }

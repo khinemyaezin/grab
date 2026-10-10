@@ -381,7 +381,14 @@ class SecurityManifestWorkflowIntegrationTest {
         var waiting = tx.execute(status -> manifestQueries.status("inventory"));
         assertThat(waiting.waitingSince()).isNotNull();
         register(merchant(2, Lifecycle.ACTIVE), "activation-parent");
-        var activation = new IdentitySecurityCatalogActivationListener(event -> { }, scheduler);
+        IdentityRoleDeclarationRevalidationScheduler roleRevalidation =
+                new IdentityRoleDeclarationRevalidationScheduler(null, null, 100) {
+                    @Override
+                    public void revalidate() {
+                    }
+                };
+        IdentitySecurityCatalogActivationListener activation =
+                new IdentitySecurityCatalogActivationListener(event -> { }, scheduler, roleRevalidation);
         var relay = new Relay<>(identityOutbox, new JsonOutboxEventSerializer(), payload -> {
             if (payload instanceof com.identity.domain.event.SecurityCatalogActivatedEvent changed) {
                 activation.onCatalogChanged(new com.grab.store.shared.events.identity.IdentitySecurityCatalogActivatedIntegrationEvent(

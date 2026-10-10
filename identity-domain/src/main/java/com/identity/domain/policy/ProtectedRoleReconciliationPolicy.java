@@ -4,9 +4,7 @@ import com.grab.framework.security.role.RoleDeclaration;
 import com.grab.framework.security.role.RolePermissionReference;
 import com.identity.domain.aggregate.Authority;
 import com.identity.domain.aggregate.SecurityCatalog;
-import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
-import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.security.CatalogAuthority;
 import com.identity.domain.security.CatalogModule;
 
@@ -14,6 +12,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class ProtectedRoleReconciliationPolicy {
 
@@ -22,7 +21,8 @@ public final class ProtectedRoleReconciliationPolicy {
 
     public enum ReconciliationStatus {
         RECONCILED,
-        WAITING_DEPENDENCY
+        WAITING_DEPENDENCY,
+        INVALID_DECLARATION
     }
 
     public record ReconciliationOutcome(
@@ -38,11 +38,15 @@ public final class ProtectedRoleReconciliationPolicy {
     public static ReconciliationOutcome evaluate(
             RoleDeclaration declaration,
             SecurityCatalog catalog,
-            AuthorityRepository authorityRepository
+            Set<Authority> activeAuthorities
     ) {
+        if (declaration.permissions().isEmpty()) {
+            return new ReconciliationOutcome(ReconciliationStatus.INVALID_DECLARATION, Set.of(),
+                    "Role declaration must include at least one permission");
+        }
         try {
             catalog.requireEffectiveScope(declaration.assignmentScopeKey());
-        } catch (Exception e) {
+        } catch (IdentityDomainValidationException exception) {
             return new ReconciliationOutcome(ReconciliationStatus.WAITING_DEPENDENCY, Set.of(),
                     "Scope is not effective yet: " + declaration.assignmentScopeKey());
         }
@@ -66,10 +70,9 @@ public final class ProtectedRoleReconciliationPolicy {
             }
             CatalogAuthority auth = catalogAuth.get();
             if (!ref.owner().equalsIgnoreCase(auth.owner())) {
-                throw new IdentityDomainValidationException(
-                        new IdentityDomainError.InvalidAuthorityCode(ref.code()),
-                        "Authority owner mismatch for " + ref.code() + ": expected " + ref.owner() + " but catalog reports " + auth.owner()
-                );
+                return new ReconciliationOutcome(ReconciliationStatus.INVALID_DECLARATION, Set.of(),
+                        "Authority owner mismatch for " + ref.code() + ": expected " + ref.owner()
+                                + " but catalog reports " + auth.owner());
             }
             if (!auth.isEffective()) {
                 return new ReconciliationOutcome(ReconciliationStatus.WAITING_DEPENDENCY, Set.of(),
@@ -78,8 +81,10 @@ public final class ProtectedRoleReconciliationPolicy {
             authorityCodes.add(ref.code());
         }
 
-        Set<Authority> activeAuthorities = authorityRepository.findActiveByCodes(authorityCodes);
-        if (activeAuthorities.size() != authorityCodes.size()) {
+        Set<String> activeCodes = activeAuthorities.stream()
+                .map(Authority::getCode)
+                .collect(Collectors.toSet());
+        if (!activeCodes.equals(authorityCodes)) {
             return new ReconciliationOutcome(ReconciliationStatus.WAITING_DEPENDENCY, Set.of(),
                     "Not all active Authority entities exist in repository yet");
         }

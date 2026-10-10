@@ -9,7 +9,9 @@ import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.Authority;
+import com.identity.domain.aggregate.SecurityCatalog;
 import com.identity.domain.policy.AuthoritySelectionPolicy;
+import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
 import com.identity.domain.port.outbound.RoleRepository;
@@ -21,6 +23,7 @@ import com.identity.domain.valueobject.AccessScope;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 public class ReplaceAccessService implements ReplaceAccessUseCase {
@@ -67,7 +70,7 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
 
         String replacementRole = command.replacementRoleCode();
         if (replacementRole != null && !replacementRole.isBlank()) {
-            var catalog = catalogs.loadForUpdate();
+            SecurityCatalog catalog = catalogs.loadForUpdate();
             catalog.requireEffectiveScope(scope.key().value());
         }
         if (replacementRole != null && !replacementRole.isBlank()) {
@@ -134,11 +137,19 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
         Set<String> validCodes = AuthoritySelectionPolicy.normalize(requestedAuthorityCodes);
         Set<Authority> activeAuthorities = validCodes.isEmpty() ? Set.of() : authorities.findActiveByCodes(validCodes);
         AuthoritySelectionPolicy.requireComplete(validCodes, activeAuthorities);
-        if (roles.findByCode(roleCode).isPresent()) {
+        Optional<Role> existingRole = roles.findByCode(roleCode);
+        if (existingRole.isPresent()) {
+            existingRole.get().requireAssignable();
             return;
         }
+        if (RoleAdministrationPolicy.RESERVED_SYSTEM_ROLES.contains(roleCode)) {
+            throw new IdentityServiceException(
+                    new IdentityServiceError.RoleNotFound(roleCode),
+                    "System role declaration is not ready"
+            );
+        }
         if (validCodes.isEmpty()) {
-            var error = new IdentityServiceError.RoleNotFound(roleCode);
+            IdentityServiceError error = new IdentityServiceError.RoleNotFound(roleCode);
             throw new IdentityServiceException(error, "Role cannot be created without active authorities");
         }
 

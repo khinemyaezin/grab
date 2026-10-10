@@ -19,6 +19,8 @@ public record MerchantRoleDeclarationDeclaredIntegrationEvent(
     public MerchantRoleDeclarationDeclaredIntegrationEvent {
         Objects.requireNonNull(declaration, "declaration is required");
         Objects.requireNonNull(eventId, "eventId is required");
+        Objects.requireNonNull(suppliedContentDigest, "suppliedContentDigest is required");
+        Objects.requireNonNull(publishedAt, "publishedAt is required");
     }
 
     @Override
