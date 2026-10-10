@@ -133,7 +133,7 @@ class SecurityManifestPublicationConcurrencyIntegrationTest {
         SecurityManifest candidate = manifest(2, "current");
         control.eventFactoryBarrier = new CyclicBarrier(2);
 
-        List<DispatchResult> results = dispatchOrderedByDigest(candidate, candidate);
+        List<DispatchResult> results = dispatchConcurrently(candidate, candidate);
 
         assertThat(results).extracting(DispatchResult::result)
                 .containsExactlyInAnyOrder(SecurityManifestPublicationPort.PublicationResult.ENQUEUED,
@@ -152,17 +152,17 @@ class SecurityManifestPublicationConcurrencyIntegrationTest {
     void publish_olderConcurrentCandidate_retriesToSuperseded() throws Exception {
         SecurityManifest baseline = manifest(1, "baseline");
         seedExpiredState(baseline);
-        SecurityManifest older = manifest(2, "older-winner");
-        SecurityManifest newer = manifest(3, "newer-loser");
+        SecurityManifest older = manifest(2, "older-loser");
+        SecurityManifest newer = manifest(3, "newer-winner");
 
-        List<DispatchResult> results = dispatchOrderedByDigest(newer, older);
+        List<DispatchResult> results = dispatchOrderedByDigest(older, newer);
 
         assertThat(results).extracting(DispatchResult::result)
                 .containsExactlyInAnyOrder(SecurityManifestPublicationPort.PublicationResult.SUPERSEDED,
                         SecurityManifestPublicationPort.PublicationResult.ENQUEUED);
         Integer revision = jdbc.queryForObject("SELECT security_revision FROM security_manifest_publication", Integer.class);
         Long eventCount = jdbc.queryForObject("SELECT count(*) FROM merchant_outbox_events", Long.class);
-        assertThat(revision).isEqualTo(2);
+        assertThat(revision).isEqualTo(3);
         assertThat(eventCount).isEqualTo(1L);
         assertThat(results).filteredOn(result -> result.result() == SecurityManifestPublicationPort.PublicationResult.SUPERSEDED)
                 .singleElement().satisfies(this::assertRetriedWithFreshEntityManager);

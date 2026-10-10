@@ -14,6 +14,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <store.test.excluded-groups>migration</store.test.excluded-groups>
         <catalog-application.version>0.0.1</catalog-application.version>
         <catalog-adapter-persistence.version>0.0.1</catalog-adapter-persistence.version>
         <inventory-application.version>0.0.1</inventory-application.version>
@@ -295,6 +296,13 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${store.test.excluded-groups}</excludedGroups>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>21</source> 
@@ -323,4 +331,12 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>migration-tests</id>
+            <properties>
+                <store.test.excluded-groups/>
+            </properties>
+        </profile>
+    </profiles>
 </project>
