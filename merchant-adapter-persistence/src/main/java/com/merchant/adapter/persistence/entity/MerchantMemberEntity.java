@@ -1,5 +1,6 @@
 package com.merchant.adapter.persistence.entity;
 
+import com.merchant.domain.enums.AccessProvisioningStatus;
 import com.merchant.domain.enums.MemberStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -15,7 +16,8 @@ import java.util.Set;
 @Table(name = "merchant_members", indexes = {
         @Index(name = "idx_merchant_members_merchant", columnList = "merchant_id"),
         @Index(name = "idx_merchant_members_user", columnList = "user_id"),
-        @Index(name = "idx_merchant_members_status", columnList = "status")
+        @Index(name = "idx_merchant_members_status", columnList = "status"),
+        @Index(name = "idx_merchant_members_prov_status", columnList = "access_provisioning_status")
 }, uniqueConstraints = {
         @UniqueConstraint(name = "uk_merchant_member", columnNames = {"merchant_id", "user_id"})
 })
@@ -47,6 +49,13 @@ public class MerchantMemberEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private MemberStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "access_provisioning_status", nullable = false, length = 32)
+    private AccessProvisioningStatus accessProvisioningStatus = AccessProvisioningStatus.PENDING;
+
+    @Column(name = "access_provisioning_error", length = 255)
+    private String accessProvisioningError;
 
     @Column(name = "invited_by")
     private String invitedBy;

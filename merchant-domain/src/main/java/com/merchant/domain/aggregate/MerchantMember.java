@@ -2,6 +2,7 @@ package com.merchant.domain.aggregate;
 
 import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.id.Id;
+import com.merchant.domain.enums.AccessProvisioningStatus;
 import com.merchant.domain.enums.MemberStatus;
 import com.merchant.domain.event.MerchantMemberCreatedEvent;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
@@ -26,6 +27,8 @@ public class MerchantMember extends AggregateRoot<Id> {
     private final Instant createdAt;
     private Instant updatedAt;
     private final long version;
+    private AccessProvisioningStatus accessProvisioningStatus;
+    private String accessProvisioningError;
 
     public MerchantMember(
             Id id,
@@ -40,6 +43,24 @@ public class MerchantMember extends AggregateRoot<Id> {
             Instant updatedAt,
             long version
     ) {
+        this(id, merchantId, userId, role, status, invitedBy, invitationExpiresAt, joinedAt, createdAt, updatedAt, version, AccessProvisioningStatus.ACTIVE, null);
+    }
+
+    public MerchantMember(
+            Id id,
+            Id merchantId,
+            Id userId,
+            MerchantRole role,
+            MemberStatus status,
+            Id invitedBy,
+            Instant invitationExpiresAt,
+            Instant joinedAt,
+            Instant createdAt,
+            Instant updatedAt,
+            long version,
+            AccessProvisioningStatus accessProvisioningStatus,
+            String accessProvisioningError
+    ) {
         super(id);
         this.merchantId = Objects.requireNonNull(merchantId, "merchantId is required");
         this.userId = Objects.requireNonNull(userId, "userId is required");
@@ -51,6 +72,8 @@ public class MerchantMember extends AggregateRoot<Id> {
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt is required");
         this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt is required");
         this.version = version;
+        this.accessProvisioningStatus = accessProvisioningStatus != null ? accessProvisioningStatus : AccessProvisioningStatus.ACTIVE;
+        this.accessProvisioningError = accessProvisioningError;
     }
 
     public static MerchantMember createAdmin(Id id, Id merchantId, Id userId, Instant now) {
@@ -66,7 +89,9 @@ public class MerchantMember extends AggregateRoot<Id> {
                 now,
                 now,
                 now,
-                0
+                0,
+                AccessProvisioningStatus.PENDING,
+                null
         );
         member.addEvent(new MerchantMemberCreatedEvent(
                 id.getValue(),
@@ -117,7 +142,9 @@ public class MerchantMember extends AggregateRoot<Id> {
                 null,
                 now,
                 now,
-                0
+                0,
+                AccessProvisioningStatus.PENDING,
+                null
         );
         member.addEvent(new MerchantMemberCreatedEvent(
                 id.getValue(),
@@ -212,6 +239,30 @@ public class MerchantMember extends AggregateRoot<Id> {
         ));
     }
 
+    public void recordProvisioningSuccess(long expectedVersion, Instant now) {
+        if (status == MemberStatus.REMOVED) {
+            return;
+        }
+        if (version != expectedVersion) {
+            return;
+        }
+        this.accessProvisioningStatus = AccessProvisioningStatus.ACTIVE;
+        this.accessProvisioningError = null;
+        this.updatedAt = now != null ? now : Instant.now();
+    }
+
+    public void recordProvisioningFailure(String errorCode, long expectedVersion, Instant now) {
+        if (status == MemberStatus.REMOVED) {
+            return;
+        }
+        if (version != expectedVersion) {
+            return;
+        }
+        this.accessProvisioningStatus = AccessProvisioningStatus.FAILED;
+        this.accessProvisioningError = errorCode;
+        this.updatedAt = now != null ? now : Instant.now();
+    }
+
     public boolean isAdmin() {
         return role != null && role.isAdmin();
     }
@@ -234,5 +285,17 @@ public class MerchantMember extends AggregateRoot<Id> {
 
     public boolean isRemoved() {
         return status == MemberStatus.REMOVED;
+    }
+
+    public boolean isAccessPending() {
+        return accessProvisioningStatus == AccessProvisioningStatus.PENDING;
+    }
+
+    public boolean isAccessActive() {
+        return accessProvisioningStatus == AccessProvisioningStatus.ACTIVE;
+    }
+
+    public boolean isAccessFailed() {
+        return accessProvisioningStatus == AccessProvisioningStatus.FAILED;
     }
 }

@@ -1,12 +1,14 @@
 package com.grab.store.merchant.internal.event;
 
 import com.grab.store.identity.port.AccessManagementPort;
+import com.grab.store.shared.events.merchant.MerchantAdminAccessProvisionRequestedIntegrationEvent;
 import com.merchant.domain.event.MerchantMemberCreatedEvent;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
 import com.merchant.domain.event.MerchantMemberRoleChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.Set;
@@ -16,6 +18,7 @@ import static org.mockito.Mockito.*;
 
 class MerchantMemberAccessSyncListenerTest {
     private AccessManagementPort accessManagementPort;
+    private ApplicationEventPublisher events;
     private MerchantMemberAccessSyncListener listener;
 
     private final Instant now = Instant.parse("2026-09-23T10:00:00Z");
@@ -23,38 +26,39 @@ class MerchantMemberAccessSyncListenerTest {
     @BeforeEach
     void setUp() {
         accessManagementPort = mock(AccessManagementPort.class);
-        listener = new MerchantMemberAccessSyncListener(accessManagementPort);
+        events = mock(ApplicationEventPublisher.class);
+        listener = new MerchantMemberAccessSyncListener(accessManagementPort, events);
     }
 
     @Test
-    void onMemberCreated_whenActiveAdmin_shouldAssignAdminRole() {
+    void onMemberCreated_whenActiveAdmin_shouldPublishAdminAccessProvisionRequestedEvent() {
         MerchantMemberCreatedEvent event = new MerchantMemberCreatedEvent(
-                "mem-1", "mer-1", "usr-1", "MERCHANT_ADMIN", Set.of("*"), true, "ACTIVE", null, 1, now
+                "mem-1", "mer-1", "usr-1", "MERCHANT_ADMIN", Set.of(), true, "ACTIVE", null, 1, now
         );
 
         listener.onMemberCreated(event);
 
-        ArgumentCaptor<AccessManagementPort.ReplaceAccessRequest> captor =
-                ArgumentCaptor.forClass(AccessManagementPort.ReplaceAccessRequest.class);
-        verify(accessManagementPort).replaceAccess(captor.capture());
+        ArgumentCaptor<MerchantAdminAccessProvisionRequestedIntegrationEvent> captor =
+                ArgumentCaptor.forClass(MerchantAdminAccessProvisionRequestedIntegrationEvent.class);
+        verify(events).publishEvent(captor.capture());
 
-        AccessManagementPort.ReplaceAccessRequest request = captor.getValue();
-        assertThat(request.userId()).isEqualTo("usr-1");
-        assertThat(request.previousRoleCode()).isNull();
-        assertThat(request.roleCode()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.ADMIN_ROLE_CODE);
-        assertThat(request.scopeKey()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY);
-        assertThat(request.scopeId()).isEqualTo("mer-1");
-       // assertThat(request.authorityCodes()).isEqualTo(MerchantAdminRoleProfile.AUTHORITIES);
+        MerchantAdminAccessProvisionRequestedIntegrationEvent published = captor.getValue();
+        assertThat(published.merchantId()).isEqualTo("mer-1");
+        assertThat(published.applicantUserId()).isEqualTo("usr-1");
+        assertThat(published.roleCode()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.ADMIN_ROLE_CODE);
+        assertThat(published.scopeKey()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY);
+        verify(accessManagementPort, never()).replaceAccess(any());
     }
 
     @Test
-    void onMemberCreated_whenInvitedMember_shouldNotReplaceAccess() {
+    void onMemberCreated_whenInvitedMember_shouldNotPublishOrReplaceAccess() {
         MerchantMemberCreatedEvent event = new MerchantMemberCreatedEvent(
                 "mem-2", "mer-1", "usr-2", "OPERATOR", Set.of(), false, "INVITED", "usr-1", 1, now
         );
 
         listener.onMemberCreated(event);
 
+        verify(events, never()).publishEvent(any());
         verify(accessManagementPort, never()).replaceAccess(any());
     }
 

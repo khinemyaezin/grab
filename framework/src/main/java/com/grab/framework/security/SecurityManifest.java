@@ -10,7 +10,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 
-/** Complete, immutable security declaration published by one bounded context. */
 public record SecurityManifest(
         int schemaVersion,
         String moduleKey,
@@ -68,7 +67,6 @@ public record SecurityManifest(
         this(moduleKey, securityRevision, scopes, authorities, List.of());
     }
 
-    /** Compatibility constructor accepting the original dependency-only scope keys. */
     public SecurityManifest(String moduleKey, int securityRevision,
                             List<ScopeDeclaration> scopes,
                             List<AuthorityDefinition> authorities,
@@ -86,7 +84,6 @@ public record SecurityManifest(
         this(schemaVersion, moduleKey, securityRevision, scopes, authorities, dependencies);
     }
 
-    /** Canonical digest of semantic content; declaration order and diagnostics are excluded. */
     public String contentDigest() {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

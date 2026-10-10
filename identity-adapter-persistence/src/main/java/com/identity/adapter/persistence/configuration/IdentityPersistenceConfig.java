@@ -220,7 +220,6 @@ public class IdentityPersistenceConfig {
     }
 
 
-
     @Bean
     public ScopeCatalogQueryPort scopeCatalogQueryPort(ScopeManifestJpaRepository scopes) {
         return new ScopeCatalogQueryAdapter(scopes);
@@ -228,8 +227,10 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public SecurityManifestQueryPort securityManifestQueryPort(SecurityManifestRevisionJpaRepository revisions,
-            SecurityManifestModuleJpaRepository modules, SecurityCatalogStateJpaRepository states,
-            SecurityManifestConflictJpaRepository conflicts, JpaContext context) {
+                                                               SecurityManifestModuleJpaRepository modules,
+                                                               SecurityCatalogStateJpaRepository states,
+                                                               SecurityManifestConflictJpaRepository conflicts,
+                                                               JpaContext context) {
         var entityManager = context.getEntityManagerByManagedType(SecurityManifestRevisionEntity.class);
         var waiting = new SecurityManifestWaitingSpecification(entityManager);
         return new SecurityManifestQueryAdapter(waiting, revisions, modules, states, conflicts);
@@ -237,8 +238,11 @@ public class IdentityPersistenceConfig {
 
     @Bean
     public SecurityCatalogRepository securityCatalogRepository(
-            SecurityCatalogStateJpaRepository states, SecurityManifestModuleJpaRepository modules,
-            ScopeManifestJpaRepository scopes, AuthorityJpaRepository authorities, IdGenerator ids,
+            SecurityCatalogStateJpaRepository states,
+            SecurityManifestModuleJpaRepository modules,
+            ScopeManifestJpaRepository scopes,
+            AuthorityJpaRepository authorities,
+            IdGenerator ids,
             @Qualifier("identityDomainEventProducer") DomainEventProducer outbox,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
         var assembler = new SecurityCatalogJpaAssembler(ids);

@@ -47,7 +47,9 @@ public class MerchantMemberQueryAdapter implements MerchantMemberQueryPort {
                 entity.getJoinedAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
-                entity.getVersion()
+                entity.getVersion(),
+                entity.getAccessProvisioningStatus() == null ? null : entity.getAccessProvisioningStatus().name(),
+                entity.getAccessProvisioningError()
         );
     }
 }

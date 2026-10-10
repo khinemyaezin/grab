@@ -7,9 +7,12 @@ import com.identity.adapter.persistence.repository.jpa.*;
 import com.identity.domain.aggregate.SecurityCatalog;
 import com.identity.adapter.persistence.mapper.jpa.SecurityCatalogJpaAssembler;
 import com.identity.domain.port.outbound.SecurityCatalogRepository;
+import com.identity.adapter.persistence.exception.IdentityInfraError;
+import com.identity.adapter.persistence.exception.IdentityInfraException;
+import lombok.AllArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 
-import java.util.Objects;
-
+@AllArgsConstructor
 public class SecurityCatalogRepositoryAdapter implements SecurityCatalogRepository {
     private final SecurityCatalogStateJpaRepository states;
     private final SecurityManifestModuleJpaRepository modules;
@@ -19,28 +22,66 @@ public class SecurityCatalogRepositoryAdapter implements SecurityCatalogReposito
     private final DomainEventProducer outbox;
     private final PersistenceExecutor executor;
 
-    public SecurityCatalogRepositoryAdapter(SecurityCatalogStateJpaRepository states,
-            SecurityManifestModuleJpaRepository modules, ScopeManifestJpaRepository scopes,
-            AuthorityJpaRepository authorities, SecurityCatalogJpaAssembler assembler, DomainEventProducer outbox, PersistenceExecutor executor) {
-        this.states = states;
-        this.modules = modules;
-        this.scopes = scopes;
-        this.authorities = authorities;
-        this.assembler = assembler;
-        this.outbox = outbox;
-        this.executor = executor;
+    @Override
+    public boolean ensureInitialized(boolean creationAllowed) {
+        try {
+            return executor.command("SecurityCatalogInitialization", () -> {
+                if (states.existsById(1L)) {
+                    return true;
+                }
+                if (!creationAllowed) {
+                    return false;
+                }
+
+                var initial = new SecurityCatalogStateEntity();
+                initial.setId(1L);
+                initial.setCatalogRevision(0L);
+                states.saveAndFlush(initial);
+                return true;
+            });
+        } catch (IdentityInfraException exception) {
+            String constraintName = catalogStatePrimaryKeyConstraint(exception);
+            if (constraintName == null) {
+                throw exception;
+            }
+            throw new IdentityInfraException(
+                    new IdentityInfraError.SecurityCatalogInitializationRace(constraintName),
+                    "Security catalog initialization raced with another writer.",
+                    exception
+            );
+        }
     }
 
     @Override
     public SecurityCatalog loadForUpdate() {
         return executor.command("SecurityCatalog", () -> {
             var state = states.lockSingleton();
-            Objects.requireNonNull(state, "Seeded security catalog is missing");
+            if (state == null) {
+                throw new IdentityInfraException(
+                        new IdentityInfraError.SecurityCatalogStateMissing(),
+                        "Security catalog state is missing after initialization.",
+                        null
+                );
+            }
             var scopeState = scopes.findAll();
             var authorityState = authorities.findAll();
             var moduleState = modules.findAll();
             return assembler.rehydrate(state, scopeState, authorityState, moduleState);
         });
+    }
+
+    private String catalogStatePrimaryKeyConstraint(Throwable failure) {
+        Throwable cause = failure;
+        while (cause != null) {
+            if (cause instanceof ConstraintViolationException violation) {
+                String constraintName = violation.getConstraintName();
+                if ("security_catalog_state_pkey".equals(constraintName)) {
+                    return constraintName;
+                }
+            }
+            cause = cause.getCause();
+        }
+        return null;
     }
 
     @Override

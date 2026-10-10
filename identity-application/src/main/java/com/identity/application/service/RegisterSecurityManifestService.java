@@ -10,22 +10,16 @@ import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.security.*;
+import lombok.AllArgsConstructor;
 
 import java.time.Instant;
-import java.util.Objects;
 
+@AllArgsConstructor
 public class RegisterSecurityManifestService implements RegisterSecurityManifestUseCase {
     private static final Logger log = Loggers.getLogger(RegisterSecurityManifestService.class);
     private final SecurityCatalogRepository catalogs;
     private final SecurityManifestRevisionRepository revisions;
     private final SecurityManifestInboxRepository inbox;
-
-    public RegisterSecurityManifestService(SecurityCatalogRepository catalogs,
-            SecurityManifestRevisionRepository revisions, SecurityManifestInboxRepository inbox) {
-        this.catalogs = Objects.requireNonNull(catalogs);
-        this.revisions = Objects.requireNonNull(revisions);
-        this.inbox = Objects.requireNonNull(inbox);
-    }
 
     @Override
     public RegisterSecurityManifestResult execute(RegisterSecurityManifestCommand command) {

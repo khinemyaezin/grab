@@ -2,6 +2,7 @@ package com.grab.store.identity.internal.command.handler;
 
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.store.identity.internal.config.IdentityTransactional;
+import com.grab.store.identity.internal.config.RequiresSecurityCatalog;
 import com.identity.application.port.inbound.GrantAccessUseCase;
 import com.identity.application.model.write.GrantAccessCommand;
 import com.identity.application.model.write.AccessAssignmentResult;
@@ -15,6 +16,7 @@ public class GrantAccessCommandHandler implements CommandHandler<GrantAccessComm
     private final GrantAccessUseCase grantAccessUseCase;
 
     @Override
+    @RequiresSecurityCatalog
     @IdentityTransactional
     public AccessAssignmentResult handle(GrantAccessCommand command) {
         return grantAccessUseCase.execute(command);

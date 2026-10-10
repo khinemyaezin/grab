@@ -42,7 +42,40 @@ class MerchantMemberTest {
         assertThat(event.authorities()).contains("*");
         assertThat(event.status()).isEqualTo("ACTIVE");
         assertThat(event.invitedBy()).isNull();
+        assertThat(member.getAccessProvisioningStatus()).isEqualTo(com.merchant.domain.enums.AccessProvisioningStatus.PENDING);
+        assertThat(member.isAccessPending()).isTrue();
     }
+
+    @Test
+    void recordProvisioningSuccess_shouldUpdateStatusToActive() {
+        MerchantMember member = MerchantMember.createAdmin(memberId, merchantId, userId, now);
+        member.recordProvisioningSuccess(0, now.plusSeconds(30));
+
+        assertThat(member.getAccessProvisioningStatus()).isEqualTo(com.merchant.domain.enums.AccessProvisioningStatus.ACTIVE);
+        assertThat(member.isAccessActive()).isTrue();
+        assertThat(member.getAccessProvisioningError()).isNull();
+    }
+
+    @Test
+    void recordProvisioningFailure_shouldUpdateStatusToFailedAndSaveError() {
+        MerchantMember member = MerchantMember.createAdmin(memberId, merchantId, userId, now);
+        member.recordProvisioningFailure("CATALOG_DEPENDENCY_MISSING", 0, now.plusSeconds(30));
+
+        assertThat(member.getAccessProvisioningStatus()).isEqualTo(com.merchant.domain.enums.AccessProvisioningStatus.FAILED);
+        assertThat(member.isAccessFailed()).isTrue();
+        assertThat(member.getAccessProvisioningError()).isEqualTo("CATALOG_DEPENDENCY_MISSING");
+    }
+
+    @Test
+    void recordProvisioningSuccess_whenRemoved_shouldIgnore() {
+        MerchantMember member = MerchantMember.createAdmin(memberId, merchantId, userId, now);
+        member.remove(now.plusSeconds(10));
+        member.recordProvisioningSuccess(0, now.plusSeconds(30));
+
+        assertThat(member.getStatus()).isEqualTo(MemberStatus.REMOVED);
+        assertThat(member.getAccessProvisioningStatus()).isEqualTo(com.merchant.domain.enums.AccessProvisioningStatus.PENDING);
+    }
+
 
     @Test
     void invite_shouldCreateInvitedMemberAndEmitCreatedEvent() {

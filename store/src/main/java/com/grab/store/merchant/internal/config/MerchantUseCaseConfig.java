@@ -182,4 +182,12 @@ public class MerchantUseCaseConfig {
     ) {
         return new ProvisionMerchantAdminService(members, ids);
     }
+
+    @Bean
+    public RecordMemberProvisioningResultUseCase recordMemberProvisioningResultUseCase(
+            MerchantMemberRepository members
+    ) {
+        return new RecordMemberProvisioningResultService(members);
+    }
 }
+

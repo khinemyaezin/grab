@@ -17,17 +17,17 @@ import java.util.UUID;
 import java.util.function.Function;
 
 public class SecurityManifestPublicationAdapter implements SecurityManifestPublicationPort {
-    private final Function<String, ? extends SecurityManifestPublicationState> lock;
+    private final Function<String, ? extends SecurityManifestPublicationState> stateProvider;
     private final DomainEventProducer outbox;
     private final Function<SecurityManifestEnvelope, Event> eventFactory;
     private final Clock clock;
     private final Duration interval;
 
     public SecurityManifestPublicationAdapter(
-            Function<String, ? extends SecurityManifestPublicationState> lock,
+            Function<String, ? extends SecurityManifestPublicationState> stateProvider,
             DomainEventProducer outbox, Function<SecurityManifestEnvelope, Event> eventFactory,
             Clock clock, Duration interval) {
-        this.lock = Objects.requireNonNull(lock);
+        this.stateProvider = Objects.requireNonNull(stateProvider);
         this.outbox = Objects.requireNonNull(outbox);
         this.eventFactory = Objects.requireNonNull(eventFactory);
         this.clock = Objects.requireNonNull(clock);
@@ -39,8 +39,10 @@ public class SecurityManifestPublicationAdapter implements SecurityManifestPubli
 
     @Override
     public PublicationResult enqueue(SecurityManifest manifest) {
-        SecurityManifestPublicationState state = lock.apply(manifest.moduleKey());
-        Objects.requireNonNull(state, "Seeded publication state is missing");
+        SecurityManifestPublicationState state = stateProvider.apply(manifest.moduleKey());
+        if (state == null) {
+            throw new IllegalStateException("Publication state is missing for module: " + manifest.moduleKey());
+        }
         Instant now = clock.instant();
         PublicationResult result = PublicationEligibilityPolicy.decide(
                 manifest, state.revision(), state.digest(), state.nextPublicationAt(), now);
@@ -49,7 +51,7 @@ public class SecurityManifestPublicationAdapter implements SecurityManifestPubli
         }
         String digest = manifest.contentDigest();
         String eventId = UUID.randomUUID().toString();
-        var envelope = new SecurityManifestEnvelope(SecurityManifestEnvelope.TYPE, SecurityManifestEnvelope.VERSION,
+        SecurityManifestEnvelope envelope = new SecurityManifestEnvelope(SecurityManifestEnvelope.TYPE, SecurityManifestEnvelope.VERSION,
                 manifest.moduleKey(), eventId, now, digest, manifest);
         Event event = eventFactory.apply(envelope);
         Instant nextPublicationAt = now.plus(interval);

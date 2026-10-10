@@ -37,7 +37,9 @@ public class MerchantMemberJpaAssembler {
                 source.getJoinedAt(),
                 source.getCreatedAt(),
                 source.getUpdatedAt(),
-                source.getVersion()
+                source.getVersion(),
+                source.getAccessProvisioningStatus(),
+                source.getAccessProvisioningError()
         );
     }
 }

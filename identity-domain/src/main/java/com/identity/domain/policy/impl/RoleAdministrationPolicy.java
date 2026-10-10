@@ -20,6 +20,8 @@ public final class RoleAdministrationPolicy {
         this.authorities = Objects.requireNonNull(authorities, "authority repository is required");
     }
 
+    public static final Set<String> RESERVED_SYSTEM_ROLES = Set.of("MERCHANT_ADMIN");
+
     public Role createCustomRole(
             Id roleId,
             String code,
@@ -27,6 +29,12 @@ public final class RoleAdministrationPolicy {
             String description,
             Set<String> requestedAuthorityCodes
     ) {
+        if (code != null && RESERVED_SYSTEM_ROLES.contains(code.trim().toUpperCase(Locale.ROOT))) {
+            throw new IdentityDomainValidationException(
+                    new IdentityDomainError.SystemRoleModificationForbidden(code),
+                    "Cannot create custom role with reserved system role code: " + code
+            );
+        }
         Set<Authority> authorities = requireActiveAuthorities(requestedAuthorityCodes);
         return Role.createCustom(roleId, code, name, description, authorities);
     }

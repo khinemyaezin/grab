@@ -7,4 +7,10 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "security_manifest_publication")
 public class MerchantSecurityManifestPublicationEntity extends SecurityManifestPublicationState {
+    public MerchantSecurityManifestPublicationEntity() {
+    }
+
+    public MerchantSecurityManifestPublicationEntity(String moduleKey) {
+        super(moduleKey);
+    }
 }

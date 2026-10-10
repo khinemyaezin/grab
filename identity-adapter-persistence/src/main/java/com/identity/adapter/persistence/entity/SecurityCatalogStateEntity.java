@@ -21,5 +21,5 @@ public class SecurityCatalogStateEntity {
 
     @Version
     @Column(name = "row_version", nullable = false)
-    private long rowVersion;
+    private Long rowVersion;
 }

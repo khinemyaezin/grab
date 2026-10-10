@@ -15,6 +15,8 @@ public abstract class MerchantMemberEntityMapper {
     @Mapping(ignore = true, target = "role")
     @Mapping(ignore = true, target = "authorities")
     @Mapping(source = "status", target = "status")
+    @Mapping(source = "accessProvisioningStatus", target = "accessProvisioningStatus")
+    @Mapping(source = "accessProvisioningError", target = "accessProvisioningError")
     @Mapping(source = "invitedBy", target = "invitedBy")
     @Mapping(source = "invitationExpiresAt", target = "invitationExpiresAt")
     @Mapping(source = "joinedAt", target = "joinedAt")
