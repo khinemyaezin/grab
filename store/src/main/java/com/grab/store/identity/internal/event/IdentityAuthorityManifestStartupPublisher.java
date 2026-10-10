@@ -8,7 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-@Deprecated(forRemoval = false)
+@Deprecated(forRemoval = true)
 @RequiredArgsConstructor
 public class IdentityAuthorityManifestStartupPublisher {
     private final ApplicationEventPublisher events;

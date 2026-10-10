@@ -3,8 +3,8 @@ package com.grab.store.merchant.internal.config;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.security.SecurityManifestPublicationPort;
 import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
+import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationStateProvider;
 import com.grab.store.shared.events.merchant.MerchantSecurityManifestDeclaredIntegrationEvent;
-import com.merchant.adapter.persistence.repository.jpa.MerchantSecurityManifestPublicationJpaRepository;
 import com.merchant.application.port.inbound.PublishMerchantSecurityManifestUseCase;
 import com.merchant.application.service.PublishMerchantSecurityManifestService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,27 +23,21 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
-import com.grab.store.shared.security.SecurityManifestPublicationStateProvider;
-import org.springframework.transaction.PlatformTransactionManager;
-import java.util.function.Function;
+import jakarta.persistence.EntityManager;
 
 @Configuration
 @MerchantEnabled
 public class MerchantSecurityManifestPublicationConfig {
     @Bean("merchantSecurityManifestPublicationPort")
     public SecurityManifestPublicationPort merchantPublicationPort(
-            MerchantSecurityManifestPublicationJpaRepository repository,
+            JpaContext context,
             @Qualifier("merchantDomainEventProducer") DomainEventProducer outbox,
-            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
             @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
         Clock clock = Clock.systemUTC();
         Duration interval = Duration.ofMillis(intervalMs);
-        Function<String, MerchantSecurityManifestPublicationEntity> stateProvider =
-                SecurityManifestPublicationStateProvider.lockingProvider(
-                        repository,
-                        repository::lockByModuleKey,
-                        MerchantSecurityManifestPublicationEntity::new,
-                        transactionManager);
+        EntityManager entityManager = context.getEntityManagerByManagedType(MerchantSecurityManifestPublicationEntity.class);
+        var stateProvider = SecurityManifestPublicationStateProvider.optimisticProvider(
+                entityManager, MerchantSecurityManifestPublicationEntity.class, MerchantSecurityManifestPublicationEntity::new);
         return new SecurityManifestPublicationAdapter(stateProvider, outbox,
                 envelope -> {
                     SecurityManifest manifest = envelope.manifest();
@@ -61,7 +55,7 @@ public class MerchantSecurityManifestPublicationConfig {
     }
     @Bean("merchantSecurityManifestPublicationQueryPort")
     public SecurityManifestPublicationQueryPort merchantPublicationQueryPort(JpaContext context) {
-        jakarta.persistence.EntityManager entityManager = context.getEntityManagerByManagedType(MerchantSecurityManifestPublicationEntity.class);
+        EntityManager entityManager = context.getEntityManagerByManagedType(MerchantSecurityManifestPublicationEntity.class);
         return new SecurityManifestPublicationQueryAdapter(entityManager, MerchantSecurityManifestPublicationEntity.class,
                 "MerchantOutboxEvent");
     }
