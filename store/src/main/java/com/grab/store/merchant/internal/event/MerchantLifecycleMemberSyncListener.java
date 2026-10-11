@@ -2,10 +2,10 @@ package com.grab.store.merchant.internal.event;
 
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.identity.port.AccessManagementPort;
+import com.merchant.application.port.outbound.IdentityAccessManagementPort;
+import com.merchant.application.security.MerchantAdminAccessProfile;
 import com.merchant.domain.event.MerchantClosedEvent;
 import com.merchant.domain.event.MerchantSuspendedEvent;
-import com.merchant.application.security.MerchantAdminAccessProfile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -15,23 +15,25 @@ import org.springframework.stereotype.Component;
 public class MerchantLifecycleMemberSyncListener {
     private static final Logger log = Loggers.getLogger(MerchantLifecycleMemberSyncListener.class);
 
-    private final AccessManagementPort accessManagementPort;
+    private final IdentityAccessManagementPort identityAccessManagementPort;
 
     @EventListener
     public void onMerchantSuspended(MerchantSuspendedEvent event) {
-        log.warn("Merchant suspended merchantId={}. Revoking active merchant sessions.", event.merchantId());
-        accessManagementPort.revokeSessionsByScope(
+        String merchantId = event.merchantId();
+        log.warn("Merchant suspended merchantId={}. Revoking active merchant sessions.", merchantId);
+        identityAccessManagementPort.revokeSessionsByScope(
                 MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
-                event.merchantId()
+                merchantId
         );
     }
 
     @EventListener
     public void onMerchantClosed(MerchantClosedEvent event) {
-        log.warn("Merchant closed merchantId={}. Revoking active merchant sessions.", event.merchantId());
-        accessManagementPort.revokeSessionsByScope(
+        String merchantId = event.merchantId();
+        log.warn("Merchant closed merchantId={}. Revoking active merchant sessions.", merchantId);
+        identityAccessManagementPort.revokeSessionsByScope(
                 MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
-                event.merchantId()
+                merchantId
         );
     }
 }

@@ -102,6 +102,12 @@ public class SessionStoreAdapter implements SessionStore {
     }
 
     @Override
+    public long lockAuthenticationVersion(String userId) {
+        UserEntity user = userRepository.findByUuidForUpdate(userId).orElseThrow();
+        return user.getAuthenticationVersion();
+    }
+
+    @Override
     public void revokeByAssignment(String assignmentId) {
         Instant now = Instant.now();
         var assignmentSessions = sessionRepository.findByAssignmentUuid(assignmentId);

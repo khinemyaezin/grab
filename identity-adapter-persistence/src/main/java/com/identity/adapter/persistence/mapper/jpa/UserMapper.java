@@ -5,7 +5,9 @@ import com.identity.domain.aggregate.User;
 import com.identity.adapter.persistence.entity.UserEntity;
 import com.identity.adapter.persistence.mapper.CentralMapperConfig;
 import org.mapstruct.Mapper;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 @Mapper(config = CentralMapperConfig.class, uses = {IdGenerator.class})
 public abstract class UserMapper {
@@ -14,4 +16,9 @@ public abstract class UserMapper {
     @Mapping(target = "email", expression = "java(new com.identity.domain.valueobject.Email(entity.getEmail()))")
     @Mapping(target = "passwordHash", expression = "java(entity.getPasswordHash() == null ? null : new com.identity.domain.valueobject.HashedPassword(entity.getPasswordHash()))")
     public abstract User toDomain(UserEntity entity);
+
+    @AfterMapping
+    protected void restoreAuthenticationVersion(UserEntity entity, @MappingTarget User user) {
+        user.restoreAuthenticationVersion(entity.getAuthenticationVersion());
+    }
 }

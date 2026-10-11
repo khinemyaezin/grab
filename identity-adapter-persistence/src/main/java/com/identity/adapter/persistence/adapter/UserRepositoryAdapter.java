@@ -35,6 +35,12 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByIdForUpdate(Id id) {
+        return executor.query("User", () -> jpaRepository.findByUuidForUpdate(id.getValue())
+                .map(mapper::toFullDomainGraph));
+    }
+
+    @Override
     public Optional<User> findByEmail(Email email) {
         log.debug("Loading user by email={}", email.value());
         return executor.query("User", () -> jpaRepository.findByEmail(email.value())

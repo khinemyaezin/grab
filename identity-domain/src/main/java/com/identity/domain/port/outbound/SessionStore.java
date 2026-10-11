@@ -27,6 +27,8 @@ public interface SessionStore {
 
     void revokeAll(String userId);
 
+    long lockAuthenticationVersion(String userId);
+
     void revokeByAssignment(String assignmentId);
 
     default void revokeByScope(String scopeKey, String scopeId) {

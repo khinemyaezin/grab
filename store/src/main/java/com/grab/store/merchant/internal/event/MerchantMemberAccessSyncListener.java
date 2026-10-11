@@ -1,82 +1,79 @@
 package com.grab.store.merchant.internal.event;
 
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
-import com.grab.store.identity.port.AccessManagementPort;
-import com.grab.store.shared.events.merchant.MerchantAdminAccessProvisionRequestedIntegrationEvent;
-import com.merchant.domain.enums.MemberStatus;
-import com.merchant.domain.event.MerchantMemberCreatedEvent;
+import com.merchant.application.model.write.RevokeMerchantMemberAccessCommand;
+import com.merchant.application.model.write.SyncMerchantMemberRoleAccessCommand;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
 import com.merchant.domain.event.MerchantMemberRoleChangedEvent;
-import com.merchant.application.security.MerchantAdminAccessProfile;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class MerchantMemberAccessSyncListener {
     private static final Logger log = Loggers.getLogger(MerchantMemberAccessSyncListener.class);
 
-    private final AccessManagementPort accessManagementPort;
-    private final ApplicationEventPublisher events;
-
-    @EventListener
-    public void onMemberCreated(MerchantMemberCreatedEvent event) {
-        if (event.isAdmin() && MemberStatus.ACTIVE.name().equals(event.status())) {
-            log.info(
-                    "Publishing durable admin access provision request for userId={} in merchantId={}",
-                    event.userId(),
-                    event.merchantId()
-            );
-            events.publishEvent(new MerchantAdminAccessProvisionRequestedIntegrationEvent(
-                    UUID.randomUUID().toString(),
-                    event.merchantId(),
-                    event.userId(),
-                    MerchantAdminAccessProfile.ADMIN_ROLE_CODE,
-                    MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
-                    event.aggregateVersion(),
-                    event.occurredAt()
-            ));
-        }
-    }
+    private final CommandBus commandBus;
+    private final IdGenerator idGenerator;
 
     @EventListener
     public void onMemberRoleChanged(MerchantMemberRoleChangedEvent event) {
+        String memberIdString = event.memberId();
+        Id memberId = idGenerator.convertIdFrom(memberIdString);
+        String userIdString = event.userId();
+        Id userId = idGenerator.convertIdFrom(userIdString);
+        String merchantIdString = event.merchantId();
+        Id merchantId = idGenerator.convertIdFrom(merchantIdString);
+        String previousRole = event.previousRole();
+        String newRole = event.newRole();
+        Set<String> authorities = event.authorities();
         log.info(
-                "Syncing role change for memberId={} userId={} in merchantId={} from {} to {}",
-                event.memberId(),
-                event.userId(),
-                event.merchantId(),
-                event.previousRole(),
-                event.newRole()
+                "Dispatching role access sync for memberId={} userId={} in merchantId={} from {} to {}",
+                memberIdString,
+                userIdString,
+                merchantIdString,
+                previousRole,
+                newRole
         );
-        accessManagementPort.replaceAccess(new AccessManagementPort.ReplaceAccessRequest(
-                event.userId(),
-                MerchantAdminAccessProfile.toRoleCode(event.previousRole()),
-                MerchantAdminAccessProfile.toRoleCode(event.newRole()),
-                MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
-                event.merchantId(),
-                event.authorities()
-        ));
+        SyncMerchantMemberRoleAccessCommand command = new SyncMerchantMemberRoleAccessCommand(
+                merchantId,
+                memberId,
+                userId,
+                previousRole,
+                newRole,
+                authorities
+        );
+        commandBus.dispatch(command);
     }
 
     @EventListener
     public void onMemberRemoved(MerchantMemberRemovedEvent event) {
+        String memberIdString = event.memberId();
+        Id memberId = idGenerator.convertIdFrom(memberIdString);
+        String userIdString = event.userId();
+        Id userId = idGenerator.convertIdFrom(userIdString);
+        String merchantIdString = event.merchantId();
+        Id merchantId = idGenerator.convertIdFrom(merchantIdString);
+        String role = event.role();
         log.info(
-                "Revoking access for removed memberId={} userId={} in merchantId={}",
-                event.memberId(),
-                event.userId(),
-                event.merchantId()
+                "Dispatching access revocation for memberId={} userId={} in merchantId={}",
+                memberIdString,
+                userIdString,
+                merchantIdString
         );
-        accessManagementPort.revokeAccess(new AccessManagementPort.RevokeAccessRequest(
-                event.userId(),
-                MerchantAdminAccessProfile.toRoleCode(event.role()),
-                MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY,
-                event.merchantId()
-        ));
+        RevokeMerchantMemberAccessCommand command = new RevokeMerchantMemberAccessCommand(
+                merchantId,
+                memberId,
+                userId,
+                role
+        );
+        commandBus.dispatch(command);
     }
 }

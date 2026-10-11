@@ -54,9 +54,12 @@ public class IdentityUseCaseConfig {
             RoleRepository roles,
             InvitationTokenService invitationTokens,
             IdGenerator ids,
+            UserRepository users,
+            SessionStore sessions,
             SecurityCatalogRepository catalogs
     ) {
-        return new AcceptAccessInvitationService(catalogs, invitations, assignments, roles, invitationTokens, ids);
+        return new AcceptAccessInvitationService(
+                catalogs, invitations, assignments, roles, invitationTokens, ids, users, sessions);
     }
 
     @Bean
@@ -73,9 +76,10 @@ public class IdentityUseCaseConfig {
             AccessAssignmentRepository assignments,
             SessionStore sessions,
             RoleDelegationPolicy delegationPolicy,
+            UserRepository users,
             SecurityCatalogRepository catalogs
     ) {
-        return new ChangeAccessStatusService(catalogs, assignments, sessions, delegationPolicy);
+        return new ChangeAccessStatusService(catalogs, assignments, sessions, delegationPolicy, users);
     }
 
     @Bean
@@ -121,9 +125,11 @@ public class IdentityUseCaseConfig {
             RoleDelegationPolicy delegationPolicy,
             IdGenerator ids,
             ScopeOwnershipPort scopeOwnershipPort,
-            SecurityCatalogRepository catalogs
+            SecurityCatalogRepository catalogs,
+            SessionStore sessions
     ) {
-        return new GrantAccessService(users, roles, assignments, delegationPolicy, ids, scopeOwnershipPort, catalogs);
+        return new GrantAccessService(
+                users, roles, assignments, delegationPolicy, ids, scopeOwnershipPort, catalogs, sessions);
     }
 
     @Bean
@@ -274,15 +280,5 @@ public class IdentityUseCaseConfig {
             RoleDeclarationQueryPort declarations
     ) {
         return new GetRoleDeclarationStatusService(declarations);
-    }
-
-    @Bean
-    public FulfillAdminAccessAssignmentUseCase fulfillAdminAccessAssignmentUseCase(
-            UserRepository users,
-            RoleRepository roles,
-            AccessAssignmentRepository assignments,
-            IdGenerator ids
-    ) {
-        return new FulfillAdminAccessAssignmentService(users, roles, assignments, ids);
     }
 }

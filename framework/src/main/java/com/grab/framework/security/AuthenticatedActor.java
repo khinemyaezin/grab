@@ -11,7 +11,8 @@ public record AuthenticatedActor(
         String email,
         Set<String> roles,
         Set<String> authorities,
-        AccessContext accessContext
+        AccessContext accessContext,
+        long authenticationVersion
 ) {
     public AuthenticatedActor(
             String platformUserId,
@@ -21,7 +22,19 @@ public record AuthenticatedActor(
             Set<String> roles,
             Set<String> authorities
     ) {
-        this(platformUserId, issuer, subject, email, roles, authorities, null);
+        this(platformUserId, issuer, subject, email, roles, authorities, null, 0);
+    }
+
+    public AuthenticatedActor(
+            String platformUserId,
+            String issuer,
+            String subject,
+            String email,
+            Set<String> roles,
+            Set<String> authorities,
+            AccessContext accessContext
+    ) {
+        this(platformUserId, issuer, subject, email, roles, authorities, accessContext, 0);
     }
 
     public AuthenticatedActor {
@@ -31,5 +44,8 @@ public record AuthenticatedActor(
         Objects.requireNonNull(email, "email is required");
         roles = Set.copyOf(Objects.requireNonNull(roles, "roles are required"));
         authorities = Set.copyOf(Objects.requireNonNull(authorities, "authorities are required"));
+        if (authenticationVersion < 0) {
+            throw new IllegalArgumentException("authenticationVersion must not be negative");
+        }
     }
 }

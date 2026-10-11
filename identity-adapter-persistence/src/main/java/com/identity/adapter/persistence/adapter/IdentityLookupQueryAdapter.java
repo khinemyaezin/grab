@@ -86,7 +86,8 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
                 user.getEmail(),
                 roleCodes,
                 authorities,
-                accessContext
+                accessContext,
+                user.getAuthenticationVersion()
         );
     }
 

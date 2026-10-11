@@ -22,6 +22,14 @@ public final class RoleAdministrationPolicy {
 
     public static final Set<String> RESERVED_SYSTEM_ROLES = Set.of("MERCHANT_ADMIN");
 
+    public static boolean requiresSessionRevocation(String roleCode) {
+        if (roleCode == null) {
+            return false;
+        }
+        String normalizedRoleCode = roleCode.trim();
+        return "MERCHANT_ADMIN".equalsIgnoreCase(normalizedRoleCode);
+    }
+
     public Role createCustomRole(
             Id roleId,
             String code,

@@ -90,7 +90,7 @@ public class MerchantMember extends AggregateRoot<Id> {
                 now,
                 now,
                 0,
-                AccessProvisioningStatus.PENDING,
+                AccessProvisioningStatus.ACTIVE,
                 null
         );
         member.addEvent(new MerchantMemberCreatedEvent(

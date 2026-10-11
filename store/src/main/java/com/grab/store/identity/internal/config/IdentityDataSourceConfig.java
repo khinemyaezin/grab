@@ -3,7 +3,6 @@ package com.grab.store.identity.internal.config;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.*;
@@ -45,6 +44,7 @@ public class IdentityDataSourceConfig {
     }
 
     @Bean("identityEntityManagerFactory")
+    @DependsOn("identityFlyway")
     LocalContainerEntityManagerFactoryBean emf(@Qualifier("identityDataSource") DataSource ds, Environment env) {
         var f = new LocalContainerEntityManagerFactoryBean();
         f.setDataSource(ds);
@@ -63,7 +63,6 @@ public class IdentityDataSourceConfig {
     }
 
     @Bean(initMethod = "migrate")
-    @ConditionalOnProperty(prefix = "identity.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Flyway identityFlyway(@Qualifier("identityDataSource") DataSource dataSource) {
         return Flyway.configure()
                 .dataSource(dataSource)

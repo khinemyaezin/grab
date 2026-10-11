@@ -2,6 +2,7 @@ package com.grab.store.merchant.internal.config;
 
 import com.grab.framework.id.IdGenerator;
 import com.merchant.application.port.inbound.*;
+import com.merchant.application.port.outbound.IdentityAccessManagementPort;
 import com.merchant.application.port.outbound.MerchantAccountQueryPort;
 import com.merchant.application.port.outbound.MerchantMemberQueryPort;
 import com.merchant.application.port.outbound.StorefrontQueryPort;
@@ -178,16 +179,24 @@ public class MerchantUseCaseConfig {
     @Bean
     public ProvisionMerchantAdminUseCase provisionMerchantAdminUseCase(
             MerchantMemberRepository members,
-            IdGenerator ids
+            IdGenerator ids,
+            IdentityAccessManagementPort identityAccessManagementPort
     ) {
-        return new ProvisionMerchantAdminService(members, ids);
+        return new ProvisionMerchantAdminService(members, ids, identityAccessManagementPort);
     }
 
     @Bean
-    public RecordMemberProvisioningResultUseCase recordMemberProvisioningResultUseCase(
-            MerchantMemberRepository members
+    public SyncMerchantMemberRoleAccessUseCase syncMerchantMemberRoleAccessUseCase(
+            IdentityAccessManagementPort identityAccessManagementPort
     ) {
-        return new RecordMemberProvisioningResultService(members);
+        return new SyncMerchantMemberRoleAccessService(identityAccessManagementPort);
+    }
+
+    @Bean
+    public RevokeMerchantMemberAccessUseCase revokeMerchantMemberAccessUseCase(
+            IdentityAccessManagementPort identityAccessManagementPort
+    ) {
+        return new RevokeMerchantMemberAccessService(identityAccessManagementPort);
     }
 }
 

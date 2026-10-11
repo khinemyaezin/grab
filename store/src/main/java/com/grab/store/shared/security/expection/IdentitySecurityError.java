@@ -16,7 +16,25 @@ public sealed interface IdentitySecurityError extends MessageSource permits
         IdentitySecurityError.InvalidToken,
         IdentitySecurityError.MalformedToken,
         IdentitySecurityError.MissingToken,
-        IdentitySecurityError.InvalidAccessContext {
+        IdentitySecurityError.InvalidAccessContext,
+        IdentitySecurityError.AuthenticationSessionExpired {
+
+    record AuthenticationSessionExpired() implements IdentitySecurityError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.UNAUTHORIZED;
+        }
+
+        @Override
+        public String code() {
+            return "idt.service.auth.session_expired";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
+        }
+    }
 
     record AccountNotActive() implements IdentitySecurityError {
         @Override

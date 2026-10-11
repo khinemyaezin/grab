@@ -8,7 +8,8 @@ public record ExternalPrincipal(
         String subject,
         String email,
         Set<String> entitlements,
-        AccessContext accessContext
+        AccessContext accessContext,
+        Long authenticationVersion
 ) {
     public ExternalPrincipal(
             String issuer,
@@ -16,7 +17,17 @@ public record ExternalPrincipal(
             String email,
             Set<String> entitlements
     ) {
-        this(issuer, subject, email, entitlements, null);
+        this(issuer, subject, email, entitlements, null, null);
+    }
+
+    public ExternalPrincipal(
+            String issuer,
+            String subject,
+            String email,
+            Set<String> entitlements,
+            AccessContext accessContext
+    ) {
+        this(issuer, subject, email, entitlements, accessContext, null);
     }
 
     public ExternalPrincipal {
@@ -24,5 +35,8 @@ public record ExternalPrincipal(
         Objects.requireNonNull(subject, "subject is required");
         email = Objects.requireNonNull(email, "email is required");
         entitlements = Set.copyOf(Objects.requireNonNull(entitlements, "entitlements are required"));
+        if (authenticationVersion != null && authenticationVersion < 0) {
+            throw new IllegalArgumentException("authenticationVersion must not be negative");
+        }
     }
 }
