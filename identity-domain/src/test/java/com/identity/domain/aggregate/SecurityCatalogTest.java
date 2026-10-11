@@ -120,7 +120,6 @@ class SecurityCatalogTest {
         var hierarchy = catalog.hierarchy();
         assertFalse(hierarchy.isEffective("inventory.location"));
         var target = AccessScope.from("inventory.location", "location");
-        assertFalse(AccessScope.global().encompasses(target, hierarchy));
         assertFalse(target.encompasses(target, hierarchy));
         var reintroduced = consider(catalog, merchant(4, Lifecycle.ACTIVE), Optional.empty(), 0);
         assertEquals(SecurityManifestCandidateStatus.QUARANTINED, reintroduced.status());

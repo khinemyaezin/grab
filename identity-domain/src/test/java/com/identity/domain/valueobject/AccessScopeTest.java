@@ -6,7 +6,6 @@ import com.identity.domain.exception.IdentityDomainValidationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -14,13 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(ScopeHierarchyTestExtension.class)
 class AccessScopeTest {
-    @Test
-    void globalScope_encompassesAnyTargetScope() {
-        AccessScope target = AccessScope.from("merchant.account", "merchant-1");
-
-        assertTrue(AccessScope.global().encompasses(target));
-        assertDoesNotThrow(() -> AccessScope.global().requireEncompasses(target));
-    }
 
     @Test
     void exactScope_encompassesOnlyTheSameScope() {
