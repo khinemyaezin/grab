@@ -30,6 +30,7 @@ import com.identity.application.port.outbound.SecurityManifestQueryPort;
 import com.identity.application.port.outbound.RoleDeclarationQueryPort;
 import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
+import com.identity.application.port.outbound.ScopeDisplayViewRepository;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.adapter.persistence.adapter.*;
@@ -194,9 +195,18 @@ public class IdentityPersistenceConfig {
     @Bean
     public AccessAssignmentQueryPort accessAssignmentQueryPort(
             AccessAssignmentJpaRepository assignments,
+            ScopeDisplayJpaRepository displays,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new AccessAssignmentQueryAdapter(assignments, executor);
+        return new AccessAssignmentQueryAdapter(assignments, displays, executor);
+    }
+
+    @Bean
+    public ScopeDisplayViewRepository scopeDisplayViewRepository(
+            ScopeDisplayJpaRepository displays,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new ScopeDisplayViewRepositoryAdapter(displays, executor);
     }
 
     @Bean

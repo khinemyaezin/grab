@@ -15,6 +15,8 @@ public record AccessAssignmentView(
         String assignedBy,
         Instant createdAt,
         Instant updatedAt,
-        Instant expiresAt
+        Instant expiresAt,
+        String title,
+        String subtitle
 ) {
 }

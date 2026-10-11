@@ -57,6 +57,11 @@ public class RepositoryTestConfig extends PostgreSqlTestContainer {
         }
 
         @Bean
+        ScopeDisplayJpaRepository getScopeDisplayJpaRepository(EntityManager entityManager) {
+            return new JpaRepositoryFactory(entityManager).getRepository(ScopeDisplayJpaRepository.class);
+        }
+
+        @Bean
         IdentityOutboxEventJpaRepo getIdentityOutboxEventJpaRepo(EntityManager entityManager) {
             return new JpaRepositoryFactory(entityManager).getRepository(IdentityOutboxEventJpaRepo.class);
         }
