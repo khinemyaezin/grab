@@ -15,26 +15,26 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "scope_displays", uniqueConstraints = @UniqueConstraint(
-        name = "uk_scope_display_key_id", columnNames = {"scope_key", "scope_id"}))
+        name = "uk_scope_display_id", columnNames = {"scope_id"}))
 public class ScopeDisplayEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "scope_key", nullable = false, length = 255)
+    @Column(name = "scope_key")
     private String scopeKey;
 
-    @Column(name = "scope_id", nullable = false, length = 255)
+    @Column(name = "scope_id", nullable = false, unique = true)
     private String scopeId;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String title;
 
-    @Column(length = 255)
+    @Column()
     private String subtitle;
 
-    @Column(name = "source_revision", nullable = false)
-    private long sourceRevision;
+    @Column(name = "source_revision")
+    private Long sourceRevision;
 
     @Version
     @Column(name = "row_version", nullable = false)

@@ -19,55 +19,34 @@ class ScopeDisplayViewRepositoryAdapterTest {
 
     @Test
     void update_missingProjection_insertsSnapshot() {
-        adapter.update("merchant.account", new CommonId("merchant-1"), "Shop", null, 4);
+        adapter.update(new CommonId("merchant-1"), "Shop");
 
-        assertThat(existing.getScopeKey()).isEqualTo("merchant.account");
         assertThat(existing.getScopeId()).isEqualTo("merchant-1");
         assertThat(existing.getTitle()).isEqualTo("Shop");
-        assertThat(existing.getSubtitle()).isNull();
-        assertThat(existing.getSourceRevision()).isEqualTo(4);
         assertThat(flushCount).isEqualTo(1);
     }
 
     @Test
-    void update_staleOrDuplicateRevisionLeavesProjectionUntouched() {
-        existing = entity(5, "Current", "Legal");
+    void update_existingProjection_updatesTitle() {
+        existing = entity("Current");
 
-        adapter.update("merchant.account", new CommonId("merchant-1"), "Older", null, 5);
-        adapter.update("merchant.account", new CommonId("merchant-1"), "Stale", null, 4);
-
-        assertThat(existing.getTitle()).isEqualTo("Current");
-        assertThat(existing.getSubtitle()).isEqualTo("Legal");
-        assertThat(existing.getSourceRevision()).isEqualTo(5);
-        assertThat(flushCount).isZero();
-    }
-
-    @Test
-    void update_newerRevisionReplacesDisplayFields() {
-        existing = entity(5, "Old", "Old Legal");
-
-        adapter.update("merchant.account", new CommonId("merchant-1"), "New", null, 6);
+        adapter.update(new CommonId("merchant-1"), "New");
 
         assertThat(existing.getTitle()).isEqualTo("New");
-        assertThat(existing.getSubtitle()).isNull();
-        assertThat(existing.getSourceRevision()).isEqualTo(6);
         assertThat(flushCount).isEqualTo(1);
     }
 
-    private ScopeDisplayEntity entity(long revision, String title, String subtitle) {
+    private ScopeDisplayEntity entity(String title) {
         ScopeDisplayEntity entity = new ScopeDisplayEntity();
-        entity.setScopeKey("merchant.account");
         entity.setScopeId("merchant-1");
         entity.setTitle(title);
-        entity.setSubtitle(subtitle);
-        entity.setSourceRevision(revision);
         return entity;
     }
 
     private ScopeDisplayJpaRepository proxy() {
         Object repository = Proxy.newProxyInstance(ScopeDisplayJpaRepository.class.getClassLoader(),
                 new Class<?>[]{ScopeDisplayJpaRepository.class}, (instance, method, arguments) -> {
-                    if (method.getName().equals("findByScopeKeyAndScopeId")) {
+                    if (method.getName().equals("findByScopeId")) {
                         return Optional.ofNullable(existing);
                     }
                     if (method.getName().equals("saveAndFlush")) {

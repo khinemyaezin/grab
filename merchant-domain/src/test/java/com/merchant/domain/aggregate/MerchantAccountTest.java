@@ -5,6 +5,7 @@ import com.merchant.domain.enums.MerchantStatus;
 import com.merchant.domain.enums.MerchantType;
 import com.merchant.domain.event.MerchantApprovedEvent;
 import com.merchant.domain.event.MerchantApplicationStartedEvent;
+import com.merchant.domain.event.MerchantProfileUpdatedEvent;
 import com.merchant.domain.exception.MerchantDomainException;
 import com.merchant.domain.valueobject.*;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,17 @@ class MerchantAccountTest {
         merchant.submit(user("applicant-1"), now);
 
         assertThat(merchant.getStatus()).isEqualTo(MerchantStatus.PENDING_REVIEW);
+    }
+
+    @Test
+    void updateProfile_emitsMerchantProfileUpdatedEvent() {
+        MerchantAccount merchant = draft(MerchantType.FIRST_PARTY_RETAILER);
+
+        merchant.updateProfile(new MerchantName(null, "Updated Shop"), null, contact(), null, now.plusSeconds(5));
+
+        MerchantProfileUpdatedEvent event = (MerchantProfileUpdatedEvent) merchant.getEvents().getLast();
+        assertThat(event.aggregateVersion()).isEqualTo(1L);
+        assertThat(event.merchantName()).isEqualTo("Updated Shop");
     }
 
     @Test

@@ -16,24 +16,30 @@ class ScopeDisplayJpaRepositoryTest extends RepositoryTestConfig {
 
     @Test
     void findDisplays_bulkLoadsSnapshotsWithNullableSubtitle() {
-        displays.saveAndFlush(display("merchant.account", "same-id", "Merchant", null, 3));
-        displays.saveAndFlush(display("merchant.storefront", "same-id", "Store", "store-slug", 8));
+        displays.saveAndFlush(display("merchant-1", "Merchant", null));
+        displays.saveAndFlush(display("storefront-1", "Store", "store-slug"));
 
         List<ScopeDisplayView> result = displays.findDisplays(
-                List.of("merchant.account", "merchant.storefront"), List.of("same-id"));
+                List.of("merchant-1", "storefront-1"));
 
         assertThat(result).containsExactlyInAnyOrder(
-                new ScopeDisplayView("merchant.account", "same-id", "Merchant", null),
-                new ScopeDisplayView("merchant.storefront", "same-id", "Store", "store-slug"));
+                new ScopeDisplayView("merchant-1", "Merchant", null),
+                new ScopeDisplayView("storefront-1", "Store", "store-slug"));
     }
 
-    private ScopeDisplayEntity display(String scopeKey, String scopeId, String title, String subtitle, long revision) {
+    @Test
+    void findByScopeId_returnsMatchingEntity() {
+        displays.saveAndFlush(display("merchant-2", "Another Merchant", null));
+
+        assertThat(displays.findByScopeId("merchant-2")).isPresent()
+                .hasValueSatisfying(entity -> assertThat(entity.getTitle()).isEqualTo("Another Merchant"));
+    }
+
+    private ScopeDisplayEntity display(String scopeId, String title, String subtitle) {
         ScopeDisplayEntity entity = new ScopeDisplayEntity();
-        entity.setScopeKey(scopeKey);
         entity.setScopeId(scopeId);
         entity.setTitle(title);
         entity.setSubtitle(subtitle);
-        entity.setSourceRevision(revision);
         return entity;
     }
 }

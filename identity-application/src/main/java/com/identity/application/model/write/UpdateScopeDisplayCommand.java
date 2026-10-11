@@ -4,10 +4,7 @@ import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.id.Id;
 
 public record UpdateScopeDisplayCommand(
-        String scopeKey,
         Id scopeId,
-        String title,
-        String subtitle,
-        long sourceRevision
+        String name
 ) implements Command<Void> {
 }

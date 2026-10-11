@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AccessAssignmentQueryAdapterTest {
     private List<AccessAssignmentEntity> assignmentRows = List.of();
     private List<ScopeDisplayView> displayRows = List.of();
-    private List<String> requestedKeys;
     private List<String> requestedIds;
     private int displayLookupCount;
 
@@ -28,8 +27,7 @@ class AccessAssignmentQueryAdapterTest {
     private final ScopeDisplayJpaRepository displays = proxy(ScopeDisplayJpaRepository.class, (methodName, arguments) -> {
         if (methodName.equals("findDisplays")) {
             displayLookupCount++;
-            requestedKeys = (List<String>) arguments[0];
-            requestedIds = (List<String>) arguments[1];
+            requestedIds = (List<String>) arguments[0];
             return displayRows;
         }
         return null;
@@ -41,11 +39,11 @@ class AccessAssignmentQueryAdapterTest {
     void findEffectiveByUser_enrichesExactScopePairsWithOneBulkLookup() {
         Instant now = Instant.parse("2026-01-01T00:00:00Z");
         assignmentRows = List.of(
-                assignment("account-id", "MERCHANT_ADMIN", "merchant.account", "same-id"),
-                assignment("store-id", "STORE_ADMIN", "merchant.storefront", "same-id"));
+                assignment("account-id", "MERCHANT_ADMIN", "merchant.account", "account-scope-id"),
+                assignment("store-id", "STORE_ADMIN", "merchant.storefront", "store-scope-id"));
         displayRows = List.of(
-                new ScopeDisplayView("merchant.account", "same-id", "Merchant", "Legal"),
-                new ScopeDisplayView("merchant.storefront", "same-id", "Store", "store-slug"));
+                new ScopeDisplayView("account-scope-id", "Merchant", "Legal"),
+                new ScopeDisplayView("store-scope-id", "Store", "store-slug"));
 
         List<AccessAssignmentView> result = adapter.findEffectiveByUser("user-1", now);
 
@@ -53,8 +51,7 @@ class AccessAssignmentQueryAdapterTest {
         assertThat(result).extracting("subtitle").containsExactly("Legal", "store-slug");
         assertThat(result).extracting("effectiveStatus").containsOnly(AccessAssignmentStatus.ACTIVE);
         assertThat(displayLookupCount).isEqualTo(1);
-        assertThat(requestedKeys).containsExactly("merchant.account", "merchant.storefront");
-        assertThat(requestedIds).containsExactly("same-id");
+        assertThat(requestedIds).containsExactly("account-scope-id", "store-scope-id");
     }
 
     @Test

@@ -102,6 +102,11 @@ public class MerchantAccount extends AggregateRoot<Id> {
         this.registeredAddress = registeredAddress;
         this.lifecycleReason = null;
         this.updatedAt = now;
+        addEvent(new MerchantProfileUpdatedEvent(
+            getId().getValue(), 
+            this.name.displayName(), 
+            version + 1, 
+            now));
     }
 
     public void submit(Id actorId, Instant now) {

@@ -13,26 +13,19 @@ public class ScopeDisplayViewRepositoryAdapter implements ScopeDisplayViewReposi
     private final PersistenceExecutor executor;
 
     @Override
-    public void update(String scopeKey, Id scopeId, String title, String subtitle, long sourceRevision) {
+    public void update(Id scopeId, String name) {
         String scopeIdValue = scopeId.getValue();
         executor.command("ScopeDisplay", () -> {
-            ScopeDisplayEntity entity = displays.findByScopeKeyAndScopeId(scopeKey, scopeIdValue).orElse(null);
+            ScopeDisplayEntity entity = displays.findByScopeId(scopeIdValue).orElse(null);
             if (entity == null) {
                 ScopeDisplayEntity newEntity = new ScopeDisplayEntity();
-                newEntity.setScopeKey(scopeKey);
                 newEntity.setScopeId(scopeIdValue);
-                newEntity.setTitle(title);
-                newEntity.setSubtitle(subtitle);
-                newEntity.setSourceRevision(sourceRevision);
+                newEntity.setTitle(name);
                 displays.saveAndFlush(newEntity);
                 return;
             }
-            if (sourceRevision > entity.getSourceRevision()) {
-                entity.setTitle(title);
-                entity.setSubtitle(subtitle);
-                entity.setSourceRevision(sourceRevision);
-                displays.saveAndFlush(entity);
-            }
+            entity.setTitle(name);
+            displays.saveAndFlush(entity);
         });
     }
 }

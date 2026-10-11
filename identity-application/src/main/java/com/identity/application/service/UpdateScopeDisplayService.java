@@ -12,11 +12,8 @@ public class UpdateScopeDisplayService implements UpdateScopeDisplayUseCase {
 
     @Override
     public void execute(UpdateScopeDisplayCommand command) {
-        String scopeKey = command.scopeKey();
         Id scopeId = command.scopeId();
-        String title = command.title();
-        String subtitle = command.subtitle();
-        long sourceRevision = command.sourceRevision();
-        displays.update(scopeKey, scopeId, title, subtitle, sourceRevision);
+        String name = command.name();
+        displays.update(scopeId, name);
     }
 }

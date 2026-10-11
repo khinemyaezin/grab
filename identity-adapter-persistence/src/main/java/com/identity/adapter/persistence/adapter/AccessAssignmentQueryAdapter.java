@@ -37,16 +37,15 @@ public class AccessAssignmentQueryAdapter implements AccessAssignmentQueryPort {
         if (entities.isEmpty()) {
             return List.of();
         }
-        List<String> scopeKeys = entities.stream().map(AccessAssignmentEntity::getScopeKey).distinct().toList();
         List<String> scopeIds = entities.stream().map(AccessAssignmentEntity::getScopeId).distinct().toList();
-        Map<ScopeKey, ScopeDisplayView> scopeDisplays = displays.findDisplays(scopeKeys, scopeIds).stream()
+        Map<String, ScopeDisplayView> scopeDisplays = displays.findDisplays(scopeIds).stream()
                 .collect(Collectors.toMap(
-                        display -> new ScopeKey(display.scopeKey(), display.scopeId()),
+                        ScopeDisplayView::scopeId,
                         Function.identity(),
                         (first, ignored) -> first
                 ));
         return entities.stream().map(entity -> {
-            ScopeDisplayView display = scopeDisplays.get(new ScopeKey(entity.getScopeKey(), entity.getScopeId()));
+            ScopeDisplayView display = scopeDisplays.get(entity.getScopeId());
             return toView(entity, at, display);
         }).toList();
     }
@@ -74,8 +73,5 @@ public class AccessAssignmentQueryAdapter implements AccessAssignmentQueryPort {
                 display == null ? null : display.title(),
                 display == null ? null : display.subtitle()
         );
-    }
-
-    private record ScopeKey(String scopeKey, String scopeId) {
     }
 }

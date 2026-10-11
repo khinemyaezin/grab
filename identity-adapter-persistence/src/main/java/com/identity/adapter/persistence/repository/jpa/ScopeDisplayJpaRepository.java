@@ -10,16 +10,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ScopeDisplayJpaRepository extends JpaRepository<ScopeDisplayEntity, Long> {
-    Optional<ScopeDisplayEntity> findByScopeKeyAndScopeId(String scopeKey, String scopeId);
+    Optional<ScopeDisplayEntity> findByScopeId(String scopeId);
 
     @Query("""
             select new com.identity.application.model.read.ScopeDisplayView(
-                display.scopeKey, display.scopeId, display.title, display.subtitle)
+                display.scopeId, display.title, display.subtitle)
             from ScopeDisplayEntity display
-            where display.scopeKey in :scopeKeys and display.scopeId in :scopeIds
+            where display.scopeId in :scopeIds
             """)
-    List<ScopeDisplayView> findDisplays(
-            @Param("scopeKeys") List<String> scopeKeys,
-            @Param("scopeIds") List<String> scopeIds
-    );
+    List<ScopeDisplayView> findDisplays(@Param("scopeIds") List<String> scopeIds);
 }
