@@ -22,10 +22,6 @@ public record AccessScope(ScopeKey key, String scopeId) {
         }
     }
 
-    public static AccessScope global() {
-        return new AccessScope(ScopeKey.global(), GLOBAL_SCOPE_ID);
-    }
-
     public static AccessScope from(String scopeKey, String scopeId) {
         return new AccessScope(new ScopeKey(scopeKey), scopeId);
     }
