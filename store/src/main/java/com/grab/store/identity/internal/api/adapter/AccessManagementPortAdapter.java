@@ -11,6 +11,8 @@ import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.application.port.inbound.RevokeSessionsByScopeUseCase;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
+
 @Component
 public class AccessManagementPortAdapter implements AccessManagementPort {
 
@@ -32,14 +34,20 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
     @RequiresSecurityCatalog
     @IdentityTransactional
     public void replaceAccess(ReplaceAccessRequest request) {
-        Id userId = idGenerator.convertIdFrom(request.userId());
-        var command = new ReplaceAccessCommand(
+        String userIdString = request.userId();
+        Id userId = idGenerator.convertIdFrom(userIdString);
+        String previousRoleCode = request.previousRoleCode();
+        String roleCode = request.roleCode();
+        String scopeKey = request.scopeKey();
+        String scopeId = request.scopeId();
+        Set<String> authorityCodes = request.authorityCodes();
+        ReplaceAccessCommand command = new ReplaceAccessCommand(
                 userId,
-                request.previousRoleCode(),
-                request.roleCode(),
-                request.scopeKey(),
-                request.scopeId(),
-                request.authorityCodes()
+                previousRoleCode,
+                roleCode,
+                scopeKey,
+                scopeId,
+                authorityCodes
         );
         replaceAccessUseCase.execute(command);
     }
@@ -47,13 +55,17 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
     @Override
     @IdentityTransactional
     public void revokeAccess(RevokeAccessRequest request) {
-        Id userId = idGenerator.convertIdFrom(request.userId());
-        var command = new ReplaceAccessCommand(
+        String userIdString = request.userId();
+        Id userId = idGenerator.convertIdFrom(userIdString);
+        String roleCode = request.roleCode();
+        String scopeKey = request.scopeKey();
+        String scopeId = request.scopeId();
+        ReplaceAccessCommand command = new ReplaceAccessCommand(
                 userId,
-                request.roleCode(),
+                roleCode,
                 null,
-                request.scopeKey(),
-                request.scopeId()
+                scopeKey,
+                scopeId
         );
         replaceAccessUseCase.execute(command);
     }
@@ -61,7 +73,7 @@ public class AccessManagementPortAdapter implements AccessManagementPort {
     @Override
     @IdentityTransactional
     public void revokeSessionsByScope(String scopeKey, String scopeId) {
-        var command = new RevokeSessionsByScopeCommand(
+        RevokeSessionsByScopeCommand command = new RevokeSessionsByScopeCommand(
                 scopeKey,
                 scopeId
         );

@@ -44,12 +44,27 @@ public class LocalJwtAccessTokenAuthenticator implements AccessTokenAuthenticato
                     claims.getSubject(),
                     claims.get("email", String.class),
                     roles,
-                    accessContext(claims));
+                    accessContext(claims),
+                    authenticationVersion(claims));
         } catch (ExpiredJwtException ex) {
             throw new IdentityAuthenticationException(new IdentitySecurityError.TokenExpired(), "Token has expired", ex);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new IdentityAuthenticationException(new IdentitySecurityError.InvalidToken(), "Invalid access token", ex);
         }
+    }
+
+    private Long authenticationVersion(Claims claims) {
+        Object rawVersion = claims.get("authentication_version");
+        if (rawVersion == null) {
+            return 0L;
+        }
+        if (rawVersion instanceof Number version && version.longValue() >= 0) {
+            return version.longValue();
+        }
+        throw new IdentityAuthenticationException(
+                new IdentitySecurityError.InvalidToken(),
+                "Authentication version claim is invalid"
+        );
     }
 
     private AccessContext accessContext(Claims claims) {

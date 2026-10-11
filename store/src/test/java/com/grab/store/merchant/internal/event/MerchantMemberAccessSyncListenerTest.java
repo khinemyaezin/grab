@@ -1,102 +1,77 @@
 package com.grab.store.merchant.internal.event;
 
-import com.grab.store.identity.port.AccessManagementPort;
-import com.grab.store.shared.events.merchant.MerchantAdminAccessProvisionRequestedIntegrationEvent;
-import com.merchant.domain.event.MerchantMemberCreatedEvent;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.id.IdGenerator;
+import com.grab.framework.id.impl.CommonId;
+import com.merchant.application.model.write.RevokeMerchantMemberAccessCommand;
+import com.merchant.application.model.write.SyncMerchantMemberRoleAccessCommand;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
 import com.merchant.domain.event.MerchantMemberRoleChangedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class MerchantMemberAccessSyncListenerTest {
-    private AccessManagementPort accessManagementPort;
-    private ApplicationEventPublisher events;
+    private CommandBus commandBus;
+    private IdGenerator idGenerator;
     private MerchantMemberAccessSyncListener listener;
 
     private final Instant now = Instant.parse("2026-09-23T10:00:00Z");
 
     @BeforeEach
     void setUp() {
-        accessManagementPort = mock(AccessManagementPort.class);
-        events = mock(ApplicationEventPublisher.class);
-        listener = new MerchantMemberAccessSyncListener(accessManagementPort, events);
+        commandBus = mock(CommandBus.class);
+        idGenerator = mock(IdGenerator.class);
+        when(idGenerator.convertIdFrom(anyString())).thenAnswer(invocation -> new CommonId(invocation.getArgument(0)));
+        listener = new MerchantMemberAccessSyncListener(commandBus, idGenerator);
     }
 
     @Test
-    void onMemberCreated_whenActiveAdmin_shouldPublishAdminAccessProvisionRequestedEvent() {
-        MerchantMemberCreatedEvent event = new MerchantMemberCreatedEvent(
-                "mem-1", "mer-1", "usr-1", "MERCHANT_ADMIN", Set.of(), true, "ACTIVE", null, 1, now
-        );
-
-        listener.onMemberCreated(event);
-
-        ArgumentCaptor<MerchantAdminAccessProvisionRequestedIntegrationEvent> captor =
-                ArgumentCaptor.forClass(MerchantAdminAccessProvisionRequestedIntegrationEvent.class);
-        verify(events).publishEvent(captor.capture());
-
-        MerchantAdminAccessProvisionRequestedIntegrationEvent published = captor.getValue();
-        assertThat(published.merchantId()).isEqualTo("mer-1");
-        assertThat(published.applicantUserId()).isEqualTo("usr-1");
-        assertThat(published.roleCode()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.ADMIN_ROLE_CODE);
-        assertThat(published.scopeKey()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY);
-        verify(accessManagementPort, never()).replaceAccess(any());
-    }
-
-    @Test
-    void onMemberCreated_whenInvitedMember_shouldNotPublishOrReplaceAccess() {
-        MerchantMemberCreatedEvent event = new MerchantMemberCreatedEvent(
-                "mem-2", "mer-1", "usr-2", "OPERATOR", Set.of(), false, "INVITED", "usr-1", 1, now
-        );
-
-        listener.onMemberCreated(event);
-
-        verify(events, never()).publishEvent(any());
-        verify(accessManagementPort, never()).replaceAccess(any());
-    }
-
-    @Test
-    void onMemberRoleChanged_shouldTriggerReplaceAccess() {
+    void onMemberRoleChanged_whenInvoked_dispatchesSyncMerchantMemberRoleAccessCommand() {
         MerchantMemberRoleChangedEvent event = new MerchantMemberRoleChangedEvent(
                 "mem-1", "mer-1", "usr-1", "OPERATOR", "ANALYST", Set.of("INVENTORY_READ"), 2, now
         );
 
         listener.onMemberRoleChanged(event);
 
-        ArgumentCaptor<AccessManagementPort.ReplaceAccessRequest> captor =
-                ArgumentCaptor.forClass(AccessManagementPort.ReplaceAccessRequest.class);
-        verify(accessManagementPort).replaceAccess(captor.capture());
+        ArgumentCaptor<SyncMerchantMemberRoleAccessCommand> captor =
+                ArgumentCaptor.forClass(SyncMerchantMemberRoleAccessCommand.class);
+        verify(commandBus).dispatch(captor.capture());
 
-        AccessManagementPort.ReplaceAccessRequest request = captor.getValue();
-        assertThat(request.userId()).isEqualTo("usr-1");
-        assertThat(request.previousRoleCode()).isEqualTo("OPERATOR");
-        assertThat(request.roleCode()).isEqualTo("ANALYST");
-        assertThat(request.authorityCodes()).containsExactly("INVENTORY_READ");
+        SyncMerchantMemberRoleAccessCommand command = captor.getValue();
+        assertThat(command.merchantId()).isEqualTo(new CommonId("mer-1"));
+        assertThat(command.memberId()).isEqualTo(new CommonId("mem-1"));
+        assertThat(command.userId()).isEqualTo(new CommonId("usr-1"));
+        assertThat(command.previousRole()).isEqualTo("OPERATOR");
+        assertThat(command.newRole()).isEqualTo("ANALYST");
+        assertThat(command.authorities()).containsExactly("INVENTORY_READ");
     }
 
     @Test
-    void onMemberRemoved_shouldTriggerRevokeAccess() {
+    void onMemberRemoved_whenInvoked_dispatchesRevokeMerchantMemberAccessCommand() {
         MerchantMemberRemovedEvent event = new MerchantMemberRemovedEvent(
                 "mem-1", "mer-1", "usr-1", "OPERATOR", 3, now
         );
 
         listener.onMemberRemoved(event);
 
-        ArgumentCaptor<AccessManagementPort.RevokeAccessRequest> captor =
-                ArgumentCaptor.forClass(AccessManagementPort.RevokeAccessRequest.class);
-        verify(accessManagementPort).revokeAccess(captor.capture());
+        ArgumentCaptor<RevokeMerchantMemberAccessCommand> captor =
+                ArgumentCaptor.forClass(RevokeMerchantMemberAccessCommand.class);
+        verify(commandBus).dispatch(captor.capture());
 
-        AccessManagementPort.RevokeAccessRequest request = captor.getValue();
-        assertThat(request.userId()).isEqualTo("usr-1");
-        assertThat(request.roleCode()).isEqualTo("OPERATOR");
-        assertThat(request.scopeKey()).isEqualTo(com.merchant.application.security.MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY);
-        assertThat(request.scopeId()).isEqualTo("mer-1");
+        RevokeMerchantMemberAccessCommand command = captor.getValue();
+        assertThat(command.merchantId()).isEqualTo(new CommonId("mer-1"));
+        assertThat(command.memberId()).isEqualTo(new CommonId("mem-1"));
+        assertThat(command.userId()).isEqualTo(new CommonId("usr-1"));
+        assertThat(command.role()).isEqualTo("OPERATOR");
     }
 }

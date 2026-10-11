@@ -55,7 +55,11 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
 
     @Override
     public AccessAssignmentResult execute(ReplaceAccessCommand command) {
-        users.findById(command.userId()).orElseThrow(() -> new IdentityServiceException(
+        var userLookup = users.findByIdForUpdate(command.userId());
+        if (userLookup.isEmpty()) {
+            userLookup = users.findById(command.userId());
+        }
+        var user = userLookup.orElseThrow(() -> new IdentityServiceException(
                 new IdentityServiceError.UserNotFound(command.userId().getValue()),
                 "User not found"
         ));
@@ -129,6 +133,14 @@ public class ReplaceAccessService implements ReplaceAccessUseCase {
                 null,
                 null
         ));
+
+        if (RoleAdministrationPolicy.requiresSessionRevocation(replacementRole)) {
+            user.invalidateAuthenticationSessions();
+            users.save(user);
+            var userId = user.getId();
+            String userIdValue = userId.getValue();
+            sessions.revokeAll(userIdValue);
+        }
 
         return AccessAssignmentResult.from(replacement, now);
     }

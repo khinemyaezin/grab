@@ -29,6 +29,10 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
     @Override
     @Transactional(transactionManager = "identityTransactionManager")
     public TokenPair issue(AuthenticatedActor actor) {
+        long currentAuthenticationVersion = sessions.lockAuthenticationVersion(actor.platformUserId());
+        if (actor.authenticationVersion() != currentAuthenticationVersion) {
+            throw sessionExpired();
+        }
         return issue(actor, UUID.randomUUID().toString());
     }
 
@@ -49,7 +53,8 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
                 .expiration(Date.from(expiry))
                 .id(UUID.randomUUID().toString())
                 .claim("email", actor.email())
-                .claim("roles", actor.roles());
+                .claim("roles", actor.roles())
+                .claim("authentication_version", actor.authenticationVersion());
 
         AccessContext context = actor.accessContext();
         if (Objects.nonNull(context)) {
@@ -82,6 +87,9 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
     @Override
     public TokenPair refresh(String refreshToken) {
         SessionDetails old = sessions.findByTokenHash(hash(refreshToken))
+                .orElseThrow(this::invalidRefresh);
+        sessions.lockAuthenticationVersion(old.userId());
+        old = sessions.findByTokenHash(hash(refreshToken))
                 .orElseThrow(this::invalidRefresh);
         Instant now = Instant.now();
         if (old.revokedAt() != null) {
@@ -133,5 +141,12 @@ public class LocalTokenLifeCycle implements TokenLifeCycle {
 
     private IdentityAuthenticationException invalidRefresh() {
         return new IdentityAuthenticationException(new IdentitySecurityError.InvalidRefreshToken(), "Invalid refresh token");
+    }
+
+    private IdentityAuthenticationException sessionExpired() {
+        return new IdentityAuthenticationException(
+                new IdentitySecurityError.AuthenticationSessionExpired(),
+                "Your access changed. Please log in again"
+        );
     }
 }

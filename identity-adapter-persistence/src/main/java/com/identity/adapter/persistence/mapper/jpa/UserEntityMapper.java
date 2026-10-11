@@ -13,6 +13,7 @@ public abstract class UserEntityMapper {
     @Mapping(ignore = true, target = "id")
     @Mapping(source = "id", target = "uuid")
     @Mapping(source = "email.value", target = "email")
+    @Mapping(source = "authenticationVersion", target = "authenticationVersion")
     @Mapping(target = "passwordHash", expression = "java(source.getPasswordHash().map(com.identity.domain.valueobject.HashedPassword::hash).orElse(null))")
     public abstract void toEntity(User source, @MappingTarget UserEntity destination);
 }

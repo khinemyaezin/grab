@@ -15,7 +15,9 @@ import com.identity.domain.port.outbound.RoleRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.policy.RoleDelegationPolicy;
+import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import com.identity.domain.valueobject.AccessScope;
+import com.identity.domain.port.outbound.SessionStore;
 
 import java.time.Instant;
 
@@ -27,10 +29,11 @@ public class GrantAccessService implements GrantAccessUseCase {
     private final RoleDelegationPolicy delegationPolicy;
     private final IdGenerator ids;
     private final ScopeOwnershipPort scopeOwnershipPort;
+    private final SessionStore sessions;
 
     public GrantAccessService(UserRepository users, RoleRepository roles, AccessAssignmentRepository assignments,
             RoleDelegationPolicy delegationPolicy, IdGenerator ids, ScopeOwnershipPort scopeOwnershipPort,
-            SecurityCatalogRepository catalogs) {
+            SecurityCatalogRepository catalogs, SessionStore sessions) {
         this.users = users;
         this.roles = roles;
         this.assignments = assignments;
@@ -38,10 +41,22 @@ public class GrantAccessService implements GrantAccessUseCase {
         this.ids = ids;
         this.scopeOwnershipPort = scopeOwnershipPort;
         this.catalogs = catalogs;
+        this.sessions = sessions;
     }
 
+    public GrantAccessService(UserRepository users, RoleRepository roles, AccessAssignmentRepository assignments,
+            RoleDelegationPolicy delegationPolicy, IdGenerator ids, ScopeOwnershipPort scopeOwnershipPort,
+            SecurityCatalogRepository catalogs) {
+        this(users, roles, assignments, delegationPolicy, ids, scopeOwnershipPort, catalogs, null);
+    }
+
+    @Override
     public AccessAssignmentResult execute(GrantAccessCommand command) {
-        users.findById(command.userId()).orElseThrow(() -> new IdentityServiceException(
+        var userLookup = users.findByIdForUpdate(command.userId());
+        if (userLookup.isEmpty()) {
+            userLookup = users.findById(command.userId());
+        }
+        var user = userLookup.orElseThrow(() -> new IdentityServiceException(
                 new IdentityServiceError.UserNotFound(command.userId().getValue()),
                 "User not found"
         ));
@@ -92,6 +107,16 @@ public class GrantAccessService implements GrantAccessUseCase {
                 command.assignedBy(),
                 command.expiresAt()
         ));
+        String roleCode = command.roleCode();
+        if (RoleAdministrationPolicy.requiresSessionRevocation(roleCode)) {
+            user.invalidateAuthenticationSessions();
+            users.save(user);
+            if (sessions != null) {
+                var userId = user.getId();
+                String userIdValue = userId.getValue();
+                sessions.revokeAll(userIdValue);
+            }
+        }
         return AccessAssignmentResult.from(saved);
     }
 

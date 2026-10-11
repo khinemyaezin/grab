@@ -29,6 +29,9 @@ public class UserEntity {
     @Column(nullable = false)
     private UserStatus status;
 
+    @Column(name = "authentication_version", nullable = false)
+    private long authenticationVersion;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

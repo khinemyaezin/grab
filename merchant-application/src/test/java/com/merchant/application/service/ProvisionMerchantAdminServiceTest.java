@@ -4,6 +4,9 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
 import com.merchant.application.model.write.MerchantMemberResult;
 import com.merchant.application.model.write.ProvisionMerchantAdminCommand;
+import com.merchant.application.port.outbound.IdentityAccessManagementPort;
+import com.merchant.application.port.outbound.IdentityAccessManagementPort.ReplaceAccessRequest;
+import com.merchant.application.security.MerchantAdminAccessProfile;
 import com.merchant.domain.aggregate.MerchantMember;
 import com.merchant.domain.enums.MemberStatus;
 import com.merchant.domain.port.outbound.MerchantMemberRepository;
@@ -18,7 +21,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ProvisionMerchantAdminServiceTest {
     private final Instant now = Instant.parse("2026-09-23T10:00:00Z");
@@ -27,20 +32,22 @@ class ProvisionMerchantAdminServiceTest {
 
     private MerchantMemberRepository members;
     private IdGenerator ids;
+    private IdentityAccessManagementPort identityAccessManagementPort;
     private ProvisionMerchantAdminService service;
 
     @BeforeEach
     void setUp() {
         members = Mockito.mock(MerchantMemberRepository.class);
         ids = Mockito.mock(IdGenerator.class);
-        service = new ProvisionMerchantAdminService(members, ids);
+        identityAccessManagementPort = Mockito.mock(IdentityAccessManagementPort.class);
+        service = new ProvisionMerchantAdminService(members, ids, identityAccessManagementPort);
 
         when(ids.generateId()).thenReturn(new CommonId("mem-1"));
         when(members.save(any(MerchantMember.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
-    void execute_whenMemberDoesNotExist_shouldCreateInitialAdmin() {
+    void execute_whenMemberDoesNotExist_createsInitialAdminAndReplacesAccess() {
         when(members.existsByMerchantIdAndUserId(merchantId, applicantId)).thenReturn(false);
 
         ProvisionMerchantAdminCommand command = new ProvisionMerchantAdminCommand(merchantId, applicantId, now);
@@ -50,16 +57,25 @@ class ProvisionMerchantAdminServiceTest {
         assertThat(result.role()).isEqualTo("MERCHANT_ADMIN");
         assertThat(result.status()).isEqualTo("ACTIVE");
 
-        ArgumentCaptor<MerchantMember> captor = ArgumentCaptor.forClass(MerchantMember.class);
-        verify(members).save(captor.capture());
-        MerchantMember saved = captor.getValue();
+        ArgumentCaptor<ReplaceAccessRequest> accessCaptor = ArgumentCaptor.forClass(ReplaceAccessRequest.class);
+        verify(identityAccessManagementPort).replaceAccess(accessCaptor.capture());
+        ReplaceAccessRequest capturedAccess = accessCaptor.getValue();
+        assertThat(capturedAccess.userId()).isEqualTo("usr-applicant");
+        assertThat(capturedAccess.previousRoleCode()).isNull();
+        assertThat(capturedAccess.roleCode()).isEqualTo(MerchantAdminAccessProfile.ADMIN_ROLE_CODE);
+        assertThat(capturedAccess.scopeKey()).isEqualTo(MerchantAdminAccessProfile.MERCHANT_SCOPE_KEY);
+        assertThat(capturedAccess.scopeId()).isEqualTo("mer-1");
+
+        ArgumentCaptor<MerchantMember> memberCaptor = ArgumentCaptor.forClass(MerchantMember.class);
+        verify(members).save(memberCaptor.capture());
+        MerchantMember saved = memberCaptor.getValue();
         assertThat(saved.getRole()).isEqualTo(MerchantRole.merchantAdmin());
         assertThat(saved.isAdmin()).isTrue();
         assertThat(saved.getStatus()).isEqualTo(MemberStatus.ACTIVE);
     }
 
     @Test
-    void execute_whenMemberAlreadyExists_shouldReturnExistingWithoutSaving() {
+    void execute_whenMemberAlreadyExists_returnsExistingWithoutSavingOrReplacingAccess() {
         MerchantMember existing = MerchantMember.createAdmin(
                 new CommonId("mem-existing"), merchantId, applicantId, now
         );
@@ -72,5 +88,6 @@ class ProvisionMerchantAdminServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.memberId()).isEqualTo("mem-existing");
         verify(members, never()).save(any());
+        verify(identityAccessManagementPort, never()).replaceAccess(any());
     }
 }

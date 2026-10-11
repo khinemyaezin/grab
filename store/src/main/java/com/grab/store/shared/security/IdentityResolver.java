@@ -15,19 +15,28 @@ public class IdentityResolver implements PlatformIdentityResolver {
 
     @Override
     public AuthenticatedActor resolve(ExternalPrincipal principal) {
-        if (properties.issuer().equals(principal.issuer()))
-            return resolverClient.resolveByPlatformUser(
+        if (properties.issuer().equals(principal.issuer())) {
+            AuthenticatedActor actor = resolverClient.resolveByPlatformUser(
                     principal.issuer(),
                     principal.subject(),
                     principal.accessContext()
             ).orElseThrow(this::notLinked);
-        else
+            if (principal.authenticationVersion() != null
+                    && principal.authenticationVersion() != actor.authenticationVersion()) {
+                throw new IdentityAuthenticationException(
+                        new IdentitySecurityError.AuthenticationSessionExpired(),
+                        "Your access changed. Please log in again"
+                );
+            }
+            return actor;
+        } else {
             return resolverClient.resolveByExternalIdentity(
                     principal.issuer(),
                     principal.subject(),
                     principal.entitlements(),
                     principal.accessContext()
             ).orElseThrow(this::notLinked);
+        }
     }
 
     @Override

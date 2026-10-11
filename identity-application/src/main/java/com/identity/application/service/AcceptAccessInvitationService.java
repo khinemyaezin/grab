@@ -11,14 +11,19 @@ import com.identity.domain.service.InvitationTokenService;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.AccessInvitation;
 import com.identity.domain.aggregate.Role;
+import com.identity.domain.aggregate.User;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.RoleRepository;
+import com.identity.domain.port.outbound.SessionStore;
+import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.policy.impl.RoleAdministrationPolicy;
 import com.identity.domain.valueobject.Email;
 import lombok.RequiredArgsConstructor;
 import com.identity.domain.port.outbound.SecurityCatalogRepository;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 public class AcceptAccessInvitationService implements AcceptAccessInvitationUseCase {
@@ -28,6 +33,8 @@ public class AcceptAccessInvitationService implements AcceptAccessInvitationUseC
     private final RoleRepository roles;
     private final InvitationTokenService invitationTokens;
     private final IdGenerator ids;
+    private final UserRepository users;
+    private final SessionStore sessions;
 
     public AccessAssignmentResult execute(AcceptAccessInvitationCommand command) {
         AccessInvitation invitation = invitations.findByTokenHash(invitationTokens.hash(command.acceptanceToken()))
@@ -35,6 +42,14 @@ public class AcceptAccessInvitationService implements AcceptAccessInvitationUseC
                         new IdentityServiceError.AccessInvitationNotFound(),
                         "Access invitation not found"
                 ));
+        Optional<User> userLookup = users.findByIdForUpdate(command.userId());
+        if (userLookup.isEmpty()) {
+            userLookup = users.findById(command.userId());
+        }
+        var user = userLookup.orElseThrow(() -> new IdentityServiceException(
+                new IdentityServiceError.UserNotFound(command.userId().getValue()),
+                "User not found"
+        ));
         var catalog = catalogs.loadForUpdate();
         catalog.requireEffectiveScope(invitation.getScope().key().value());
         Instant now = Instant.now();
@@ -67,6 +82,14 @@ public class AcceptAccessInvitationService implements AcceptAccessInvitationUseC
                 invitation.getInvitedBy(),
                 null
         ));
+        String roleCode = invitation.getRoleCode();
+        if (RoleAdministrationPolicy.requiresSessionRevocation(roleCode)) {
+            user.invalidateAuthenticationSessions();
+            users.save(user);
+            var userId = user.getId();
+            String userIdValue = userId.getValue();
+            sessions.revokeAll(userIdValue);
+        }
         return AccessAssignmentResult.from(saved);
     }
 }

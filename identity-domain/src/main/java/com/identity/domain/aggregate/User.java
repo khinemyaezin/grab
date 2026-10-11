@@ -19,6 +19,7 @@ import java.util.Optional;
 public class User extends AggregateRoot<Id> {
     private final Email email;
     private final HashedPassword passwordHash;
+    private long authenticationVersion;
     private UserStatus status;
     private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -61,6 +62,18 @@ public class User extends AggregateRoot<Id> {
 
     public boolean isActive() {
         return status == UserStatus.ACTIVE;
+    }
+
+    public void invalidateAuthenticationSessions() {
+        authenticationVersion = Math.incrementExact(authenticationVersion);
+        updatedAt = LocalDateTime.now();
+    }
+
+    public void restoreAuthenticationVersion(long authenticationVersion) {
+        if (authenticationVersion < 0) {
+            throw new IllegalArgumentException("authenticationVersion must not be negative");
+        }
+        this.authenticationVersion = authenticationVersion;
     }
 
     private void changeStatus(UserStatus requiredCurrentStatus, UserStatus requestedStatus) {

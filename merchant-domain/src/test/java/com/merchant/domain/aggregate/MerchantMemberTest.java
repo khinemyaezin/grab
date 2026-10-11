@@ -1,6 +1,7 @@
 package com.merchant.domain.aggregate;
 
 import com.grab.framework.id.impl.CommonId;
+import com.merchant.domain.enums.AccessProvisioningStatus;
 import com.merchant.domain.enums.MemberStatus;
 import com.merchant.domain.event.MerchantMemberCreatedEvent;
 import com.merchant.domain.event.MerchantMemberRemovedEvent;
@@ -42,8 +43,8 @@ class MerchantMemberTest {
         assertThat(event.authorities()).contains("*");
         assertThat(event.status()).isEqualTo("ACTIVE");
         assertThat(event.invitedBy()).isNull();
-        assertThat(member.getAccessProvisioningStatus()).isEqualTo(com.merchant.domain.enums.AccessProvisioningStatus.PENDING);
-        assertThat(member.isAccessPending()).isTrue();
+        assertThat(member.getAccessProvisioningStatus()).isEqualTo(AccessProvisioningStatus.ACTIVE);
+        assertThat(member.isAccessActive()).isTrue();
     }
 
     @Test
@@ -61,7 +62,7 @@ class MerchantMemberTest {
         MerchantMember member = MerchantMember.createAdmin(memberId, merchantId, userId, now);
         member.recordProvisioningFailure("CATALOG_DEPENDENCY_MISSING", 0, now.plusSeconds(30));
 
-        assertThat(member.getAccessProvisioningStatus()).isEqualTo(com.merchant.domain.enums.AccessProvisioningStatus.FAILED);
+        assertThat(member.getAccessProvisioningStatus()).isEqualTo(AccessProvisioningStatus.FAILED);
         assertThat(member.isAccessFailed()).isTrue();
         assertThat(member.getAccessProvisioningError()).isEqualTo("CATALOG_DEPENDENCY_MISSING");
     }
@@ -73,7 +74,7 @@ class MerchantMemberTest {
         member.recordProvisioningSuccess(0, now.plusSeconds(30));
 
         assertThat(member.getStatus()).isEqualTo(MemberStatus.REMOVED);
-        assertThat(member.getAccessProvisioningStatus()).isEqualTo(com.merchant.domain.enums.AccessProvisioningStatus.PENDING);
+        assertThat(member.getAccessProvisioningStatus()).isEqualTo(AccessProvisioningStatus.ACTIVE);
     }
 
 
