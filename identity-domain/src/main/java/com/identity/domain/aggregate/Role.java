@@ -79,6 +79,12 @@ public class Role extends AggregateRoot<Id> {
         return role;
     }
 
+    public static Role createSystemPending(Id id, String code, String name, String description) {
+        Role role = new Role(id, code, name, description, RoleKind.SYSTEM, false, false, Set.of());
+        role.addEvent(new RoleCreatedEvent(id, role.code, role.name, description, false, Set.of(), LocalDateTime.now()));
+        return role;
+    }
+
     public static Role rehydrate(
             Id id,
             String code,
@@ -134,17 +140,44 @@ public class Role extends AggregateRoot<Id> {
         }
     }
 
-    public void reconcileSystemAuthorities(Set<Authority> reconciledAuthorities, boolean assignable) {
+    public void reconcileSystemAuthorities(
+            Set<Authority> reconciledAuthorities
+    ) {
         if (this.kind != RoleKind.SYSTEM) {
             throw new IllegalStateException("reconcileSystemAuthorities only applies to SYSTEM roles");
         }
+        Set<Authority> nextAuthorities = normalizeAuthorities(reconciledAuthorities);
+        Set<String> currentCodes = this.authorities.stream().map(Authority::getCode).collect(Collectors.toSet());
+        Set<String> nextCodes = nextAuthorities.stream().map(Authority::getCode).collect(Collectors.toSet());
+        this.authorities.stream()
+                .filter(authority -> !nextCodes.contains(authority.getCode()))
+                .forEach(authority -> addEvent(new RoleAuthorityChangedEvent(
+                        getId(), authority.getCode(), false, LocalDateTime.now())));
+        nextAuthorities.stream()
+                .filter(authority -> !currentCodes.contains(authority.getCode()))
+                .forEach(authority -> addEvent(new RoleAuthorityChangedEvent(
+                        getId(), authority.getCode(), true, LocalDateTime.now())));
         this.authorities.clear();
-        if (reconciledAuthorities != null) {
-            this.authorities.addAll(normalizeAuthorities(reconciledAuthorities));
+        this.authorities.addAll(nextAuthorities);
+        if (!this.active) {
+            addEvent(new RoleStatusChangedEvent(getId(), true, LocalDateTime.now()));
         }
-        this.assignable = assignable;
+        this.assignable = true;
         this.active = true;
-        addEvent(new RoleAuthorityChangedEvent(getId(), code, true, LocalDateTime.now()));
+    }
+
+    public void suspendUntilDeclared(boolean hasAppliedDeclaration) {
+        if (this.kind != RoleKind.SYSTEM) {
+            throw new IllegalStateException("Only SYSTEM roles can be suspended by a declaration");
+        }
+        if (!hasAppliedDeclaration) {
+            boolean wasActive = this.active;
+            this.active = false;
+            this.assignable = false;
+            if (wasActive) {
+                addEvent(new RoleStatusChangedEvent(getId(), false, LocalDateTime.now()));
+            }
+        }
     }
 
     public Set<Authority> getAuthorities() {

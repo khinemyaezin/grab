@@ -10,10 +10,20 @@ public record RegisterRoleDeclarationCommand(
         RoleDeclaration declaration,
         String eventId,
         String suppliedContentDigest,
-        Instant publishedAt
+        Instant publishedAt,
+        boolean revalidation
 ) implements Command<RegisterRoleDeclarationResult> {
     public RegisterRoleDeclarationCommand(RoleDeclaration declaration, String eventId) {
-        this(declaration, eventId, declaration.contentDigest(), null);
+        this(declaration, eventId, declaration.contentDigest(), null, false);
+    }
+
+    public RegisterRoleDeclarationCommand(
+            RoleDeclaration declaration,
+            String eventId,
+            String suppliedContentDigest,
+            Instant publishedAt
+    ) {
+        this(declaration, eventId, suppliedContentDigest, publishedAt, false);
     }
 
     public RegisterRoleDeclarationCommand {

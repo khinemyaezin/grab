@@ -17,17 +17,17 @@ import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AccessInvitationRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
-import com.identity.domain.port.outbound.AuthorityManifestVersionRepository;
 import com.identity.domain.port.outbound.RoleDelegationRuleRepository;
-import com.identity.domain.port.outbound.ScopeManifestRepository;
 import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
+import com.identity.domain.port.outbound.RoleDeclarationRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.RoleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.framework.id.IdGenerator;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.SecurityManifestQueryPort;
+import com.identity.application.port.outbound.RoleDeclarationQueryPort;
 import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
@@ -50,6 +50,7 @@ import com.identity.adapter.persistence.mapper.jpa.UserMapper;
 import com.identity.adapter.persistence.repository.jpa.*;
 import com.identity.adapter.persistence.security.BcryptPasswordHasher;
 import com.identity.domain.service.PasswordHasher;
+import jakarta.persistence.EntityManager;
 import com.identity.adapter.persistence.outbox.IdentityOutboxEvent;
 import com.identity.adapter.persistence.outbox.IdentityOutboxEventProcessor;
 import com.identity.adapter.persistence.outbox.IdentityOutboxEventProducer;
@@ -154,6 +155,27 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
+    public RoleDeclarationRepository roleDeclarationRepository(
+            RoleDeclarationRevisionJpaRepository revisions,
+            RoleDeclarationInboxJpaRepository inbox,
+            RoleDeclarationConflictJpaRepository conflicts,
+            RoleDeclarationStateJpaRepository states,
+            ObjectMapper objectMapper
+    ) {
+        return new RoleDeclarationRepositoryAdapter(revisions, inbox, conflicts, states, objectMapper);
+    }
+
+    @Bean
+    public RoleDeclarationQueryPort roleDeclarationQueryPort(
+            RoleDeclarationRevisionJpaRepository revisions,
+            RoleDeclarationStateJpaRepository states,
+            RoleDeclarationConflictJpaRepository conflicts,
+            ObjectMapper objectMapper
+    ) {
+        return new RoleDeclarationQueryAdapter(revisions, states, conflicts, objectMapper);
+    }
+
+    @Bean
     public UserQueryPort userQueryPort(
             UserJpaRepository userJpaRepository,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
@@ -187,21 +209,6 @@ public class IdentityPersistenceConfig {
     }
 
     @Bean
-    public ScopeManifestRepository scopeManifestRepository(
-            ScopeManifestJpaRepository repository,
-            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
-    ) {
-        return new ScopeManifestRepositoryAdapter(repository, executor);
-    }
-
-    @Bean
-    public AuthorityManifestVersionRepository authorityManifestVersionRepository(
-            AuthorityManifestVersionJpaRepository repository
-    ) {
-        return new AuthorityManifestVersionRepositoryAdapter(repository);
-    }
-
-    @Bean
     public SecurityManifestInboxRepository securityManifestInboxRepository(
             SecurityManifestInboxJpaRepository repository,
             SecurityManifestConflictJpaRepository conflicts,
@@ -231,8 +238,8 @@ public class IdentityPersistenceConfig {
                                                                SecurityCatalogStateJpaRepository states,
                                                                SecurityManifestConflictJpaRepository conflicts,
                                                                JpaContext context) {
-        var entityManager = context.getEntityManagerByManagedType(SecurityManifestRevisionEntity.class);
-        var waiting = new SecurityManifestWaitingSpecification(entityManager);
+        EntityManager entityManager = context.getEntityManagerByManagedType(SecurityManifestRevisionEntity.class);
+        SecurityManifestWaitingSpecification waiting = new SecurityManifestWaitingSpecification(entityManager);
         return new SecurityManifestQueryAdapter(waiting, revisions, modules, states, conflicts);
     }
 
@@ -245,7 +252,7 @@ public class IdentityPersistenceConfig {
             IdGenerator ids,
             @Qualifier("identityDomainEventProducer") DomainEventProducer outbox,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
-        var assembler = new SecurityCatalogJpaAssembler(ids);
+        SecurityCatalogJpaAssembler assembler = new SecurityCatalogJpaAssembler(ids);
         return new SecurityCatalogRepositoryAdapter(states, modules, scopes, authorities, assembler, outbox, executor);
     }
 

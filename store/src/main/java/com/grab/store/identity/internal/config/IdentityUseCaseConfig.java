@@ -7,6 +7,7 @@ import com.identity.application.port.outbound.AccessAssignmentQueryPort;
 import com.identity.application.port.outbound.SecurityManifestQueryPort;
 import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
+import com.identity.application.port.outbound.RoleDeclarationQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.ScopeOwnershipPort;
 import com.identity.application.port.outbound.UserQueryPort;
@@ -254,9 +255,25 @@ public class IdentityUseCaseConfig {
     public RegisterRoleDeclarationUseCase registerRoleDeclarationUseCase(
             SecurityCatalogRepository catalogs,
             RoleRepository roles,
-            AuthorityRepository authorities
+            AuthorityRepository authorities,
+            RoleDeclarationRepository declarations,
+            IdGenerator ids
     ) {
-        return new RegisterRoleDeclarationService(catalogs, roles, authorities);
+        return new RegisterRoleDeclarationService(catalogs, roles, authorities, declarations, ids);
+    }
+
+    @Bean
+    public ListWaitingRoleDeclarationsUseCase listWaitingRoleDeclarationsUseCase(
+            RoleDeclarationQueryPort declarations
+    ) {
+        return new ListWaitingRoleDeclarationsService(declarations);
+    }
+
+    @Bean
+    public GetRoleDeclarationStatusUseCase getRoleDeclarationStatusUseCase(
+            RoleDeclarationQueryPort declarations
+    ) {
+        return new GetRoleDeclarationStatusService(declarations);
     }
 
     @Bean

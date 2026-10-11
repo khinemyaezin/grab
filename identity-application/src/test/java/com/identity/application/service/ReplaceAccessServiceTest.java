@@ -10,6 +10,7 @@ import com.identity.application.model.write.ReplaceAccessCommand;
 import com.identity.domain.aggregate.AccessAssignment;
 import com.identity.domain.aggregate.Role;
 import com.identity.domain.aggregate.User;
+import com.identity.domain.enums.RoleKind;
 import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.enums.UserStatus;
 import com.identity.domain.aggregate.Authority;
@@ -21,6 +22,7 @@ import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.aggregate.SecurityCatalog;
 import com.identity.domain.security.CatalogScope;
+import com.identity.domain.exception.IdentityDomainValidationException;
 import com.grab.framework.security.ScopeDeclaration.Lifecycle;
 import com.identity.domain.valueobject.AccessScope;
 import com.identity.domain.valueobject.Email;
@@ -82,8 +84,9 @@ class ReplaceAccessServiceTest {
 
     @BeforeEach
     void setUp() {
-        var scope = new CatalogScope(SCOPE_KEY, "merchant", null, Lifecycle.ACTIVE, true, 2);
-        var catalog = SecurityCatalog.rehydrate(new CommonId("catalog"), 1, List.of(scope), List.of(), List.of());
+        CatalogScope scope = new CatalogScope(SCOPE_KEY, "merchant", null, Lifecycle.ACTIVE, true, 2);
+        SecurityCatalog catalog =
+                SecurityCatalog.rehydrate(new CommonId("catalog"), 1, List.of(scope), List.of(), List.of());
         lenient().when(catalogs.loadForUpdate()).thenReturn(catalog);
         lenient().when(roleRepository.findByCode(any())).thenReturn(Optional.of(mock(Role.class)));
         service = new ReplaceAccessService(
@@ -187,6 +190,25 @@ class ReplaceAccessServiceTest {
         verify(idGenerator, never()).generateId();
         verify(assignmentRepository, never()).save(any());
         verify(sessionStore, never()).revokeByAssignment(any());
+    }
+
+    @Test
+    void shouldRejectAssignment_whenSystemRoleDeclarationIsNotReady() {
+        ReplaceAccessCommand command = new ReplaceAccessCommand(
+                userId, "MERCHANT_ADMIN", SCOPE_KEY, SCOPE_ID);
+        Role pendingSystemRole = Role.rehydrate(
+                new CommonId("role-admin"), "MERCHANT_ADMIN", "Admin", null, RoleKind.SYSTEM,
+                false, false, Set.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(activeUser));
+        when(assignmentRepository.findCurrentByUserAndScope(eq(userId), any(AccessScope.class)))
+                .thenReturn(List.of());
+        when(roleRepository.findByCode("MERCHANT_ADMIN")).thenReturn(Optional.of(pendingSystemRole));
+
+        assertThatThrownBy(() -> service.execute(command))
+                .isInstanceOf(IdentityDomainValidationException.class)
+                .hasMessageContaining("Role is not available for new assignments");
+
+        verify(assignmentRepository, never()).save(any());
     }
 
     @Test
