@@ -1,0 +1,29 @@
+services:
+  jenkins:
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
+    container_name: grab-jenkins
+    user: root
+    ports:
+      - "8085:8080"
+      - "50000:50000"
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.m2:/root/.m2:rw
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    external: true
+    name: grab-network
+
+volumes:
+  jenkins-data:
+    name: grab-jenkins-data
