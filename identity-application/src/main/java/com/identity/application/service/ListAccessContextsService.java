@@ -59,7 +59,9 @@ public class ListAccessContextsService implements ListAccessContextsUseCase {
                 Set.copyOf(roleCodes),
                 anchor.scopeKey(),
                 anchor.scopeId(),
-                expiresAt
+                expiresAt,
+                anchor.title(),
+                anchor.subtitle()
         );
     }
 

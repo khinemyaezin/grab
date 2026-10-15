@@ -10,6 +10,7 @@ import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.RoleDeclarationQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
 import com.identity.application.port.outbound.ScopeOwnershipPort;
+import com.identity.application.port.outbound.ScopeDisplayViewRepository;
 import com.identity.application.port.outbound.UserQueryPort;
 import com.identity.application.service.*;
 import com.identity.domain.policy.RoleDelegationPolicy;
@@ -143,6 +144,11 @@ public class IdentityUseCaseConfig {
             ScopeCatalogQueryPort scopes
     ) {
         return new ListAccessContextsService(scopes, assignments);
+    }
+
+    @Bean
+    public UpdateScopeDisplayUseCase updateScopeDisplayUseCase(ScopeDisplayViewRepository displays) {
+        return new UpdateScopeDisplayService(displays);
     }
 
     @Bean
