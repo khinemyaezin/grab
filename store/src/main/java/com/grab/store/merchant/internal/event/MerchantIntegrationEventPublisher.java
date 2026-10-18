@@ -5,7 +5,7 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.store.merchant.events.MerchantClosedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantReactivatedIntegrationEvent;
 import com.grab.store.merchant.events.MerchantSuspendedIntegrationEvent;
-import com.grab.store.merchant.events.StorefrontCreatedIntegrationEvent;
+import com.grab.store.shared.events.merchant.StorefrontCreatedIntegrationEvent;
 import com.grab.store.merchant.events.StorefrontStatusChangedIntegrationEvent;
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.event.MerchantClosedEvent;
@@ -19,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+
+import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
@@ -70,15 +72,15 @@ public class MerchantIntegrationEventPublisher {
 
     @EventListener
     public void handleStorefrontCreated(StorefrontCreatedEvent event) {
-        events.publishEvent(new StorefrontCreatedIntegrationEvent(
-                event.storefrontId(),
-                event.merchantId(),
-                event.name(),
-                event.slug(),
-                event.status(),
-                event.occurredAt(),
-                EVENT_VERSION
-        ));
+        String storefrontId = event.storefrontId();
+        String merchantId = event.merchantId();
+        String name = event.name();
+        String slug = event.slug();
+        String status = event.status();
+        Instant occurredAt = event.occurredAt();
+        StorefrontCreatedIntegrationEvent integrationEvent = new StorefrontCreatedIntegrationEvent(
+                storefrontId, merchantId, name, slug, status, occurredAt, EVENT_VERSION);
+        events.publishEvent(integrationEvent);
     }
 
     @EventListener
