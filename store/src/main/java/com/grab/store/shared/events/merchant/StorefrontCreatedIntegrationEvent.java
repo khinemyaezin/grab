@@ -1,4 +1,4 @@
-package com.grab.store.merchant.events;
+package com.grab.store.shared.events.merchant;
 
 import com.grab.framework.domain.Event;
 
