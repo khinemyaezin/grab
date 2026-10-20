@@ -22,14 +22,14 @@ Keep the document cohesive and answer four core questions:
 
 # Workflow: [Workflow Display Name]
 
-> **Purpose:** [The business outcome delivered when this cross-domain workflow completes.]  
-> **Starts When:** [API call, scheduled trigger, or upstream business event.]  
-> **Successful Result:** [State of the system and created/updated aggregates after all steps complete.]  
-> **Participating Domains:** [Catalog] · [Pricing] · [Inventory]  
+> **Purpose:** [The business outcome delivered when this cross-domain workflow completes.]
+> **Starts When:** [API call, scheduled trigger, or upstream business event.]
+> **Successful Result:** [State of the system and created/updated aggregates after all steps complete.]
+> **Participating Domains:** [Catalog] · [Pricing] · [Inventory]
 > **Related Domain Specs:**
-> - [[Catalog Domain Spec]](../catalog/architecture/product-domain-spec.md)
-> - [[Pricing Domain Spec]](../pricing/architecture/pricing-domain-spec.md)
-> - [[Inventory Domain Spec]](../inventory/architecture/inventory-domain-spec.md)
+> - [[Catalog Domain Spec]](../domain/catalog/architecture/product-domain-spec.md)
+> - [[Pricing Domain Spec]](../domain/pricing/architecture/pricing-domain-spec.md)
+> - [[Inventory Domain Spec]](../domain/inventory/architecture/inventory-item-domain-spec.md)
 
 ---
 
@@ -45,7 +45,7 @@ Keep the document cohesive and answer four core questions:
 
 ### Special Flows & Edge Conditions
 
-- **Parallel fan-out:** [Describe if a step fans out multiple parallel requests, e.g. one per variant/line item.]
+- **Parallel fan-out:** [Describe the actual fan-out and its completion condition, e.g. all requested lines acknowledged.]
 - **Conditional / skipped steps:** [Describe when a step is intentionally bypassed, e.g. when no inventory lines are tracked.]
 
 ### Happy Path Flow
@@ -94,38 +94,45 @@ sequenceDiagram
 
 | Event Name | Emitted By | Failure Cause | Resulting Workflow Action |
 | :--- | :--- | :--- | :--- |
-| `[StepFailedEvent]` | [Any participant] | Validation error, invariant breach, or timeout | Halts forward execution and initiates compensation. |
+| `[StepFailedEvent]` | [Actual failure emitter] | [Observed failure cause] | [Describe current behavior: compensate if actions are defined, otherwise fail, or another implemented outcome.] |
 
 ---
 
 ## 3. Compensation & Failure Recovery
 
-> **Starts When:** A step reports failure via `[StepFailedEvent]` after one or more prior steps have already succeeded.
+> **Starts When:** [Describe the actual trigger for failure handling, including failures before the first completed step.]
 
-### Compensation Order
+### Compensation Requests and Completion
 
-| Order | Completed Action | Undo Action | Request Event | Acknowledgement Event |
+Collect the compensations actually defined by the workflow, in reverse step-definition order. State whether requests are published together or dispatched sequentially, and whether acknowledgements gate later requests. Do not imply full rollback when only selected writes are compensated.
+
+| Reverse step order | Completed action | Compensation action | Request event | Completion signal |
 | :--- | :--- | :--- | :--- | :--- |
-| **1** | Step 2: [Action B] | [Revert, delete, or cancel Action B] | `[RequestUndoStepTwoEvent]` | `[StepTwoUndoneEvent]` |
-| **2** | Step 1: [Action A] | [Revert, delete, or cancel Action A] | `[RequestUndoStepOneEvent]` | `[StepOneUndoneEvent]` |
+| [Actual reverse position] | [Action that completed] | [Undo action or "not compensated" with reason] | [Actual request event or N/A] | [Actual signal or N/A] |
 
 ### Explicitly Non-Compensated Actions
 
-- **[Action / Resource]:** [Explicit business policy why this is intentionally left unchanged, e.g. read model projections or audit log records.]
+- **[Action / Resource]:** [State whether it remains applied, and the actual business or technical reason; avoid inventing a policy.]
 
 ### Failure Flow
 
 ```mermaid
 sequenceDiagram
-    participant DomainB as [Domain B]
     participant Workflow as Workflow Coordinator
-    participant DomainA as [Domain A]
+    participant Domain as [Compensating Domain]
 
-    DomainB-->>Workflow: StepFailedEvent
-    Note over Workflow: Halt forward execution; initiate compensation
-    Workflow->>DomainA: RequestUndoStepOneEvent
-    DomainA-->>Workflow: StepOneUndoneEvent
-    Note over Workflow: Mark workflow COMPENSATED
+    alt Participant emits a typed failure signal
+        Domain-->>Workflow: [Actual failure signal]
+    else Expected completion times out
+        Workflow->>Workflow: Sweeper starts failure recovery
+    end
+    Note over Workflow: Stop forward execution and collect defined compensation requests
+    opt [Compensation requests are defined and required]
+        Workflow->>Domain: [Actual compensation request or batched requests]
+        Domain-->>Workflow: [Actual compensation completion signal]
+    end
+    Note over Workflow: COMPENSATED only when all defined compensations complete
+    Note over Workflow: FAILED when no compensation exists or compensation times out
 ```
 
 ---
@@ -137,5 +144,5 @@ sequenceDiagram
 | **Initial Start** | Non-existent | Non-existent | Non-existent |
 | **After Step 1** | `CREATED / DRAFT` | Non-existent | Non-existent |
 | **After Step 2** | `CREATED / DRAFT` | `ACTIVE / ASSIGNED` | Non-existent |
-| **Workflow Completed** | `ACTIVE` | `ACTIVE / ASSIGNED` | `INITIALIZED` |
-| **If Compensated** | `DELETED / CANCELLED`| `DELETED / VOIDED` | Non-existent |
+| **Workflow Completed** | [Actual aggregate state] | [Actual aggregate state] | [Actual aggregate state] |
+| **After compensation** | [Actual state, including retained partial changes] | [Actual state] | [Actual state] |

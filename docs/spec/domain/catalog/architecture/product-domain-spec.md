@@ -1,9 +1,10 @@
 # Domain Specification: Catalog Product
 
-> **Bounded Context:** Catalog  
-> **Primary Purpose:** Manages the lifecycle, variants, descriptions, and storefront visibility of sellable products.  
-> **Module Root:** `catalog-domain` / `catalog-infrastructure` / `store/catalog`  
-> **Related Workflows:** [Create Sellable Product](../../workflows/create-sellable-product-workflow-spec.md), [Update Sellable Product](../../workflows/update-sellable-product-workflow-spec.md), [Update Product Variant](../../workflows/update-product-variant-workflow-spec.md)
+> **Bounded Context:** Catalog
+> **Primary Purpose:** Manages the lifecycle, variants, descriptions, and media of sellable products.
+> **Module Root:** `catalog-domain` / `catalog-application` / `catalog-adapter-persistence` / `store/catalog`
+> **Related Domain Spec:** [Catalog Product Publication](product-publication-domain-spec.md)
+> **Related Workflows:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md), [Update Product Variant](../../../workflows/update-product-variant-workflow.md)
 
 ---
 
@@ -12,7 +13,7 @@
 ### Ownership
 
 - **This aggregate OWNS:** Product core details, variants, descriptions, media, and product lifecycle status (draft, active, archived).
-- **This aggregate DOES NOT OWN:** Variant types/options definition (Variant Reference Model), pricing details, inventory levels, category structures.
+- **This aggregate DOES NOT OWN:** Variant types/options definition (Variant Reference Model), pricing details, inventory levels, category structures, or channel publication records. Catalog stores each variant/channel publication as a separate `ProductPublication` aggregate.
 
 ### Context Map
 
@@ -37,7 +38,7 @@ flowchart TD
         subgraph CategoryAgg ["Category Aggregate"]
             Category["Category"]
         end
-        
+
         Product -.->|"References by categoryId"| Category
     end
 
@@ -59,7 +60,7 @@ flowchart TD
 | **Variation** | `ProductVariation` (Value Object) | A key-value pair specifying a single dimension of a variant (e.g., Color = Red). |
 | **Standalone Product** | Business Concept | A product with no explicit variants provided by the merchant; the system auto-materializes a single default variant behind the scenes. |
 | **Slug** | `slug` (Property) | An SEO-friendly, human-readable URL identifier generated from the product name. |
-| **Active Listing** | `ProductStatus.ACTIVE` | A product that is visible on the storefront and available for search, discovery, and purchase. |
+| **Active Listing** | `ProductStatus.ACTIVE` | A product whose catalog status permits storefront publication when it also has an active variant. |
 
 ---
 
@@ -82,42 +83,45 @@ classDiagram
         +boolean featured
         +addVariant(variant)
         +changeStatus(newStatus)
-        +submitForReview()
-        +approve()
+        +publish()
+        +suspend(reason)
+        +restore()
+        +delete()
     }
 
     class ProductVariant {
         +Id id
         +String sku
         +ProductVariantStatus status
+        +boolean manageInventory
         +markAsDeleted()
         +activate()
     }
 
     class ProductVariation {
         +Id typeId
-        +String typeName
         +Id optionId
-        +String optionName
     }
-    
+
     class Description {
         +Id id
         +String name
         +String title
         +String description
     }
-    
+
     class ProductMedia {
         +Id id
-        +String type
-        +String path
+        +String storageKey
+        +String url
+        +String contentType
+        +int rank
     }
 
-    Product *-- "1..*" ProductVariant : owns
+    Product *-- "0..*" ProductVariant : owns
     Product *-- "0..*" Description : owns
     Product *-- "0..*" ProductMedia : owns
-    ProductVariant *-- "1..*" ProductVariation : contains
+    ProductVariant *-- "0..*" ProductVariation : contains
 ```
 
 ### Property & Attribute Rationale
@@ -132,7 +136,21 @@ classDiagram
 | `slug` | `String` | Root | SEO-friendly URL identifier, auto-generated from name. |
 | `featured` | `boolean` | Root | Marks products for curated storefront promotion (e.g., homepage highlights). |
 | `listingCondition`| Enum | Root | Captures product condition (`NEW`, `USED`, `REFURBISHED`) for buyer expectations. |
-| `sku` | `String` | Variant | Unique stock-keeping unit required for inventory tracking and fulfillment per variant. |
+| `id` | `Id` | Variant | Stable identity for the sellable variant. |
+| `sku` | `String` | Variant | Merchant SKU used to track inventory and fulfillment. It is unique within a merchant. |
+| `manageInventory` | `boolean` | Variant | Indicates whether stock is tracked for this variant. |
+| `status` | `ProductVariantStatus` | Variant | Controls whether the variant is active or soft-deleted. |
+| `typeId` | `Id` | Variation | Identifies the variation dimension. |
+| `optionId` | `Id` | Variation | Identifies the selected option for that dimension. |
+| `id` | `Id` | Description | Stable identity for a product description entry. |
+| `name` | `String` | Description | Identifies the kind of descriptive content. |
+| `title` | `String` | Description | Provides a title for the description entry. |
+| `description` | `String` | Description | Stores the descriptive content shown with a listing. |
+| `id` | `Id` | ProductMedia | Stable identity for product media. |
+| `storageKey` | `String` | ProductMedia | Identifies the stored media asset. |
+| `url` | `String` | ProductMedia | Supplies a display URL when available. |
+| `contentType` | `String` | ProductMedia | Describes the media format. |
+| `rank` | `int` | ProductMedia | Controls media ordering. |
 
 ---
 
@@ -140,10 +158,13 @@ classDiagram
 
 | Rule ID | Invariant Rule | Violation Outcome | Enforced By |
 | :--- | :--- | :--- | :--- |
-| **INV-01** | A product must always possess at least one variant. | Automatically materializes a default synthetic variant upon creation if omitted. | `SaveProductCommandHandler` / Aggregate |
-| **INV-02** | Variant SKU must be unique across all active variants in the catalog. | Operation rejected with duplicate SKU error. | `UniqueSkuSpec` |
-| **INV-03** | Each variant within a product must have a unique combination of variations. | Operation rejected with duplicate combination error. | `UniqueProductVariantSpec` |
-| **INV-04** | A product cannot transition to `ACTIVE` directly from `DRAFT` without review (if moderation is enabled). | State transition rejected. | `Product.changeStatus()` |
+| **INV-01** | A product can be activated only with at least one active variant, at least one description, and at least one media item. | Activation rejected. | `Product.ensurePublishable()` |
+| **INV-02** | A product's variants cannot share the same SKU or variation set. | Variant add/update is rejected. | `Product.addVariant()` / `Product.updateVariant()` |
+| **INV-03** | A merchant cannot reuse a SKU already assigned to another product in that merchant's catalog. | Product creation/update is rejected. | `CreateProductSetService` / SKU persistence constraint |
+| **INV-04** | The last active variant cannot be removed or soft-deleted. | Removal is rejected. | `Product.ensureLastActiveVariantIsNotRemoved()` |
+| **INV-05** | A product status change must follow the supported status transition table. | Transition is rejected. | `Product.changeStatus()` |
+
+A Product can be constructed without variants, but product creation flows materialize the requested/default variant set. The aggregate does not model a moderation-review requirement.
 
 ---
 
@@ -153,25 +174,30 @@ classDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> DRAFT : Create Product
-    DRAFT --> IN_REVIEW : submitForReview()
-    IN_REVIEW --> ACTIVE : approve()
-    IN_REVIEW --> DRAFT : reject(reason)
-    ACTIVE --> ARCHIVED : changeStatus(ARCHIVED)
-    ACTIVE --> SUSPENDED : suspend(reason)
-    ARCHIVED --> DRAFT : restore()
-    SUSPENDED --> ACTIVE : restore()
+    [*] --> DRAFT : create
+    DRAFT --> ACTIVE : publish (listing complete)
+    DRAFT --> ARCHIVED : delete
+    DRAFT --> SUSPENDED : suspend
+    ACTIVE --> ARCHIVED : delete or no active variants
+    ACTIVE --> SUSPENDED : suspend
+    ARCHIVED --> DRAFT : restore
+    ARCHIVED --> SUSPENDED : suspend
+    SUSPENDED --> DRAFT : restore
+    SUSPENDED --> ARCHIVED : delete
 ```
 
 ### Transition Matrix
 
 | Current State | Trigger / Event | Next State | Guard Condition / Prerequisite |
 | :--- | :--- | :--- | :--- |
-| `DRAFT` | `submitForReview()` | `IN_REVIEW` | All required properties and at least one variant must exist. |
-| `IN_REVIEW` | `approve()` | `ACTIVE` | Moderation approval. |
-| `ACTIVE` | `changeStatus(ARCHIVED)` | `ARCHIVED` | None (merchant action). |
-| `ACTIVE` | `suspend(reason)` | `SUSPENDED` | Admin/Moderator action only. |
-| `SUSPENDED` | `restore()` | `ACTIVE` | Suspension reason resolved. |
+| `DRAFT` | `publish()` | `ACTIVE` | At least one active variant, a description, and media are present. |
+| `DRAFT`, `ACTIVE`, or `SUSPENDED` | `delete()` | `ARCHIVED` | Product emits a deletion event; already archived products may emit it again. |
+| `ACTIVE` | Last active variant removed | `ARCHIVED` | Automatic `archiveIfUnsellable()` check. |
+| `DRAFT`, `ACTIVE`, or `ARCHIVED` | `suspend(reason)` | `SUSPENDED` | Transition must be allowed by `ProductStatus`. |
+| `ARCHIVED` or `SUSPENDED` | `restore()` | `DRAFT` | Transition must be allowed by `ProductStatus`. |
+| Any status | `changeStatus(target)` | Supported target | Allowed transitions are `DRAFT -> ACTIVE/ARCHIVED/SUSPENDED`, `ACTIVE -> ARCHIVED/SUSPENDED`, `ARCHIVED -> DRAFT/SUSPENDED`, and `SUSPENDED -> DRAFT/ARCHIVED`. |
+
+There is no `IN_REVIEW` state. `restore()` returns an archived or suspended product to `DRAFT`, not directly to `ACTIVE`.
 
 ---
 
@@ -181,6 +207,31 @@ stateDiagram-v2
 
 | Event Name | Trigger | Key Attributes | Target Consumers |
 | :--- | :--- | :--- | :--- |
-| `SellableProductProductCreatedEvent` | Aggregate creation | `productId`, `merchantId` | Orchestrated Workflows (e.g. Create Sellable Product) |
-| `ProductStatusChangedEvent` | State transition | `productId`, `oldStatus`, `newStatus` | Search Indexers, Workflows |
-| `ProductVariantAddedEvent` | New variant synced | `productId`, `variantId`, `sku` | Pricing, Inventory sync pipelines |
+| `ProductStatusChangedEvent` | Product status changes | Product ID, previous status, new status | Catalog projections and integration bridge |
+| `ProductSuspendedEvent` | `suspend(reason)` | Product ID, reason | Catalog lifecycle consumers |
+| `ProductRestoredEvent` | `restore()` to `DRAFT` | Product ID | Catalog lifecycle consumers |
+| `ProductDeletedEvent` | `delete()` archives the product | Product ID, category ID, variant IDs | Catalog bridge; inventory discontinuation |
+| `ProductVariantAddedEvent` | Variant added | Product ID, variant ID, SKU, product name, inventory-management flag | Catalog projections and integration bridge |
+| `ProductVariantChangeEvent` | Variant SKU or inventory-management setting changed | Product ID, variant ID, SKU, inventory-management flag | Catalog projections and integration bridge |
+| `ProductVariantDeletedEvent` | Variant removed or soft-deleted | Product ID, category ID, variant ID | Catalog bridge; inventory discontinuation |
+| `ProductVariantRestoredEvent` | Soft-deleted variant restored | Product ID, variant ID | Catalog bridge |
+| `ProductUpdatedEvent` | Product metadata, descriptions, or media changes | Product ID and updated product name/category reference | Catalog projections and integration bridge |
+| `ProductMediaChangedEvent` | Product media replaced | Product ID | Catalog media projections |
+| `VariantMediaChangedEvent` | Variant media assignment changed | Product ID, variant ID | Catalog media projections |
+
+### Related Publication Events
+
+Publication domain events, integration records, and workflow signals belong to the separate [ProductPublication specification](product-publication-domain-spec.md#6-domain-events).
+
+### Store Integration Events
+
+`CatalogIntegrationEventPublisher` maps selected Product aggregate events to `ProductStatusChangedIntegrationEvent`, `ProductDeletedIntegrationEvent`, `ProductNameChangedIntegrationEvent`, `ProductVariantAddedIntegrationEvent`, `ProductVariantUpdatedIntegrationEvent`, `ProductVariantDeletedIntegrationEvent`, and `ProductVariantRestoredIntegrationEvent`. These are store-level messages, not Product domain events.
+
+### Workflow Signals
+
+`SellableProductProductCreatedEvent` and inventory/workflow acknowledgements such as `InventoryItemCreatedEvent` are store-level workflow signals, not Product aggregate domain events.
+
+### Implementation References
+
+- Product model: `catalog-domain/src/main/java/com/catalog/domain/aggregate/Product.java` and `catalog-domain/src/main/java/com/catalog/domain/valueobject/ProductStatus.java`.
+- Integration bridge: `store/src/main/java/com/grab/store/catalog/internal/event/CatalogIntegrationEventPublisher.java`.

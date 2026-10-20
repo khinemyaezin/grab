@@ -1,9 +1,9 @@
 # Tech Specification: Logging Facade & Trace Context
 
-> **Summary:** A provider-neutral logging facade that decouples domain code from specific logging frameworks (like SLF4J), combined with an automatic MDC correlation context that traces requests across thread hops and outbox boundaries.  
-> **Classification:** Cross-Cutting Concern / Platform Infrastructure  
-> **Supporting Modules:** `framework/logger` / `logger-slf4j`  
-> **Related Architecture ADRs:** [ADR-004](../system/ADR_004-Framework_logging_facade_&_slf4j_bridge.md), [ADR-010](../system/ADR_010-Mdc_trace_context.md)
+> **Summary:** A provider-neutral logging facade that decouples domain code from specific logging frameworks (like SLF4J), combined with an automatic MDC correlation context that traces requests across thread hops and outbox boundaries.
+> **Classification:** Cross-Cutting Concern / Platform Infrastructure
+> **Supporting Modules:** `framework/logger` / `logger-slf4j`
+> **Related Architecture ADRs:** [ADR-004](../../dev/system/ADR_004-Framework_logging_facade_&_slf4j_bridge.md), [ADR-010](../../dev/system/ADR_010-Mdc_trace_context.md)
 
 ---
 
@@ -90,7 +90,7 @@ flowchart TB
 
     DomainLogic -->|"Logs via"| LoggerFacade
     LoggerFacade -.->|"ServiceLoader binds"| Slf4jProvider
-    
+
     HttpFilter -->|"Populates"| MdcDecorator
     MdcDecorator -->|"Copies across threads"| DomainLogic
     OutboxProcessor -->|"Restores traceId from headers"| DomainLogic
@@ -122,9 +122,9 @@ sequenceDiagram
     H->>H: Log "Processing order" (traceId=T1)
     H->>Outbox: produce(event)
     Outbox->>Outbox: Serialize T1 into headers
-    
+
     Note over Job: Later Async Worker Tick
-    
+
     Job->>MDC: Generate Job-T2 & Set
     Job->>Job: Claim Outbox Row
     Job->>MDC: Restore T1 from headers

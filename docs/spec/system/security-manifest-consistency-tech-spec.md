@@ -222,7 +222,7 @@ Serialize activation with the singleton identity catalog row lock, acquired befo
 
 Initialization adds one short identity transaction before each catalog-dependent write. If a caller already holds an identity transaction, the independent initializer may require another pool connection while the caller's connection is suspended; size the identity pool for that concurrency.
 
-Concurrency acceptance is validated against PostgreSQL 16 with fresh Hibernate-created schemas. Other database engines remain unverified. Migration-specific checks are separately tagged and remain unvalidated because the Flyway source directories are empty in this checkout.
+Concurrency acceptance is validated against PostgreSQL 16 with fresh Hibernate-created schemas. Other database engines remain unverified. Checked-in Flyway V1 scripts create initial schemas for Identity and the participating owner modules. They do not provide an additive upgrade path or a verified data-preserving migration from an earlier schema.
 
 Store unique constraints on module/revision, authority code, and scope key, plus inbox event identity. Acquire the catalog lock before reading module and definition state and keep activation, receipts, and outbox writes in the same business transaction. Use one lock order for all activations; lock timeouts and deadlocks propagate to delivery recovery rather than application retries.
 
@@ -248,7 +248,7 @@ Producer authenticity is separate from digest integrity. The monolith maps concr
 
 ### Durable storage
 
-Storage is introduced through additive Flyway migrations; existing authority identifiers and grants are preserved.
+The checked-in `store/src/main/resources/db/migration/<module>/V1__initial_schema.sql` scripts create the initial schema, including manifest and publication tables, for fresh databases. They are not additive upgrades from a pre-existing schema. No checked-in migration backfills legacy authority metadata or adds the proposed database guard triggers; existing-database upgrade safety and preservation of legacy identifiers/grants are not guaranteed by these scripts.
 
 | Store | Essential state and constraints |
 | :--- | :--- |
@@ -261,9 +261,9 @@ Storage is introduced through additive Flyway migrations; existing authority ide
 | Identity `security_scope_definitions` | Unique scope key, immutable owner, parent, source revision, lifecycle, and local enablement. |
 | Identity `authorities` extension | Persistent owner/source revision/provider lifecycle separate from local enablement, retaining existing UUIDs and role links. |
 
-Canonical module/revision identity **MUST NOT** change after first acceptance. Database guards protect canonical payload/event identity and publication revision/digest. Scope key uniqueness **MUST** be established only after auditing existing collisions.
+Canonical module/revision identity **MUST NOT** change after first acceptance. The application validates immutable revision and event identity, while V1 schemas provide declared unique constraints such as module/revision and scope key. No database trigger guards canonical payload/event identity or publication revision/digest against writes that bypass the application. Scope key uniqueness is created in the fresh initial schema; a pre-existing database needs a collision audit before any upgrade can safely add that constraint.
 
-Each owner publication table uses `version BIGINT NOT NULL DEFAULT 0`. The version is managed by JPA optimistic locking. A missing owner state row is created in the same transaction as its publication state update and outbox event; database seed rows are not required. Owner publication command handlers **MUST** retry optimistic-lock and state-insert conflicts up to three total attempts, with a fresh transaction and state read for each attempt. Exhausted or non-retryable failures **MUST** propagate.
+Each checked-in owner publication table declares `version BIGINT NOT NULL DEFAULT 0` in its V1 initial schema. Runtime version changes use JPA optimistic locking. A missing owner state row is created in the same transaction as its publication state update and outbox event; database seed rows are not required. Owner publication command handlers retry optimistic-lock and state-insert conflicts up to three total attempts, with a fresh transaction and state read for each attempt. Exhausted or non-retryable failures propagate. There is no migration to add/backfill this column on an existing database.
 
 Inbox receipt, active rows, watermarks, and any identity outbox event **MUST** commit atomically for an applied outcome. Waiting/quarantine outcomes **MUST** commit receipt plus candidate state without changing the active catalog. Conflicting attempts **MUST** instead commit separate conflict evidence, preserving existing canonical identity and the original receipt.
 
@@ -297,7 +297,7 @@ Caching is deferred until measured need. Any later cache design must state a max
 
 Every owner replica may trigger the scheduled repair. The persisted next-publication timestamp and optimistic version ensure that only an eligible transaction commits for a given interval. Track the newest published owner revision; an old binary skips publication when it sees a newer revision, while identity's monotonic check remains the final protection against already queued old messages.
 
-Optimistic publication does not coordinate with legacy publishers that leave the version unchanged. Switch each owner module in a coordinated sequence: stop and drain all legacy publisher workers, apply the additive version-column change, deploy the optimistic publisher, then resume its asynchronous startup and scheduled repair. Do not run old and new publishers against the same owner table at the same time.
+Optimistic publication does not coordinate with legacy publishers that leave the version unchanged. A safe upgrade of an existing environment still requires an additive migration for the version and manifest schema, a legacy data audit/backfill, and a coordinated publisher cutover. Those migration and database guard steps are not implemented here; do not treat the fresh-install V1 scripts as an upgrade procedure.
 
 Fresh identity databases recover from periodic complete republication; identity restarts recover immediately from identity persistence. Restoring an old backup restores its old watermark too, so latest snapshots and emergency tombstones must be replayed before enabling sensitive authorization; restored watermarks alone cannot prove current freshness.
 
@@ -329,7 +329,7 @@ The scheduler values below are implemented defaults; latency and alert threshold
 | Quarantine/conflicting digest alert | Immediate | Requires release correction rather than blind retries. |
 | Sensitive authorization cache | Disabled | Uses coherent identity primary reads in the first implementation. |
 
-Reuse the current relay's supported retry controls before adding new delivery knobs. The inspected `AbstractOutboxProcessor` retries `FAILED` rows; bounded retry/dead-letter behavior described in the existing outbox spec must be verified rather than assumed to exist.
+The current `AbstractOutboxProcessor` retries `FAILED` rows indefinitely after a configured delay and has no attempt cutoff or dead-letter state. This provides retry attempts for transient manifest-delivery failures, but operators need separate monitoring and remediation for permanently failing consumers; bounded retry/dead-letter handling is not implemented.
 
 Operational queries expose enqueue/delivery timestamps, backlog count, applied module revision/digest, catalog revision, dependency-wait timestamp, and conflict count. Candidate/quarantine errors remain durable revision evidence; duplicate/stale outcomes are returned by registration. Do not use repeated identical delivery to reset activation age or hide a dependency backlog.
 
@@ -341,15 +341,15 @@ Operational queries expose enqueue/delivery timestamps, backlog count, applied m
 | Catalog | Non-anemic aggregate, pure validation, immutable revision payloads, independent receipts/conflicts, preserved UUIDs/grants and local disablement. |
 | Retry isolation | `REQUIRES_NEW` registration and candidate commands; bounded waiting query followed by individual dispatch outside its transaction. |
 | Authorization | Persisted immutable graph for query paths, loaded catalog domain state for commands, ancestor lifecycle checks, complete requested authority validation, and fresh online primary reads. |
-| Recovery | Activation outbox notification, periodic repair/sweep, operational public query capabilities, migration guards, and external baseline runbook. |
+| Recovery | Activation outbox notification, periodic repair/sweep, operational public query capabilities, and external baseline runbook. Database migration guards are not implemented. |
 | Extraction | Stable versioned envelope; authenticated network adapters and broker integration are deferred. |
 
 ### Migration and rollout details
 
-1. Audit authority category ownership and duplicate scope keys before migration. The additive identity migration rejects ambiguous ownership or collisions; it preserves existing UUIDs, grants, local disablement, and provider tombstones. Legacy numeric large-object payload references are converted to JSON text before canonical identity is guarded.
-2. Apply owner seed/guard migrations and identity ownership/lifecycle/immutability migrations. Source revision is backfilled from applied module watermarks; undeclared authority metadata is ineffective until established by a complete manifest.
-3. Deploy unified consumers with legacy partial-manifest listeners and handlers disabled. Stop older identity consumers before authoritative activation; owner database guards prevent legacy publication regression during rolling deployment.
-4. Compare applied module revision/digest and required references with the approved external release baseline before enabling sensitive features. Fresh or restored databases recover through full owner republication, while feature enablement remains a deployment control.
+1. For a fresh database, run the checked-in per-module V1 initial-schema migrations. These scripts create the tables and constraints declared in each initial schema; no seed or legacy-data migration is supplied for this manifest feature.
+2. Existing databases need an upgrade project before adopting this feature: audit authority ownership and scope-key collisions, add/backfill the needed columns and tables, preserve existing identifiers/grants and local disablement, then validate the migration against representative production-shaped data. No additive/backfill migration currently performs these steps.
+3. The application supports complete manifest publication, durable receipt/candidate state, revision validation, replay handling, and periodic republication. Database triggers that prevent bypass writes or protect against legacy publisher regression remain a gap.
+4. Compare the applied module revision/digest and required references with the approved external release baseline before enabling sensitive features. Full owner republication can rebuild a fresh catalog, while feature enablement remains a deployment control.
 5. Exercise replay, failure recovery, and retirement before removing compatibility event contracts. A corrective rollback uses a higher revision and never reactivates retired keys.
 
 See the [runbook](../../runbook/security-manifest-consistency.md) for operational checks. Publication outcomes are `ENQUEUED`, `NOT_DUE`, `SUPERSEDED`, or `CONFLICT`; registration returns outcome, revision/digest, error code, and whether activation occurred.

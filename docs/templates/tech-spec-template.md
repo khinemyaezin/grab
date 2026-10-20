@@ -20,10 +20,10 @@ A Tech Spec is a **contract**. Sections 1–3 explain the rationale and mechanic
 
 # Tech Specification: [Technology / Pattern Name]
 
-> **Summary:** [One clear sentence anyone on the team can repeat explaining what this tech does.]  
-> **Classification:** [Platform Infrastructure / Architectural Pattern / Cross-Cutting Concern]  
-> **Supporting Modules:** `[e.g. framework / outbox-infrastructure / store]`  
-> **Related Architecture ADRs:** [[ADR Reference]](../system/[file.md])
+> **Summary:** [One clear sentence anyone on the team can repeat explaining what this tech does.]
+> **Classification:** [Platform Infrastructure / Architectural Pattern / Cross-Cutting Concern]
+> **Supporting Modules:** `[e.g. framework / outbox-infrastructure / store]`
+> **Related Architecture ADRs:** [[ADR Reference]](../../dev/system/[file.md])
 
 ---
 
@@ -44,8 +44,8 @@ A Tech Spec is a **contract**. Sections 1–3 explain the rationale and mechanic
 ### Key Benefits & Trade-offs
 
 **Core Benefits:**
-- [Benefit 1: e.g. Zero message loss across process restarts]
-- [Benefit 2: e.g. Eliminates dual-write race conditions]
+- [Benefit 1: State the behavior the implementation demonstrates and its limits]
+- [Benefit 2: State a verified benefit without implying an unsupported guarantee]
 
 **Known Trade-offs:**
 - [Trade-off 1: e.g. Eventual consistency latency instead of immediate delivery]
@@ -64,7 +64,7 @@ flowchart LR
     subgraph CorePattern ["Core Mechanism"]
         Source["[Caller / Producer]"]
         Buffer["[Transactional Buffer]"]
-        Processor["[Reliable Processor]"]
+        Processor["[Processor]"]
         Sink["[External Consumer / Target]"]
 
         Source -->|"1. Save atomically"| Buffer
@@ -79,13 +79,11 @@ flowchart LR
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING : Created in transaction
-    PENDING --> IN_PROGRESS : Claimed by worker
-    IN_PROGRESS --> COMPLETED : Execution successful
-    IN_PROGRESS --> FAILED : Execution error (retry count < max)
-    FAILED --> PENDING : Backoff timer expires
-    IN_PROGRESS --> DEAD_LETTER : Max retries exhausted
-    COMPLETED --> [*]
+    [*] --> [INITIAL_STATUS] : [Implemented creation trigger]
+    [INITIAL_STATUS] --> [IN_PROGRESS_STATUS] : [Implemented claim or start]
+    [IN_PROGRESS_STATUS] --> [SUCCESS_STATUS] : [Implemented success condition]
+    [IN_PROGRESS_STATUS] --> [FAILURE_STATUS] : [Implemented failure condition]
+    [FAILURE_STATUS] --> [RETRY_OR_TERMINAL_STATUS] : [Implemented retry or terminal rule]
 ```
 
 ---
@@ -158,8 +156,8 @@ Normative specification. An implementation is compliant only when all MUST / MUS
 
 - **R-01:** The system **MUST** persist state changes atomically within the initiating command's database transaction.
 - **R-02:** The system **MUST NOT** perform remote network I/O inside the active database transaction boundary.
-- **R-03:** The processor **MUST** guarantee at-least-once delivery.
-- **R-04:** Consumers **MUST** be idempotent or handle duplicate delivery safely.
+- **R-03:** State the implemented retry and duplicate-delivery behavior precisely. Do not promise eventual success unless the implementation supports it; identify an attempt cutoff or dead-letter behavior only when it exists.
+- **R-04:** If the implementation can redeliver a message, consumers **MUST** be idempotent or handle duplicate delivery safely.
 
 ### Storage & Data Contract
 
@@ -167,17 +165,17 @@ Normative specification. An implementation is compliant only when all MUST / MUS
 erDiagram
     TECHNICAL_RECORD {
         string id PK
-        string status "PENDING, IN_PROGRESS, COMPLETED, FAILED"
-        int retry_count "Default 0"
-        timestamp scheduled_at
-        string payload "Serialized JSON contract"
+        string status "[Actual persisted status values only]"
+        string payload "[Actual serialized payload field]"
     }
 ```
 
+Replace the example fields with the actual persistence contract; remove fields that do not exist.
+
 ### Configuration Knobs
 
-| Knob Name | Default Value | Unit / Format | Description |
+List only bindings and constants that exist in the implementation. Show profile overrides separately from code-level fallbacks, and state units explicitly. Do not invent a configuration key, retry limit, terminal status, or default.
+
+| Binding / constant | Implemented default or profile override | Unit / format | Description |
 | :--- | :--- | :--- | :--- |
-| `[batch-size]` | `50` | Integer count | Maximum number of records claimed in a single polling run. |
-| `[poll-interval]` | `1000` | Milliseconds | Interval between background polling cycles. |
-| `[max-retries]` | `5` | Integer count | Maximum failed attempts before moving to dead letter status. |
+| `[actual.binding.name]` or `[fixed constant]` | [Code fallback / profile override / fixed value] | [Unit] | [Observed behavior; mark unimplemented requirements as gaps.] |

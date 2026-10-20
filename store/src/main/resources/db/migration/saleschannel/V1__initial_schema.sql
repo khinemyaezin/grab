@@ -49,3 +49,12 @@ CREATE INDEX idx_sales_channel_outbox_aggregate on sales_channel_outbox_events (
 CREATE INDEX idx_sales_channel_merchant on sales_channels (merchant_id);
 CREATE INDEX idx_sales_channel_type on sales_channels (type);
 CREATE INDEX idx_sales_channel_status on sales_channels (status);
+
+CREATE UNIQUE INDEX uq_sales_channels_marketplace
+    ON sales_channels (type)
+    WHERE type = 'MARKETPLACE';
+
+CREATE UNIQUE INDEX uq_sales_channels_website_merchant
+    ON sales_channels (merchant_id)
+    WHERE type = 'WEBSITE';
+

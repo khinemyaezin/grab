@@ -1,14 +1,19 @@
 package com.grab.store.saleschannel.internal.config;
 
 import com.saleschannel.application.port.inbound.CheckSalesChannelUsableUseCase;
+import com.saleschannel.application.port.inbound.EnsureMarketplaceChannelUseCase;
 import com.saleschannel.application.port.inbound.FindSalesChannelSliceUseCase;
 import com.saleschannel.application.port.inbound.GetSalesChannelUseCase;
 import com.saleschannel.application.port.inbound.ListSalesChannelsUseCase;
+import com.saleschannel.application.port.inbound.ProvisionMerchantWebsiteChannelUseCase;
 import com.saleschannel.application.port.outbound.SalesChannelQueryPort;
 import com.saleschannel.application.service.CheckSalesChannelUsableService;
+import com.saleschannel.application.service.EnsureMarketplaceChannelService;
 import com.saleschannel.application.service.FindSalesChannelSliceService;
 import com.saleschannel.application.service.GetSalesChannelService;
 import com.saleschannel.application.service.ListSalesChannelsService;
+import com.saleschannel.application.service.ProvisionMerchantWebsiteChannelService;
+import com.grab.framework.id.IdGenerator;
 import com.saleschannel.domain.port.outbound.SalesChannelRepository;
 import com.saleschannel.domain.service.SalesChannelUniquenessService;
 import org.springframework.context.annotation.Bean;
@@ -40,5 +45,21 @@ public class SalesChannelUseCaseConfig {
     @Bean
     public FindSalesChannelSliceUseCase findSalesChannelSliceUseCase(SalesChannelQueryPort salesChannelQueryPort) {
         return new FindSalesChannelSliceService(salesChannelQueryPort);
+    }
+
+    @Bean
+    public EnsureMarketplaceChannelUseCase ensureMarketplaceChannelUseCase(
+            SalesChannelRepository salesChannelRepository,
+            IdGenerator idGenerator
+    ) {
+        return new EnsureMarketplaceChannelService(salesChannelRepository, idGenerator);
+    }
+
+    @Bean
+    public ProvisionMerchantWebsiteChannelUseCase provisionMerchantWebsiteChannelUseCase(
+            SalesChannelRepository salesChannelRepository,
+            IdGenerator idGenerator
+    ) {
+        return new ProvisionMerchantWebsiteChannelService(salesChannelRepository, idGenerator);
     }
 }

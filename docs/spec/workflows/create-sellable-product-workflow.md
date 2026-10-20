@@ -1,32 +1,30 @@
 # Workflow: Create Sellable Product
 
-> **Purpose:** Create a merchant sellable product end-to-end by creating the catalog product and variants, assigning variant prices, and initializing inventory items for tracked SKUs.
-> **Starts When:** API call `POST /api/v1/workflows/create-sellable-product` is received.
-> **Successful Result:** Catalog product and variants exist, price sets and variant price assignments are created, and inventory items are initialized.
-> **Participating Domains:** Catalog · Pricing · Inventory
-> **Related Domain Specs:**
-> - [Catalog Domain Spec](../domain/catalog/architecture/product-domain-spec.md)
-> - [Pricing Domain Spec](../domain/pricing/architecture/pricing-domain-spec.md)
-> - [Inventory Domain Spec](../domain/inventory/architecture/inventory-item-domain-spec.md)
-
----
+> **Purpose:** Create a catalog product, initialize its variant prices and optional inventory, then validate and publish it to requested sales channels.
+> **Starts When:** A caller posts to `/api/v1/workflows/create-sellable-product`.
+> **Successful Result:** Product, variants, prices, optional inventory, and requested channel publications have completed their corresponding workflow steps.
+> **Participating Domains:** Catalog · Pricing · Inventory · Sales Channel
+> **Related Domain Specs:** [Catalog Product](../domain/catalog/architecture/product-domain-spec.md) · [Catalog Product Publication](../domain/catalog/architecture/product-publication-domain-spec.md) · [Pricing](../domain/pricing/architecture/pricing-domain-spec.md) · [Inventory](../domain/inventory/architecture/inventory-item-domain-spec.md) · [Sales Channel](../domain/sales-channel/architecture/sales-channel-domain-spec.md)
+> **Sales Channel Reference:** Channel ownership, lifecycle, and usability assertions are defined in the [Sales Channel domain spec](../domain/sales-channel/architecture/sales-channel-domain-spec.md); variant/channel publication records remain owned by Catalog.
 
 ## 1. Step-by-Step Execution Path
 
-### Normal Path (Happy Path)
+Steps run in this order. A skipped optional step completes without dispatching its request.
 
-| # | Step Name | Owner Domain | Business Action | Starts When | Complete When |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | `create-product` | Catalog | Creates the product and its variants. | Workflow initiated | `SellableProductProductCreatedEvent` received |
-| **2** | `create-variant-prices` | Pricing | Creates a price set and assignment for each variant. | Step 1 completes | `VariantPriceCreatedEvent` received for every variant |
-| **3** | `create-inventory-item` | Inventory | Creates inventory items for all tracked SKUs. | Step 2 completes | `InventoryItemCreatedEvent` received for every line → Workflow completes |
+| # | Step | Owner | Action and completion condition |
+|---:|---|---|---|
+| 1 | `create-product` | Catalog | Create the product and variants; wait for `SellableProductProductCreatedEvent`. |
+| 2 | `replace-medias` | Catalog | Replace product media when `medias` is present; wait for `ProductMediaReplacedEvent`. |
+| 3 | `replace-descriptions` | Catalog | Replace descriptions when `descriptions` is present; wait for `ProductDescriptionsReplacedEvent`. |
+| 4 | `apply-status` | Catalog | Apply a nonblank requested status; wait for `ProductStatusAppliedEvent`. |
+| 5 | `create-variant-prices` | Pricing | Fan out one price request per created variant; wait for a price-created event for each variant. |
+| 6 | `create-inventory-item` | Inventory | Fan out one item creation per inventory line; skip when there are no lines and otherwise wait for all lines. |
+| 7 | `assert-channel` | Sales Channel | When status is ACTIVE and publication lines exist, assert each unique channel; wait for all channel assertions. |
+| 8 | `assert-product` | Catalog | Under the same publication condition, assert the product; wait for `ProductAssertedEvent`. |
+| 9 | `assert-channel-stock-path` | Inventory | Under the publication condition, check each unique channel's inventory route; wait for a result from every channel. |
+| 10 | `write-publication` | Catalog | Under the publication condition, publish each variant/channel line; wait for all publication events. |
 
-### Special Flows & Edge Conditions
-
-- **Parallel fan-out:** Step 2 fans out one price creation request per variant and advances when all variant prices are created. Step 3 fans out one inventory creation request per inventory line and advances when all inventory lines are initialized.
-- **Conditional / skipped steps:** Step 3 (inventory) is completely bypassed and skipped if no tracked inventory lines are provided in the payload.
-
-### Happy Path Flow
+**Conditional behavior:** Media, descriptions, and status are skipped when their corresponding request fields are omitted. Inventory skips for an empty list. The final four steps skip unless the requested status is ACTIVE and publication lines are present. Pricing coverage is validated for product variants at the request boundary.
 
 ```mermaid
 sequenceDiagram
@@ -35,88 +33,99 @@ sequenceDiagram
     participant Catalog
     participant Pricing
     participant Inventory
-
-    Caller->>Workflow: Start workflow request
-    Workflow->>Catalog: RequestCreateProductSetEvent
-    Catalog-->>Workflow: SellableProductProductCreatedEvent
-    Workflow->>Pricing: RequestCreateVariantPriceEvent (fan-out per variant)
-    Pricing-->>Workflow: VariantPriceCreatedEvent
-    opt [Tracked Inventory Lines Present]
-        Workflow->>Inventory: RequestCreateInventoryItemEvent (fan-out per line)
-        Inventory-->>Workflow: InventoryItemCreatedEvent
+    participant Channel as Sales Channel
+    Caller->>Workflow: Start create request
+    Workflow->>Catalog: Create product&#59; replace optional listing data&#59; apply optional status
+    Catalog-->>Workflow: Product and listing acknowledgements
+    Workflow->>Pricing: Create price per variant
+    Pricing-->>Workflow: Price created per variant
+    opt Inventory lines provided
+        Workflow->>Inventory: Create item per line
+        Inventory-->>Workflow: Item created per line
     end
-    Workflow-->>Caller: Workflow completed notification (terminal UI event)
+    opt ACTIVE product with publication lines
+        Workflow->>Channel: Assert each unique channel
+        Channel-->>Workflow: ChannelAssertedEvent per channel
+        Workflow->>Inventory: Check inventory route per unique channel
+        Inventory-->>Workflow: StockPathCheckedEvent per channel
+        Workflow->>Catalog: Write publication per variant and channel
+        Catalog-->>Workflow: Publication written per line
+    end
 ```
-
----
 
 ## 2. Events & Signals
 
-### Request Events (Workflow → Domain)
+| Step | Request event | Completion event |
+|---|---|---|
+| `create-product` | `RequestCreateProductSetEvent` | `SellableProductProductCreatedEvent` |
+| `replace-medias` | `RequestReplaceProductMediaEvent` | `ProductMediaReplacedEvent` |
+| `replace-descriptions` | `RequestReplaceProductDescriptionsEvent` | `ProductDescriptionsReplacedEvent` |
+| `apply-status` | `RequestApplyProductStatusEvent` | `ProductStatusAppliedEvent` |
+| `create-variant-prices` | `RequestCreateVariantPriceEvent` | `VariantPriceCreatedEvent` |
+| `create-inventory-item` | `RequestCreateInventoryItemEvent` | `InventoryItemCreatedEvent` |
+| `assert-channel` | `RequestAssertChannelEvent` | `ChannelAssertedEvent` |
+| `assert-product` | `RequestAssertProductEvent` | `ProductAssertedEvent` |
+| `assert-channel-stock-path` | `RequestCheckChannelStockPathEvent` | `StockPathCheckedEvent` (includes `missingRoute`) |
+| `write-publication` | `RequestWritePublicationEvent` | `ProductPublishedToChannelEvent` |
 
-| Event Name | Step | Dispatched To | Intent / Payload Summary |
-| :--- | :--- | :--- | :--- |
-| `RequestCreateProductSetEvent` | `create-product` | Catalog | Requests creation of the product set and variants. |
-| `RequestCreateVariantPriceEvent` | `create-variant-prices` | Pricing | Requests creation of a price set and assignment for a specific variant. |
-| `RequestCreateInventoryItemEvent` | `create-inventory-item` | Inventory | Requests creation of an inventory item for a SKU at a specific location. |
+Catalog, Pricing, and Inventory step listeners emit `SellableProductStepFailedEvent` when their workflow runners catch an operation exception. Sales Channel assertions and Catalog product/publication operations emit `PublishProductStepFailedEvent` on caught exceptions. These workflow signals are distinct from aggregate domain events. If an expected completion never arrives, the workflow sweeper times out the waiting step and starts the same failure recovery without a failure event.
 
-### Completion Events (Domain → Workflow)
-
-| Event Name | Step | Emitted By | Meaning to Workflow |
-| :--- | :--- | :--- | :--- |
-| `SellableProductProductCreatedEvent` | `create-product` | Catalog | Product and variants created successfully; advance to price creation. |
-| `VariantPriceCreatedEvent` | `create-variant-prices` | Pricing | Price set created for a variant; step completes when all variants are priced. |
-| `InventoryItemCreatedEvent` | `create-inventory-item` | Inventory | Inventory item initialized for a line; step completes when all lines exist. |
-
-### Failure Events (Domain → Workflow)
-
-| Event Name | Emitted By | Failure Cause | Resulting Workflow Action |
-| :--- | :--- | :--- | :--- |
-| `SellableProductStepFailedEvent` | Any participant | Validation error, invariant breach, or timeout | Halts forward execution and initiates compensation. |
-
----
+The inventory-route check completes with `StockPathCheckedEvent` for each unique channel and records `missingRoute` in the workflow checkpoint. A missing route is not itself a failure signal and does not suppress the later publication step; publication is still attempted for each requested line.
 
 ## 3. Compensation & Failure Recovery
 
-> **Starts When:** A step reports failure via `SellableProductStepFailedEvent` after one or more prior steps have already succeeded.
+The engine gathers compensation requests in reverse step order and publishes them as a batch. The reverse listing below describes dispatch order; the engine does not wait for one acknowledgement before dispatching the next request.
 
-### Compensation Order
+| Reverse step | Completed action | Compensation request | Acknowledgement |
+|---|---|---|---|
+| `write-publication` | Wrote channel publications | `RequestUnpublishProductCompensationEvent` for each completed publication | `ProductUnpublishedFromChannelEvent` |
+| `create-variant-prices` | Created price sets | `RequestDeletePriceSetCompensationEvent` per created set | `PriceSetDeletedEvent` |
+| `create-product` | Created product and variants | `RequestDeleteProductCompensationEvent` | `ProductDeletedEvent` |
 
-| Order | Completed Action | Undo Action | Request Event | Acknowledgement Event |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | Step 2: Create variant price sets | Delete all created price sets | `RequestDeletePriceSetCompensationEvent` | `PriceSetDeletedEvent` |
-| **2** | Step 1: Create catalog product and variants | Delete the created catalog product | `RequestDeleteProductCompensationEvent` | `ProductDeletedEvent` |
+Media, descriptions, status, channel assertions, and stock-route checks have no workflow compensation. Inventory items are not directly compensated by this workflow. Product deletion emits a catalog integration event that causes Inventory to discontinue associated items asynchronously; it does not erase their quantities. Initial inventory quantity may be greater than zero.
 
-### Explicitly Non-Compensated Actions
+The workflow reaches `COMPENSATED` after every dispatched compensation is acknowledged. If failure occurs before any compensable action exists, or compensation times out, the engine can terminate as `FAILED`. Incomplete compensation remains observable as failure rather than a successful rollback.
 
-- **Inventory items:** Explicit business policy leaves created inventory items unchanged. If a workflow fails, any initialized inventory items are preserved (they are zero-stock entities).
-- **Product-variant view projections:** Read model projections are internal choreography reacting to domain events rather than Saga step resources.
-
-### Failure Flow
+For terminal UI events, the current create-workflow adapter sets `partiallyApplied` when at least one inventory item creation has been acknowledged. It does not derive the flag from every retained product, price, or publication change, and an item created without a completion signal is not reflected; the flag is narrower than an inventory of residual state.
 
 ```mermaid
 sequenceDiagram
-    participant Catalog
     participant Workflow as Workflow Coordinator
+    participant Catalog
     participant Pricing
 
-    Catalog-->>Workflow: SellableProductStepFailedEvent
-    Note over Workflow: Halt forward execution; initiate compensation
-    Workflow->>Pricing: RequestDeletePriceSetCompensationEvent
-    Pricing-->>Workflow: PriceSetDeletedEvent
-    Workflow->>Catalog: RequestDeleteProductCompensationEvent
-    Catalog-->>Workflow: ProductDeletedEvent
-    Note over Workflow: Mark workflow COMPENSATED
+    Note over Workflow: On a typed failure or waiting-step timeout, collect compensations in reverse definition order
+    opt Publication writes completed
+        Workflow-->>Catalog: RequestUnpublishProductCompensationEvent
+    end
+    opt New price sets created
+        Workflow-->>Pricing: RequestDeletePriceSetCompensationEvent
+    end
+    opt Product creation completed
+        Workflow-->>Catalog: RequestDeleteProductCompensationEvent
+    end
+    Note over Workflow: Publish the collected requests together; no acknowledgement gates another request
+    opt Catalog compensation requested
+        Catalog-->>Workflow: Publication/product compensation acknowledgements
+    end
+    opt Price-set compensation requested
+        Pricing-->>Workflow: PriceSetDeletedEvent
+    end
+    alt All requested compensations acknowledged
+        Workflow->>Workflow: Mark COMPENSATED
+    else No compensation requests or compensation timeout
+        Workflow->>Workflow: Mark FAILED
+    end
 ```
-
----
 
 ## 4. Aggregate Cross-Lifecycle Matrix
 
-| Workflow Stage | Catalog Product | Pricing PriceSet | InventoryItem |
-| :--- | :--- | :--- | :--- |
-| **Initial Start** | Non-existent | Non-existent | Non-existent |
-| **After Step 1** | `CREATED` | Non-existent | Non-existent |
-| **After Step 2** | `CREATED` | `CREATED` | Non-existent |
-| **Workflow Completed** | `CREATED` | `CREATED` | `INITIALIZED` (if tracked) |
-| **If Compensated** | `DELETED` | `DELETED` | Preserved (if created) |
+| Stage | Product | Prices | Inventory | Publication |
+|---|---|---|---|---|
+| Start | Absent | Absent | Absent | Absent |
+| After product/listing/status steps | Created with requested status | Absent | Absent | Absent |
+| After price step | Created | Created per variant | Absent | Absent |
+| Completed | Created | Created per variant | Created per line, if supplied | Written per line only for ACTIVE status |
+| Compensation acknowledged | Product deletion requested; resulting catalog state follows its delete contract | Created sets deleted | Items retained and asynchronously discontinued after product deletion | Completed writes unpublished |
+
+Implementation references: `store/src/main/java/com/grab/store/workflows/internal/workflows/createsellableproduct/CreateSellableProductDefinition.java`, `CreateSellableProductContext.java`, `store/src/main/java/com/grab/store/inventory/internal/event/PublishProductToChannelInventoryEventListener.java`, and `store/src/main/java/com/grab/store/saleschannel/internal/event/PublishProductToChannelSalesChannelEventListener.java`.

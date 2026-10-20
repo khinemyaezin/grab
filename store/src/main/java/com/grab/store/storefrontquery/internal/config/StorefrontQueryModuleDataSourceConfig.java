@@ -5,9 +5,11 @@ import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.flywaydb.core.Flyway;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
@@ -50,6 +52,17 @@ public class StorefrontQueryModuleDataSourceConfig {
         return properties.initializeDataSourceBuilder()
                 .type(HikariDataSource.class)
                 .build();
+    }
+
+    @Bean(name = "storefrontQueryFlyway", initMethod = "migrate")
+    public Flyway storefrontQueryFlyway(
+            @Qualifier("storefrontQueryDataSource") DataSource dataSource
+    ) {
+        return Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration/storefrontquery")
+                .baselineOnMigrate(true)
+                .load();
     }
 
     @Bean("storefrontQueryEntityManagerFactory")
