@@ -34,9 +34,9 @@ flowchart TD
 
 | Specification | Focus | Core Question Answered | Template |
 | :--- | :--- | :--- | :--- |
-| **Domain Spec** | Domain Aggregate Model | *What are the business concepts, boundaries, invariants, and lifecycle states within this bounded context?* | [`domain-spec-template.md`](file:///Users/khinemyaezin/Repository/grab/docs/templates/domain-spec-template.md) |
-| **Workflow Spec** | Cross-Domain Business Flow | *What are the ordered steps, events, and compensation actions required to complete an end-to-end business case across aggregates?* | [`workflow-spec-template.md`](file:///Users/khinemyaezin/Repository/grab/docs/templates/workflow-spec-template.md) |
-| **Tech Spec** | Technical Platform Capability | *Why is this specific platform technology needed, how does it work internally, and how is it structured in this project?* | [`tech-spec-template.md`](file:///Users/khinemyaezin/Repository/grab/docs/templates/tech-spec-template.md) |
+| **Domain Spec** | Domain Aggregate Model | *What are the business concepts, boundaries, invariants, and lifecycle states within this bounded context?* | [`domain-spec-template.md`](domain-spec-template.md) |
+| **Workflow Spec** | Cross-Domain Business Flow | *What are the ordered steps, events, and compensation actions required to complete an end-to-end business case across aggregates?* | [`workflow-spec-template.md`](workflow-spec-template.md) |
+| **Tech Spec** | Technical Platform Capability | *Why is this specific platform technology needed, how does it work internally, and how is it structured in this project?* | [`tech-spec-template.md`](tech-spec-template.md) |
 
 ---
 
@@ -55,16 +55,16 @@ flowchart TD
 
 ### 1. Domain Specifications
 Place domain aggregate specifications in the corresponding module directory:
-- `docs/spec/{domain}/architecture/{aggregate}-domain-spec.md`
-- *Example:* `docs/spec/catalog/architecture/product-domain-spec.md`
+- `docs/spec/domain/{domain}/architecture/{aggregate}-domain-spec.md`
+- *Example:* `docs/spec/domain/catalog/architecture/product-domain-spec.md`
 
 ### 2. Workflow Specifications
 Place all cross-domain workflows in the central workflows directory:
 - `docs/spec/workflows/{kebab-case-workflow-name}.md`
-- *Example:* `docs/spec/workflows/create-sellable-product.md`
+- *Example:* `docs/spec/workflows/create-sellable-product-workflow.md`
 
 ### 3. Tech Specifications
-Place technical capabilities and pattern specifications in `docs/system/` or `docs/spec/`:
+Place technical capabilities and pattern specifications in `docs/spec/system/`:
 - `docs/spec/system/{kebab-case-tech-name}-tech-spec.md`
 - *Example:* `docs/spec/system/transactional-outbox-tech-spec.md`
 

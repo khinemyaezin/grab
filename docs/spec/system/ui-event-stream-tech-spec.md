@@ -1,9 +1,9 @@
 # Tech Specification: UI Event Stream & Notifications
 
-> **Summary:** A host-owned Server-Sent Events (SSE) hub that pushes real-time terminal workflow signals and domain lifecycle events from the backend directly to the authenticated seller browser.  
-> **Classification:** Cross-Cutting Concern / Platform Infrastructure  
-> **Supporting Modules:** `store/shared/sse` / `store/workflows`  
-> **Related Architecture ADRs:** [ADR-008](../system/ADR_008-Seller_ui_event_stream.md), [ADR-009](../system/ADR_009-Workflow_terminal_ui_notifications.md)
+> **Summary:** A host-owned Server-Sent Events (SSE) hub that pushes terminal workflow status to the authenticated browser.
+> **Classification:** Cross-Cutting Concern / Platform Infrastructure
+> **Supporting Modules:** `store/shared/sse` / `store/workflows`
+> **Related Architecture ADRs:** [ADR-008](../../dev/system/ADR_008-Seller_ui_event_stream.md), [ADR-009](../../dev/system/ADR_009-Workflow_terminal_ui_notifications.md)
 
 ---
 
@@ -113,7 +113,7 @@ flowchart TB
 | `SseHub` | `store/shared/sse` | Manages the thread-safe registry of active emitters, keyed by user/scope. Handles network flush and error removal. |
 | `EventStreamController` | `store/shared/sse` | The REST entrypoint. Handles the initial handshake, sets the 5-minute timeout, and emits the `ready` signal. |
 | `HeartbeatScheduler` | `store/shared/sse` | Prevents load balancers from dropping the connection by sending an empty SSE comment (`: ping`) every 15 seconds. |
-| `*UiEventListener` | `domain` or `workflows` | Adapts internal domain events into generic UI envelopes. **MUST** run `AFTER_COMMIT`. |
+| `WorkflowTerminalUiEventListener` | `store/shared/sse` | Adapts committed terminal workflow events into the UI envelope and publishes them to active subscribers. |
 
 ### Runtime Flow
 
@@ -129,9 +129,9 @@ sequenceDiagram
     UI->>Ctrl: GET /events/stream (Cookie Auth)
     Ctrl->>Hub: register(platformUserId, scopeId)
     Ctrl-->>UI: emit "ready" event
-    
+
     Note over W,Tx: Workflow Saga processes async steps
-    
+
     W->>Tx: Complete Workflow Instance
     Tx-->>L: AFTER_COMMIT event fired
     L->>L: Build UI Envelope (COMPLETED)
@@ -148,7 +148,7 @@ Normative specification. An implementation is compliant only when all MUST / MUS
 
 ### Normative Rules
 
-- **R-01:** The `SseHub` **MUST NOT** be used as a durable event bus. It is strictly a best-effort transport layer. The Transactional Outbox MUST remain the sole mechanism for guaranteed inter-module delivery.
+- **R-01:** The `SseHub` **MUST NOT** be used as a durable event bus. It is strictly a best-effort transport layer. The Transactional Outbox remains the mechanism for durable inter-module delivery attempts; successful delivery still depends on consumers recovering.
 - **R-02:** Event adapters publishing to the hub **MUST** use `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)`. Publishing an event to the browser before the database transaction commits causes race conditions if the UI immediately requests the resource.
 - **R-03:** The SSE stream **MUST** be protected by the standard platform cookie-JWT authentication filter. No `permitAll` exceptions are allowed.
 - **R-04:** The server **MUST** send periodic heartbeat comments (e.g., `: ping`) to prevent intermediary proxies from terminating the idle connection.
@@ -164,16 +164,21 @@ Normative specification. An implementation is compliant only when all MUST / MUS
   "producerId": "backend",
   "workflowId": "uuid-1234",
   "workflowName": "create-sellable-product",
-  "status": "COMPLETED",
-  "productId": "prod-5678",
-  "errorMessage": null
+  "status": "FAILED",
+  "idempotencyKey": "request-key-123",
+  "errorMessage": "Inventory step failed",
+  "partiallyApplied": true
 }
 ```
 
+These are the `WorkflowUiEnvelope` record fields. The envelope contains no `productId`; clients use the workflow id and status to decide when to refresh workflow or domain resources. SSE event IDs are generated separately for transport framing. The controller accepts `Last-Event-ID` but does not replay missed events, so reconnecting clients must refetch state.
+
 ### Configuration Knobs
 
-| Knob Name | Default Value | Unit / Format | Description |
+| Setting | Value | Unit / format | Description |
 | :--- | :--- | :--- | :--- |
-| `spring.mvc.async.request-timeout` | `360000` | Milliseconds | Global Tomcat async timeout. Must be higher than the individual emitter timeout. |
-| `sse.emitter.timeout` | `300000` | Milliseconds | Max lifespan (5 mins) of an SSE connection before the server terminates it. |
-| `sse.heartbeat.interval` | `15000` | Milliseconds | How often the heartbeat scheduler fires. |
+| `SseHub.EMITTER_TIMEOUT_MS` | `300000` | Milliseconds | Fixed emitter lifetime before server termination. |
+| `SseHeartbeatScheduler` fixed rate | `15000` | Milliseconds | Fixed heartbeat cadence. |
+| SSE event name | `workflow` | String | Fixed name used for terminal workflow UI events. |
+
+Implementation references: `store/src/main/java/com/grab/store/shared/sse/WorkflowUiEnvelope.java`, `WorkflowTerminalUiEventListener.java`, `SseHub.java`, and `SseHeartbeatScheduler.java`.

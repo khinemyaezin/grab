@@ -16,10 +16,10 @@ The goal is to explain the business model, boundaries, invariants, and lifecycle
 
 # Domain Specification: [Aggregate Name]
 
-> **Bounded Context:** [e.g. Catalog, Inventory, Pricing, Identity]  
-> **Primary Purpose:** [1–2 sentences explaining the core business concept this aggregate models and protects.]  
-> **Module Root:** `[e.g. catalog-domain / catalog-infrastructure / store]`  
-> **Related Workflows:** [[Workflow Name 1]](../workflows/[file.md]), [[Workflow Name 2]](../workflows/[file.md])
+> **Bounded Context:** [e.g. Catalog, Inventory, Pricing, Identity]
+> **Primary Purpose:** [1–2 sentences explaining the core business concept this aggregate models and protects.]
+> **Module Root:** `[domain]-domain / [domain]-application / [domain]-adapter-persistence / store/[domain]`
+> **Related Workflows:** [[Workflow Name 1]](../../../workflows/[file.md]), [[Workflow Name 2]](../../../workflows/[file.md])
 
 ---
 
@@ -87,23 +87,21 @@ classDiagram
 
     class RootName {
         +Id id
-        +Id [externalRefId]
-        +StatusEnum status
-        +[ValueType] [attribute]
-        +create(...) RootName$
-        +updateDetails(...)
-        +transitionTo(...)
+        +Status status
+        +String businessAttribute
+        +performBusinessOperation()
+        +changeState(...)
     }
 
     class ChildEntity {
         +Id id
-        +[PropertyType] [attribute]
-        +modify(...)
+        +String businessAttribute
+        +performBusinessOperation()
     }
 
     class ValueObject {
-        +[FieldType] [field1]
-        +[FieldType] [field2]
+        +String value
+        +String qualifier
     }
 
     RootName *-- "0..*" ChildEntity : owns
@@ -114,10 +112,7 @@ classDiagram
 
 | Property | Type | Belongs To | Business Rationale |
 | :--- | :--- | :--- | :--- |
-| `[id]` | `Id` | Root | Unique aggregate identity across the platform. |
-| `[externalRefId]` | `Id` | Root | Loosely couples to [External Domain] without cross-aggregate object loading. |
-| `[status]` | Enum | Root | Tracks the lifecycle stage and guards allowable business actions. |
-| `[attribute]` | String / Value | Root / Child | [Specific business reason this attribute exists; not "for DB"]. |
+| `[business property]` | [Business concept] | Root / Child | [Specific business reason this property exists; not "for DB"]. |
 
 ---
 
@@ -127,9 +122,9 @@ classDiagram
 
 | Rule ID | Invariant Rule | Violation Outcome | Enforced By |
 | :--- | :--- | :--- | :--- |
-| **INV-01** | [e.g. A product must have at least one variant before it can be activated.] | Operation rejected; aggregate remains unchanged. | `Product.activate()` |
-| **INV-02** | [e.g. Variant SKU must be unique across all active variants within the catalog.] | Operation rejected with duplicate SKU error. | `SkuUniquenessPolicy` |
-| **INV-03** | [e.g. Price amount cannot be negative.] | Creation rejected with invalid argument exception. | `PriceAmount` Value Object |
+| **INV-01** | [State the implemented business invariant; avoid assuming a review or moderation process.] | [Observed rejection or failure outcome.] | [Actual aggregate method or policy] |
+| **INV-02** | [State the actual uniqueness boundary, such as per aggregate or per merchant, only when enforced.] | [Observed rejection or failure outcome.] | [Actual method, policy, or persistence constraint] |
+| **INV-03** | [Another implemented invariant, if present.] | [Observed rejection or failure outcome.] | [Actual aggregate method or value object] |
 
 ---
 
@@ -139,12 +134,9 @@ classDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> DRAFT : Create command
-    DRAFT --> IN_REVIEW : Submit for review
-    IN_REVIEW --> ACTIVE : Approve
-    IN_REVIEW --> DRAFT : Reject / request changes
-    ACTIVE --> ARCHIVED : Archive command
-    ARCHIVED --> [*]
+    [*] --> InitialState : create()
+    InitialState --> NextState : [Implemented operation and guard]
+    NextState --> TerminalState : [Implemented operation and guard]
 ```
 
 ### Transition Matrix
@@ -163,8 +155,17 @@ stateDiagram-v2
 
 | Event Name | Trigger | Key Attributes | Target Consumers |
 | :--- | :--- | :--- | :--- |
-| `[AggregateCreatedEvent]` | Initial creation | `aggregateId`, `tenantId`, `timestamp` | Workflows, Search Projections, Notifications |
-| `[StateChangedEvent]` | State transition | `aggregateId`, `oldState`, `newState` | Downstream modules via Outbox |
+| [Actual aggregate domain event] | [Actual trigger] | [Actual event fields] | [Observed consumers] |
+
+Separate aggregate-emitted domain events from store-level integration events and workflow request/completion signals; do not label all three as aggregate events.
+
+### Store Integration Events
+
+[List only integration event records that are actually published for cross-module consumers, or state that none are currently emitted.]
+
+### Workflow Signals
+
+[List only workflow request, completion, or failure signal records that are actually emitted/consumed, or state that none apply.]
 
 ### Consumed Events (Cross-Domain Signals)
 

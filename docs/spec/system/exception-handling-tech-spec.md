@@ -1,9 +1,9 @@
 # Tech Specification: Exception Handling Framework
 
-> **Summary:** A consistent, strongly-typed error handling framework that translates domain business rule violations into standard RFC-7807 Problem Details for API responses.  
-> **Classification:** Cross-Cutting Concern / Platform Infrastructure  
-> **Supporting Modules:** `framework/exception` / Global `@RestControllerAdvice`  
-> **Related Architecture ADRs:** [ADR-003](../system/ADR_003-Exception_handling_framework_architecture.md)
+> **Summary:** A consistent, strongly-typed error handling framework that translates domain business rule violations into standard RFC-7807 Problem Details for API responses.
+> **Classification:** Cross-Cutting Concern / Platform Infrastructure
+> **Supporting Modules:** `framework/exception` / Global `@RestControllerAdvice`
+> **Related Architecture ADRs:** [ADR-003](../../dev/system/ADR_003-Exception_handling_framework_architecture.md)
 
 ---
 
@@ -24,7 +24,7 @@ Without a unified error handling contract, bounded contexts either leak internal
 ### Key Benefits & Trade-offs
 
 **Core Benefits:**
-- Stable, machine-readable error codes (`catalog.domain.product_not_found`) that clients can rely on.
+- Stable, machine-readable error codes (`cat.domain.product_not_found`) that clients can rely on.
 - Business logic is completely decoupled from HTTP status codes.
 - `ErrorCategory` guarantees that domain invariants always result in `422 Unprocessable Entity` rather than generic `400`s or `500`s.
 
@@ -127,7 +127,7 @@ Normative specification. An implementation is compliant only when all MUST / MUS
 - **R-01:** Every bounded context **MUST** define its own sealed interface extending `MessageSource` for its internal errors.
 - **R-02:** Domain aggregates and services **MUST NOT** throw Spring framework exceptions or bare `RuntimeException`s for expected business rule violations.
 - **R-03:** Domain exceptions **MUST NOT** contain HTTP status codes. They must only return an `ErrorCategory` (e.g., `BUSINESS_RULE`, `NOT_FOUND`).
-- **R-04:** The `code()` returned by a `MessageSource` **MUST** follow the dot-notation standard: `<module>.<layer>.<reason>` (e.g., `inventory.domain.insufficient_stock`).
+- **R-04:** The `code()` returned by a `MessageSource` **MUST** follow the implemented short module prefix and dot-notation format. Current prefixes include `cat.`, `inv.`, `idt.`, `mer.`, and `shr.` (for example, `cat.domain.invalid_product_status_transition`, `idt.service.auth.access_denied`, or `mer.domain.status_transition_invalid`).
 - **R-05:** Error codes **MUST NOT** contain sensitive PII or human-readable prose. Human-readable text belongs in the resolved `detail` field or i18n message bundles.
 
 ### Storage & Data Contract
@@ -140,20 +140,27 @@ Normative specification. An implementation is compliant only when all MUST / MUS
   "title": "Unprocessable Entity",
   "status": 422,
   "detail": "Invalid state transition from ARCHIVED to ACTIVE.",
-  "instance": "/api/v1/products/123",
-  "code": "catalog.domain.invalid_state",
+  "code": "cat.domain.invalid_product_status_transition",
   "args": {
     "current": "ARCHIVED",
     "expected": "ACTIVE"
   },
-  "timestamp": "2026-09-12T14:30:00Z",
-  "traceId": "trace-456"
+  "timestamp": "2026-10-19T14:30:00Z",
+  "traceId": "trace-456",
+  "path": "/api/v1/products/123",
+  "module": "catalog",
+  "retryable": false
 }
 ```
+
+For a `DomainException`, the handler sets `code`, `args`, `traceId`, `path`, `timestamp`, `module`, and `retryable`; it sets `retryAfterMs=2000` only for `inv.infra.persistence.internal`. It marks `inv.infra.persistence.internal` and `shr.internal.unexpected` retryable. The handler creates a Spring `ProblemDetail` with status, title, and detail; its type defaults to `about:blank`. Serialization emits those standard members. The handler does not set an `instance` extension, so clients must use `path` for the request URI. The separate async-timeout handler sets only `path`, `timestamp`, and `retryable` among these custom extensions.
 
 ### Configuration Knobs
 
 | Knob Name | Default Value | Unit / Format | Description |
 | :--- | :--- | :--- | :--- |
-| `spring.messages.basename` | `messages` | String | Defines the resource bundle used by the `MessageResolver` to look up localized error strings. |
-| `server.error.include-stacktrace` | `never` | Enum | The global handler MUST ensure stack traces are never leaked to external API clients in production. |
+| `spring.messages.basename` | Spring Boot default: `messages` | String or comma-separated resource basenames | Supplies message bundles to the injected Spring `MessageSource`; the handler falls back to the error code when no message is found. |
+
+No exception-specific property is configured in the checked-in application profile. The custom handler builds `ProblemDetail` responses without adding a stack-trace extension; this is separate from Spring Boot's fallback error-response settings.
+
+Implementation references: `store/src/main/java/com/grab/store/shared/exception/GlobalApiExceptionHandler.java`, `SpringMessageResolver.java`, and `framework/src/main/java/com/grab/framework/exception/MessageSource.java`.

@@ -1,9 +1,9 @@
 # Tech Specification: Workflow Engine & Orchestrated Saga
 
-> **Summary:** A durable, event-driven Process Manager that orchestrates multi-step, cross-module business workflows with automatic state checkpointing, timeouts, and compensatory rollbacks.  
-> **Classification:** Architectural Pattern / Platform Infrastructure  
-> **Supporting Modules:** `framework/workflow` / `workflow-infrastructure` / `store/workflows`  
-> **Related Architecture ADRs:** [ADR-006](../system/ADR_006-Orchestrated_saga_architecture.md), [ADR-007](../system/ADR_007-Workflow_framework_internal_design.md)
+> **Summary:** A durable, event-driven process manager that coordinates cross-module workflows, checkpoints progress, handles timeouts, and requests defined compensations.
+> **Classification:** Architectural Pattern / Platform Infrastructure
+> **Supporting Modules:** `framework/workflow` / `workflow-infrastructure` / `store/workflows`
+> **Related Architecture ADRs:** [ADR-006](../../dev/system/ADR_006-Orchestrated_saga_architecture.md), [ADR-007](../../dev/system/ADR_007-Workflow_framework_internal_design.md)
 
 ---
 
@@ -27,7 +27,7 @@ Cross-module business operations (like creating a product, syncing inventory, an
 **Core Benefits:**
 - Bounded contexts remain completely ignorant of the orchestrator; they just listen to commands and emit completion events.
 - Crash resilience: If the app crashes midway, the workflow safely resumes from the last checkpoint.
-- Guaranteed compensatory rollback: If a step fails, prior steps are systematically reversed.
+- Defined compensations are collected and dispatched after a failure; the engine records whether they complete.
 
 **Known Trade-offs:**
 - Requires maintaining a central workflow database (instances, correlations, signal dedup).
@@ -39,7 +39,7 @@ Cross-module business operations (like creating a product, syncing inventory, an
 
 ### Core Concept
 
-The Workflow Engine implements the **Process Manager (Orchestrated Saga)** pattern. It evaluates a defined state machine (`ProcessDefinition`), dispatches a command to a module, waits in a suspended state for a completion signal, and then advances to the next step. If an error occurs, it walks backward through the completed steps, dispatching compensation commands.
+The Workflow Engine implements the **Process Manager (Orchestrated Saga)** pattern. It evaluates a workflow definition, dispatches a request to a module, waits for a completion signal, and then advances. On failure, it collects compensation requests by walking the defined steps in reverse order and publishes the collected batch. The requests are not gated on sequential acknowledgements; acknowledgement signals update context, and the workflow becomes `COMPENSATED` only when every compensation predicate is satisfied.
 
 ```mermaid
 flowchart LR
@@ -47,7 +47,7 @@ flowchart LR
         Engine["Workflow Engine"]
         ModA["Module A"]
         ModB["Module B"]
-        
+
         Engine -->|"1. Dispatch Step 1"| ModA
         ModA -->|"2. Step 1 Completed"| Engine
         Engine -->|"3. Dispatch Step 2"| ModB
@@ -66,13 +66,15 @@ stateDiagram-v2
     RUNNING --> WAITING_EXTERNAL : Step dispatched (Async)
     WAITING_EXTERNAL --> WAITING_EXTERNAL : Step signal received / Next step
     WAITING_EXTERNAL --> COMPLETED : Final step completed
-    
-    RUNNING --> COMPENSATING : Sync Step Error
-    WAITING_EXTERNAL --> COMPENSATING : Async Step Failed / Timeout
-    
-    COMPENSATING --> COMPENSATING : Compensation step dispatched/ack'd
-    COMPENSATING --> COMPENSATED : All completed steps reversed
-    COMPENSATING --> FAILED : Compensation logic failed
+
+    RUNNING --> COMPENSATING : Step setup error with compensation requests
+    WAITING_EXTERNAL --> COMPENSATING : Async step failed / timed out
+
+    COMPENSATING --> COMPENSATING : Compensation requests published / acknowledgements received
+    COMPENSATING --> COMPENSATED : All defined compensation predicates satisfied
+    COMPENSATING --> FAILED : Compensation timeout
+    RUNNING --> FAILED : Failure with no compensation requests
+    WAITING_EXTERNAL --> FAILED : Failure with no compensation requests
 
     COMPLETED --> [*]
     COMPENSATED --> [*]
@@ -139,19 +141,19 @@ sequenceDiagram
     Engine->>Store: Save Instance: RUNNING
     Engine->>Outbox: Dispatch Step 1 Command
     Engine->>Store: Checkpoint: WAITING_EXTERNAL (Step 1)
-    
+
     Outbox->>ModA: Deliver Command
     ModA->>ModA: Commit changes
     ModA->>Engine: Publish Step 1 Completed (via Inbox)
-    
+
     Engine->>Store: Load Instance (optimistic lock)
     Engine->>Outbox: Dispatch Step 2 Command
     Engine->>Store: Checkpoint: WAITING_EXTERNAL (Step 2)
-    
+
     Outbox->>ModB: Deliver Command
     ModB->>ModB: Commit changes
     ModB->>Engine: Publish Step 2 Completed (via Inbox)
-    
+
     Engine->>Store: Save Instance: COMPLETED
     Engine-->>API: Finished
 ```
@@ -167,8 +169,12 @@ Normative specification. An implementation is compliant only when all MUST / MUS
 - **R-01:** The workflow engine **MUST NOT** share a database transaction with the participating business modules (e.g., Catalog, Inventory).
 - **R-02:** The workflow engine **MUST NOT** directly invoke `@Service` beans from other bounded contexts. All cross-module communication MUST occur via dispatched outbox events.
 - **R-03:** Each `WorkflowInstance` mutation **MUST** use optimistic locking (`version` field) to prevent concurrent signal processing from corrupting state.
-- **R-04:** Every asynchronous step **MUST** define a `timeout()`. The `WorkflowSweeper` MUST automatically fail or resume steps that exceed this timeout.
+- **R-04:** Every step uses its declared `timeout()` or the fixed 10-minute default. The workflow sweeper starts compensation for an expired external step and fails a workflow whose compensation remains pending beyond its timeout.
 - **R-05:** Compensation logic **MUST** be idempotent. A compensation action may be dispatched multiple times if the network or process crashes.
+
+### Current Outcome and Compensation Behavior
+
+The engine marks a workflow `FAILED` immediately when a failure yields no compensation requests. When requests exist, it marks the instance `COMPENSATING` and publishes the collected requests together, in reverse step-definition order. It marks the instance `COMPENSATED` only after all compensation predicates are satisfied. If compensation remains pending until the step timeout, the engine terminates `FAILED`; a failure event received while compensating does not itself establish a compensated outcome. Thus `COMPENSATED` means all defined compensations completed, while `FAILED` can retain partially applied business state.
 
 ### Storage & Data Contract
 
@@ -193,8 +199,11 @@ erDiagram
 
 ### Configuration Knobs
 
-| Knob Name | Default Value | Unit / Format | Description |
+| Binding / constant | Value | Unit / format | Description |
 | :--- | :--- | :--- | :--- |
-| `workflow.sweeper.enabled` | `true` | Boolean | Toggles the background sweeper that detects timed-out steps. |
-| `workflow.sweeper.interval` | `30000` | Milliseconds | How often the sweeper scans for stuck instances. |
-| `workflow.retry.max-optimistic-retries` | `3` | Integer | Max attempts to retry `onSignal` if `ObjectOptimisticLockingFailureException` occurs. |
+| `workflows.sweeper.fixed-delay-ms` | `30000` ms fallback; same value in development profile | Milliseconds | Delay between timeout sweeps. |
+| `StepDefinition.DEFAULT_TIMEOUT` | 10 | Minutes | Fixed default timeout when a workflow step does not override it. |
+| `EventDrivenWorkflowEngine.SWEEP_BATCH` | 50 | Instances | Fixed maximum candidate count per workflow definition and sweep. |
+| `TransactionalWorkflowEngine.SIGNAL_ATTEMPTS` | 3 | Attempts | Fixed optimistic-lock retry count for signal processing and resume; not configurable. |
+
+Implementation references: `framework/src/main/java/com/grab/framework/workflow/impl/EventDrivenWorkflowEngine.java`, `framework/src/main/java/com/grab/framework/workflow/StepDefinition.java`, `workflow-infrastructure/src/main/java/com/grab/workflow/infrastructure/service/TransactionalWorkflowEngine.java`, and `store/src/main/java/com/grab/store/workflows/internal/service/WorkflowSweeper.java`.

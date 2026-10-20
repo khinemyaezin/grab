@@ -1,9 +1,9 @@
 # Domain Specification: Pricing
 
-> **Bounded Context:** Pricing  
-> **Primary Purpose:** Entity-agnostic pricing engine managing base prices, volume tiers, campaign overrides, and runtime price calculation contexts.  
-> **Module Root:** `pricing-domain` / `pricing-infrastructure` / `store/pricing`  
-> **Related Workflows:** [Create Sellable Product](../../workflows/create-sellable-product-workflow-spec.md)
+> **Bounded Context:** Pricing
+> **Primary Purpose:** Entity-agnostic pricing engine managing base prices, volume tiers, campaign overrides, and runtime price calculation contexts.
+> **Module Root:** `pricing-domain` / `pricing-application` / `pricing-adapter-persistence` / `store/pricing`
+> **Related Workflows:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md)
 
 ---
 
@@ -100,7 +100,7 @@ classDiagram
         +String value
         +PriceRuleOperator operator
     }
-    
+
     class PriceList {
         +Id id
         +String title
@@ -110,7 +110,7 @@ classDiagram
         +Instant endsAt
         +isActiveAt(now) boolean
     }
-    
+
     class PricePreference {
         +Id id
         +String attribute
@@ -157,16 +157,14 @@ stateDiagram-v2
     [*] --> DRAFT : create()
     DRAFT --> ACTIVE : update(status=ACTIVE)
     ACTIVE --> DRAFT : update(status=DRAFT)
-    DRAFT --> [*] : delete()
-    ACTIVE --> [*] : delete()
 ```
 
 ### Transition Matrix (PriceList)
 
 | Current State | Trigger / Event | Next State | Guard Condition / Prerequisite |
 | :--- | :--- | :--- | :--- |
-| `DRAFT` | `update(status=ACTIVE)` | `ACTIVE` | List acts on calculations only when within the time window. |
-| `ACTIVE` | `update(status=DRAFT)` | `DRAFT` | Temporarily suspends the campaign from all runtime calculations. |
+| `DRAFT` | `update(status=ACTIVE)` | `ACTIVE` | Status is set through `replaceMetadata()`; the time window is checked at calculation time. |
+| `ACTIVE` | `update(status=DRAFT)` | `DRAFT` | Status is set through `replaceMetadata()` and the list is excluded from calculations. |
 
 ---
 
@@ -177,9 +175,17 @@ stateDiagram-v2
 | Event Name | Trigger | Key Attributes | Target Consumers |
 | :--- | :--- | :--- | :--- |
 | `PriceSetCreatedEvent` | Initial creation | `priceSetId` | Pricing Search / Downstream |
-| `PriceSetPricesChangedEvent` | Base prices modified | `priceSetId` | Storefront Indexing, Workflows |
-| `PriceListStatusChangedEvent` | Campaign state change | `priceListId`, `status` | Campaign monitoring |
+| `PriceSetUpdatedEvent` | Price set content changes | `priceSetId`, time | Pricing projections and downstream bridges |
+| `PriceListCreatedEvent` | Price list created | `priceListId`, time | Pricing projections |
+| `PriceListUpdatedEvent` | Price list metadata, rules, or prices change | `priceListId`, time | Pricing projections and downstream bridges |
+| `PricePreferenceCreatedEvent` / `PricePreferenceUpdatedEvent` | Preference lifecycle | `pricePreferenceId`, time | Pricing projections |
 
 ### Consumed Events (Cross-Domain Signals)
 
 *Note: Pricing does not directly listen to domain events for lifecycle management. Pricing links are managed by the application via synchronous commands (e.g., Workflow orchestrators creating Price Sets for new Variants).*
+
+These are aggregate domain events written to the module outbox. Workflow acknowledgements such as `VariantPriceCreatedEvent` and `VariantPriceSyncedEvent` are separate store-level signals and are not emitted by the Pricing aggregates.
+
+The store publisher maps `PriceSetCreatedEvent` and `PriceSetUpdatedEvent` to the separate `PriceSetChangedIntegrationEvent` record. Pricing workflow requests and acknowledgements remain a third event category.
+
+Implementation references: `pricing-domain/src/main/java/com/pricing/domain/aggregate/PriceSet.java`, `PriceList.java`, and `PricePreference.java`.
