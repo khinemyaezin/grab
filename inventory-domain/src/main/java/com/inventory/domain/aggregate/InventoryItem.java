@@ -31,6 +31,7 @@ public class InventoryItem extends AggregateRoot<Id> {
     private ReorderConfig reorderConfig;
     private InventoryQuantity quantity;
     private InventoryStatus status;
+    private boolean allowBackorder;
     private LocalDateTime lastUpdated;
 
     public InventoryItem(
@@ -91,6 +92,12 @@ public class InventoryItem extends AggregateRoot<Id> {
     public int getAvailableQuantity() {
         return quantity.available();
     }
+
+    public boolean isAllowBackorder() { return allowBackorder; }
+
+    public void updateBackorderPolicy(boolean allowBackorder) { this.allowBackorder = allowBackorder; }
+
+    public void setAllowBackorder(boolean allowBackorder) { this.allowBackorder = allowBackorder; }
 
     public StockMovement receiveStock(int qty, StockMovementType type, String referenceId, String notes, Id userId, Id movementId) {
         validateNotBlocked();

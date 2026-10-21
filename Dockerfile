@@ -41,7 +41,8 @@ COPY customer-domain/pom.xml customer-domain/
 COPY customer-application/pom.xml customer-application/
 COPY customer-adapter-persistence/pom.xml customer-adapter-persistence/
 
-COPY storefront-query-infrastructure/pom.xml storefront-query-infrastructure/
+COPY discovery-application/pom.xml discovery-application/
+COPY discovery-persistence-adapter/pom.xml discovery-persistence-adapter/
 
 COPY cart-domain/pom.xml cart-domain/
 COPY cart-application/pom.xml cart-application/
@@ -93,7 +94,8 @@ COPY customer-domain/src customer-domain/src
 COPY customer-application/src customer-application/src
 COPY customer-adapter-persistence/src customer-adapter-persistence/src
 
-COPY storefront-query-infrastructure/src storefront-query-infrastructure/src
+COPY discovery-application/src discovery-application/src
+COPY discovery-persistence-adapter/src discovery-persistence-adapter/src
 
 COPY cart-domain/src cart-domain/src
 COPY cart-application/src cart-application/src

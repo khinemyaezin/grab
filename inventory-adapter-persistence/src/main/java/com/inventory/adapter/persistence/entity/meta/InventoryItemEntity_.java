@@ -19,6 +19,7 @@ public class InventoryItemEntity_ {
     public static volatile SingularAttribute<InventoryItemEntity, Integer> reserved;
     public static volatile SingularAttribute<InventoryItemEntity, Integer> inTransit;
     public static volatile SingularAttribute<InventoryItemEntity, Integer> damaged;
+    public static volatile SingularAttribute<InventoryItemEntity, Boolean> allowBackorder;
     public static volatile SingularAttribute<InventoryItemEntity, Integer> safetyStock;
     public static volatile SingularAttribute<InventoryItemEntity, Integer> reorderPoint;
     public static volatile SingularAttribute<InventoryItemEntity, Integer> reorderQuantity;
@@ -37,6 +38,7 @@ public class InventoryItemEntity_ {
     public static final String RESERVED = "reserved";
     public static final String IN_TRANSIT = "inTransit";
     public static final String DAMAGED = "damaged";
+    public static final String ALLOW_BACKORDER = "allowBackorder";
     public static final String SAFETY_STOCK = "safetyStock";
     public static final String REORDER_POINT = "reorderPoint";
     public static final String REORDER_QUANTITY = "reorderQuantity";

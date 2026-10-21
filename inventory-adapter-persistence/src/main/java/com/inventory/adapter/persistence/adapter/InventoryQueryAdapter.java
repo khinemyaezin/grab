@@ -124,6 +124,7 @@ public class InventoryQueryAdapter implements InventoryQueryPort {
                 item.getReserved(),
                 item.getInTransit(),
                 item.getDamaged(),
+                item.isAllowBackorder(),
                 item.getSafetyStock(),
                 item.getReorderPoint(),
                 item.getReorderQuantity(),

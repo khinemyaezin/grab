@@ -11,6 +11,11 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:true}
+
 catalog:
   seed:
     enabled: ${CATALOG_SEED_ENABLED:true}

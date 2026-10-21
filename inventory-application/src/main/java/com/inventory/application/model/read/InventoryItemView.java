@@ -16,6 +16,7 @@ public record InventoryItemView(
         int reserved,
         int inTransit,
         int damaged,
+        boolean allowBackorder,
         int safetyStock,
         int reorderPoint,
         int reorderQuantity,

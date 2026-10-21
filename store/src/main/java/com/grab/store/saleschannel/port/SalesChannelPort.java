@@ -1,0 +1,32 @@
+package com.grab.store.saleschannel.port;
+
+import java.util.Optional;
+
+public interface SalesChannelPort {
+    Optional<SalesChannelSlice> find(String salesChannelId);
+
+    boolean isEnabled(String salesChannelId);
+
+    record SalesChannelSlice(
+            String salesChannelId,
+            String type,
+            String status,
+            String merchantId,
+            String currency
+    ) {
+        public SalesChannelSlice(String salesChannelId, String type, String status, String merchantId) {
+            this(salesChannelId, type, status, merchantId, "MMK");
+        }
+        public boolean enabled() {
+            return "ENABLED".equals(status);
+        }
+
+        public boolean website() {
+            return "WEBSITE".equals(type);
+        }
+
+        public boolean marketplace() {
+            return "MARKETPLACE".equals(type);
+        }
+    }
+}

@@ -27,7 +27,8 @@
         <pricing-application.version>0.0.1</pricing-application.version>
         <sales-channel-application.version>0.0.1</sales-channel-application.version>
         <sales-channel-adapter-persistence.version>0.0.1</sales-channel-adapter-persistence.version>
-        <storefront-query-infrastructure.version>0.0.1</storefront-query-infrastructure.version>
+        <discovery-application.version>0.0.1</discovery-application.version>
+        <discovery-persistence-adapter.version>0.0.1</discovery-persistence-adapter.version>
         <cart-application.version>0.0.1</cart-application.version>
         <cart-adapter-persistence.version>0.0.1</cart-adapter-persistence.version>
         <customer-application.version>0.0.1</customer-application.version>
@@ -160,8 +161,13 @@
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
-            <artifactId>storefront-query-infrastructure</artifactId>
-            <version>${storefront-query-infrastructure.version}</version>
+            <artifactId>discovery-application</artifactId>
+            <version>${discovery-application.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>discovery-persistence-adapter</artifactId>
+            <version>${discovery-persistence-adapter.version}</version>
         </dependency>
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>

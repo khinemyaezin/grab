@@ -1,22 +1,21 @@
 package com.grab.store.storefrontquery.internal.query.handler;
 
-import com.grab.store.saleschannel.port.SalesChannelQuery;
-import com.grab.store.storefrontquery.internal.exception.StorefrontQueryServiceException;
-import com.grab.store.storefrontquery.internal.query.SearchBuyableOffersQuery;
-import com.storefrontquery.infrastructure.repository.jpa.BuyableOfferJpaRepository;
+import com.grab.discovery.application.model.read.DiscoveryProductView;
+import com.grab.discovery.application.model.read.SearchBuyableOffersQuery;
+import com.grab.discovery.application.port.inbound.SearchBuyableOffersUseCase;
+import com.grab.framework.id.impl.CommonId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,28 +23,20 @@ import static org.mockito.Mockito.when;
 class SearchBuyableOffersQueryHandlerTest {
 
     @Mock
-    private BuyableOfferJpaRepository offers;
-    @Mock
-    private SalesChannelQuery salesChannels;
+    private SearchBuyableOffersUseCase searchBuyableOffersUseCase;
     @InjectMocks
     private SearchBuyableOffersQueryHandler handler;
 
     @Test
-    void handle_channelDisabled_throwsStorefrontQueryServiceException() {
-        when(salesChannels.isEnabled("web-1")).thenReturn(false);
+    void handle_validQuery_delegatesToUseCase() {
+        SearchBuyableOffersQuery query = new SearchBuyableOffersQuery(new CommonId("web-1"), Pageable.unpaged());
+        Page<DiscoveryProductView> expectedPage = new PageImpl<>(List.of());
+        when(searchBuyableOffersUseCase.execute(query)).thenReturn(expectedPage);
 
-        assertThatThrownBy(() -> handler.handle(new SearchBuyableOffersQuery("web-1", Pageable.unpaged())))
-                .isInstanceOf(StorefrontQueryServiceException.class);
-    }
+        Page<DiscoveryProductView> result = handler.handle(query);
 
-    @Test
-    void handle_channelEnabled_queriesBuyableOffers() {
-        when(salesChannels.isEnabled("web-1")).thenReturn(true);
-        when(offers.findBySalesChannelIdAndBuyableTrue(eq("web-1"), any()))
-                .thenReturn(new PageImpl<>(List.of()));
-
-        handler.handle(new SearchBuyableOffersQuery("web-1", Pageable.unpaged()));
-
-        verify(offers).findBySalesChannelIdAndBuyableTrue(eq("web-1"), any());
+        assertThat(result).isSameAs(expectedPage);
+        verify(searchBuyableOffersUseCase).execute(query);
     }
 }
+

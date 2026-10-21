@@ -19,6 +19,7 @@ public final class InventoryItemResults {
                 item.getQuantity().inTransit(),
                 item.getQuantity().damaged(),
                 item.getAvailableQuantity(),
+                item.isAllowBackorder(),
                 item.getStatus().name(),
                 item.getReorderConfig().safetyStock(),
                 item.getReorderConfig().reorderPoint(),

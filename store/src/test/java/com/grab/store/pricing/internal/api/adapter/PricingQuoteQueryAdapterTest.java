@@ -42,7 +42,7 @@ class PricingQuoteQueryAdapterTest {
 
     @Test
     void quote_validQuery_returnsQuotedPrice() {
-        QuoteVariantPriceResult result = new QuoteVariantPriceResult(new BigDecimal("19.99"), "USD", "ps-1");
+        QuoteVariantPriceResult result = new QuoteVariantPriceResult(new BigDecimal("19.99"), null, "USD", "ps-1");
         when(quoteVariantPriceUseCase.execute(any(QuoteVariantPriceQuery.class)))
                 .thenReturn(Optional.of(result));
 

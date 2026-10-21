@@ -1,6 +1,6 @@
 package com.grab.store.cart.internal.adapter;
 
-import com.grab.store.saleschannel.port.SalesChannelQuery;
+import com.grab.store.saleschannel.port.SalesChannelPort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,22 +16,22 @@ import static org.mockito.Mockito.when;
 class SalesChannelLookupAdapterTest {
 
     @Mock
-    private SalesChannelQuery salesChannelQuery;
+    private SalesChannelPort salesChannelPort;
 
     @InjectMocks
     private SalesChannelLookupAdapter adapter;
 
     @Test
     void findEnabled_channelMissing_returnsEmpty() {
-        when(salesChannelQuery.find("web-1")).thenReturn(Optional.empty());
+        when(salesChannelPort.find("web-1")).thenReturn(Optional.empty());
 
         assertThat(adapter.findEnabled("web-1")).isEmpty();
     }
 
     @Test
     void findEnabled_channelDisabled_returnsEmpty() {
-        when(salesChannelQuery.find("web-1")).thenReturn(Optional.of(
-                new SalesChannelQuery.SalesChannelSlice("web-1", "WEBSITE", "DISABLED", "m-1")
+        when(salesChannelPort.find("web-1")).thenReturn(Optional.of(
+                new SalesChannelPort.SalesChannelSlice("web-1", "WEBSITE", "DISABLED", "m-1")
         ));
 
         assertThat(adapter.findEnabled("web-1")).isEmpty();
@@ -39,8 +39,8 @@ class SalesChannelLookupAdapterTest {
 
     @Test
     void findEnabled_channelEnabled_returnsChannelSnapshot() {
-        when(salesChannelQuery.find("web-1")).thenReturn(Optional.of(
-                new SalesChannelQuery.SalesChannelSlice("web-1", "WEBSITE", "ENABLED", "m-1")
+        when(salesChannelPort.find("web-1")).thenReturn(Optional.of(
+                new SalesChannelPort.SalesChannelSlice("web-1", "WEBSITE", "ENABLED", "m-1")
         ));
 
         assertThat(adapter.findEnabled("web-1")).hasValueSatisfying(snapshot -> {
@@ -51,8 +51,8 @@ class SalesChannelLookupAdapterTest {
 
     @Test
     void findEnabled_nullType_defaultsToMarketplace() {
-        when(salesChannelQuery.find("mp-1")).thenReturn(Optional.of(
-                new SalesChannelQuery.SalesChannelSlice("mp-1", null, "ENABLED", null)
+        when(salesChannelPort.find("mp-1")).thenReturn(Optional.of(
+                new SalesChannelPort.SalesChannelSlice("mp-1", null, "ENABLED", null)
         ));
 
         assertThat(adapter.findEnabled("mp-1")).hasValueSatisfying(snapshot ->

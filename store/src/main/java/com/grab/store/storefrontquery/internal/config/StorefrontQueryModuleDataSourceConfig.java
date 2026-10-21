@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@ComponentScan(basePackages = "com.storefrontquery.infrastructure")
+@ComponentScan(basePackages = "com.grab.discovery.adapter.persistence")
 @EnableJpaRepositories(
-        basePackages = "com.storefrontquery.infrastructure.repository.jpa",
+        basePackages = "com.grab.discovery.adapter.persistence.repository.jpa",
         entityManagerFactoryRef = "storefrontQueryEntityManagerFactory",
         transactionManagerRef = "storefrontQueryTransactionManager"
 )
@@ -72,7 +72,7 @@ public class StorefrontQueryModuleDataSourceConfig {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
         factory.setJpaVendorAdapter(vendorAdapter);
-        factory.setPackagesToScan("com.storefrontquery.infrastructure");
+        factory.setPackagesToScan("com.grab.discovery.adapter.persistence");
         factory.setDataSource(dataSource);
         factory.setPersistenceUnitName("storefrontquery");
         factory.setJpaPropertyMap(hibernateProperties());

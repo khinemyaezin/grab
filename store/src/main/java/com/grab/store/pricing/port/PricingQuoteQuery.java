@@ -9,6 +9,11 @@ public interface PricingQuoteQuery {
 
     List<String> variantIdsForPriceSet(String priceSetId);
 
-    record QuotedPrice(BigDecimal amount, String currencyCode, String priceSetId) {
+    record QuotedPrice(
+            BigDecimal amount,
+            BigDecimal originalAmount,
+            String currencyCode,
+            String priceSetId
+    ) {
     }
 }

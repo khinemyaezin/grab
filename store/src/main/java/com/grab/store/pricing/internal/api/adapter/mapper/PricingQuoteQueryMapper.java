@@ -8,6 +8,6 @@ import org.springframework.stereotype.Component;
 public class PricingQuoteQueryMapper {
 
     public QuotedPrice toQuotedPrice(QuoteVariantPriceResult quoted) {
-        return new QuotedPrice(quoted.amount(), quoted.currencyCode(), quoted.priceSetId());
+        return new QuotedPrice(quoted.amount(), quoted.originalAmount(), quoted.currencyCode(), quoted.priceSetId());
     }
 }
