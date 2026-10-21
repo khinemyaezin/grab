@@ -15,6 +15,7 @@ CREATE TABLE bin (
 );
 
 CREATE TABLE inventory_item (
+    allow_backorder boolean not null default false,
     damaged integer not null,
     in_transit integer not null,
     max_stock integer,

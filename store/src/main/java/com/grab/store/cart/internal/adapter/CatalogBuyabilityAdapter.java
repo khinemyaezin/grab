@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component
+@Component("cartCatalogBuyabilityAdapter")
 @RequiredArgsConstructor
 public class CatalogBuyabilityAdapter implements CatalogBuyabilityPort {
     private final CatalogBuyabilityQuery catalogBuyabilityQuery;

@@ -47,6 +47,7 @@ class CreateSellableProductInventoryEventListenerTest {
                         0,
                         0,
                         10,
+                        false,
                         "ACTIVE",
                         1,
                         2,

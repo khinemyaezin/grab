@@ -2,7 +2,7 @@ package com.grab.store.saleschannel.internal.api.adapter;
 
 import com.grab.store.saleschannel.internal.api.adapter.mapper.SalesChannelQueryMapper;
 import com.grab.store.saleschannel.internal.config.SalesChannelReadTransactional;
-import com.grab.store.saleschannel.port.SalesChannelQuery;
+import com.grab.store.saleschannel.port.SalesChannelPort;
 import com.saleschannel.application.model.read.FindSalesChannelSliceQuery;
 import com.saleschannel.application.port.inbound.FindSalesChannelSliceUseCase;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
-public class SalesChannelQueryAdapter implements SalesChannelQuery {
+public class SalesChannelPortAdapter implements SalesChannelPort {
 
     private final FindSalesChannelSliceUseCase findSalesChannelSliceUseCase;
     private final SalesChannelQueryMapper mapper;

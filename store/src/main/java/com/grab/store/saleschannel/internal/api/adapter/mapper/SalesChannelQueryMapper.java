@@ -1,6 +1,6 @@
 package com.grab.store.saleschannel.internal.api.adapter.mapper;
 
-import com.grab.store.saleschannel.port.SalesChannelQuery.SalesChannelSlice;
+import com.grab.store.saleschannel.port.SalesChannelPort.SalesChannelSlice;
 import com.saleschannel.application.model.read.FindSalesChannelSliceResult;
 import org.springframework.stereotype.Component;
 

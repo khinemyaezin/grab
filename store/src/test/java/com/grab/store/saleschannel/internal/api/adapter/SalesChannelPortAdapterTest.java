@@ -1,7 +1,7 @@
 package com.grab.store.saleschannel.internal.api.adapter;
 
 import com.grab.store.saleschannel.internal.api.adapter.mapper.SalesChannelQueryMapper;
-import com.grab.store.saleschannel.port.SalesChannelQuery.SalesChannelSlice;
+import com.grab.store.saleschannel.port.SalesChannelPort.SalesChannelSlice;
 import com.saleschannel.application.model.read.FindSalesChannelSliceQuery;
 import com.saleschannel.application.model.read.FindSalesChannelSliceResult;
 import com.saleschannel.application.port.inbound.FindSalesChannelSliceUseCase;
@@ -18,16 +18,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SalesChannelQueryAdapterTest {
+class SalesChannelPortAdapterTest {
 
     @Mock
     private FindSalesChannelSliceUseCase findSalesChannelSliceUseCase;
 
-    private SalesChannelQueryAdapter adapter;
+    private SalesChannelPortAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new SalesChannelQueryAdapter(findSalesChannelSliceUseCase, new SalesChannelQueryMapper());
+        adapter = new SalesChannelPortAdapter(findSalesChannelSliceUseCase, new SalesChannelQueryMapper());
     }
 
     @Test

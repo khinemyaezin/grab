@@ -5,7 +5,7 @@ import com.grab.store.inventory.port.InventoryAvailabilityQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("cartInventoryAvailabilityAdapter")
 @RequiredArgsConstructor
 public class InventoryAvailabilityAdapter implements InventoryAvailabilityPort {
     private final InventoryAvailabilityQuery inventoryAvailabilityQuery;

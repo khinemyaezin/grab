@@ -1,6 +1,7 @@
 package com.grab.store.storefrontquery;
 
 import com.grab.store.storefrontquery.internal.api.rest.controller.StorefrontProductController;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +19,19 @@ public class StorefrontQueryRootController {
     @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
     public ResponseEntity<RepresentationModel<?>> root() {
         RepresentationModel<?> model = new RepresentationModel<>();
-        model.add(linkTo(methodOn(StorefrontQueryRootController.class).root()).withSelfRel());
-        model.add(linkTo(methodOn(StorefrontProductController.class).list(null, null))
-                .withRel("list-storefront-products"));
-        model.add(linkTo(methodOn(StorefrontProductController.class).get(null, null))
-                .withRel("get-storefront-product"));
+
+        Link selfLink = linkTo(methodOn(StorefrontQueryRootController.class).root())
+                .withSelfRel();
+        model.add(selfLink);
+
+        Link listProductsLink = linkTo(methodOn(StorefrontProductController.class).list(null, null, null))
+                .withRel("list-storefront-products");
+        model.add(listProductsLink);
+
+        Link getProductLink = linkTo(methodOn(StorefrontProductController.class).get(null, null))
+                .withRel("get-storefront-product");
+        model.add(getProductLink);
+
         return ResponseEntity.ok(model);
     }
 }
