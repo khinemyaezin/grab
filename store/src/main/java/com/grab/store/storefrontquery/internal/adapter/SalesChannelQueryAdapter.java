@@ -1,6 +1,6 @@
 package com.grab.store.storefrontquery.internal.adapter;
 
-import com.grab.discovery.application.port.outbound.SalesChannelLookupPort;
+import com.grab.discovery.application.port.outbound.SalesChannelQueryPort;
 import com.grab.framework.id.Id;
 import com.grab.store.saleschannel.port.SalesChannelPort;
 import lombok.RequiredArgsConstructor;
@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component("storeFrontQuerySalesChannelLookupAdapter")
+@Component("storeFrontQuerySalesChannelQueryAdapter")
 @RequiredArgsConstructor
-public class SalesChannelLookupAdapter implements SalesChannelLookupPort {
+public class SalesChannelQueryAdapter implements SalesChannelQueryPort {
     private final SalesChannelPort salesChannels;
 
     @Override

@@ -35,7 +35,8 @@
         <module>sales-channel-domain</module>
         <module>sales-channel-application</module>
         <module>sales-channel-adapter-persistence</module>
-        <module>storefront-query-infrastructure</module>
+        <module>discovery-application</module>
+        <module>discovery-persistence-adapter</module>
         <module>cart-domain</module>
         <module>cart-application</module>
         <module>cart-adapter-persistence</module>
