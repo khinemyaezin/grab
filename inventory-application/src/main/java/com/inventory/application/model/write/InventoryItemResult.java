@@ -11,6 +11,7 @@ public record InventoryItemResult(
         int inTransit,
         int damaged,
         int available,
+        boolean allowBackorder,
         String status,
         int safetyStock,
         int reorderPoint,

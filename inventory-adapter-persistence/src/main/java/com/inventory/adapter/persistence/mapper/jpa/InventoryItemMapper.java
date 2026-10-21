@@ -21,6 +21,7 @@ public abstract class InventoryItemMapper {
     @Mapping(target = "quantity", expression = "java(mapQuantity(entity))")
     @Mapping(target = "reorderConfig", expression = "java(mapReorderConfig(entity))")
     @Mapping(source = "entity." + InventoryItemEntity_.STATUS, target = "status")
+    @Mapping(source = "entity.allowBackorder", target = "allowBackorder")
     public abstract InventoryItem toDomain(InventoryItemEntity entity);
 
     protected InventoryQuantity mapQuantity(InventoryItemEntity entity) {

@@ -49,6 +49,9 @@ public class InventoryItemEntity {
     @Column(nullable = false)
     private int damaged= 0;
 
+    @Column(name = "allow_backorder", nullable = false)
+    private boolean allowBackorder;
+
     @Column(name = "safety_stock", nullable = false)
     private int safetyStock= 0;
 

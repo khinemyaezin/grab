@@ -27,6 +27,7 @@ public abstract class InventoryItemEntityMapper {
     @Mapping(source = "reorderConfig.reorderQuantity", target = InventoryItemEntity_.REORDER_QUANTITY)
     @Mapping(source = "reorderConfig.maxStock", target = InventoryItemEntity_.MAX_STOCK)
     @Mapping(source = "status", target = InventoryItemEntity_.STATUS)
+    @Mapping(source = "allowBackorder", target = "allowBackorder")
     @Mapping(ignore = true, target = InventoryItemEntity_.LAST_UPDATED)
     @Mapping(ignore = true, target = InventoryItemEntity_.VERSION)
     public abstract void toEntity(InventoryItem source, @MappingTarget InventoryItemEntity destination);
