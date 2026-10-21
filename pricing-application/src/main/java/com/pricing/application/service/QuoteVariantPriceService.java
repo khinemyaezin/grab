@@ -42,6 +42,7 @@ public class QuoteVariantPriceService implements QuoteVariantPriceUseCase {
         CalculatedPriceSetResult result = results.getFirst();
         return Optional.of(new QuoteVariantPriceResult(
                 result.calculatedAmount(),
+                result.originalAmount(),
                 result.currencyCode(),
                 link.priceSetId()
         ));

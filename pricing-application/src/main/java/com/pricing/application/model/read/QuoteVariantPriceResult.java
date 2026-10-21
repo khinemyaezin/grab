@@ -2,5 +2,5 @@ package com.pricing.application.model.read;
 
 import java.math.BigDecimal;
 
-public record QuoteVariantPriceResult(BigDecimal amount, String currencyCode, String priceSetId) {
+public record QuoteVariantPriceResult(BigDecimal amount, BigDecimal originalAmount, String currencyCode, String priceSetId) {
 }
