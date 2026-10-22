@@ -2,6 +2,7 @@ package com.saleschannel.adapter.persistence.config;
 
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.mapper.IdMapper;
+import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
@@ -11,9 +12,11 @@ import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.saleschannel.application.port.outbound.SalesChannelQueryPort;
+import com.saleschannel.application.port.outbound.ChannelRegionLookupPort;
 import com.saleschannel.domain.port.outbound.SalesChannelRepository;
 import com.saleschannel.adapter.persistence.adapter.SalesChannelPersistenceExecutor;
 import com.saleschannel.adapter.persistence.adapter.SalesChannelQueryAdapter;
+import com.saleschannel.adapter.persistence.adapter.ChannelRegionQueryAdapter;
 import com.saleschannel.adapter.persistence.adapter.SalesChannelRepositoryAdapter;
 import com.saleschannel.adapter.persistence.entity.SalesChannelEntity;
 import com.saleschannel.adapter.persistence.mapper.SalesChannelEntityMapper;
@@ -22,6 +25,7 @@ import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEvent;
 import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEventProcessor;
 import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEventProducer;
 import com.saleschannel.adapter.persistence.repository.SalesChannelJpaRepository;
+import com.saleschannel.adapter.persistence.repository.ChannelRegionJpaRepository;
 import com.saleschannel.adapter.persistence.specification.SalesChannelQuerySpecification;
 import com.saleschannel.adapter.persistence.workflow.SalesChannelWorkflowStepRunner;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -124,6 +128,15 @@ public class SalesChannelPersistenceConfig {
             @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new SalesChannelRepositoryAdapter(salesChannels, assembler, events, executor);
+    }
+
+    @Bean
+    ChannelRegionLookupPort channelRegionLookupPort(
+            ChannelRegionJpaRepository channelRegions,
+            IdGenerator ids,
+            @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new ChannelRegionQueryAdapter(channelRegions, ids, executor);
     }
 
     @Bean

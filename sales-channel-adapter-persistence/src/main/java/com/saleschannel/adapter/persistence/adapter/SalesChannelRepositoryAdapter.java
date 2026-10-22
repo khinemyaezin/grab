@@ -56,6 +56,10 @@ public class SalesChannelRepositoryAdapter implements SalesChannelRepository {
     public SalesChannel save(SalesChannel salesChannel) {
         return executor.command("SalesChannel", () -> {
             SalesChannelEntity existing = salesChannels.findByUuid(salesChannel.getId().getValue()).orElse(null);
+            if (existing != null) {
+                assembler.clearDefaultRegions(existing);
+                salesChannels.saveAndFlush(existing);
+            }
             SalesChannelEntity saved = salesChannels.save(assembler.toEntity(salesChannel, existing));
             List<Event> pending = salesChannel.pullEvents();
             events.produce("SalesChannel", salesChannel.getId().getValue(), pending);
