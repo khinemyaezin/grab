@@ -51,7 +51,8 @@ public final class CalculatePricesPolicy {
         List<CalculatedPriceSet> results = new ArrayList<>();
         for (Id priceSetId : priceSetIds) {
             List<PriceCandidate> setCandidates = bySet.getOrDefault(priceSetId.getValue(), List.of());
-            List<PriceCandidate> ranked = rank(setCandidates);
+            List<PriceCandidate> mostSpecific = mostSpecificCandidates(setCandidates);
+            List<PriceCandidate> ranked = rank(mostSpecific);
             results.add(synthesize(priceSetId, context.currencyCode().value(), ranked, taxInclusive));
         }
         return results;
@@ -146,8 +147,45 @@ public final class CalculatePricesPolicy {
                         .comparing(PriceCandidate::isPriceListPrice).reversed()
                         .thenComparing(candidate -> candidate.rulesCount() + candidate.priceListRulesCount(),
                                 Comparator.reverseOrder())
-                        .thenComparing(PriceCandidate::amount))
+                        .thenComparing(PriceCandidate::amount)
+                        .thenComparing(candidate -> candidate.priceId().getValue()))
                 .toList();
+    }
+
+    private List<PriceCandidate> mostSpecificCandidates(List<PriceCandidate> candidates) {
+        int highestTier = candidates.stream()
+                .mapToInt(this::marketSpecificity)
+                .max()
+                .orElse(0);
+        return candidates.stream()
+                .filter(candidate -> marketSpecificity(candidate) == highestTier)
+                .toList();
+    }
+
+    private int marketSpecificity(PriceCandidate candidate) {
+        List<PriceCandidate.RuleCondition> priceRules = candidate.priceRules() == null
+                ? List.of()
+                : candidate.priceRules();
+        boolean hasChannel = priceRules.stream()
+                .anyMatch(rule -> PricingAttributeKeys.SALES_CHANNEL_ID.equals(rule.attribute()));
+        boolean hasRegion = priceRules.stream()
+                .anyMatch(rule -> PricingAttributeKeys.REGION_ID.equals(rule.attribute()));
+        if (candidate.priceListRules() != null) {
+            hasChannel = hasChannel || candidate.priceListRules().stream()
+                    .anyMatch(rule -> PricingAttributeKeys.SALES_CHANNEL_ID.equals(rule.attribute()));
+            hasRegion = hasRegion || candidate.priceListRules().stream()
+                    .anyMatch(rule -> PricingAttributeKeys.REGION_ID.equals(rule.attribute()));
+        }
+        if (hasChannel && hasRegion) {
+            return 3;
+        }
+        if (hasRegion) {
+            return 2;
+        }
+        if (hasChannel) {
+            return 1;
+        }
+        return 0;
     }
 
     private CalculatedPriceSet synthesize(

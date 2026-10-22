@@ -13,6 +13,7 @@ import com.pricing.domain.valueobject.PricingAttributeKeys;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,11 +31,16 @@ public class QuoteVariantPriceService implements QuoteVariantPriceUseCase {
             return Optional.empty();
         }
         VariantPriceSetLinkView link = links.getFirst();
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(PricingAttributeKeys.SALES_CHANNEL_ID, query.salesChannelId());
+        if (query.regionId() != null) {
+            attributes.put(PricingAttributeKeys.REGION_ID, query.regionId().getValue());
+        }
         List<CalculatedPriceSetResult> results = calculatePricesUseCase.execute(new CalculatePricesQuery(
                 List.of(idGenerator.convertIdFrom(link.priceSetId())),
                 query.currencyCode(),
                 query.quantity(),
-                Map.of(PricingAttributeKeys.SALES_CHANNEL_ID, query.salesChannelId())
+                Map.copyOf(attributes)
         ));
         if (results.isEmpty() || results.getFirst().calculatedAmount() == null) {
             return Optional.empty();

@@ -193,6 +193,138 @@ class CalculatePricesPolicyTest {
     }
 
     @Test
+    void calculate_withChannelAndRegionRule_shouldOutrankRegionOnlyPrice() {
+        CommonId priceSetId = new CommonId("set-market-rank");
+        PriceCandidate base = baseCandidate("price-base", priceSetId, "50.00", null, null, List.of());
+        PriceCandidate channel = baseCandidate("price-channel", priceSetId, "40.00", null, null,
+                List.of(rule(PricingAttributeKeys.SALES_CHANNEL_ID, "channel-1")));
+        PriceCandidate region = baseCandidate("price-region", priceSetId, "30.00", null, null,
+                List.of(rule(PricingAttributeKeys.REGION_ID, "region-1")));
+        PriceCandidate channelRegion = baseCandidate("price-channel-region", priceSetId, "20.00", null, null,
+                List.of(rule(PricingAttributeKeys.SALES_CHANNEL_ID, "channel-1"),
+                        rule(PricingAttributeKeys.REGION_ID, "region-1")));
+        PricingContext context = marketContext("region-1");
+
+        CalculatedPriceSet result = policy.calculate(
+                List.of(priceSetId), context, List.of(base, channel, region, channelRegion), List.of(), now
+        ).getFirst();
+
+        assertThat(result.calculatedAmount()).isEqualByComparingTo("20.00");
+        assertThat(result.calculatedPrice().priceId().getValue()).isEqualTo("price-channel-region");
+    }
+
+    @Test
+    void calculate_withRegionRule_shouldOutrankChannelOnlyPrice() {
+        CommonId priceSetId = new CommonId("set-region-rank");
+        PriceCandidate base = baseCandidate("price-base", priceSetId, "50.00", null, null, List.of());
+        PriceCandidate channel = baseCandidate("price-channel", priceSetId, "10.00", null, null,
+                List.of(rule(PricingAttributeKeys.SALES_CHANNEL_ID, "channel-1")));
+        PriceCandidate region = baseCandidate("price-region", priceSetId, "30.00", null, null,
+                List.of(rule(PricingAttributeKeys.REGION_ID, "region-1")));
+
+        CalculatedPriceSet result = policy.calculate(
+                List.of(priceSetId), marketContext("region-1"), List.of(base, channel, region), List.of(), now
+        ).getFirst();
+
+        assertThat(result.calculatedAmount()).isEqualByComparingTo("30.00");
+        assertThat(result.calculatedPrice().priceId().getValue()).isEqualTo("price-region");
+    }
+
+    @Test
+    void calculate_withChannelOnlyRule_shouldOutrankBasePrice() {
+        CommonId priceSetId = new CommonId("set-channel-rank");
+        PriceCandidate base = baseCandidate("price-base", priceSetId, "50.00", null, null, List.of());
+        PriceCandidate channel = baseCandidate("price-channel", priceSetId, "40.00", null, null,
+                List.of(rule(PricingAttributeKeys.SALES_CHANNEL_ID, "channel-1")));
+
+        CalculatedPriceSet result = policy.calculate(
+                List.of(priceSetId), marketContext("region-1"), List.of(base, channel), List.of(), now
+        ).getFirst();
+
+        assertThat(result.calculatedAmount()).isEqualByComparingTo("40.00");
+    }
+
+    @Test
+    void calculate_withSameCurrencyAndDifferentRegions_shouldSelectEachRegionalAmount() {
+        CommonId priceSetId = new CommonId("set-usd-regions");
+        PriceCandidate firstRegion = baseCandidate("price-region-1", priceSetId, "20.00", null, null,
+                List.of(rule(PricingAttributeKeys.REGION_ID, "region-1")));
+        PriceCandidate secondRegion = baseCandidate("price-region-2", priceSetId, "25.00", null, null,
+                List.of(rule(PricingAttributeKeys.REGION_ID, "region-2")));
+
+        CalculatedPriceSet firstResult = policy.calculate(
+                List.of(priceSetId), marketContext("region-1"), List.of(firstRegion, secondRegion), List.of(), now
+        ).getFirst();
+        CalculatedPriceSet secondResult = policy.calculate(
+                List.of(priceSetId), marketContext("region-2"), List.of(firstRegion, secondRegion), List.of(), now
+        ).getFirst();
+
+        assertThat(firstResult.calculatedAmount()).isEqualByComparingTo("20.00");
+        assertThat(secondResult.calculatedAmount()).isEqualByComparingTo("25.00");
+
+        CalculatedPriceSet unpricedRegion = policy.calculate(
+                List.of(priceSetId), marketContext("region-3"), List.of(firstRegion, secondRegion), List.of(), now
+        ).getFirst();
+
+        assertThat(unpricedRegion.calculatedAmount()).isNull();
+        assertThat(unpricedRegion.currencyCode()).isNull();
+    }
+
+    @Test
+    void calculate_withRegionalPriceListRule_shouldOutrankBasePrice() {
+        CommonId priceSetId = new CommonId("set-region-list");
+        PriceCandidate base = baseCandidate("price-base", priceSetId, "50.00", null, null, List.of());
+        PriceCandidate regionalSale = listCandidate(
+                "price-region-sale",
+                priceSetId,
+                "list-region-sale",
+                PriceListType.SALE,
+                "35.00",
+                List.of(new PriceCandidate.ListRuleCondition(
+                        PricingAttributeKeys.REGION_ID, List.of("region-1")))
+        );
+
+        CalculatedPriceSet result = policy.calculate(
+                List.of(priceSetId), marketContext("region-1"), List.of(base, regionalSale), List.of(), now
+        ).getFirst();
+
+        assertThat(result.calculatedAmount()).isEqualByComparingTo("35.00");
+        assertThat(result.calculatedPrice().priceId().getValue()).isEqualTo("price-region-sale");
+    }
+
+    @Test
+    void calculate_withRegionalTierAndChannelSale_shouldKeepRegionalTier() {
+        CommonId priceSetId = new CommonId("set-sale-region-tier");
+        PriceCandidate regionalBase = baseCandidate("price-region", priceSetId, "30.00", null, null,
+                List.of(rule(PricingAttributeKeys.REGION_ID, "region-1")));
+        PriceCandidate channelSale = new PriceCandidate(
+                new CommonId("price-channel-sale"),
+                priceSetId,
+                new CommonId("list-channel-sale"),
+                PriceListType.SALE,
+                PriceListStatus.ACTIVE,
+                null,
+                null,
+                "usd",
+                new BigDecimal("5.00"),
+                null,
+                null,
+                0,
+                1,
+                List.of(),
+                List.of(new PriceCandidate.ListRuleCondition(
+                        PricingAttributeKeys.SALES_CHANNEL_ID, List.of("channel-1")))
+        );
+
+        CalculatedPriceSet result = policy.calculate(
+                List.of(priceSetId), marketContext("region-1"), List.of(regionalBase, channelSale), List.of(), now
+        ).getFirst();
+
+        assertThat(result.calculatedAmount()).isEqualByComparingTo("30.00");
+        assertThat(result.calculatedPrice().priceId().getValue()).isEqualTo("price-region");
+    }
+
+    @Test
     void calculate_withInactiveOrExpiredPriceList_shouldIgnoreCampaignPrice() {
         CommonId priceSetId = new CommonId("set-1");
         PriceCandidate base = baseCandidate("price-base", priceSetId, "50.00", null, null, List.of());
@@ -347,6 +479,21 @@ class CalculatePricesPolicyTest {
                 0,
                 rules,
                 List.of()
+        );
+    }
+
+    private PriceCandidate.RuleCondition rule(String attribute, String value) {
+        return new PriceCandidate.RuleCondition(attribute, value, PriceRuleOperator.EQ);
+    }
+
+    private PricingContext marketContext(String regionId) {
+        return new PricingContext(
+                CurrencyCode.of("usd"),
+                1,
+                Map.of(
+                        PricingAttributeKeys.SALES_CHANNEL_ID, "channel-1",
+                        PricingAttributeKeys.REGION_ID, regionId
+                )
         );
     }
 

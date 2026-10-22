@@ -10,6 +10,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "region_countries")
 @Getter
@@ -21,6 +23,9 @@ public class RegionCountryEntity {
 
     @Column(name = "country_code", nullable = false, length = 2)
     private String countryCode;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id", nullable = false)

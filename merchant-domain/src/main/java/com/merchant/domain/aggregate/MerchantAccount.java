@@ -12,7 +12,6 @@ import lombok.Getter;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 @Getter
 public class MerchantAccount extends AggregateRoot<Id> {

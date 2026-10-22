@@ -25,6 +25,11 @@ public class RegionQueryAdapter implements RegionQueryPort {
         return executor.query("Region", () -> regions.existsCountry(regionId, countryCode));
     }
 
+    @Override
+    public Optional<RegionView> findByCountry(String countryCode) {
+        return executor.query("Region", () -> regions.findByCountryCode(countryCode).map(this::toView));
+    }
+
     private RegionView toView(RegionEntity entity) {
         return new RegionView(
                 entity.getId(),

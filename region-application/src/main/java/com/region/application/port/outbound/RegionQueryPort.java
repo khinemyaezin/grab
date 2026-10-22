@@ -8,4 +8,6 @@ public interface RegionQueryPort {
     Optional<RegionView> findById(String regionId);
 
     boolean countryAllowed(String regionId, String countryCode);
+
+    Optional<RegionView> findByCountry(String countryCode);
 }

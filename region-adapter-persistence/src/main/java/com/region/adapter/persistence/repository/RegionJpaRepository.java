@@ -5,7 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface RegionJpaRepository extends JpaRepository<RegionEntity, String> {
+
+    @Query("select distinct c.region from RegionCountryEntity c where upper(c.countryCode) = upper(:countryCode)")
+    Optional<RegionEntity> findByCountryCode(@Param("countryCode") String countryCode);
 
     @Query("""
             select case when count(c) > 0 then true else false end
