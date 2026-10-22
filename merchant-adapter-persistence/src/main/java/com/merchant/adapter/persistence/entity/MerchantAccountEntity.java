@@ -30,6 +30,9 @@ public class MerchantAccountEntity {
     @Column(name = "merchant_type", nullable = false, updatable = false)
     private MerchantType type;
 
+    @Column(name = "primary_market_country_code", nullable = false, length = 2)
+    private String primaryMarketCountryCode;
+
     @Column(name = "legal_name")
     private String legalName;
 

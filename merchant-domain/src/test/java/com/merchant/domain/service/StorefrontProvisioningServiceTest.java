@@ -21,6 +21,7 @@ class StorefrontProvisioningServiceTest {
                 new CommonId("merchant-1"),
                 new CommonId("applicant-1"),
                 MerchantType.FIRST_PARTY_RETAILER,
+                "US",
                 "Shop",
                 now
         );
@@ -43,6 +44,7 @@ class StorefrontProvisioningServiceTest {
                 new CommonId("merchant-1"),
                 new CommonId("applicant-1"),
                 MerchantType.C2C_SELLER,
+                "US",
                 "Shop",
                 now
         );

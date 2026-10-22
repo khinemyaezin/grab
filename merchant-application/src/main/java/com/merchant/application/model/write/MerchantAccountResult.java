@@ -9,6 +9,7 @@ public record MerchantAccountResult(
         String merchantId,
         String applicantUserId,
         String type,
+        String primaryMarketCountryCode,
         String legalName,
         String displayName,
         RegistrationResult registration,
@@ -28,6 +29,7 @@ public record MerchantAccountResult(
                 view.merchantId(),
                 view.applicantUserId(),
                 view.type().name(),
+                view.primaryMarketCountryCode(),
                 view.legalName(),
                 view.displayName(),
                 view.registrationCountryCode() == null && view.registrationNumber() == null ? null
@@ -58,6 +60,7 @@ public record MerchantAccountResult(
                 merchant.getId().getValue(),
                 merchant.getApplicantUserId().getValue(),
                 merchant.getType().name(),
+                merchant.getPrimaryMarketCountryCode(),
                 merchant.getName().legalName(),
                 merchant.getName().displayName(),
                 merchant.getRegistration() == null ? null : new RegistrationResult(

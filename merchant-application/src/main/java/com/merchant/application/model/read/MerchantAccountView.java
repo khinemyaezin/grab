@@ -9,6 +9,7 @@ public record MerchantAccountView(
         String merchantId,
         String applicantUserId,
         MerchantType type,
+        String primaryMarketCountryCode,
         String legalName,
         String displayName,
         String registrationCountryCode,

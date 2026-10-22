@@ -111,7 +111,7 @@ class InviteMerchantMemberServiceTest {
     @Test
     void invite_whenMerchantNotOperational_shouldFail() {
         MerchantAccount draftMerchant = MerchantAccount.startDraft(
-                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "Test Merchant", now
+                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "US", "Test Merchant", now
         );
         when(merchants.findById(merchantId)).thenReturn(Optional.of(draftMerchant));
 
@@ -141,7 +141,7 @@ class InviteMerchantMemberServiceTest {
 
     private MerchantAccount activeMerchant() {
         MerchantAccount merchant = MerchantAccount.startDraft(
-                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "Test Merchant", now
+                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "US", "Test Merchant", now
         );
         merchant.updateProfile(
                 new MerchantName("Legal Name", "Test Merchant"),

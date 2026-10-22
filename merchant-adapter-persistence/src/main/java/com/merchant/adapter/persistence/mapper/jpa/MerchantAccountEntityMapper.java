@@ -13,6 +13,7 @@ public abstract class MerchantAccountEntityMapper {
     @Mapping(source = "id", target = "uuid")
     @Mapping(source = "applicantUserId", target = "applicantUserId")
     @Mapping(source = "type", target = "type")
+    @Mapping(source = "primaryMarketCountryCode", target = "primaryMarketCountryCode")
     @Mapping(source = "name.legalName", target = "legalName")
     @Mapping(source = "name.displayName", target = "displayName")
     @Mapping(source = "registration.countryCode", target = "registrationCountryCode")

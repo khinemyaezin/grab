@@ -99,7 +99,7 @@ class MerchantAccountTest {
     }
 
     private MerchantAccount draft(MerchantType type) {
-        return MerchantAccount.startDraft(user("merchant-1"), user("applicant-1"), type, "Display Name", now);
+        return MerchantAccount.startDraft(user("merchant-1"), user("applicant-1"), type, "US", "Display Name", now);
     }
 
     private BusinessRegistration registration() {

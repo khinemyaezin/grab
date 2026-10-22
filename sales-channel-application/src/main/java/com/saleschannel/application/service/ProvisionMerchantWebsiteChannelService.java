@@ -1,22 +1,34 @@
 package com.saleschannel.application.service;
 
+import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.saleschannel.application.model.write.ProvisionMerchantWebsiteChannelCommand;
 import com.saleschannel.application.model.write.ProvisionSalesChannelResult;
+import com.saleschannel.application.exception.SalesChannelServiceError;
+import com.saleschannel.application.exception.SalesChannelServiceException;
 import com.saleschannel.application.port.inbound.ProvisionMerchantWebsiteChannelUseCase;
+import com.saleschannel.application.port.outbound.PrimaryMarketRegionPort;
 import com.saleschannel.domain.aggregate.SalesChannel;
 import com.saleschannel.domain.port.outbound.SalesChannelRepository;
-import lombok.RequiredArgsConstructor;
-
 import java.time.Instant;
 import java.util.Objects;
 
-@RequiredArgsConstructor
 public class ProvisionMerchantWebsiteChannelService implements ProvisionMerchantWebsiteChannelUseCase {
     private static final String WEBSITE_NAME = "Website";
 
     private final SalesChannelRepository salesChannels;
     private final IdGenerator idGenerator;
+    private final PrimaryMarketRegionPort primaryMarketRegionPort;
+
+    public ProvisionMerchantWebsiteChannelService(
+            SalesChannelRepository salesChannels,
+            IdGenerator idGenerator,
+            PrimaryMarketRegionPort primaryMarketRegionPort
+    ) {
+        this.salesChannels = salesChannels;
+        this.idGenerator = idGenerator;
+        this.primaryMarketRegionPort = primaryMarketRegionPort;
+    }
 
     @Override
     public ProvisionSalesChannelResult execute(ProvisionMerchantWebsiteChannelCommand command) {
@@ -38,6 +50,12 @@ public class ProvisionMerchantWebsiteChannelService implements ProvisionMerchant
                 WEBSITE_NAME,
                 now
         );
+        Id regionId = primaryMarketRegionPort.findActiveRegionByCountry(command.primaryMarketCountryCode())
+                .orElseThrow(() -> new SalesChannelServiceException(
+                        new SalesChannelServiceError.PrimaryMarketRegionUnavailable(
+                                command.primaryMarketCountryCode()),
+                        "Primary market country does not belong to an active region"));
+        channel.enableRegion(regionId, true);
         SalesChannel savedChannel = salesChannels.save(channel);
         return new ProvisionSalesChannelResult(savedChannel.getId(), true);
     }

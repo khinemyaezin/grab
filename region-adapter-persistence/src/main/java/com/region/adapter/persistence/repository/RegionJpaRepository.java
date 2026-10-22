@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface RegionJpaRepository extends JpaRepository<RegionEntity, String> {
 
@@ -18,4 +19,7 @@ public interface RegionJpaRepository extends JpaRepository<RegionEntity, String>
             where c.region.id = :regionId and upper(c.countryCode) = upper(:countryCode)
             """)
     boolean existsCountry(@Param("regionId") String regionId, @Param("countryCode") String countryCode);
+
+    @Query("select distinct upper(c.countryCode) from RegionCountryEntity c where c.region.status = 'ACTIVE' order by upper(c.countryCode)")
+    List<String> findActiveCountryCodes();
 }

@@ -9,6 +9,7 @@ public record MerchantApprovedEvent(
         String status,
         String actorId,
         long aggregateVersion,
-        Instant occurredAt)
+        Instant occurredAt,
+        String primaryMarketCountryCode)
         implements MerchantLifecycleEvent {
 }
