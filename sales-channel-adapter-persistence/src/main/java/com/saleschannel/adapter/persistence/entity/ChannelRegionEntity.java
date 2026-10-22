@@ -21,7 +21,7 @@ public class ChannelRegionEntity {
     private ChannelRegionId id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sales_channel_id", referencedColumnName = "uuid", nullable = false)
+    @JoinColumn(name = "sales_channel_id", referencedColumnName = "uuid", insertable = false, updatable = false)
     private SalesChannelEntity salesChannel;
 
     @Column(name = "is_enabled", nullable = false)

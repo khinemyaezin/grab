@@ -16,7 +16,7 @@ import java.util.Objects;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChannelRegionId implements Serializable {
-    @Column(name = "sales_channel_id", length = 255, insertable = false, updatable = false)
+    @Column(name = "sales_channel_id", length = 255)
     private String salesChannelId;
 
     @Column(name = "region_id", length = 64)
