@@ -3,6 +3,11 @@
 > **Bounded Context:** Pricing
 > **Primary Purpose:** Entity-agnostic pricing engine managing base prices, volume tiers, campaign overrides, and runtime price calculation contexts.
 > **Module Root:** `pricing-domain` / `pricing-application` / `pricing-adapter-persistence` / `store/pricing`
+> **Baseline Feature:** [DiscoveryProduct](../../../../features/feat_002-discovery_product.md)
+> **Related Features:** [Vectorized Batch Regional Pricing](../../../../features/feat_005-vectorized-batch-regional-pricing.md), [Storefront API Cutover & Response Contract Refactoring](../../../../features/feat_007-storefront-api-cutover-contract-refactoring.md), [Automated Verification & Zero-Downtime Rollout](../../../../features/feat_008-automated-verification-zero-downtime-rollout.md)
+> **Related Tech:** [Batch Pricing](../../../system/batch-regional-pricing-tech-spec.md), [Shopping Context](../../../system/shopping-context-resolution-tech-spec.md), [Discovery Projection](../../../system/storefront-query-tech-spec.md), [Rollout](../../../system/contextual-discovery-rollout-tech-spec.md)
+> **Discovery Workflow:** [Browse and Discover](../../../workflows/browse-and-discover-products-workflow.md)
+> **Related Domain Specs:** [Region](../../region/architecture/region-domain-spec.md)
 > **Related Workflows:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md)
 
 ---
@@ -145,6 +150,11 @@ classDiagram
 | **INV-03** | Campaign prices must belong to a list and MUST reference a target `priceSetId`. | Domain error. | `Price.createCampaign()` |
 | **INV-04** | For volume tiers, `minQuantity` must be ≤ `maxQuantity` if both are set. | Update rejected. | `Price.replaceDetails()` |
 | **INV-05** | Only `ACTIVE` price lists whose `startsAt`/`endsAt` window contains the current time are evaluated. | Campaign ignored during calculation. | `CalculatePricesPolicy` |
+| **INV-06** | Fully matching channel+region candidates MUST outrank region-only, then channel-only, then base candidates. | Less-specific tiers are excluded before price synthesis. | CalculatePricesPolicy.mostSpecificCandidates / marketSpecificity; implemented. |
+| **INV-07** | Region identity MUST remain distinct from currency, even when two regions share USD. | A candidate with another region rule cannot match. | matchesPriceRules / matchesPriceListRules; implemented and covered by unit-test source. |
+| **INV-08** | Currency, quantity, complete rule matching, list status and time eligibility MUST be evaluated before specificity ranking. | Ineligible candidates are ignored, not used as cross-market fallback. | CalculatePricesPolicy.calculate; implemented. |
+
+The domain calculation supports multiple price sets, but the published variant quote interface remains single-variant. Feature 005 adds vectorized variant mapping without replacing the existing policy; domain amounts are not FX-converted.
 
 ---
 

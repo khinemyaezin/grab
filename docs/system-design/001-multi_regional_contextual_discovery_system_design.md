@@ -3,6 +3,7 @@
 ## 1. The Problem
 
 ### What's Not Working?
+
 - **Public Channel Spoofing**: The storefront browse API currently accepts `?salesChannelId=...` directly in query parameters, allowing anonymous clients to probe arbitrary seller channels, bypass commercial boundaries, and enumerate private channels.
 - **Single-Currency Channel Trap**: The existing `discovery_product` projection stores a single static currency and price range (`currency`, `min_price`, `max_price`), preventing a single sales channel (e.g., a merchant's global website) from serving multiple geographic regions in their local legal currencies (e.g., Singapore in `SGD` and Malaysia in `MYR`).
 - **Combinatorial Explosion & Write Amplification**: Pre-calculating and storing materialized search documents for every channel, region, and currency permutation causes exponential data growth ($10,000 \text{ products} \times 5 \text{ channels} \times 10 \text{ regions} = 500,000 \text{ documents}$), causing any exchange rate or pricing rule change to trigger massive database re-indexing storms.
@@ -22,13 +23,46 @@ Tier 1 stores currency-agnostic catalog presentation facts, while Tier 2 compute
 
 ```mermaid
 flowchart TD
-    Client["Storefront Client"] -->|"X-Publishable-Key + countryCode"| EdgeResolver["Edge Context Resolver"]
-    EdgeResolver -->|"1. Validate Token"| SalesChannel["Sales Channel Service"]
-    EdgeResolver -->|"2. Resolve Region & Currency"| Region["Region Service"]
-    EdgeResolver -->|"ShoppingContext"| DiscoveryRead["Catalog Projection (Tier 1)"]
-    DiscoveryRead -->|"Catalog Presentation Facts"| BatchEnricher["Batch Price Enricher (Tier 2)"]
-    BatchEnricher -->|"Vectorized Quote Query"| Pricing["Pricing Engine"]
-    BatchEnricher -->|"Contextual Offer Response"| Client
+    subgraph ClientLayer ["Client / Edge Layer"]
+        Client["Storefront Client (Browser / App)"]
+    end
+
+    subgraph SalesChannelBC ["Sales Channel Bounded Context"]
+        SC["SalesChannel (Aggregate)"]
+        PK["PublishableKey (Aggregate)"]
+        CR["ChannelRegion (Entity)"]
+        SC --> PK
+        SC --> CR
+    end
+
+    subgraph RegionBC ["Region Bounded Context"]
+        Region["Region (Aggregate)"]
+        Country["RegionCountry (Entity)"]
+        Region --> Country
+    end
+
+    subgraph PricingBC ["Pricing Bounded Context"]
+        PriceSet["PriceSet (Aggregate)"]
+        Price["Price"]
+        PriceRule["PriceRule"]
+        PriceSet --> Price
+        Price --> PriceRule
+    end
+
+    subgraph DiscoveryBC ["Storefront Discovery (Read Model)"]
+        Resolver["Edge ShoppingContextResolver"]
+        Projection["DiscoveryProductProjection (Tier 1)"]
+        Enricher["Batch Contextual Enricher (Tier 2)"]
+    end
+
+    Client -->|"X-Publishable-Key + countryCode"| Resolver
+    Resolver -->|"1. Validate Token"| PK
+    Resolver -->|"2. Resolve Region & Currency"| Region
+    Resolver -->|"3. Verify Binding"| CR
+    Resolver -->|"ShoppingContext"| Projection
+    Projection -->|"Catalog Facts"| Enricher
+    Enricher -->|"Vectorized Batch Quote"| PriceSet
+    Enricher --> Client
 ```
 
 ### 2.2 Key Components & Services
@@ -44,30 +78,12 @@ flowchart TD
 The subsystem decouples catalog facts from volatile pricing rules to prevent Cartesian explosion and write amplification.
 
 #### Key Entities & Value Objects
+
 - **`PublishableKey` (Aggregate Root)**: Stores channel ID, merchant label, 64-character SHA-256 `token_digest`, and public `display_prefix` (`pk_live_...`).
 - **`ChannelRegion` (Entity in Sales Channel)**: Associates a channel with enabled regions (`sales_channel_id`, `region_id`, `is_enabled`, `is_default`).
 - **`RegionCountry` (Entity in Region)**: Maps ISO 3166-1 country codes exclusively to one `Region` with settlement `currencyCode`.
 - **`ShoppingContext` (Value Object)**: Immutable tuple `(salesChannelId, regionId, countryCode, currencyCode, locale)` resolved at request arrival.
 - **`DiscoveryProductDocument` (Tier 1 Projection)**: Keyed by `(sales_channel_id, product_id)`; retains title, slug, media, options, and stock badges while stripping static currency and prices.
-
-#### Schema & Persistence Structure
-```sql
-CREATE TABLE sales_channel_publishable_keys (
-    id VARCHAR(255) PRIMARY KEY,
-    sales_channel_id VARCHAR(255) NOT NULL,
-    label VARCHAR(100) NOT NULL,
-    token_digest VARCHAR(64) NOT NULL UNIQUE,
-    display_prefix VARCHAR(32) NOT NULL,
-    created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-    revoked_at TIMESTAMP(6) WITH TIME ZONE,
-    version BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT fk_sales_channel_keys_channel
-        FOREIGN KEY (sales_channel_id) REFERENCES sales_channels(uuid)
-);
-
-CREATE INDEX idx_sales_channel_keys_channel
-    ON sales_channel_publishable_keys (sales_channel_id);
-```
 
 #### Ubiquitous Language & Ownership Matrix
 | Bounded Context | Aggregate / Root | Owns | References by ID | Explicitly Does NOT Own |
@@ -172,28 +188,29 @@ flowchart LR
 
 ## 5. Implementation Phases
 
+Phrase 1: Sales-Channel Key Lifecycle & Authenticated Management
+  - Implement `PublishableKey` aggregate root, 32-byte secure random token generator with `pk_` prefix, SHA-256 digest hashing adapter.
+  - security manifest revision (`KEY_READ`, `KEY_WRITE`, `KEY_ADMIN`), and authenticated management REST controller (`POST`, `GET`, `DELETE`).
+  - [link](../features/feat_003-sales-channel-key-lifecycle-management.md)
 
-Phase 01: Sales Channel Publishable Key Lifecycle
-  - Implement PublishableKey aggregate, SecureRandom generator, SHA-256 hashing, and management REST APIs.
-  - [link](../features/feat_003-sales-channel-publishable-keys.md)
+Phrase 2: Edge Shopping-Context Resolution & Shared Ports
+  - Implement shared `PublishableKeyQuery` port & provider adapter in saleschannel, define immutable `ShoppingContext` value object in `discovery-application`, implement inbound `ResolveShoppingContextUseCase` & service verifying channel status and active region bindings (`RegionQuery`, `ChannelRegion`), create outbound discovery SPIs & consumer adapters in `store/`, and define sealed RFC 7807 `ProblemDetail` error taxonomy (401, 403, 400, 422).
+  - [link](../features/feat_004-edge-shopping-context-resolution.md)
 
-Phase 02: Regional Channel Binding & Authority
-  - Establish Region as sole currency authority, create ChannelRegion entity, and add default region indexes.
-  - [link](../features/feat_001-default_saleschannel_provisioning.md)
+Phrase 3: Vectorized Batch Regional Pricing Engine
+  - Introduce `QuoteVariantPricesQuery` application model, implement `QuoteVariantPricesService` to resolve variant-to-price-set links in bulk, evaluate 4-tier rule ranking (`Channel+Region > Region > Channel > Base`) in memory, isolate dual-USD markets, and extend `PricingQuoteQuery.quoteBatch` shared method for single-trip batch quotes.
+  - [link](../features/feat_005-vectorized-batch-regional-pricing.md)
 
-Phase 03: Vectorized Batch Regional Pricing Engine
-  - Implement QuoteVariantPricesService with 4-tier precedence rule evaluation and single-trip batch calculations.
-  - [link](../features/feat_002-discovery_product.md)
+Phrase 4: Discovery Wiring & Projection Reconciliation
+  - Implement `SearchBuyableOffersService` and `GetBuyableOfferBySlugService` for storefront query paths, implement `ProjectDiscoveryProductService` and `RebuildDiscoveryProductsService` for Tier 1 currency-agnostic catalog presentation facts, and wire Spring Modulith event listeners for factual projections from Catalog and Inventory events.
+  - [link](../features/feat_006-discovery-wiring-projection-reconciliation.md)
 
-Phase 04: Edge Shopping-Context Resolution & Discovery Wiring
-  - Implement ShoppingContextResolver, decouple Tier 1 catalog projections, and wire Modulith event listeners.
-  - [link](../features/feat_002-discovery_product.md)
+Phrase 5: Storefront API Cutover & Response Contract Refactoring
+  - Enforce mandatory `X-Publishable-Key` header and reject legacy `salesChannelId` query parameters with 400, cut over to restructured `BuyableOfferResponse` schema, implement 3-tier variant availability precedence state machine (`NOT_AVAILABLE_IN_REGION > PRICE_UNAVAILABLE > SOLD_OUT > AVAILABLE`), dynamically compute price ranges, and configure HATEOAS assemblers (preserving country, omitting key) with `Cache-Control: no-store`.
+  - [link](../features/feat_007-storefront-api-cutover-contract-refactoring.md)
 
-Phase 05: Storefront API Contract Cutover & Availability Precedence
-  - Enforce X-Publishable-Key header, reject salesChannelId with 400, and cut over to BuyableOfferResponse schema.
-  - [link](../features/feat_002-discovery_product.md)
+Phrase 6: Automated Verification & Zero-Downtime Rollout
+  - Execute multi-tenant key security slice tests, context resolution edge & failure tests, multi-regional quotes (SG vs MY) & dual-USD isolation tests, Spring Modulith `ApplicationModules.verify()` architectural checks & R21 checklist, and complete zero-downtime production cutover via expand/backfill/cutover procedure.
+  - [link](../features/feat_008-automated-verification-zero-downtime-rollout.md)
 
-Phase 06: Automated Verification & Zero-Downtime Rollout
-  - Execute multi-region quote verification, dual-USD isolation tests, and zero-downtime database deployment.
-  - [link](../features/feat_003-sales-channel-publishable-keys.md)
 

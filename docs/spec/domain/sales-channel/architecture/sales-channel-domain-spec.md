@@ -4,8 +4,14 @@
 > **Primary Purpose:** Defines a selling destination, its platform or merchant ownership, and whether it is enabled for use.
 > **Module Root:** `sales-channel-domain` / `sales-channel-application` / `sales-channel-adapter-persistence` / `store/saleschannel`
 > **Related Domain Specs:** [Merchant](../../merchant/architecture/merchant-domain-spec.md), [Catalog Product Publication](../../catalog/architecture/product-publication-domain-spec.md), [Publishable Key](publishable-key-domain-spec.md)
-> **Related Feature Specs:** [Publishable Keys for Sales Channels](../../../features/feat_003-sales-channel-publishable-keys.md)
-> **Related Workflows:** [Default Sales Channel Provisioning](../../../features/default-sales-channel-provisioning-workflow.md), [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md)
+> **Foundation Features:** [Default Sales Channel](../../../../features/feat_001-default_saleschannel_provisioning.md), [DiscoveryProduct](../../../../features/feat_002-discovery_product.md), [Discovery Wiring & Projection Reconciliation](../../../../features/feat_006-discovery-wiring-projection-reconciliation.md)
+> **Related Region:** [Region](../../region/architecture/region-domain-spec.md)
+> **Projection Tech:** [Storefront Query](../../../system/storefront-query-tech-spec.md)
+> **Regional Features:** [Edge Shopping-Context Resolution](../../../../features/feat_004-edge-shopping-context-resolution.md), [Storefront API Cutover & Response Contract Refactoring](../../../../features/feat_007-storefront-api-cutover-contract-refactoring.md), [Automated Verification & Zero-Downtime Rollout](../../../../features/feat_008-automated-verification-zero-downtime-rollout.md)
+> **Regional Tech:** [Shopping Context](../../../system/shopping-context-resolution-tech-spec.md), [Rollout](../../../system/contextual-discovery-rollout-tech-spec.md)
+> **Discovery Workflow:** [Browse and Discover](../../../workflows/browse-and-discover-products-workflow.md)
+> **Related Feature Specs:** [Sales-Channel Key Lifecycle & Authenticated Management](../../../../features/feat_003-sales-channel-key-lifecycle-management.md)
+> **Related Workflows:** [Default Sales Channel Provisioning](../../../workflows/default-sales-channel-provisioning-workflow.md), [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md)
 
 ---
 
@@ -13,12 +19,12 @@
 
 ### Ownership
 
-- **This aggregate OWNS:** Channel identity, name, type, ownership classification, merchant reference, enabled/disabled status, and lifecycle timestamps.
+- **This aggregate OWNS:** Channel identity, name, type, ownership classification, merchant reference, enabled/disabled status, lifecycle timestamps, and enabled/default Region references.
 - **This aggregate DOES NOT OWN:** Merchant lifecycle, product data, variant/channel publication records, prices, inventory locations, routing, or storefront buyability projections.
 
 The Sales Channel bounded context also owns publishable-key records. Each `PublishableKey` is a separate aggregate root and references its channel by `salesChannelId`; it is not a child of the `SalesChannel` aggregate. Detailed aggregate specification for publishable keys is defined in the [Publishable Key domain spec](publishable-key-domain-spec.md). A key record owns its label, token digest, display prefix, creation time, and revocation time. It does not own channel status or public product data.
 
-A Sales Channel has no child entities and references its merchant by `merchantId` only. Catalog owns [ProductPublication](../../catalog/architecture/product-publication-domain-spec.md), which references this aggregate by `salesChannelId`.
+A Sales Channel composes a set of `ChannelRegion` value records and references Region and Merchant only by their identifiers. The SSD calls a binding an entity; the current implementation models it as a value record with channel/region identity protected by the persistence pair key. Catalog owns [ProductPublication](../../catalog/architecture/product-publication-domain-spec.md), which references this aggregate by `salesChannelId`.
 
 ### Context Map
 
@@ -73,6 +79,11 @@ classDiagram
         +Timestamp createdAt
         +Timestamp updatedAt
         +Revision version
+        +RegionBindings supportedRegions
+        +enableRegion(regionId, isDefault)
+        +disableRegion(regionId)
+        +servesRegion(regionId)
+        +getDefaultRegion()
         +createWebsite(id, merchantId, name, now)
         +createMarketplace(id, name, now)
         +enable(now)
@@ -81,6 +92,8 @@ classDiagram
         +requireOwnedBy(actingMerchantId)
     }
 ```
+
+The `supportedRegions` collection composes bindings, not Region aggregates.
 
 Diagram attribute types describe business concepts; the implementation types are listed below. Type, owner, and merchant reference are fixed after construction, and no rename operation is currently exposed by the aggregate.
 
@@ -97,6 +110,11 @@ Diagram attribute types describe business concepts; the implementation types are
 | `createdAt` | `Instant` | SalesChannel | Records when the channel was established. |
 | `updatedAt` | `Instant` | SalesChannel | Records the latest effective enable/disable transition. |
 | `version` | `long` | SalesChannel | Supports detection of concurrent changes to the same channel. |
+| `supportedRegions` | Set of ChannelRegion | SalesChannel | Defines the markets this selling destination serves and its optional default. |
+| `salesChannelId` | Id | ChannelRegion | Identifies the channel owning the binding. |
+| `regionId` | Id | ChannelRegion | References the Region authority without copying currency or country membership. |
+| `enabled` | Boolean | ChannelRegion | Controls whether the channel serves that region. |
+| `isDefault` | Boolean | ChannelRegion | Selects the market used when a shopper omits country. |
 
 ### Publishable Key Aggregate
 
@@ -124,6 +142,18 @@ Diagram attribute types describe business concepts; the implementation types are
 | **SC-04** | A seller-owned channel may be used only by its owning merchant. | Ownership guard raises `ChannelOwnershipForbidden`. | `SalesChannel.requireOwnedBy()` |
 | **SC-05** | A disabled channel must fail the enabled guard. | Guard raises `ChannelDisabled`. | `SalesChannel.requireEnabled()` |
 | **SC-06** | Repeating enable or disable on the current status must not create another lifecycle event. | Operation returns without changing state or timestamps. | `SalesChannel.enable()` / `disable()` |
+
+### Regional Binding Invariants and Completion Contract
+
+| Rule ID | Invariant | Violation outcome | Enforcement / status |
+| :--- | :--- | :--- | :--- |
+| **SC-R01** | A channel MUST contain at most one binding per region and only its own channel references. | Reject a conflicting binding. | Constructor checks channel ownership; persistence pair key is unique, and aggregate duplicate-region validation remains required. |
+| **SC-R02** | A channel MUST have at most one default region, and a disabled binding MUST NOT be default. | Invalid binding is rejected. | Constructor, ChannelRegion guard, and partial default index exist; database disabled-default check remains required. |
+| **SC-R03** | Selecting a new default MUST clear the previous default atomically. | Concurrent conflicts retry or fail without two defaults. | enableRegion clears the previous flag in memory; persistence concurrency behavior requires verification. |
+| **SC-R04** | Disabling a region MUST clear its default flag without selecting a replacement implicitly. | No default is returned until one is explicitly configured. | disableRegion and getDefaultRegion. |
+| **SC-R05** | Operators MUST apply validated active-region bindings through an authenticated application command entry point. | Unknown/inactive regions or invalid configuration roll back the command. | ApplySalesChannelRegionBindingsService and handler exist; an operational entry point and completion verification remain required. |
+
+Channels do not own a currency. An absent default is supported configuration state, but contextual requests without country fail as specified in the context contract.
 
 ### Publishable Key Invariants
 
@@ -178,6 +208,16 @@ The constructor can reconstitute either supported status without emitting events
 Disabling a channel does not delete Catalog publication records. Its integration event causes Storefront Query to update channel eligibility in the buyable-offer projection.
 
 Publishable keys have a separate lifecycle and are not enabled or disabled with their channel. A key remains active until revoked; Storefront Query still fails closed when the associated sales channel is disabled.
+
+### Regional Binding State
+
+| Current state | Trigger | Next state | Guard |
+| :--- | :--- | :--- | :--- |
+| Absent or disabled | enableRegion | Enabled, optionally default | Referenced region must be active at the application boundary. |
+| Enabled | enableRegion as default | Enabled default | Clear every previous default within the same channel transaction. |
+| Enabled/default | disableRegion | Disabled and nondefault | No implicit replacement default. |
+
+Region changes currently emit no aggregate domain events. Context resolution must read current bindings; cache-based propagation is not assumed.
 
 ### Publishable Key State
 

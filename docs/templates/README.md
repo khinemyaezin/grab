@@ -65,7 +65,7 @@ Before code implementation starts:
 
 ### 1. Feature Specifications (Tier 0)
 Place feature umbrella specifications in:
-- `grab/docs/spec/features/feat_{xxx}-{kebab-feature-name}.md`
+- `grab/docs/features/feat_{xxx}-{kebab-feature-name}.md`
 - *Example:* `grab/docs/spec/features/feat_003-regional_discovery_and_publishable_keys.md`
 
 ### 2. Domain Specifications (Tier 2)

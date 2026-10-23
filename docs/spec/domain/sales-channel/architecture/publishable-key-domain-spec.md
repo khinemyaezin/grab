@@ -4,7 +4,10 @@
 > **Primary Purpose:** Models revocable, channel-scoped public credentials used by storefronts to identify the sales channel without revealing merchant credentials or granting administrative authority.
 > **Module Root:** `sales-channel-domain` / `sales-channel-application` / `sales-channel-adapter-persistence` / `store/saleschannel`
 > **Related Domain Specs:** [Sales Channel](sales-channel-domain-spec.md), [Merchant](../../merchant/architecture/merchant-domain-spec.md)
-> **Related Feature Specs:** [Publishable Keys for Sales Channels](../../../features/feat_003-sales-channel-publishable-keys.md)
+> **Contextual Successor:** [Storefront API Cutover & Response Contract Refactoring](../../../../features/feat_007-storefront-api-cutover-contract-refactoring.md)
+> **Discovery Workflow:** [Browse and Discover](../../../workflows/browse-and-discover-products-workflow.md)
+> **Context Tech:** [Shopping Context Resolution](../../../system/shopping-context-resolution-tech-spec.md)
+> **Related Feature Specs:** [Sales-Channel Key Lifecycle & Authenticated Management](../../../../features/feat_003-sales-channel-key-lifecycle-management.md)
 > **Related Technical Specs:** [Storefront Query tech spec](../../../system/storefront-query-tech-spec.md), [API Security & Authentication tech spec](../../../system/api-security-tech-spec.md), [Security manifest consistency tech spec](../../../system/security-manifest-consistency-tech-spec.md)
 
 ---

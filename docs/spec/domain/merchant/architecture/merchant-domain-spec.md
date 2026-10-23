@@ -3,7 +3,9 @@
 > **Bounded Context:** Merchant
 > **Primary Purpose:** Manages merchant business onboarding, merchant membership, storefront branding, and seller lifecycle statuses.
 > **Module Root:** `merchant-domain` / `merchant-application` / `merchant-adapter-persistence` / `store/merchant`
-> **Related Workflows:** [Default Sales Channel Provisioning](../../../features/default-sales-channel-provisioning-workflow.md)
+> **Foundation Feature:** [Default Sales Channel](../../../../features/feat_001-default_saleschannel_provisioning.md)
+> **Regional Feature:** [Edge Shopping-Context Resolution](../../../../features/feat_004-edge-shopping-context-resolution.md)
+> **Related Workflows:** [Default Sales Channel Provisioning](../../../workflows/default-sales-channel-provisioning-workflow.md)
 
 ---
 

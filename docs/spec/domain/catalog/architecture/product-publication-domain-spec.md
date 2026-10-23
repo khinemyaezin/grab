@@ -2,9 +2,13 @@
 
 > **Bounded Context:** Catalog
 > **Primary Purpose:** Models publication of one product variant to one sales channel independently of Product content and lifecycle.
+> **Discovery Features:** [DiscoveryProduct baseline](../../../../features/feat_002-discovery_product.md), [Discovery Wiring & Projection Reconciliation](../../../../features/feat_006-discovery-wiring-projection-reconciliation.md)
 > **Module Root:** `catalog-domain` / `catalog-application` / `catalog-adapter-persistence` / `store/catalog`
 > **Related Domain Specs:** [Catalog Product](product-domain-spec.md), [Sales Channel](../../sales-channel/architecture/sales-channel-domain-spec.md)
 > **Related Workflows:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md)
+
+> **Discovery Workflow:** [Browse, Project, and Rebuild](../../../workflows/browse-and-discover-products-workflow.md)
+> **Discovery Tech:** [Currency-Agnostic Projection](../../../system/storefront-query-tech-spec.md)
 
 ---
 

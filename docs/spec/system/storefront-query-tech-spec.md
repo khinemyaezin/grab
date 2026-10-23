@@ -1,241 +1,144 @@
 # Tech Specification: Storefront Query & Product Discovery
 
-> **Summary:** Projects denormalized, channel-scoped product discovery documents asynchronously from write-domain events to deliver sub-50ms storefront browsing and PDP lookups.
-> **Classification:** Architectural Pattern / CQRS Read Model / Platform Infrastructure
+> **Summary:** Maintains currency-agnostic channel/product facts in Tier 1 and delegates regional prices and availability to the contextual query path.
+> **Classification:** Architectural Pattern / CQRS Read Model
 > **Supporting Modules:** `discovery-application` / `discovery-persistence-adapter` / `store/storefrontquery`
-> **Related Architecture ADRs:** [ADR-001 System Architecture](../../dev/system/ADR_001-System_architecture.md), [ADR-002 Module-Scoped Outbox](../../dev/system/ADR_002-Module_scoped_outbox_architecture.md)
-> **Related Feature Specs:** [Publishable Keys for Sales Channels](../features/feat_003-sales-channel-publishable-keys.md), [DiscoveryProduct](../features/feat_002-discovery_product.md)
-
----
+> **Key Lifecycle Feature:** [Sales-Channel Key Lifecycle & Authenticated Management](../../features/feat_003-sales-channel-key-lifecycle-management.md)
+> **Related Features:** [DiscoveryProduct baseline](../../features/feat_002-discovery_product.md), [Discovery Wiring & Projection Reconciliation](../../features/feat_006-discovery-wiring-projection-reconciliation.md), [Storefront API Cutover & Response Contract Refactoring](../../features/feat_007-storefront-api-cutover-contract-refactoring.md)
+> **Related Domain Specs:** [Product](../domain/catalog/architecture/product-domain-spec.md), [Publication](../domain/catalog/architecture/product-publication-domain-spec.md), [Inventory](../domain/inventory/architecture/inventory-item-domain-spec.md), [Sales Channel](../domain/sales-channel/architecture/sales-channel-domain-spec.md), [Pricing](../domain/pricing/architecture/pricing-domain-spec.md)
+> **Related Workflow:** [Browse, Project, and Rebuild](../workflows/browse-and-discover-products-workflow.md)
+> **Supporting Tech:** [Shopping Context](shopping-context-resolution-tech-spec.md), [Batch Pricing](batch-regional-pricing-tech-spec.md), [Rollout](contextual-discovery-rollout-tech-spec.md)
+> **System Design:** [SSD-001](../../system-design/001-multi_regional_contextual_discovery_system_design.md)
 
 ## 1. Why We Need It
 
-### The Problem
+### Implementation Baseline and Contract Change
 
-High-traffic storefront product listing and PDP queries cannot execute live distributed joins across four transactional write domains (Catalog, Inventory, Pricing, Sales Channel). Direct multi-module queries create severe latency amplification, cascading failures, and database connection exhaustion under burst customer traffic.
+Audit date: 2026-10-23, current working tree. `ProjectDiscoveryProductService` and `RebuildDiscoveryProductsService` have empty bodies; `SearchBuyableOffersService` and `GetBuyableOfferBySlugService` return null, and their configuration constructs them without dependencies.
+
+The entity, migration, adapters, listener, handlers, and REST scaffolding exist. The current schema and JSON variants still persist currency, price ranges, individual prices, and buyability; mocked adapter/controller tests do not establish a working runtime pipeline.
+
+This revision defines the planned Tier 1 replacement. It supersedes the price-materialization and raw-channel-selection clauses in the baseline feature when features 006 and 007 cut over; it does not claim those features are implemented.
 
 ### Technology Decision & Alternatives
 
-| Technology Option | Decision | Evaluation Rationale |
+| Option | Decision | Rationale |
 | :--- | :--- | :--- |
-| **Denormalized Projection Store** | **Adopted** | Delivers sub-50ms customer reads with zero runtime coupling to write databases and bounded contexts. |
-| Live Fan-Out / Join-on-Read | Rejected | Introduces cascading failure modes, unbounded read latency, and high read lock contention on write aggregates. |
-| External Search Engine (Elasticsearch) | Deferred | High operational complexity for initial deployment scale; can be introduced later by swapping the persistence adapter. |
-| Direct DB Views across Module Schemas | Rejected | Violates modular monolith encapsulation boundaries and prevents future independent database extraction. |
+| Channel/product projection plus request-time prices | Adopt | Separates catalog and inventory refresh from regional pricing changes. |
+| Document per channel/product/region/currency | Reject | Multiplies stored documents and price-driven updates. |
+| Join write aggregates on every customer read | Reject | Breaks read-model isolation and module boundaries. |
 
-### Key Benefits & Trade-offs
-
-**Core Benefits:**
-- Delivers predictable low-latency customer browsing decoupled from write database workload.
-- Customer browse remains fully operational even during transient outages of upstream pricing or inventory write services.
-- Clean separation between seller catalog authoring APIs and customer discovery models.
-
-**Known Trade-offs:**
-- Eventual consistency creates a brief window where projected display price or inventory status lags behind write transactions.
-- Denormalizes product titles, prices, and stock counts into dedicated projection tables.
-- Requires projector idempotency, event timestamp ordering checks, and a background rebuild mechanism.
-
----
+Catalog and stock facts remain eventually consistent. Pricing availability and latency become part of the request path, so the previous promise of no runtime pricing coupling no longer applies.
 
 ## 2. What It Is
 
 ### Core Concept
 
-Storefront Query decouples customer read traffic from transactional write aggregates through an asynchronous event-driven projector. Domain integration events update denormalized channel-scoped documents, which are queried via dedicated read use cases.
-
 ```mermaid
 flowchart LR
-    subgraph WriteDomains ["Transactional Write Domains"]
-        Source["Domain Event Producers\n(Catalog, Inventory, Pricing, Channel)"]
-    end
-
-    subgraph StorefrontQueryEngine ["Storefront Query Engine"]
-        Listener["Projection Listener"]
-        Projector["Document Projector"]
-        Store[("Discovery Document Store")]
-        QueryService["Storefront Query Service"]
-    end
-
-    subgraph CustomerSurface ["Customer Surface"]
-        Customer["Customer Browser / PDP"]
-    end
-
-    Source -->|"1. Outbox events"| Listener
-    Listener -->|"2. Dispatch command"| Projector
-    Projector -->|"3. Atomic upsert"| Store
-    Customer -->|"4. Browse / PDP query"| QueryService
-    QueryService -->|"5. Filtered view read"| Store
+    Sources["Catalog, Inventory, Channel"] --> Listener["Integration Listener"]
+    Listener --> Projector["Projection Use Case"]
+    Projector --> Facts["Channel Product Facts"]
+    Context["Resolved Shopping Context"] --> Reader["Discovery Query"]
+    Facts --> Reader
+    Reader --> Prices["Batch Regional Quotes"]
+    Prices --> Offers["Contextual Offers"]
 ```
 
-### Internal Mechanics & Lifecycle
-
-A discovery product projection transitions through availability states depending on catalog publication, parent product status, sales channel enablement, and inventory availability.
+### Projection Lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Unprojected
-    Unprojected --> VisibleBuyable: Variant Published & Channel Enabled & Stock Available & Quoted
-    VisibleBuyable --> OutOfStock: Stock Depleted (Stock = 0 & Tracked)
-    OutOfStock --> VisibleBuyable: Stock Restocked (Stock > 0)
-    VisibleBuyable --> Hidden: Channel Disabled or Product Draft/Archived
-    OutOfStock --> Hidden: Channel Disabled or Product Draft/Archived
-    Hidden --> VisibleBuyable: Channel Enabled & Product Active
-    VisibleBuyable --> Unpublished: All Variants Unpublished or Product Deleted
-    OutOfStock --> Unpublished: All Variants Unpublished or Product Deleted
-    Hidden --> Unpublished: All Variants Unpublished or Product Deleted
-    Unpublished --> [*]
+    [*] --> Absent
+    Absent --> Visible: Active product published to enabled channel
+    Visible --> Hidden: Channel disabled or product inactive
+    Hidden --> Visible: Eligibility restored
+    Visible --> Unpublished: Last publication or variant removed
+    Hidden --> Unpublished: Last publication or variant removed
+    Unpublished --> Visible: Eligible publication restored
 ```
 
----
+Stock depletion and missing regional prices do not change visibility. These conditions affect the contextual response according to the [availability contract](shopping-context-resolution-tech-spec.md#4-technical-specification--contracts).
 
 ## 3. How We Use It in This System
 
-### Project Architecture Stacking
-
-The projection pipeline adheres to hexagonal layering. Inbound events trigger command handlers in `store`, which delegate to application use cases in `discovery-application` backed by `discovery-persistence-adapter`.
+### Architecture & Layer Stacking
 
 ```mermaid
-flowchart TD
-    subgraph StorefrontQueryWeb ["store / storefrontquery"]
-        REST["StorefrontProductController\n(Tier 2 API Root)"]
-        EventListener["BuyableOfferProjectionEventListener\n(@EventListener)"]
-        CmdHandler["ProjectDiscoveryProductCommandHandler\n(@StorefrontQueryTransactional)"]
-        QryHandler["SearchBuyableOffersQueryHandler\n(@StorefrontQueryReadTransactional)"]
+flowchart TB
+    subgraph Store["store: HTTP, Events, Composition"]
+        Boundary["Controllers and Event Listeners"] --> Dispatch["Command or Query Service / Bus"]
+        Dispatch --> Handler["Transactional Handlers"]
+        Cross["Consumer Interface Adapters"]
     end
-
-    subgraph DiscoveryApp ["discovery-application"]
-        ProjectUC["ProjectDiscoveryProductUseCase"]
-        SearchUC["SearchBuyableOffersUseCase"]
-        Policy["DiscoveryOfferPolicy"]
-        ViewPort["DiscoveryProductQueryPort (Outbound)"]
-        RepoPort["DiscoveryProductRepository (Outbound)"]
+    subgraph Application["discovery-application"]
+        UseCase["Projection and Read Use Cases"] --> Ports["Outbound Capability Ports"]
     end
-
-    subgraph DiscoveryPersist ["discovery-persistence-adapter"]
-        RepoAdapter["DiscoveryProductRepositoryAdapter"]
-        QueryAdapter["DiscoveryProductQueryAdapter"]
-        JPA["DiscoveryProductJpaRepository"]
-        Table[("discovery_products Table")]
+    subgraph Persistence["discovery-persistence-adapter"]
+        Adapter["Local Repository and Query Adapters"] --> Database["Discovery Database"]
     end
-
-    REST --> QryHandler
-    QryHandler --> SearchUC
-    EventListener --> CmdHandler
-    CmdHandler --> ProjectUC
-    ProjectUC --> Policy
-    ProjectUC --> RepoPort
-    SearchUC --> ViewPort
-    RepoPort --> RepoAdapter
-    ViewPort --> QueryAdapter
-    RepoAdapter --> JPA
-    QueryAdapter --> JPA
-    JPA --> Table
+    Handler --> UseCase
+    Ports --> Cross
+    Ports --> Adapter
 ```
 
-### Runtime Flow: Event-Driven Projection Refresh
+The repository currently has no `discovery-domain` module; the projection is an application read model, not a new business aggregate. Projection persistence remains local to discovery, and cross-module catalog/inventory/channel adapters remain in `store`.
 
-When upstream domains publish integration events, the projection listener receives the event and executes an idempotent refresh.
+### Runtime Flow
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    participant EventBus as Spring EventPublisher
-    participant Listener as Projection Listener
-    participant Projector as Project Discovery Product Service
-    participant Ports as Catalog / Pricing / Inventory Ports
-    participant Policy as Discovery Offer Policy
-    participant Store as Discovery Product Repository
-
-    EventBus->>Listener: Integration Event (occurredAt)
-    Listener->>Projector: execute(ProjectDiscoveryProductCommand)
-    Projector->>Store: findBySalesChannelAndProduct(channelId, productId)
-    Store-->>Projector: existing projection (updatedAt)
-    alt occurredAt < updatedAt
-        Projector-->>Listener: Ignore stale event (no-op)
-    else occurredAt >= updatedAt
-        Projector->>Ports: Query variant details, price quote, available stock
-        Ports-->>Projector: variant, price, inventory availability
-        Projector->>Policy: Evaluate buyability and product visibility
-        Policy-->>Projector: buyable=true/false, visible=true/false
-        Projector->>Store: save(DiscoveryProductProjection)
-    end
+    participant Source as Source Domain Outbox
+    participant Listener as Integration Listener
+    participant Handler as Command Handler
+    participant Projector as Projection Use Case
+    participant Ports as Source Read Interfaces
+    participant Store as Discovery Store
+    Source->>Listener: Catalog, stock, route, or channel event
+    Listener->>Handler: Dispatch projection command
+    Handler->>Projector: Execute within discovery transaction
+    Projector->>Store: Read current projection and ordering state
+    Projector->>Ports: Fetch current source facts
+    Projector->>Store: Conditional upsert or invalidate
+    Store-->>Source: Successful listener return permits acknowledgement
 ```
 
-### Runtime Flow: Customer Storefront Query
+Listener failures propagate to outbox delivery; no source write is rolled back across module databases. Exact projection and rebuild steps are defined in the linked workflow.
 
-Customer browse and PDP requests query the pre-aggregated projection directly without consulting write modules.
+## 4. Technical Specification & Contracts
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client as Storefront Client
-    participant Controller as StorefrontProductController
-    participant QueryService as Storefront Product Query Service
-    participant ChannelPort as Sales Channel Lookup Port
-    participant QueryAdapter as Discovery Product Query Adapter
+### Normative Rules
 
-    Client->>Controller: GET /api/v1/storefront-query/products?salesChannelId={id}
-    Controller->>QueryService: list(salesChannelId, pageable)
-    QueryService->>ChannelPort: isEnabled(salesChannelId)
-    alt Channel disabled or missing
-        QueryService-->>Controller: ChannelDisabled / SalesChannelRequired
-        Controller-->>Client: 400 Bad Request
-    else Channel enabled
-        QueryService->>QueryAdapter: searchVisible(salesChannelId, pageable)
-        QueryAdapter-->>QueryService: Page<DiscoveryProductView>
-        QueryService-->>Controller: Page<BuyableOfferResponse>
-        Controller-->>Client: 200 OK (PagedModel + HAL links)
-    end
-```
+- **DISC-01:** Tier 1 MUST contain at most one document per `(salesChannelId, productId)` with channel-scoped slug uniqueness; region and currency MUST NOT extend its identity.
+- **DISC-02:** Documents MUST retain product presentation, options, published variant identities, SKUs, routing-dependent quantity, tracking/backorder facts and channel/product eligibility; regional currency, monetary values, contextual ranges, and contextual buyability MUST NOT be persisted in the final Tier 1 schema or variant JSON.
+- **DISC-03:** Catalog, stock, routing, and channel events MUST dispatch commands through `@EventListener`; cross-module records MUST reside under `store/.../shared/events/{module}/`, and source reads MUST use published interfaces backed by inbound use cases.
+- **DISC-04:** A strictly older event MUST NOT overwrite a newer document; duplicates MUST converge, and ordering checks plus save/invalidation MUST use concurrency protection with retry/re-read on conflicts rather than an unguarded read-then-save.
+- **DISC-05:** Visibility MUST require an enabled channel, ACTIVE parent product, and at least one published variant; last-variant removal MUST invalidate every existing channel document and clear its offers, while stock or price absence MUST NOT hide eligible products.
+- **DISC-06:** Search and PDP use cases MUST use query ports returning immutable application views; query adapters MUST use an injected search specification for pagination, with no write-repository or aggregate reads, and invisible/missing PDPs MUST raise OfferNotFound.
+- **DISC-07:** Rebuild MUST enumerate current publications and existing projections in bounded batches, deduplicate product/channel pairs, repair missing/drifted facts, and invalidate orphaned rows without overwriting newer event updates; retries MUST be safe.
+- **DISC-08:** Tier 1 MUST NOT subscribe to price-change events for document recalculation or call Pricing during projection/rebuild; contextual queries MUST use the batch pricing capability instead.
+- **DISC-09:** New schema changes MUST be append-only migrations verified with PostgreSQL Testcontainers; existing applied V1 files MUST NOT be rewritten to achieve cutover.
+- **DISC-10:** Controllers MUST inject only query/command services and assemblers; handlers and provider adapters own module transaction boundaries, and use cases alone orchestrate ports with business decisions in policies.
 
----
+### Storage Contract
 
-## 4. Specification & Contracts
+| Data group | Final Tier 1 content |
+| :--- | :--- |
+| Identity | Channel ID, product ID, seller reference, channel-scoped slug, concurrency version. |
+| Presentation | Title, description, thumbnail/media and product options. |
+| Eligibility | Product status, publication presence, channel status. |
+| Variant facts | Variant ID, SKU, title, option values, available quantity, manage-inventory and allow-backorder facts. |
+| Ordering | Event occurrence/update watermark used by guarded projection updates. |
+| Excluded values | Currency, price, compare-at price, min/max prices, region-specific availability and buyability. |
 
-### Normative Requirements
+Existing `InventoryPort.Availability` exposes quantity and untracked state only; preserving backorder behavior requires completing the source read contract and its mapping. Existing records under owner `events/` packages must be moved to the shared event location for affected flows.
 
-#### 1. Projection Idempotency & Stale Event Protection
-- The projection service MUST compare incoming event `occurredAt` timestamps against existing projection `updatedAt` timestamps.
-- If `occurredAt` is strictly before `updatedAt`, the service MUST discard the update without writing to the database.
-- Projection saves MUST persist `occurredAt` as the document's new `updatedAt` to preserve ordering across event redeliveries.
+### Endpoints and Configuration
 
-#### 2. Strict Channel Scoping
-- Single-channel events (`Published`, `Unpublished`) MUST project only for the targeted channel ID.
-- Multi-channel variant and product events MUST resolve distinct product-channel pairs before recalculating.
-- Handlers MUST deduplicate SKU matches and product IDs to ensure linear $O(M)$ projection complexity.
+| Surface | Target contract |
+| :--- | :--- |
+| `GET /api/v1/storefront-query/products` | Contextual paged representation using key-only channel resolution. |
+| `GET /api/v1/storefront-query/products/{slug}` | Contextual PDP representation with explicit variant availability. |
+| `storefrontquery.rebuild.on-startup` | Existing opt-in startup dispatch; a no-op until the rebuild use case is implemented. |
 
-#### 3. Buyability & Visibility Evaluation
-- An offer MUST be marked `buyable = true` if and only if:
-  1. The variant has an active publication to the target sales channel.
-  2. The parent product status equals `"ACTIVE"`.
-  3. The sales channel status equals `"ENABLED"`.
-  4. Pricing quotes a valid price matching the channel's required currency code.
-  5. Available routed inventory is greater than 0, or inventory tracking is disabled (`untracked = true`).
-- A product document MUST be marked `visible = true` if and only if the sales channel is enabled, parent product status is `"ACTIVE"`, and at least one variant is published to the channel.
-
-#### 4. Fail-Closed Customer Queries
-- Customer queries MUST select a channel with either `salesChannelId` or a valid `X-Publishable-Key` header. A publishable key MUST resolve to its associated channel before the projection query runs.
-- If both selectors are present, they MUST resolve to the same channel; otherwise, the request MUST be rejected.
-- Requests with neither selector MUST fail with `StorefrontQueryServiceError.SalesChannelRequired` (HTTP 400). Requests with a malformed, unknown, or revoked key MUST fail without exposing whether a key exists.
-- Queries targeting a disabled sales channel MUST fail closed with `StorefrontQueryServiceError.ChannelDisabled` (HTTP 400).
-- PDP lookups for unprojected, deleted, or invisible products MUST throw `StorefrontQueryServiceError.OfferNotFound` (HTTP 404).
-
-#### 5. Projection Rebuild Capability
-- The system MUST provide an asynchronous rebuild command (`RebuildDiscoveryProductsUseCase`) that reads all publications from Catalog and executes full recalculations.
-- Rebuild operations MUST be safe to run concurrently with live traffic without causing deadlocks or corrupting valid projection states.
-
-### HTTP & HATEOAS Endpoints
-
-| Endpoint | Method | Response Model | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/v1/storefront-query` | `GET` | `RepresentationModel<?>` | Tier 2 API Root exposing discovery links. |
-| `/api/v1/storefront-query/products` | `GET` | `PagedModel<EntityModel<BuyableOfferResponse>>` | Paged collection of visible products for channel. |
-| `/api/v1/storefront-query/products/{slug}` | `GET` | `EntityModel<BuyableOfferResponse>` | Product detail representation with variant offers. |
-
-### Configuration Knobs
-
-| Property / Parameter | Logical Name | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `fallbackCurrency` | Fallback Channel Currency | `"MMK"` | Default currency code applied when channel currency is unspecified. |
-| `defaultPageSize` | Default Browse Page Size | `20` | Default number of product cards returned per page. |
-| `maxPageSize` | Maximum Browse Page Size | `100` | Upper limit for client-specified pagination requests. |
+No operational batch-rebuild control or progress checkpoint is currently implemented. The old specification's `fallbackCurrency`, `defaultPageSize`, and `maxPageSize` entries were not verified implementation bindings; the target design forbids currency fallback and requires release measurements rather than claiming a latency guarantee.
