@@ -4,12 +4,12 @@ import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -83,12 +83,11 @@ public class SalesChannelModuleDataSourceConfig {
     }
 
     @Bean(name = "salesChannelFlyway", initMethod = "migrate")
-    @ConditionalOnProperty(prefix = "saleschannel.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Flyway salesChannelFlyway(@Qualifier("salesChannelDataSource") DataSource salesChannelDataSource) {
         return Flyway.configure()
                 .dataSource(salesChannelDataSource)
                 .locations("classpath:db/migration/saleschannel")
-                .baselineOnMigrate(true)
+                .baselineOnMigrate(false)
                 .load();
     }
 

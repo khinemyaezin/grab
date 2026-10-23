@@ -1,6 +1,7 @@
 package com.grab.store.saleschannel.internal.api.rest.assembler;
 
 import com.grab.store.saleschannel.internal.api.rest.controller.SalesChannelController;
+import com.grab.store.saleschannel.internal.api.rest.controller.PublishableKeyController;
 import com.grab.store.saleschannel.internal.api.rest.dto.response.SalesChannelResponse;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
@@ -21,7 +22,11 @@ public class SalesChannelModelAssembler
                 linkTo(methodOn(SalesChannelController.class).get(response.salesChannelId()))
                         .withRel("get-sales-channel"),
                 linkTo(methodOn(SalesChannelController.class).list(null, null))
-                        .withRel("list-sales-channels")
+                        .withRel("list-sales-channels"),
+                linkTo(methodOn(PublishableKeyController.class).list(response.salesChannelId(), null, null))
+                        .withRel("list-publishable-keys"),
+                linkTo(methodOn(PublishableKeyController.class).create(response.salesChannelId(), null))
+                        .withRel("create-publishable-key")
         );
     }
 }

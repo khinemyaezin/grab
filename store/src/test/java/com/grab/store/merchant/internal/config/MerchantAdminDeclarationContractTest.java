@@ -3,7 +3,6 @@ package com.grab.store.merchant.internal.config;
 import com.catalog.application.security.CatalogAuthorityManifest;
 import com.grab.framework.security.AuthorityDefinition;
 import com.grab.framework.security.role.RoleDeclaration;
-import com.grab.framework.security.role.RolePermissionReference;
 import com.inventory.application.security.InventoryAuthorityManifest;
 import com.merchant.application.security.MerchantAdminAccessProfile;
 import com.merchant.application.security.MerchantAuthorityManifest;
@@ -23,7 +22,9 @@ class MerchantAdminDeclarationContractTest {
         assertThat(declaration.roleCode()).isEqualTo("MERCHANT_ADMIN");
         assertThat(declaration.owner()).isEqualTo("merchant");
         assertThat(declaration.assignmentScopeKey()).isEqualTo("merchant.account");
-        assertThat(declaration.permissions()).hasSize(10);
+        assertThat(declaration.declarationRevision()).isEqualTo(2);
+        assertThat(declaration.minimumOwnerRevisions().get("saleschannel")).isEqualTo(3);
+        assertThat(declaration.permissions()).hasSize(12);
 
         // Catalog
         Set<String> catalogCodes = CatalogAuthorityManifest.CURRENT.definitions().stream()

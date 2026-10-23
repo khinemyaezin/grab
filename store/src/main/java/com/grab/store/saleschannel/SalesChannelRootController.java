@@ -1,6 +1,7 @@
 package com.grab.store.saleschannel;
 
 import com.grab.store.saleschannel.internal.api.rest.controller.SalesChannelController;
+import com.grab.store.saleschannel.internal.api.rest.controller.PublishableKeyController;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,8 @@ public class SalesChannelRootController {
                 .withRel("list-sales-channels"));
         model.add(linkTo(methodOn(SalesChannelController.class).get(null))
                 .withRel("get-sales-channel"));
+        model.add(linkTo(methodOn(PublishableKeyController.class).list(null, null, null))
+                .withRel("list-publishable-keys"));
         return ResponseEntity.ok(model);
     }
 }
