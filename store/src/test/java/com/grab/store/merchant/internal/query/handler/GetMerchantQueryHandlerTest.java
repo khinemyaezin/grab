@@ -60,6 +60,7 @@ class GetMerchantServiceTest {
                 merchantId,
                 applicantUserId,
                 MerchantType.FIRST_PARTY_RETAILER,
+                "US",
                 displayName,
                 displayName,
                 null,

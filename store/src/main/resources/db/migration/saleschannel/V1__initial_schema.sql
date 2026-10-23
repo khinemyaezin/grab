@@ -33,6 +33,16 @@ CREATE TABLE sales_channels (
     primary key (id)
 );
 
+CREATE TABLE sales_channel_regions (
+    sales_channel_id varchar(255) not null,
+    region_id varchar(64) not null,
+    is_enabled boolean not null default true,
+    is_default boolean not null default false,
+    created_at timestamp(6) with time zone not null default current_timestamp,
+    updated_at timestamp(6) with time zone not null default current_timestamp,
+    primary key (sales_channel_id, region_id)
+);
+
 CREATE TABLE security_manifest_publication (
     security_revision integer not null,
     last_enqueued_at timestamp(6) with time zone,
@@ -57,4 +67,10 @@ CREATE UNIQUE INDEX uq_sales_channels_marketplace
 CREATE UNIQUE INDEX uq_sales_channels_website_merchant
     ON sales_channels (merchant_id)
     WHERE type = 'WEBSITE';
+
+CREATE INDEX idx_sales_channel_regions_region ON sales_channel_regions (region_id);
+
+CREATE UNIQUE INDEX uq_sales_channel_single_default_region
+    ON sales_channel_regions (sales_channel_id)
+    WHERE is_default = TRUE;
 

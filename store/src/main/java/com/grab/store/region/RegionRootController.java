@@ -20,6 +20,7 @@ public class RegionRootController {
         RepresentationModel<?> model = new RepresentationModel<>();
         model.add(linkTo(methodOn(RegionRootController.class).root()).withSelfRel());
         model.add(linkTo(methodOn(RegionController.class).get(null)).withRel("get-region"));
+        model.add(linkTo(methodOn(RegionController.class).countries()).withRel("list-region-countries"));
         return ResponseEntity.ok(model);
     }
 }

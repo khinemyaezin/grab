@@ -32,6 +32,7 @@ public class DevSqlDataSeeder implements ApplicationRunner {
     private final ObjectProvider<DataSource> pricingDataSource;
     private final ObjectProvider<DataSource> inventoryDataSource;
     private final ObjectProvider<DataSource> storefrontQueryDataSource;
+    private final ObjectProvider<DataSource> regionDataSource;
 
     public DevSqlDataSeeder(
             @Qualifier("identityDataSource") ObjectProvider<DataSource> identityDataSource,
@@ -40,7 +41,8 @@ public class DevSqlDataSeeder implements ApplicationRunner {
             @Qualifier("catalogDataSource") ObjectProvider<DataSource> catalogDataSource,
             @Qualifier("pricingDataSource") ObjectProvider<DataSource> pricingDataSource,
             @Qualifier("inventoryDataSource") ObjectProvider<DataSource> inventoryDataSource,
-            @Qualifier("storefrontQueryDataSource") ObjectProvider<DataSource> storefrontQueryDataSource
+            @Qualifier("storefrontQueryDataSource") ObjectProvider<DataSource> storefrontQueryDataSource,
+            @Qualifier("regionDataSource") ObjectProvider<DataSource> regionDataSource
     ) {
         this.identityDataSource = identityDataSource;
         this.merchantDataSource = merchantDataSource;
@@ -49,6 +51,7 @@ public class DevSqlDataSeeder implements ApplicationRunner {
         this.pricingDataSource = pricingDataSource;
         this.inventoryDataSource = inventoryDataSource;
         this.storefrontQueryDataSource = storefrontQueryDataSource;
+        this.regionDataSource = regionDataSource;
     }
 
     @Override
@@ -62,6 +65,7 @@ public class DevSqlDataSeeder implements ApplicationRunner {
         executeScript(pricingDataSource.getIfAvailable(), "db/dev-seed/05_pricing.sql", "pricing");
         executeScript(inventoryDataSource.getIfAvailable(), "db/dev-seed/06_inventory.sql", "inventory");
         executeScript(storefrontQueryDataSource.getIfAvailable(), "db/dev-seed/07_storefrontquery.sql", "storefrontquery");
+        executeScript(regionDataSource.getIfAvailable(), "db/dev-seed/08_region.sql", "region");
 
         log.info("Local development SQL seeding completed successfully.");
     }

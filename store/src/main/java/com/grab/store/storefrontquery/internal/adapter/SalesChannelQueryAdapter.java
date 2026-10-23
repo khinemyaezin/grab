@@ -6,11 +6,10 @@ import com.grab.store.saleschannel.port.SalesChannelPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
-
 @Component("storeFrontQuerySalesChannelQueryAdapter")
 @RequiredArgsConstructor
 public class SalesChannelQueryAdapter implements SalesChannelQueryPort {
+    private static final String DEFAULT_CURRENCY = "MMK";
     private final SalesChannelPort salesChannels;
 
     @Override
@@ -21,8 +20,6 @@ public class SalesChannelQueryAdapter implements SalesChannelQueryPort {
 
     @Override
     public String currency(Id salesChannelId) {
-        String channelValue = salesChannelId.getValue();
-        Optional<SalesChannelPort.SalesChannelSlice> sliceOpt = salesChannels.find(channelValue);
-        return sliceOpt.map(SalesChannelPort.SalesChannelSlice::currency).orElse("MMK");
+        return DEFAULT_CURRENCY;
     }
 }

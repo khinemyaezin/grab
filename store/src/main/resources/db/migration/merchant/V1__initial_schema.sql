@@ -19,6 +19,7 @@ CREATE TABLE merchant_accounts (
     display_name varchar(255) not null,
     legal_name varchar(255),
     merchant_type varchar(255) not null check (merchant_type in ('FIRST_PARTY_RETAILER','THIRD_PARTY','C2C_SELLER')),
+    primary_market_country_code varchar(2) not null,
     registration_country_code varchar(255),
     registration_number varchar(255),
     reviewed_by varchar(255),

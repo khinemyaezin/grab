@@ -6,6 +6,7 @@ import com.merchant.application.port.outbound.IdentityAccessManagementPort;
 import com.merchant.application.port.outbound.MerchantAccountQueryPort;
 import com.merchant.application.port.outbound.MerchantMemberQueryPort;
 import com.merchant.application.port.outbound.StorefrontQueryPort;
+import com.merchant.application.port.outbound.PrimaryMarketRegionPort;
 import com.merchant.application.service.*;
 import com.merchant.domain.port.outbound.MerchantAccountRepository;
 import com.merchant.domain.port.outbound.MerchantMemberRepository;
@@ -108,9 +109,10 @@ public class MerchantUseCaseConfig {
     public StartMerchantApplicationUseCase startMerchantApplicationUseCase(
             MerchantAccountRepository merchants,
             MerchantRegistrationPolicy registrationPolicy,
-            IdGenerator ids
+            IdGenerator ids,
+            PrimaryMarketRegionPort primaryMarketRegionPort
     ) {
-        return new StartMerchantApplicationService(merchants, registrationPolicy, ids);
+        return new StartMerchantApplicationService(merchants, registrationPolicy, ids, primaryMarketRegionPort);
     }
 
     @Bean

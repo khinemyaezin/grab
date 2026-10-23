@@ -12,9 +12,13 @@ CREATE TABLE region_countries (
     country_code varchar(2) not null,
     region_id varchar(64) not null,
     id varchar(96) not null,
+    created_at timestamp(6) with time zone not null default current_timestamp,
     primary key (id),
     CONSTRAINT FK97moip10btpmbmys8dinaj3yu FOREIGN KEY (region_id) REFERENCES regions
 );
+
+CREATE UNIQUE INDEX uq_region_countries_country_code
+    ON region_countries (country_code);
 
 CREATE TABLE region_outbox_events (
     attempt_count integer not null,

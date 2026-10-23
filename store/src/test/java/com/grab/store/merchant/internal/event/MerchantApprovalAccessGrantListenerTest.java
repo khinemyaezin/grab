@@ -34,7 +34,7 @@ class MerchantApprovalAccessGrantListenerTest {
     @Test
     void onMerchantApproved_shouldDispatchProvisionMerchantAdminCommand() {
         MerchantApprovedEvent event = new MerchantApprovedEvent(
-                "mer-1", "Test Merchant", "usr-1", "ACTIVE", "reviewer-1", 1, now
+                "mer-1", "Test Merchant", "usr-1", "ACTIVE", "reviewer-1", 1, now, "US"
         );
 
         listener.onMerchantApproved(event);

@@ -11,12 +11,8 @@ public interface SalesChannelPort {
             String salesChannelId,
             String type,
             String status,
-            String merchantId,
-            String currency
+            String merchantId
     ) {
-        public SalesChannelSlice(String salesChannelId, String type, String status, String merchantId) {
-            this(salesChannelId, type, status, merchantId, "MMK");
-        }
         public boolean enabled() {
             return "ENABLED".equals(status);
         }

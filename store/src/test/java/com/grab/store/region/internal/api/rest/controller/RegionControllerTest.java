@@ -1,7 +1,9 @@
 package com.grab.store.region.internal.api.rest.controller;
 
 import com.grab.store.region.internal.api.rest.assembler.RegionModelAssembler;
+import com.grab.store.region.internal.api.rest.dto.response.RegionCountryResponse;
 import com.grab.store.region.internal.api.rest.dto.response.RegionResponse;
+import com.grab.store.region.internal.api.rest.service.RegionCountryQueryService;
 import com.grab.store.region.internal.api.rest.service.RegionQueryService;
 import com.grab.store.shared.security.WebMvcSecurityTestConfiguration;
 import com.region.application.exception.RegionServiceError;
@@ -14,6 +16,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.mockito.Mockito.when;
@@ -31,6 +34,9 @@ class RegionControllerTest {
 
     @MockBean
     private RegionQueryService regionQueryService;
+
+    @MockBean
+    private RegionCountryQueryService regionCountryQueryService;
 
     @Test
     void get_whenRegionExists_shouldReturnEntityModelWithLinks() throws Exception {
@@ -64,5 +70,18 @@ class RegionControllerTest {
 
         mockMvc.perform(get("/api/v1/regions/unknown"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void countries_whenCountriesExist_shouldReturnCollectionModel() throws Exception {
+        when(regionCountryQueryService.list()).thenReturn(List.of(
+                new RegionCountryResponse("SG"),
+                new RegionCountryResponse("MY")
+        ));
+
+        mockMvc.perform(get("/api/v1/regions/countries"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$._embedded.regionCountryResponseList[0].countryCode").value("SG"))
+                .andExpect(jsonPath("$._embedded.regionCountryResponseList[1].countryCode").value("MY"));
     }
 }

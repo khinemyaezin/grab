@@ -5,6 +5,7 @@ import com.grab.store.merchant.internal.api.rest.controller.FirstPartyRetailerAp
 import com.grab.store.merchant.internal.api.rest.controller.MerchantController;
 import com.grab.store.merchant.internal.api.rest.controller.StorefrontController;
 import com.grab.store.merchant.internal.config.MerchantEnabled;
+import com.grab.store.region.api.RegionApiLinks;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +60,7 @@ public class MerchantRootController {
         model.add(linkTo(methodOn(StorefrontController.class)
                 .create(null, null))
                 .withRel("create-storefront"));
+        model.add(RegionApiLinks.listRegionCountries());
         return ResponseEntity.ok(model);
     }
 }
