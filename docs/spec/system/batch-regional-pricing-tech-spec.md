@@ -3,7 +3,7 @@
 > **Summary:** Quotes every distinct variant on a storefront page under one authoritative market context with bounded database reads.
 > **Classification:** Architectural Pattern / Read Capability
 > **Supporting Modules:** `pricing-domain` / `pricing-application` / `pricing-adapter-persistence` / `store/pricing`
-> **Status:** Planned batch capability; existing four-tier calculation policy is reusable.
+> **Status:** Implemented batch capability; existing four-tier calculation policy remains authoritative.
 > **Related Features:** [Vectorized Batch Regional Pricing](../../features/feat_005-vectorized-batch-regional-pricing.md), [Storefront API Cutover & Response Contract Refactoring](../../features/feat_007-storefront-api-cutover-contract-refactoring.md)
 > **Related Domain Specs:** [Pricing](../domain/pricing/architecture/pricing-domain-spec.md), [Region](../domain/region/architecture/region-domain-spec.md)
 > **Related Workflow:** [Browse and Discover Products](../workflows/browse-and-discover-products-workflow.md)
@@ -38,7 +38,7 @@ flowchart LR
     Rules --> Results["Per-Variant Outcomes"]
 ```
 
-The operation is stateless and creates no pricing aggregates or workflow lifecycle. One evaluation instant applies to every candidate in the batch.
+The operation is stateless and creates no pricing aggregates or workflow lifecycle. One evaluation instant applies to every candidate in the batch. Missing links and linked sets without a calculated amount remain explicit unpriced outcomes with null monetary values; they are not converted to zero or another currency.
 
 ### Selection Mechanics
 
@@ -123,6 +123,6 @@ sequenceDiagram
 
 ### Storage and Configuration
 
-No new regional materialized-price table is required. The existing bulk link port and price query port are starting points; the new batch use case and published batch interface do not yet exist.
+No new regional materialized-price table is required. The existing bulk link port and price query port are used by the batch use case, which is exposed through QueryBus and the published `PricingQuoteQuery.quoteBatch` interface. The discovery consumer receives an outcome for every distinct requested variant.
 
-No batch-specific configuration binding or enforced maximum is currently implemented. Performance evidence MUST record actual page and variant counts rather than advertise an invented default or latency guarantee.
+No batch-specific configuration binding or enforced maximum is implemented. Performance evidence MUST record actual page and variant counts rather than advertise an invented default or latency guarantee. PostgreSQL verification should report the observed statement counts for one linked variant and the 100-variant fixture, including rule hydration and preference loading.

@@ -1,7 +1,11 @@
 package com.grab.store.pricing.port;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface PricingQuoteQuery {
@@ -17,6 +21,8 @@ public interface PricingQuoteQuery {
         return quote(variantId, currencyCode, quantity, salesChannelId, null);
     }
 
+    BatchQuoteResult quoteBatch(BatchQuoteRequest request);
+
     List<String> variantIdsForPriceSet(String priceSetId);
 
     record QuotedPrice(
@@ -25,5 +31,26 @@ public interface PricingQuoteQuery {
             String currencyCode,
             String priceSetId
     ) {
+    }
+
+    record BatchQuoteRequest(
+            List<String> variantIds,
+            String currencyCode,
+            int quantity,
+            String salesChannelId,
+            String regionId
+    ) {
+        public BatchQuoteRequest {
+            variantIds = variantIds == null
+                    ? null
+                    : Collections.unmodifiableList(new ArrayList<>(variantIds));
+        }
+    }
+
+    record BatchQuoteResult(Map<String, QuotedPrice> quotes) {
+        public BatchQuoteResult {
+            Map<String, QuotedPrice> copied = quotes == null ? Map.of() : new LinkedHashMap<>(quotes);
+            quotes = Collections.unmodifiableMap(copied);
+        }
     }
 }
