@@ -11,7 +11,8 @@ import org.springframework.modulith.ApplicationModule;
         "catalog::query",
         "pricing::query",
         "inventory::query",
-        "saleschannel::query"
+        "saleschannel::query",
+        "region::query"
 })
 public class StorefrontQueryModule {
 }
