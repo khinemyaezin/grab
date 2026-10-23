@@ -3,7 +3,8 @@
 > **Bounded Context:** Sales Channel
 > **Primary Purpose:** Defines a selling destination, its platform or merchant ownership, and whether it is enabled for use.
 > **Module Root:** `sales-channel-domain` / `sales-channel-application` / `sales-channel-adapter-persistence` / `store/saleschannel`
-> **Related Domain Specs:** [Merchant](../../merchant/architecture/merchant-domain-spec.md), [Catalog Product Publication](../../catalog/architecture/product-publication-domain-spec.md)
+> **Related Domain Specs:** [Merchant](../../merchant/architecture/merchant-domain-spec.md), [Catalog Product Publication](../../catalog/architecture/product-publication-domain-spec.md), [Publishable Key](publishable-key-domain-spec.md)
+> **Related Feature Specs:** [Publishable Keys for Sales Channels](../../../features/feat_003-sales-channel-publishable-keys.md)
 > **Related Workflows:** [Default Sales Channel Provisioning](../../../features/default-sales-channel-provisioning-workflow.md), [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md)
 
 ---
@@ -14,6 +15,8 @@
 
 - **This aggregate OWNS:** Channel identity, name, type, ownership classification, merchant reference, enabled/disabled status, and lifecycle timestamps.
 - **This aggregate DOES NOT OWN:** Merchant lifecycle, product data, variant/channel publication records, prices, inventory locations, routing, or storefront buyability projections.
+
+The Sales Channel bounded context also owns publishable-key records. Each `PublishableKey` is a separate aggregate root and references its channel by `salesChannelId`; it is not a child of the `SalesChannel` aggregate. Detailed aggregate specification for publishable keys is defined in the [Publishable Key domain spec](publishable-key-domain-spec.md). A key record owns its label, token digest, display prefix, creation time, and revocation time. It does not own channel status or public product data.
 
 A Sales Channel has no child entities and references its merchant by `merchantId` only. Catalog owns [ProductPublication](../../catalog/architecture/product-publication-domain-spec.md), which references this aggregate by `salesChannelId`.
 
@@ -49,6 +52,8 @@ flowchart TD
 | **Enabled** | `ChannelStatus.ENABLED` | Channel status that passes the enabled guard. |
 | **Disabled** | `ChannelStatus.DISABLED` | Channel status that prevents a successful usability assertion. |
 | **Usable Channel** | `CheckSalesChannelUsableResult.usable()` | A channel that exists, is enabled, and is platform-owned or belongs to the acting merchant. |
+| **Publishable Key** | `PublishableKey` (Aggregate Root) | A revocable, channel-scoped credential used to select a sales channel for public storefront reads. |
+| **Active Key** | `PublishableKey.isActive()` | A key whose `revokedAt` value is absent. |
 
 ---
 
@@ -93,6 +98,20 @@ Diagram attribute types describe business concepts; the implementation types are
 | `updatedAt` | `Instant` | SalesChannel | Records the latest effective enable/disable transition. |
 | `version` | `long` | SalesChannel | Supports detection of concurrent changes to the same channel. |
 
+### Publishable Key Aggregate
+
+`PublishableKey` is a separate aggregate root specified in detail in the [Publishable Key domain spec](publishable-key-domain-spec.md). It stores only a digest of the raw key and a short display prefix; the raw key is returned by the application only during successful creation. Its `salesChannelId` is an ID-only reference to a `SalesChannel` aggregate.
+
+| Property | Type | Business Rationale |
+| :--- | :--- | :--- |
+| `id` | `Id` | Identifies the managed key record. |
+| `salesChannelId` | `Id` | Limits the key to one sales channel. |
+| `label` | `String` | Helps an operator recognize which storefront configuration uses the key. |
+| `tokenDigest` | `String` | Supports lookup without persisting the raw key. |
+| `displayPrefix` | `String` | Helps an operator identify a key without revealing its secret value. |
+| `createdAt` | `Instant` | Records when the key was issued. |
+| `revokedAt` | `Instant` (nullable) | Records revocation; absence means the key is active. |
+
 ---
 
 ## 4. Business Invariants & Rules
@@ -105,6 +124,17 @@ Diagram attribute types describe business concepts; the implementation types are
 | **SC-04** | A seller-owned channel may be used only by its owning merchant. | Ownership guard raises `ChannelOwnershipForbidden`. | `SalesChannel.requireOwnedBy()` |
 | **SC-05** | A disabled channel must fail the enabled guard. | Guard raises `ChannelDisabled`. | `SalesChannel.requireEnabled()` |
 | **SC-06** | Repeating enable or disable on the current status must not create another lifecycle event. | Operation returns without changing state or timestamps. | `SalesChannel.enable()` / `disable()` |
+
+### Publishable Key Invariants
+
+| Rule ID | Invariant Rule | Violation Outcome | Enforced By |
+| :--- | :--- | :--- | :--- |
+| **PK-01** | A key references exactly one sales channel by ID and has a nonblank label of at most 100 characters. | Construction rejects invalid values. | `PublishableKey` constructor |
+| **PK-02** | A key record contains a token digest and display prefix, never the raw token. | Invalid digest or prefix is rejected; raw token is not a domain property. | `PublishableKey` constructor / token generator boundary |
+| **PK-03** | Token digests are unique across keys. | A digest collision fails creation so a new key can be generated. | `PublishableKeyRepository` and persistence uniqueness constraint |
+| **PK-04** | A key is active exactly when `revokedAt` is absent; revocation time cannot precede creation time. | Invalid construction or revocation time is rejected. | `PublishableKey.isActive()` / `revoke()` |
+| **PK-05** | Repeating revocation of an already revoked key does not change its timestamp or emit another event. | Operation is a no-op. | `PublishableKey.revoke()` |
+| **PK-06** | A merchant may manage keys only for its own seller-owned channels; an administrator may manage keys for any channel. | The operation is forbidden when the caller does not own the seller channel and is not an administrator. | `PublishableKeyManagementPolicy.requireAllowed()` |
 
 ### Cross-Aggregate Uniqueness Guards
 
@@ -147,6 +177,16 @@ The constructor can reconstitute either supported status without emitting events
 
 Disabling a channel does not delete Catalog publication records. Its integration event causes Storefront Query to update channel eligibility in the buyable-offer projection.
 
+Publishable keys have a separate lifecycle and are not enabled or disabled with their channel. A key remains active until revoked; Storefront Query still fails closed when the associated sales channel is disabled.
+
+### Publishable Key State
+
+| Current State | Trigger | Next State | Guard Condition / Prerequisite |
+| :--- | :--- | :--- | :--- |
+| New | `PublishableKey.create()` | Active | Channel ID, label, digest, prefix, and creation time are valid. |
+| Active | `revoke(now)` | Revoked | Revocation time is not before creation time. |
+| Revoked | `revoke(now)` | Revoked | No state, timestamp, or event change. |
+
 ---
 
 ## 6. Domain Events
@@ -158,6 +198,8 @@ Disabling a channel does not delete Catalog publication records. Its integration
 | `SalesChannelCreatedEvent` | Website or marketplace factory creates the aggregate. | Channel ID, name, type, owner, merchant ID, status, occurrence time | No current creation integration bridge or listener. |
 | `SalesChannelEnabledEvent` | Effective transition from disabled to enabled. | Channel ID, type, merchant ID, occurrence time | Sales Channel integration bridge |
 | `SalesChannelDisabledEvent` | Effective transition from enabled to disabled. | Channel ID, type, merchant ID, occurrence time | Sales Channel integration bridge |
+| `PublishableKeyCreatedEvent` | A key aggregate is created. | Key ID, channel ID, occurrence time | No current cross-module integration consumer. |
+| `PublishableKeyRevokedEvent` | An active key is effectively revoked. | Key ID, channel ID, occurrence time | No current cross-module integration consumer. |
 
 `SalesChannelRepositoryAdapter.save()` persists the aggregate and passes its pulled events to `DomainEventProducer`. Durable dispatch follows the [Transactional Outbox specification](../../../system/transactional-outbox-tech-spec.md).
 

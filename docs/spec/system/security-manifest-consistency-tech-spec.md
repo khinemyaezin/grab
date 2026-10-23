@@ -5,7 +5,7 @@
 > **Related ADR:** [ADR-004](../../dev/domain/identity/architecture/ADR_004-Distributed_security_manifest_catalog.md)
 > **Classification:** Architectural Pattern / Cross-Cutting Concern
 > **Supporting Modules:** `framework`, `manifest-adapter-persistence`, `outbox-infrastructure`, owner application/persistence modules, `identity-domain`, `identity-application`, `identity-adapter-persistence`, `store`
-> **Related Specifications:** [Identity domain](../domain/identity/architecture/identity-domain-spec.md), [API security](api-security-tech-spec.md), [Transactional outbox](transactional-outbox-tech-spec.md)
+> **Related Specifications:** [Identity domain](../domain/identity/architecture/identity-domain-spec.md), [API security](api-security-tech-spec.md), [Transactional outbox](transactional-outbox-tech-spec.md), [Publishable Keys for Sales Channels](../features/feat_003-sales-channel-publishable-keys.md)
 
 ## 1. Why We Need It
 
