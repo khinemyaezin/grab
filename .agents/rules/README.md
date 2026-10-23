@@ -16,6 +16,7 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 | Domain | `domain/` | Aggregates, domain events, policies |
 | Platform | `platform/` | Errors, transactions, events, logging |
 | Conventions | `conventions/` | Naming, coding style |
+| Testing | `testing/` | JPA repository integration tests (Testcontainers), ArchUnit architecture conformance |
 
 ## Rule index
 
@@ -42,6 +43,7 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 | R19 | `conventions/naming.md` |
 | R20 | `conventions/coding-style.md` |
 | R21 | this file, section "Before generating code" |
+| R22 | `testing/README.md` |
 
 ## Before generating code
 
@@ -73,3 +75,4 @@ Verify all of the following before producing or changing code.
 24. `shared` remains `@ApplicationModule(type = OPEN)`.
 25. Strict CQRS isolation: CommandService and QueryService never mess with each other or cross-call. CommandService NEVER injects or invokes QueryBus or queries data. QueryService NEVER injects or invokes CommandBus or mutates state.
 26. Outbound API exposure via shared interface ports (instead of gRPC): provider public interface lives in `store/.../{domain}/port/` with DTOs declared inside the interface, provider adapter lives in `store/.../{domain}/internal/api/adapter/{port}Adapter` delegating only to `*UseCase` with transaction starting on the adapter method, and mapper lives in `store/.../{domain}/internal/api/adapter/mapper/{PortName}Mapper`. Consuming modules define an outbound port in `{consumer}-application/.../port/outbound/{TargetDomain}{Capability}Port` and implement it via an adapter in `store/.../{consumer}/internal/adapter/{TargetDomain}{Capability}Adapter`. Persistence adapters are strictly intra-domain.
+27. JPA repository and adapter tests MUST use Testcontainers with the module's target database container (e.g. PostgreSQL, MySQL via `JdbcDatabaseContainer` or `jdbc:tc:...`), avoiding mismatched in-memory databases. Architecture tests in ArchUnit MUST pass without violating layer boundaries, CQRS isolation, or native query prohibitions.

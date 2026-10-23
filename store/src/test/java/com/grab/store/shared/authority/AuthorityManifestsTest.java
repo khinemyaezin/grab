@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,7 +42,8 @@ class AuthorityManifestsTest {
         assertThat(codes(manifests.get("inventory"))).containsExactlyInAnyOrder("INVENTORY_READ", "INVENTORY_WRITE");
         assertThat(codes(manifests.get("catalog"))).containsExactlyInAnyOrder("CATALOG_READ", "CATALOG_WRITE");
         assertThat(codes(manifests.get("saleschannel"))).containsExactlyInAnyOrder(
-                "SALES_CHANNEL_READ", "SALES_CHANNEL_WRITE"
+                "SALES_CHANNEL_READ", "SALES_CHANNEL_WRITE",
+                "SALES_CHANNEL_KEY_READ", "SALES_CHANNEL_KEY_WRITE", "SALES_CHANNEL_KEY_ADMIN"
         );
 
         List<String> allCodes = manifests.values().stream()
@@ -51,7 +51,8 @@ class AuthorityManifestsTest {
                 .map(definition -> definition.code())
                 .toList();
         assertThat(new HashSet<>(allCodes)).hasSameSizeAs(allCodes);
-        assertThat(allCodes).hasSize(20);
+        assertThat(allCodes).hasSize(23);
+        assertThat(SalesChannelAuthorityManifest.CURRENT.version()).isEqualTo(2);
     }
 
     @Test

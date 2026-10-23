@@ -81,6 +81,7 @@ Refer to the source files in [.agents/rules/](.agents/rules/README.md) for detai
 | **R19** | Naming Conventions | [.agents/rules/conventions/naming.md](.agents/rules/conventions/naming.md) |
 | **R20** | Coding Style Guidelines | [.agents/rules/conventions/coding-style.md](.agents/rules/conventions/coding-style.md) |
 | **R21** | Pre-Code Generation Checklist | [.agents/rules/README.md](.agents/rules/README.md) |
+| **R22** | Testing Strategy, JPA Testcontainers & ArchUnit | [.agents/rules/testing/README.md](.agents/rules/testing/README.md) |
 
 ---
 
@@ -93,7 +94,7 @@ For multi-step implementation workflows, consult the corresponding skill in [.ag
 
 ## Before Generating Code (R21 Checklist)
 
-Verify all 26 checks before producing or changing code:
+Verify all 27 checks before producing or changing code:
 
 1. Controller delegates writes to `CommandService` and reads to `QueryService`. No inline logic, no direct bus, port, or repository injection.
 2. MapStruct mapper abstract class exists per Command/Query operation, annotated with `@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)`.
@@ -121,3 +122,4 @@ Verify all 26 checks before producing or changing code:
 24. `shared` remains `@ApplicationModule(type = OPEN)`.
 25. Strict CQRS isolation: `CommandService` and `QueryService` never mess with each other or cross-call. `CommandService` NEVER injects or invokes `QueryBus` or queries data. `QueryService` NEVER injects or invokes `CommandBus` or mutates state.
 26. Outbound API exposure via shared interface ports: provider public interface lives in `store/.../{domain}/port/` with DTOs declared inside the interface, provider adapter lives in `store/.../{domain}/internal/api/adapter/{port}Adapter` delegating only to `*UseCase` with transaction starting on the adapter method, and mapper lives in `store/.../{domain}/internal/api/adapter/mapper/{PortName}Mapper`. Consuming modules define an outbound port in `{consumer}-application/.../port/outbound/{TargetDomain}{Capability}Port` and implement it via an adapter in `store/.../{consumer}/internal/adapter/{TargetDomain}{Capability}Adapter`. Persistence adapters are strictly intra-domain.
+27. JPA repository and adapter tests MUST use Testcontainers with the module's target database container (e.g. PostgreSQL, MySQL via `JdbcDatabaseContainer` or `jdbc:tc:...`), avoiding mismatched in-memory databases. Architecture tests in ArchUnit MUST pass without violating layer boundaries, CQRS isolation, or native query prohibitions.

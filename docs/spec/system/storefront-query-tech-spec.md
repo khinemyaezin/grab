@@ -4,6 +4,7 @@
 > **Classification:** Architectural Pattern / CQRS Read Model / Platform Infrastructure
 > **Supporting Modules:** `discovery-application` / `discovery-persistence-adapter` / `store/storefrontquery`
 > **Related Architecture ADRs:** [ADR-001 System Architecture](../../dev/system/ADR_001-System_architecture.md), [ADR-002 Module-Scoped Outbox](../../dev/system/ADR_002-Module_scoped_outbox_architecture.md)
+> **Related Feature Specs:** [Publishable Keys for Sales Channels](../features/feat_003-sales-channel-publishable-keys.md), [DiscoveryProduct](../features/feat_002-discovery_product.md)
 
 ---
 
@@ -213,7 +214,9 @@ sequenceDiagram
 - A product document MUST be marked `visible = true` if and only if the sales channel is enabled, parent product status is `"ACTIVE"`, and at least one variant is published to the channel.
 
 #### 4. Fail-Closed Customer Queries
-- Direct queries against missing or blank `salesChannelId` MUST throw `StorefrontQueryServiceError.SalesChannelRequired` (HTTP 400).
+- Customer queries MUST select a channel with either `salesChannelId` or a valid `X-Publishable-Key` header. A publishable key MUST resolve to its associated channel before the projection query runs.
+- If both selectors are present, they MUST resolve to the same channel; otherwise, the request MUST be rejected.
+- Requests with neither selector MUST fail with `StorefrontQueryServiceError.SalesChannelRequired` (HTTP 400). Requests with a malformed, unknown, or revoked key MUST fail without exposing whether a key exists.
 - Queries targeting a disabled sales channel MUST fail closed with `StorefrontQueryServiceError.ChannelDisabled` (HTTP 400).
 - PDP lookups for unprojected, deleted, or invisible products MUST throw `StorefrontQueryServiceError.OfferNotFound` (HTTP 404).
 

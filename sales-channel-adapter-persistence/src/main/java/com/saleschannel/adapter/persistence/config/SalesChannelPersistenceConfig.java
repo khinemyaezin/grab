@@ -3,6 +3,14 @@ package com.saleschannel.adapter.persistence.config;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.id.IdGenerator;
+import com.saleschannel.adapter.persistence.adapter.PublishableKeyQueryAdapter;
+import com.saleschannel.adapter.persistence.adapter.PublishableKeyRepositoryAdapter;
+import com.saleschannel.adapter.persistence.entity.PublishableKeyJpaEntity;
+import com.saleschannel.adapter.persistence.mapper.PublishableKeyEntityMapper;
+import com.saleschannel.adapter.persistence.repository.jpa.PublishableKeyJpaRepository;
+import com.saleschannel.adapter.persistence.specification.jpa.PublishableKeyQuerySpecification;
+import com.saleschannel.application.port.outbound.PublishableKeyQueryPort;
+import com.saleschannel.domain.port.outbound.PublishableKeyRepository;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
@@ -35,11 +43,37 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
+import jakarta.persistence.EntityManager;
 
 import java.time.Duration;
 
 @Configuration
 public class SalesChannelPersistenceConfig {
+    @Bean
+    PublishableKeyRepository publishableKeyRepository(
+            PublishableKeyJpaRepository keys,
+            PublishableKeyEntityMapper mapper,
+            @Qualifier("salesChannelDomainEventProducer") DomainEventProducer events,
+            @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new PublishableKeyRepositoryAdapter(keys, mapper, events, executor);
+    }
+
+    @Bean
+    PublishableKeyQuerySpecification publishableKeyQuerySpecification(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(PublishableKeyJpaEntity.class);
+        return new PublishableKeyQuerySpecification(entityManager);
+    }
+
+    @Bean
+    PublishableKeyQueryPort publishableKeyQueryPort(
+            PublishableKeyQuerySpecification specification,
+            PublishableKeyEntityMapper mapper,
+            @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new PublishableKeyQueryAdapter(specification, mapper, executor);
+    }
+
     @Bean("salesChannelOutboxEventSerializer")
     OutboxEventSerializer serializer() {
         return new JsonOutboxEventSerializer();

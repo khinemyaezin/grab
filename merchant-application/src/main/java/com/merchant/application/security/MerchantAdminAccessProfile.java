@@ -14,8 +14,8 @@ public final class MerchantAdminAccessProfile {
             "merchant",
             ADMIN_ROLE_CODE,
             MERCHANT_SCOPE_KEY,
-            1,
-            Map.of("merchant", 1, "catalog", 1, "inventory", 1, "saleschannel", 1),
+            2,
+            Map.of("merchant", 1, "catalog", 1, "inventory", 1, "saleschannel", 3),
             List.of(
                     new RolePermissionReference("merchant", "MERCHANT_PROFILE_READ"),
                     new RolePermissionReference("merchant", "MERCHANT_PROFILE_WRITE"),
@@ -26,7 +26,9 @@ public final class MerchantAdminAccessProfile {
                     new RolePermissionReference("inventory", "INVENTORY_READ"),
                     new RolePermissionReference("inventory", "INVENTORY_WRITE"),
                     new RolePermissionReference("saleschannel", "SALES_CHANNEL_READ"),
-                    new RolePermissionReference("saleschannel", "SALES_CHANNEL_WRITE")
+                    new RolePermissionReference("saleschannel", "SALES_CHANNEL_WRITE"),
+                    new RolePermissionReference("saleschannel", "SALES_CHANNEL_KEY_READ"),
+                    new RolePermissionReference("saleschannel", "SALES_CHANNEL_KEY_WRITE")
             )
     );
 

@@ -1,18 +1,25 @@
 package com.saleschannel.adapter.persistence.adapter;
 
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import com.saleschannel.adapter.persistence.exception.SalesChannelInfraError;
 import com.saleschannel.adapter.persistence.exception.SalesChannelInfraException;
+import jakarta.persistence.OptimisticLockException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.util.function.Supplier;
 
 public class SalesChannelPersistenceExecutor implements PersistenceExecutor {
+    private static final Logger log = Loggers.getLogger(SalesChannelPersistenceExecutor.class);
+
     public <T> T query(String resource, Supplier<T> operation) {
         try {
             return operation.get();
         } catch (DataAccessException exception) {
+            log.error("Persistence query failure for resource={}", resource);
             throw new SalesChannelInfraException(
                     new SalesChannelInfraError.PersistenceInternal(resource),
                     "Sales channel persistence query failed",
@@ -24,13 +31,15 @@ public class SalesChannelPersistenceExecutor implements PersistenceExecutor {
     public <T> T command(String resource, Supplier<T> operation) {
         try {
             return operation.get();
-        } catch (DataIntegrityViolationException exception) {
+        } catch (DataIntegrityViolationException | OptimisticLockingFailureException | OptimisticLockException exception) {
+            log.warn("Persistence conflict for resource={}", resource);
             throw new SalesChannelInfraException(
                     new SalesChannelInfraError.PersistenceConflict(resource),
                     "Sales channel persistence conflict",
                     exception
             );
         } catch (DataAccessException exception) {
+            log.error("Persistence command failure for resource={}", resource);
             throw new SalesChannelInfraException(
                     new SalesChannelInfraError.PersistenceInternal(resource),
                     "Sales channel persistence command failed",

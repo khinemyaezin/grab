@@ -6,7 +6,8 @@ import com.grab.framework.exception.MessageSource;
 import java.util.Map;
 
 public sealed interface SalesChannelServiceError extends MessageSource permits
-        SalesChannelServiceError.MerchantScopeRequired {
+        SalesChannelServiceError.MerchantScopeRequired,
+        SalesChannelServiceError.UnsupportedPublishableKeySort {
 
     record MerchantScopeRequired(String scopeKey, String scopeId) implements SalesChannelServiceError {
         @Override
@@ -22,6 +23,23 @@ public sealed interface SalesChannelServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("scopeKey", scopeKey, "scopeId", scopeId);
+        }
+    }
+
+    record UnsupportedPublishableKeySort(String property) implements SalesChannelServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "sc.service.publishable_key.unsupported_sort";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("property", property);
         }
     }
 }
