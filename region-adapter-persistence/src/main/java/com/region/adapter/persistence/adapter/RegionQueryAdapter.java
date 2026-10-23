@@ -8,6 +8,7 @@ import com.region.application.port.outbound.RegionQueryPort;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Optional;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -23,6 +24,16 @@ public class RegionQueryAdapter implements RegionQueryPort {
     @Override
     public boolean countryAllowed(String regionId, String countryCode) {
         return executor.query("Region", () -> regions.existsCountry(regionId, countryCode));
+    }
+
+    @Override
+    public Optional<RegionView> findByCountry(String countryCode) {
+        return executor.query("Region", () -> regions.findByCountryCode(countryCode).map(this::toView));
+    }
+
+    @Override
+    public List<String> findActiveCountryCodes() {
+        return executor.query("Region", regions::findActiveCountryCodes);
     }
 
     private RegionView toView(RegionEntity entity) {

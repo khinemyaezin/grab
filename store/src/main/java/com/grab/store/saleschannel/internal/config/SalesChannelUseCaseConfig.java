@@ -6,6 +6,13 @@ import com.saleschannel.application.port.inbound.FindSalesChannelSliceUseCase;
 import com.saleschannel.application.port.inbound.GetSalesChannelUseCase;
 import com.saleschannel.application.port.inbound.ListSalesChannelsUseCase;
 import com.saleschannel.application.port.inbound.ProvisionMerchantWebsiteChannelUseCase;
+import com.saleschannel.application.port.inbound.ApplySalesChannelRegionBindingsUseCase;
+import com.saleschannel.application.port.inbound.FindDefaultSalesChannelRegionUseCase;
+import com.saleschannel.application.port.inbound.ListEnabledSalesChannelRegionsUseCase;
+import com.saleschannel.application.port.inbound.ServesSalesChannelRegionUseCase;
+import com.saleschannel.application.port.outbound.ChannelRegionLookupPort;
+import com.saleschannel.application.port.outbound.RegionStatusPort;
+import com.saleschannel.application.port.outbound.PrimaryMarketRegionPort;
 import com.saleschannel.application.port.outbound.SalesChannelQueryPort;
 import com.saleschannel.application.service.CheckSalesChannelUsableService;
 import com.saleschannel.application.service.EnsureMarketplaceChannelService;
@@ -13,6 +20,10 @@ import com.saleschannel.application.service.FindSalesChannelSliceService;
 import com.saleschannel.application.service.GetSalesChannelService;
 import com.saleschannel.application.service.ListSalesChannelsService;
 import com.saleschannel.application.service.ProvisionMerchantWebsiteChannelService;
+import com.saleschannel.application.service.ApplySalesChannelRegionBindingsService;
+import com.saleschannel.application.service.FindDefaultSalesChannelRegionService;
+import com.saleschannel.application.service.ListEnabledSalesChannelRegionsService;
+import com.saleschannel.application.service.ServesSalesChannelRegionService;
 import com.grab.framework.id.IdGenerator;
 import com.saleschannel.domain.port.outbound.SalesChannelRepository;
 import com.saleschannel.domain.service.SalesChannelUniquenessService;
@@ -58,8 +69,38 @@ public class SalesChannelUseCaseConfig {
     @Bean
     public ProvisionMerchantWebsiteChannelUseCase provisionMerchantWebsiteChannelUseCase(
             SalesChannelRepository salesChannelRepository,
-            IdGenerator idGenerator
+            IdGenerator idGenerator,
+            PrimaryMarketRegionPort primaryMarketRegionPort
     ) {
-        return new ProvisionMerchantWebsiteChannelService(salesChannelRepository, idGenerator);
+        return new ProvisionMerchantWebsiteChannelService(salesChannelRepository, idGenerator, primaryMarketRegionPort);
+    }
+
+    @Bean
+    public ServesSalesChannelRegionUseCase servesSalesChannelRegionUseCase(
+            ChannelRegionLookupPort channelRegionLookupPort
+    ) {
+        return new ServesSalesChannelRegionService(channelRegionLookupPort);
+    }
+
+    @Bean
+    public FindDefaultSalesChannelRegionUseCase findDefaultSalesChannelRegionUseCase(
+            ChannelRegionLookupPort channelRegionLookupPort
+    ) {
+        return new FindDefaultSalesChannelRegionService(channelRegionLookupPort);
+    }
+
+    @Bean
+    public ListEnabledSalesChannelRegionsUseCase listEnabledSalesChannelRegionsUseCase(
+            ChannelRegionLookupPort channelRegionLookupPort
+    ) {
+        return new ListEnabledSalesChannelRegionsService(channelRegionLookupPort);
+    }
+
+    @Bean
+    public ApplySalesChannelRegionBindingsUseCase applySalesChannelRegionBindingsUseCase(
+            SalesChannelRepository salesChannelRepository,
+            RegionStatusPort regionStatusPort
+    ) {
+        return new ApplySalesChannelRegionBindingsService(salesChannelRepository, regionStatusPort);
     }
 }

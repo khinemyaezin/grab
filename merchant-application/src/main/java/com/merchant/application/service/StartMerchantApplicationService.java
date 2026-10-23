@@ -9,6 +9,9 @@ import com.merchant.application.model.write.StartMerchantApplicationCommand;
 import com.merchant.domain.aggregate.MerchantAccount;
 import com.merchant.domain.port.outbound.MerchantAccountRepository;
 import com.merchant.domain.service.MerchantRegistrationPolicy;
+import com.merchant.application.port.outbound.PrimaryMarketRegionPort;
+import com.merchant.application.exception.MerchantServiceError;
+import com.merchant.application.exception.MerchantServiceException;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
@@ -19,9 +22,18 @@ public class StartMerchantApplicationService implements StartMerchantApplication
     private final MerchantAccountRepository merchants;
     private final MerchantRegistrationPolicy registrationPolicy;
     private final IdGenerator ids;
+    private final PrimaryMarketRegionPort primaryMarketRegionPort;
+
     public MerchantAccountResult execute(StartMerchantApplicationCommand command) {
         Id applicantId = command.applicantUserId();
         registrationPolicy.requireNoOpenApplication(applicantId, command.type());
+
+        if (!primaryMarketRegionPort.hasActiveRegion(command.primaryMarketCountryCode())) {
+            throw new MerchantServiceException(
+                    new MerchantServiceError.PrimaryMarketRegionUnavailable(command.primaryMarketCountryCode()),
+                    "Primary market country does not belong to an active region"
+            );
+        }
 
         Id merchantId = ids.generateId();
         Instant now = Instant.now();
@@ -29,6 +41,7 @@ public class StartMerchantApplicationService implements StartMerchantApplication
                 merchantId,
                 applicantId,
                 command.type(),
+                command.primaryMarketCountryCode(),
                 command.displayName(),
                 now);
         MerchantAccount saved = merchants.save(merchant);

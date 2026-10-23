@@ -51,7 +51,7 @@ class ChangeMerchantMemberRoleServiceTest {
     @Test
     void changeRole_byApplicant_shouldSucceed() {
         MerchantAccount merchant = MerchantAccount.startDraft(
-                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "Test Merchant", now
+                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "US", "Test Merchant", now
         );
         when(merchants.findById(merchantId)).thenReturn(Optional.of(merchant));
 
@@ -74,7 +74,7 @@ class ChangeMerchantMemberRoleServiceTest {
     @Test
     void changeRole_byStaff_shouldFailUnauthorized() {
         MerchantAccount merchant = MerchantAccount.startDraft(
-                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "Test Merchant", now
+                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "US", "Test Merchant", now
         );
         when(merchants.findById(merchantId)).thenReturn(Optional.of(merchant));
 
@@ -97,7 +97,7 @@ class ChangeMerchantMemberRoleServiceTest {
     @Test
     void changeRole_whenDemotingSoleAdmin_shouldThrowDomainException() {
         MerchantAccount merchant = MerchantAccount.startDraft(
-                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "Test Merchant", now
+                merchantId, applicantId, MerchantType.FIRST_PARTY_RETAILER, "US", "Test Merchant", now
         );
         when(merchants.findById(merchantId)).thenReturn(Optional.of(merchant));
 

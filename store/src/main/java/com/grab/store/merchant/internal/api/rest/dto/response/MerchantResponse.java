@@ -6,6 +6,7 @@ public record MerchantResponse(
         String merchantId,
         String applicantUserId,
         String type,
+        String primaryMarketCountryCode,
         String legalName,
         String displayName,
         Registration registration,

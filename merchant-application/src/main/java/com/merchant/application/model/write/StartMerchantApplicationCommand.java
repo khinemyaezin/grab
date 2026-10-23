@@ -7,6 +7,7 @@ import com.merchant.domain.enums.MerchantType;
 public record StartMerchantApplicationCommand(
         Id applicantUserId,
         MerchantType type,
-        String displayName
+        String displayName,
+        String primaryMarketCountryCode
 ) implements Command<MerchantAccountResult> {
 }

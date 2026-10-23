@@ -32,6 +32,7 @@ class MerchantModelAssemblerTest {
                 "merchant-1",
                 "applicant-1",
                 "FIRST_PARTY_RETAILER",
+                "US",
                 "Acme Incorporated",
                 "Acme Store",
                 null,

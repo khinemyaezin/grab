@@ -10,5 +10,6 @@ import org.mapstruct.Mapping;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class ProvisionMerchantWebsiteChannelCommandMapper {
     @Mapping(source = "merchantId", target = "merchantId")
+    @Mapping(source = "primaryMarketCountryCode", target = "primaryMarketCountryCode")
     public abstract ProvisionMerchantWebsiteChannelCommand toCommand(MerchantApprovedIntegrationEvent event);
 }

@@ -18,26 +18,29 @@ public class MerchantAccountJpaRepositoryTest extends RepositoryTestConfig {
     @Autowired
     private MerchantAccountJpaRepository repository;
 
+    private final Instant now = Instant.parse("2026-10-11T10:00:00Z");
+
     @BeforeEach
     void setUp() {
         repository.deleteAll();
 
-        repository.save(createEntity("m1", "user1", MerchantType.FIRST_PARTY_RETAILER, MerchantStatus.ACTIVE, "US", "REG123"));
-        repository.save(createEntity("m2", "user1", MerchantType.FIRST_PARTY_RETAILER, MerchantStatus.DRAFT, "US", "REG124"));
-        repository.save(createEntity("m3", "user2", MerchantType.THIRD_PARTY, MerchantStatus.PENDING_REVIEW, "UK", "REG999"));
+        repository.save(createEntity("m1", "user1", MerchantType.FIRST_PARTY_RETAILER, MerchantStatus.ACTIVE, "US", "REG123", now.minusSeconds(60)));
+        repository.save(createEntity("m2", "user1", MerchantType.FIRST_PARTY_RETAILER, MerchantStatus.DRAFT, "US", "REG124", now));
+        repository.save(createEntity("m3", "user2", MerchantType.THIRD_PARTY, MerchantStatus.PENDING_REVIEW, "UK", "REG999", now));
     }
 
-    private MerchantAccountEntity createEntity(String uuid, String applicantId, MerchantType type, MerchantStatus status, String countryCode, String regNum) {
+    private MerchantAccountEntity createEntity(String uuid, String applicantId, MerchantType type, MerchantStatus status, String countryCode, String regNum, Instant createdAt) {
         MerchantAccountEntity entity = new MerchantAccountEntity();
         entity.setUuid(uuid);
-        entity.setDisplayName("");
+        entity.setDisplayName("Merchant " + uuid);
         entity.setApplicantUserId(applicantId);
         entity.setType(type);
+        entity.setPrimaryMarketCountryCode(countryCode != null ? countryCode : "US");
         entity.setStatus(status);
         entity.setRegistrationCountryCode(countryCode);
         entity.setRegistrationNumber(regNum);
-        entity.setCreatedAt(Instant.now());
-        entity.setUpdatedAt(Instant.now());
+        entity.setCreatedAt(createdAt);
+        entity.setUpdatedAt(createdAt);
         entity.setVersion(0L);
         return entity;
     }
@@ -53,6 +56,8 @@ public class MerchantAccountJpaRepositoryTest extends RepositoryTestConfig {
     void findByApplicantUserIdOrderByCreatedAtDesc_withValidApplicantId_shouldReturnEntitiesInOrder() {
         List<MerchantAccountEntity> results = repository.findByApplicantUserIdOrderByCreatedAtDesc("user1");
         Assertions.assertEquals(2, results.size());
+        Assertions.assertEquals("m2", results.get(0).getUuid());
+        Assertions.assertEquals("m1", results.get(1).getUuid());
     }
 
     @Test
@@ -60,6 +65,13 @@ public class MerchantAccountJpaRepositoryTest extends RepositoryTestConfig {
         List<MerchantAccountEntity> results = repository.findByStatusOrderByCreatedAt(MerchantStatus.ACTIVE);
         Assertions.assertEquals(1, results.size());
         Assertions.assertEquals("m1", results.get(0).getUuid());
+    }
+
+    @Test
+    void findByApplicantUserIdAndType_withExistingRecord_shouldReturnEntity() {
+        Optional<MerchantAccountEntity> result = repository.findByApplicantUserIdAndType("user2", MerchantType.THIRD_PARTY);
+        Assertions.assertTrue(result.isPresent());
+        Assertions.assertEquals("m3", result.get().getUuid());
     }
 
     @Test

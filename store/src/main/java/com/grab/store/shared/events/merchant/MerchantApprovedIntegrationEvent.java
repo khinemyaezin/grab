@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public record MerchantApprovedIntegrationEvent(
         String merchantId,
+        String primaryMarketCountryCode,
         Instant occurredAt,
         int version
 ) implements Event {

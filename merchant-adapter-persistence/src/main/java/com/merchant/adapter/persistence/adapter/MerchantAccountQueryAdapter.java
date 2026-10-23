@@ -49,6 +49,7 @@ public class MerchantAccountQueryAdapter implements MerchantAccountQueryPort {
                 entity.getUuid(),
                 entity.getApplicantUserId(),
                 entity.getType(),
+                entity.getPrimaryMarketCountryCode(),
                 entity.getLegalName(),
                 entity.getDisplayName(),
                 entity.getRegistrationCountryCode(),

@@ -20,6 +20,7 @@ public class MerchantApprovalIntegrationEventPublisher {
     public void onMerchantApproved(MerchantApprovedEvent event) {
         MerchantApprovedIntegrationEvent integrationEvent = new MerchantApprovedIntegrationEvent(
                 event.merchantId(),
+                event.primaryMarketCountryCode(),
                 event.occurredAt(),
                 EVENT_VERSION
         );

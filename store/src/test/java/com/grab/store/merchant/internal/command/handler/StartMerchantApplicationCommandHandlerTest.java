@@ -23,9 +23,9 @@ class StartMerchantApplicationServiceTest {
             public CommonId convertIdFrom(String id) { return new CommonId(id); }
         };
         StartMerchantApplicationService service = new StartMerchantApplicationService(
-                merchants, new MerchantRegistrationPolicy(merchants), ids);
+                merchants, new MerchantRegistrationPolicy(merchants), ids, countryCode -> true);
         StartMerchantApplicationCommand command = new StartMerchantApplicationCommand(
-                applicantId, MerchantType.FIRST_PARTY_RETAILER, "Acme Store");
+                applicantId, MerchantType.FIRST_PARTY_RETAILER, "Acme Store", "US");
 
         var result = service.execute(command);
 

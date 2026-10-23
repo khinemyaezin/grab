@@ -18,6 +18,7 @@ public abstract class SalesChannelEntityMapper {
     @Mapping(source = "status", target = "status")
     @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(source = "updatedAt", target = "updatedAt")
-    @Mapping(source = "version", target = "version")
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "supportedRegions", ignore = true)
     public abstract void toEntity(SalesChannel source, @MappingTarget SalesChannelEntity destination);
 }

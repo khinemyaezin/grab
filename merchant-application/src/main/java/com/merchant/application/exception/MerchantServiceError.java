@@ -11,7 +11,8 @@ public sealed interface MerchantServiceError extends MessageSource permits
         MerchantServiceError.ApplicantAccessForbidden,
         MerchantServiceError.StorefrontNotFound,
         MerchantServiceError.MemberNotFound,
-        MerchantServiceError.UnauthorizedMemberOperation {
+        MerchantServiceError.UnauthorizedMemberOperation,
+        MerchantServiceError.PrimaryMarketRegionUnavailable {
 
     record MerchantNotFound(String merchantId) implements MerchantServiceError {
         @Override
@@ -116,6 +117,23 @@ public sealed interface MerchantServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of("actorId", actorId, "operation", operation);
+        }
+    }
+
+    record PrimaryMarketRegionUnavailable(String countryCode) implements MerchantServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "mer.service.primary_market.region_unavailable";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("countryCode", countryCode == null ? "" : countryCode);
         }
     }
 }

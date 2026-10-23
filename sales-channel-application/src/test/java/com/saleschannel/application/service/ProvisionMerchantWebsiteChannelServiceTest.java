@@ -7,6 +7,7 @@ import com.saleschannel.application.model.write.ProvisionSalesChannelResult;
 import com.saleschannel.domain.aggregate.SalesChannel;
 import com.saleschannel.domain.enums.ChannelStatus;
 import com.saleschannel.domain.port.outbound.SalesChannelRepository;
+import com.saleschannel.application.port.outbound.PrimaryMarketRegionPort;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -22,8 +23,9 @@ import static org.mockito.Mockito.when;
 class ProvisionMerchantWebsiteChannelServiceTest {
     private final SalesChannelRepository salesChannels = mock(SalesChannelRepository.class);
     private final IdGenerator idGenerator = mock(IdGenerator.class);
+    private final PrimaryMarketRegionPort primaryMarketRegionPort = countryCode -> Optional.of(new CommonId("region-1"));
     private final ProvisionMerchantWebsiteChannelService service =
-            new ProvisionMerchantWebsiteChannelService(salesChannels, idGenerator);
+            new ProvisionMerchantWebsiteChannelService(salesChannels, idGenerator, primaryMarketRegionPort);
 
     @Test
     void execute_whenWebsiteExists_preservesExistingChannel() {
@@ -38,7 +40,7 @@ class ProvisionMerchantWebsiteChannelServiceTest {
         when(salesChannels.findWebsiteByMerchantId(merchantId)).thenReturn(Optional.of(existing));
 
         ProvisionSalesChannelResult result = service.execute(
-                new ProvisionMerchantWebsiteChannelCommand(merchantId)
+                new ProvisionMerchantWebsiteChannelCommand(merchantId, "US")
         );
 
         assertThat(result.salesChannelId()).isEqualTo(existing.getId());
@@ -57,7 +59,7 @@ class ProvisionMerchantWebsiteChannelServiceTest {
         when(salesChannels.save(any(SalesChannel.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ProvisionSalesChannelResult result = service.execute(
-                new ProvisionMerchantWebsiteChannelCommand(merchantId)
+                new ProvisionMerchantWebsiteChannelCommand(merchantId, "US")
         );
 
         assertThat(result.salesChannelId()).isEqualTo(channelId);

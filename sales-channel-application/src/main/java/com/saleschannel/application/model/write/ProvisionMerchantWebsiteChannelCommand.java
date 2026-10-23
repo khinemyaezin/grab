@@ -4,6 +4,7 @@ import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.id.Id;
 
 public record ProvisionMerchantWebsiteChannelCommand(
-        Id merchantId
+        Id merchantId,
+        String primaryMarketCountryCode
 ) implements Command<ProvisionSalesChannelResult> {
 }

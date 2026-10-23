@@ -6,7 +6,6 @@ import com.merchant.domain.valueobject.*;
 import com.merchant.adapter.persistence.entity.MerchantAccountEntity;
 import com.merchant.adapter.persistence.mapper.jpa.MerchantAccountEntityMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 @RequiredArgsConstructor
 public class MerchantAccountJpaAssembler {
@@ -30,7 +29,10 @@ public class MerchantAccountJpaAssembler {
                         source.getAddressRegion(), source.getAddressPostalCode(), source.getAddressCountryCode()
                 );
         return new MerchantAccount(
-                ids.map(source.getUuid()), ids.map(source.getApplicantUserId()), source.getType(),
+                ids.map(source.getUuid()),
+                ids.map(source.getApplicantUserId()),
+                source.getType(),
+                source.getPrimaryMarketCountryCode(),
                 new MerchantName(source.getLegalName(), source.getDisplayName()), registration, contact, address,
                 source.getStatus(), source.getLifecycleReason() == null ? null : new LifecycleReason(source.getLifecycleReason()),
                 ids.map(source.getReviewedBy()), source.getReviewedAt(), source.getCreatedAt(), source.getUpdatedAt(),

@@ -15,4 +15,9 @@ public final class RegionApiLinks {
         return linkTo(methodOn(RegionController.class).get(null))
                 .withRel("get-region");
     }
+
+    public static Link listRegionCountries() {
+        return linkTo(methodOn(RegionController.class).countries())
+                .withRel("list-region-countries");
+    }
 }

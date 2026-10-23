@@ -102,4 +102,54 @@ class SalesChannelTest {
 
         channel.requireOwnedBy(new CommonId("merchant-1"));
     }
+
+    @Test
+    void enableRegion_withNewDefault_shouldReplacePreviousDefault() {
+        SalesChannel channel = SalesChannel.createWebsite(
+                new CommonId("ch-1"), new CommonId("merchant-1"), "Website", now
+        );
+        channel.enableRegion(new CommonId("region-1"), true);
+        channel.enableRegion(new CommonId("region-2"), true);
+
+        assertThat(channel.servesRegion(new CommonId("region-1"))).isTrue();
+        assertThat(channel.getDefaultRegion()).isPresent()
+                .get()
+                .extracting(binding -> binding.regionId().getValue())
+                .isEqualTo("region-2");
+        assertThat(channel.getSupportedRegions())
+                .filteredOn(binding -> binding.regionId().getValue().equals("region-1"))
+                .singleElement()
+                .extracting(binding -> binding.isDefault())
+                .isEqualTo(false);
+    }
+
+    @Test
+    void disableRegion_defaultBinding_shouldKeepRegionAndClearDefault() {
+        SalesChannel channel = SalesChannel.createWebsite(
+                new CommonId("ch-1"), new CommonId("merchant-1"), "Website", now
+        );
+        channel.enableRegion(new CommonId("region-1"), true);
+
+        channel.disableRegion(new CommonId("region-1"));
+
+        assertThat(channel.servesRegion(new CommonId("region-1"))).isFalse();
+        assertThat(channel.getDefaultRegion()).isEmpty();
+        assertThat(channel.getSupportedRegions())
+                .singleElement()
+                .satisfies(binding -> {
+                    assertThat(binding.enabled()).isFalse();
+                    assertThat(binding.isDefault()).isFalse();
+                });
+    }
+
+    @Test
+    void getSupportedRegions_shouldReturnImmutableSnapshot() {
+        SalesChannel channel = SalesChannel.createWebsite(
+                new CommonId("ch-1"), new CommonId("merchant-1"), "Website", now
+        );
+        channel.enableRegion(new CommonId("region-1"), false);
+
+        assertThatThrownBy(() -> channel.getSupportedRegions().clear())
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
 }

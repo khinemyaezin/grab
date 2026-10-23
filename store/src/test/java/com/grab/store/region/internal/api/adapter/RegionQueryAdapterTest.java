@@ -1,40 +1,26 @@
 package com.grab.store.region.internal.api.adapter;
 
-import com.grab.store.region.internal.api.adapter.mapper.RegionQueryMapper;
+import com.grab.store.region.internal.api.adapter.mapper.RegionQueryMapperImpl;
 import com.grab.store.region.port.RegionQuery.RegionSlice;
-import com.region.application.model.read.FindRegionSliceQuery;
 import com.region.application.model.read.FindRegionSliceResult;
+import com.region.application.model.read.RegionResult;
+import com.region.application.port.inbound.FindRegionByCountryUseCase;
 import com.region.application.port.inbound.FindRegionSliceUseCase;
-import org.junit.jupiter.api.BeforeEach;
+import com.region.application.port.inbound.ListActiveCountryCodesUseCase;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class RegionQueryAdapterTest {
-
-    @Mock
-    private FindRegionSliceUseCase findRegionSliceUseCase;
-
-    private RegionQueryAdapter adapter;
-
-    @BeforeEach
-    void setUp() {
-        adapter = new RegionQueryAdapter(findRegionSliceUseCase, new RegionQueryMapper());
-    }
-
     @Test
     void find_existingRegion_returnsRegionSlice() {
-        FindRegionSliceResult result = new FindRegionSliceResult("reg-1", "USD", "ACTIVE");
-        when(findRegionSliceUseCase.execute(any(FindRegionSliceQuery.class)))
-                .thenReturn(Optional.of(result));
+        FindRegionSliceUseCase findRegion = query -> Optional.of(new FindRegionSliceResult("reg-1", "USD", "ACTIVE"));
+        FindRegionByCountryUseCase findByCountry = query -> Optional.empty();
+        ListActiveCountryCodesUseCase findCountries = query -> java.util.List.of();
+        RegionQueryAdapter adapter = new RegionQueryAdapter(findRegion, findByCountry, findCountries, new RegionQueryMapperImpl());
 
         Optional<RegionSlice> slice = adapter.find("reg-1");
 
@@ -42,5 +28,21 @@ class RegionQueryAdapterTest {
         assertThat(slice.get().regionId()).isEqualTo("reg-1");
         assertThat(slice.get().currencyCode()).isEqualTo("USD");
         assertThat(slice.get().active()).isTrue();
+    }
+
+    @Test
+    void findByCountry_existingCountry_returnsRegionSlice() {
+        FindRegionSliceUseCase findRegion = query -> Optional.empty();
+        FindRegionByCountryUseCase findByCountry = query -> Optional.of(
+                new RegionResult("reg-sg", "Singapore", "SGD", "ACTIVE", Set.of("SG"))
+        );
+        ListActiveCountryCodesUseCase findCountries = query -> java.util.List.of();
+        RegionQueryAdapter adapter = new RegionQueryAdapter(findRegion, findByCountry, findCountries, new RegionQueryMapperImpl());
+
+        Optional<RegionSlice> slice = adapter.findByCountry("sg");
+
+        assertThat(slice).isPresent();
+        assertThat(slice.get().regionId()).isEqualTo("reg-sg");
+        assertThat(slice.get().currencyCode()).isEqualTo("SGD");
     }
 }
