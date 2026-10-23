@@ -12,7 +12,37 @@ public sealed interface SalesChannelDomainError extends MessageSource permits
         SalesChannelDomainError.DuplicateWebsite,
         SalesChannelDomainError.DuplicateMarketplace,
         SalesChannelDomainError.ChannelDisabled,
-        SalesChannelDomainError.ChannelOwnershipForbidden {
+        SalesChannelDomainError.ChannelOwnershipForbidden,
+        SalesChannelDomainError.InvalidPublishableKey,
+        SalesChannelDomainError.PublishableKeyManagementForbidden {
+
+    record InvalidPublishableKey(String field) implements SalesChannelDomainError {
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        public String code() {
+            return "sc.domain.publishable_key.invalid";
+        }
+
+        public Map<String, Object> args() {
+            return Map.of("field", field);
+        }
+    }
+
+    record PublishableKeyManagementForbidden(String salesChannelId) implements SalesChannelDomainError {
+        public ErrorCategory kind() {
+            return ErrorCategory.FORBIDDEN;
+        }
+
+        public String code() {
+            return "sc.domain.publishable_key.management_forbidden";
+        }
+
+        public Map<String, Object> args() {
+            return Map.of("salesChannelId", salesChannelId);
+        }
+    }
 
     record MerchantRequired(String type) implements SalesChannelDomainError {
         public ErrorCategory kind() {
