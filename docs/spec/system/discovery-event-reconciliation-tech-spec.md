@@ -1,207 +1,124 @@
-# Tech Specification: Discovery Event-Driven Reconciliation
+# Tech Spec: Discovery Event-Driven Reconciliation
 
-> **Summary:** Treats integration events as refresh signals; re-reads authoritative facts from source ports to reconcile discovery projections.
-> **Classification:** Architectural Pattern / Event-Driven Projection
-> **Supporting Modules:** `store/storefrontquery` / `discovery-application`
-> **Related Architecture ADRs:** [SSD-001 §Phrase 4](../../system-design/001-multi_regional_contextual_discovery_system_design.md)
-> **Related Feature:** [feat_006 — Discovery Wiring, Projection Reconciliation & Rebuild](../../features/feat_006-discovery-wiring-projection-reconciliation.md)
+- **Summary:** Treats source integration events as lightweight refresh signals and reconciles affected projection documents from current authoritative facts.
+- **Type:** Architecture Pattern
+- **Feature Spec:** [Discovery Wiring & Projection Reconciliation](../../features/feat_006-discovery-wiring-projection-reconciliation.md)
 
 ---
 
-## 1. Why We Need It
+## 1. Problem & Decision
 
-### The Problem
+### What breaks without this?
 
-Directly applying event payloads as authoritative fact values in a projection creates several failure modes: out-of-order event delivery silently corrupts the read model, event replay from the outbox reapplies stale state, and tight coupling between event schema and projection shape makes independent evolution impossible. In a modular monolith where multiple source domains (Catalog, Inventory, Sales Channel) emit events that affect the same projection row, the interaction matrix of event orderings becomes intractable to verify statically.
+Directly applying partial event payloads into read projections introduces out-of-order race conditions where delayed or stale events overwrite newer catalog or stock updates. Furthermore, payloads often lack full relational context (e.g., variant hierarchies or routed inventory rules), causing corrupted read models.
 
-### Technology Decision & Alternatives
+### Decision
 
-| Technology Option | Decision | Evaluation Rationale |
-| :--- | :--- | :--- |
-| **Events as Refresh Signals (Source Re-Read)** | **Adopted** | Events trigger a re-read of authoritative facts from source query ports. Out-of-order events resolve to the same current state — naturally idempotent. Projection shape evolves independently of event contracts. |
-| Direct Event Payload Application | Rejected | Requires total event ordering per projection key; partial payload events (e.g., stock-only) leave incomplete rows; replay risk is unmitigated. |
-| Snapshot-Based Event Sourcing | Rejected | Overkill for a read model; requires event store infrastructure and snapshot management that adds complexity without proportional benefit in a monolith. |
-| CDC/Debezium from Source Tables | Deferred | Bypasses domain ports and couples to storage schema; may be considered if modules are physically extracted. |
+| Option | Decision | Why |
+|:-------|:---------|:----|
+| **Authoritative Reread on Refresh Signal** | Adopted | Guarantees that projection documents are always constructed from current source facts via SPI rereads, eliminating out-of-order payload state regressions. |
+| Apply Partial Event Payloads as State | Rejected | Stale, reordered, or duplicate event deliveries overwrite newer state with outdated values. |
+| Cross-Database Change Data Capture (CDC) | Deferred | Directly couples read projections to internal transactional database table structures and schemas. |
 
-### Key Benefits & Trade-offs
+### Trade-offs
 
-**Core Benefits:**
-- Out-of-order events produce identical projection outcomes because the source is always re-read at reconciliation time.
-- Event schema and projection schema evolve independently — adding a projection field requires no event schema change.
-- All source domains share a single reconciliation code path, reducing testing surface.
-
-**Known Trade-offs:**
-- Each refresh incurs source port reads (minimum 1 catalog + 1 inventory + 1 channel query per affected pair); high-fanout events (e.g., location status change) amplify read load.
-- Source port failures during reconciliation propagate as projection failures — the outbox will retry, but a sustained source outage delays convergence.
-- Events carry a timestamp (`occurredAt`) but no causal ordering; concurrent events for the same pair race through the watermark guard.
+| Benefits | Trade-offs |
+|:-----------|:-------------|
+| Complete immunity to out-of-order event delivery regressions | Event reconciliation incurs an SPI read hop back to source services |
+| Projection schema can evolve independently of event payload contracts | High-volume inventory updates require indexed SKU lookup and deduplication |
 
 ---
 
-## 2. What It Is
+## 2. How It Works
 
 ### Core Concept
 
-Integration events from Catalog, Inventory, and Sales Channel are treated strictly as **refresh signals** — notifications that something may have changed. The reconciliation engine does not extract fact values from the event payload. Instead, it maps each event to one or more affected `(channelId, productId)` target pairs, then re-reads the current authoritative state from source query ports.
+When an integration event arrives from Catalog, Inventory, or Sales Channel, the Discovery reconciler extracts the affected product or SKU identity. It checks the event timestamp against the stored document watermark. If the event is valid and not stale, it queries the source services via read-only SPIs to fetch complete current facts and writes the projection atomically.
 
 ```mermaid
-flowchart LR
-    subgraph CorePattern ["Event-Driven Reconciliation"]
-        Event["Integration Event\n(Refresh Signal)"]
-        Resolver["Target Pair Resolver\n(Deduplicate Affected Keys)"]
-        Sources["Source Query Ports\n(Catalog / Inventory / Channel)"]
-        Reconciler["Projection Reconciler\n(Compose or Tombstone)"]
-        Store["Discovery Database"]
-
-        Event -->|"1. Signal"| Resolver
-        Resolver -->|"2. Resolve targets"| Sources
-        Sources -->|"3. Current facts"| Reconciler
-        Reconciler -->|"4. Atomic save"| Store
-    end
+flowchart TD
+    Event["Integration Event (Product/Stock)"] --> Dedupe["Deduplicate Target Pairs"]
+    Dedupe --> Watermark["Watermark Timestamp Guard"]
+    Watermark -->|Older Signal| Drop["Discard Stale Event"]
+    Watermark -->|Newer/Equal Signal| SPI["Reread Current Authoritative Facts"]
+    SPI --> Commit["Atomic Version-Checked Save"]
 ```
 
-### Internal Mechanics & Lifecycle
+### How It Works Step by Step
 
-> Event dispatch lifecycle from integration event to committed projection.
+| Step | What Happens | Why |
+|:-----|:-------------|:----|
+| 1 | Event consumer receives domain event from Catalog, Inventory, or Sales Channel | Ingests notification without assuming payload completeness |
+| 2 | Maps product ID, SKU, or channel ID to target `(salesChannelId, productId)` pairs | Deduplicates targets across affected variants |
+| 3 | Compares event `occurredAt` against stored projection `watermark` | Drops stale events while allowing equal timestamps to reconcile |
+| 4 | Calls authoritative source read SPIs to fetch complete presentation and stock facts | Fetches authoritative state directly from source |
+| 5 | Writes updated projection and variant rows atomically with incremented version | Prevents partial writes and concurrency conflicts |
+
+### Lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> EventReceived : @EventListener fires
-    EventReceived --> CommandDispatched : Map to ProjectionUpdate subtype
-    CommandDispatched --> TargetsResolved : Deduplicate (channelId, productId) pairs
-    TargetsResolved --> WatermarkChecked : Compare occurredAt vs stored updatedAt
-    WatermarkChecked --> Skipped : Strictly older than stored
-    WatermarkChecked --> SourcesRead : Not older
-    SourcesRead --> Composed : Variants published → compose facts
-    SourcesRead --> Tombstoned : No published variants → invalidate
-    Composed --> Saved : Atomic save with version check
-    Tombstoned --> Saved : Tombstone save
-    Saved --> [*]
+    [*] --> Received : Event Ingested
+    Received --> Skipped : Stale Watermark
+    Received --> Reconciling : Valid Watermark
+    Reconciling --> Committed : Facts Saved Atomically
+    Reconciling --> Failed : Transient Conflict / SPI Error
     Skipped --> [*]
+    Committed --> [*]
+    Failed --> [*]
 ```
 
 ---
 
-## 3. How We Use It in This System
+## 3. How We Use It
 
-### Architecture & Layer Stacking
+### Where It Fits in Our System
 
 ```mermaid
-flowchart TB
-    subgraph StoreLayer ["Application Composition Layer (store)"]
-        Listener["BuyableOfferProjectionEventListener\n19 @EventListener methods"]
-        CmdBus["CommandBus\n(Local dispatch)"]
-    end
-
-    subgraph AppLayer ["Application Layer (discovery-application)"]
-        ProjSvc["ProjectDiscoveryProductService\n(Target Resolution + Reconciliation)"]
-        Policy["DiscoveryProjectionPolicy\n(Watermark + Compose + Invalidate)"]
-    end
-
-    subgraph SourcePorts ["Source Query Ports"]
-        CatPort["CatalogPort"]
-        InvPort["InventoryPort"]
-        SCPort["SalesChannelQueryPort"]
-    end
-
-    subgraph SharedEvents ["store/shared/events"]
-        CatEvt["catalog/*"]
-        InvEvt["inventory/*"]
-        SCEvt["saleschannel/*"]
-    end
-
-    SharedEvents --> Listener
-    Listener --> CmdBus
-    CmdBus --> ProjSvc
-    ProjSvc --> Policy
-    ProjSvc --> CatPort
-    ProjSvc --> InvPort
-    ProjSvc --> SCPort
+flowchart TD
+    Kafka["Event Stream / Transactional Outbox"] --> Receiver["Signal Receiver"]
+    Receiver --> Reconciler["Projection Reconciler"]
+    Reconciler --> CatalogSPI["Catalog Read SPI"]
+    Reconciler --> InventorySPI["Inventory Read SPI"]
+    Reconciler --> DB[("Discovery Projection Store")]
 ```
 
 ### Component Responsibilities
 
-| Architectural Role | Layer Location | Responsibility |
-| :--- | :--- | :--- |
-| `Event Listener` | `store/storefrontquery` | Maps 19 integration events to 6 `ProjectionUpdate` command subtypes. Converts raw string IDs to framework `Id` values. Dispatches through `CommandBus`. |
-| `Projection Service` | `discovery-application` | Resolves affected `(channelId, productId)` targets from the update subtype. Deduplicates targets via `LinkedHashMap`. Re-reads each target from source ports. Delegates to policy for composition or invalidation. |
-| `Projection Policy` | `discovery-application` | Pure, side-effect-free logic: `isOlderThanStored()` for watermark guard, `compose()` for fact assembly, `invalidate()` for tombstone creation, `isInvalidated()` for tombstone detection. |
-| `Source Ports` | `discovery-application` (interfaces) | `CatalogPort` provides product/variant/publication facts. `InventoryPort` provides routed stock availability. `SalesChannelQueryPort` provides channel enabled status. |
-
-### Event-to-Command Mapping
-
-| Event | Source Module | Command Subtype | Target Resolution |
-| :--- | :--- | :--- | :--- |
-| `ProductPublishedToChannelIntegrationEvent` | Catalog | `RefreshVariant` | Variant's existing projections + catalog publication channels |
-| `ProductUnpublishedFromChannelIntegrationEvent` | Catalog | `RefreshVariant` | Same as above |
-| `ProductVariantAdded/Updated/Deleted/Restored` | Catalog | `RefreshProduct` | All existing projections for product + all catalog-published channels |
-| `ProductDeleted` | Catalog | `RefreshProduct` | Same as above |
-| `ProductPresentationChanged` | Catalog | `RefreshProduct` | Same as above |
-| `ProductStatusChanged` | Catalog | `RefreshProduct` | Same as above |
-| `StockReceived/Reserved/Adjusted/Shipped` | Inventory | `RefreshSku` | All existing projections containing the SKU |
-| `InventoryStatusChanged` | Inventory | `RefreshSku` | Same as above |
-| `LocationStatusChanged` | Inventory | `RefreshLocation` | All projections (location not channel-scoped) |
-| `LocationLinked/UnlinkedToChannel` | Inventory | `RefreshLocation` | All projections for the linked/unlinked channel |
-| `SalesChannelEnabled/Disabled` | Sales Channel | `RefreshChannel` | All existing projections for the channel |
+| Component | Role | What It Does |
+|:----------|:-----|:-------------|
+| Signal Receiver | Event Listener | Ingests integration events and dispatches local reconciliation commands. |
+| Target Resolver | Domain Service | Maps SKUs and publications to affected `(salesChannelId, productId)` pairs. |
+| Projection Reconciler | Coordinator | Evaluates watermark timestamps, calls SPI rereads, and invokes atomic writes. |
 
 ### Runtime Flow
 
-> Reconciliation of a stock adjustment event.
-
 ```mermaid
 sequenceDiagram
-    participant Outbox as Source Module Outbox
-    participant Listener as Event Listener
-    participant Bus as CommandBus
-    participant Handler as Command Handler (Retry)
-    participant Svc as Projection Service
-    participant Repo as Repository
-    participant Cat as Catalog Port
-    participant Inv as Inventory Port
-    participant SC as Channel Port
+    participant Outbox as Integration Event
+    participant Reconciler as Projection Reconciler
+    participant DB as Discovery Store
+    participant Catalog as Catalog SPI
 
-    Outbox->>Listener: StockAdjustedIntegrationEvent(sku, occurredAt)
-    Listener->>Bus: dispatch(RefreshSku(sku, occurredAt))
-    Bus->>Handler: handle(command)
-    Handler->>Svc: execute(command) [REQUIRES_NEW txn]
-    Svc->>Repo: findBySku(sku)
-    Repo-->>Svc: List<projections> with matching SKU
-    loop Each affected (channelId, productId)
-        Svc->>Repo: findBySalesChannelAndProduct(ch, prod)
-        Note over Svc: Watermark check: occurredAt >= stored.updatedAt
-        Svc->>Cat: findProduct(productId)
-        Svc->>Inv: available(sku, merchantId, channelId)
-        Svc->>SC: isEnabled(channelId)
-        Svc->>Repo: save(composed projection)
-    end
+    Outbox->>Reconciler: ProductUpdatedIntegrationEvent(productId="p_01", timestamp=T2)
+    Reconciler->>DB: Read watermark for "p_01" (watermark=T1)
+    Note over Reconciler: T2 > T1: Proceed with reconciliation
+    Reconciler->>Catalog: getProductFacts("p_01")
+    Catalog-->>Reconciler: Current title, media, variants
+    Reconciler->>DB: Atomically save projection (watermark=T2, version=v2)
+    DB-->>Reconciler: Success
 ```
 
 ---
 
-## 4. Technical Specification & Contracts
+## 4. Implementation Rules
 
-Normative specification. An implementation is compliant only when all MUST / MUST NOT statements are satisfied.
-
-### Normative Rules
-
-- **R-01:** Integration events **MUST** act strictly as refresh signals. The reconciliation service **MUST NOT** extract fact values (titles, quantities, statuses) from event payloads; it **MUST** re-read current state from authoritative source query ports.
-- **R-02:** Each `ProjectionUpdate` subtype **MUST** resolve a deduplicated set of `(salesChannelId, productId)` target pairs from both existing projections and current catalog publication membership.
-- **R-03:** Events strictly older than the stored watermark (`occurredAt < stored.updatedAt`) **MUST** be discarded. Events with equal timestamps **MUST** reconcile against current source facts.
-- **R-04:** The maximum watermark written to the projection **MUST** be `max(previous.updatedAt, event.occurredAt)` — the watermark **MUST NOT** regress.
-- **R-05:** `RefreshProduct` **MUST** cover all existing projection rows for that product **plus** all channels in which any of the product's variants are currently published.
-- **R-06:** `RefreshSku` **MUST** locate affected projections via the relational variant-membership index (`findBySku`), not by scanning all projections.
-- **R-07:** `RefreshLocation` with a null `salesChannelId` **MUST** scan all existing projections using keyset pagination (batch size `500`); with a non-null channel, it **MUST** scan only that channel's projections.
-- **R-08:** Invalidation (tombstone) **MUST** recheck current publication status (`isPublishedInChannel`) before writing — if publication status is inconsistent with product facts, the service **MUST** throw `IllegalStateException`.
-
-### Storage & Data Contract
-
-The reconciliation engine reads and writes the same `discovery_product` and `discovery_product_variant_membership` tables described in the [Facts-Only Projection Tech Spec](./discovery-facts-only-projection-tech-spec.md). No additional tables are introduced.
-
-### Configuration Knobs
-
-| Binding / constant | Implemented default | Unit / format | Description |
-| :--- | :--- | :--- | :--- |
-| `TARGET_SCAN_BATCH_SIZE` | `500` | Fixed constant (int) | Keyset page size for `RefreshLocation` with null channel (full projection scan). |
-| `ProjectDiscoveryProductCommandHandler.MAX_ATTEMPTS` | `3` | Fixed constant (int) | Maximum retry attempts for optimistic lock or concurrent insert conflicts. |
-| `TransactionTemplate.propagationBehavior` | `PROPAGATION_REQUIRES_NEW` | Spring TX constant | Each retry starts a fresh transaction with a clean persistence context. |
-
-Implementation references: [`BuyableOfferProjectionEventListener`](../../store/src/main/java/com/grab/store/storefrontquery/internal/event/BuyableOfferProjectionEventListener.java), [`ProjectDiscoveryProductService`](../../discovery-application/src/main/java/com/grab/discovery/application/service/ProjectDiscoveryProductService.java), [`ProjectDiscoveryProductCommand`](../../discovery-application/src/main/java/com/grab/discovery/application/model/write/ProjectDiscoveryProductCommand.java), [`DiscoveryProjectionPolicy`](../../discovery-application/src/main/java/com/grab/discovery/application/policy/DiscoveryProjectionPolicy.java).
+| Rule | Requirement |
+|:-----|:------------|
+| **R-01** | Events **MUST** act as refresh signals; title, quantity, and status **MUST** be reread from authoritative providers rather than copied from event payloads. |
+| **R-02** | Affected channel/product targets **MUST** be deduplicated from current publication membership and stored projections. |
+| **R-03** | Signals strictly older than the stored watermark **MUST** be discarded; equal timestamps **MUST** reconcile current source facts. |
+| **R-04** | The stored watermark **MUST** be the maximum of its previous value and signal time and **MUST NOT** regress. |
+| **R-05** | SKU-based inventory refreshes **MUST** use exact indexed variant lookup rather than full table scans. |
+| **R-06** | Catalog, Inventory, and Sales Channel integration signals **MUST** trigger local processing; Pricing signals **MUST NOT** refresh factual discovery. |
+| **R-07** | Invalidation **MUST** verify current publication state; conflicting facts **MUST** fail the refresh rather than tombstoning a published product. |

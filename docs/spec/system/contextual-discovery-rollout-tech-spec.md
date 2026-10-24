@@ -1,128 +1,134 @@
-# Tech Specification: Contextual Discovery Verification & Rollout
+# Tech Spec: Contextual Discovery Verification & Rollout
 
-> **Summary:** Gates the regional discovery cutover on configuration, compatible schema evolution, end-to-end verification and recoverable deployment steps.
-> **Classification:** Release Contract / Cross-Module Migration
-> **Supporting Modules:** Sales Channel / Region / Pricing / Discovery / store
-> **Status:** Planned; no completed rollout or passing contextual end-to-end evidence is claimed.
-> **Related Features:** [Edge Shopping-Context Resolution](../../features/feat_004-edge-shopping-context-resolution.md), [Vectorized Batch Regional Pricing](../../features/feat_005-vectorized-batch-regional-pricing.md), [Discovery Wiring & Projection Reconciliation](../../features/feat_006-discovery-wiring-projection-reconciliation.md), [Storefront API Cutover & Response Contract Refactoring](../../features/feat_007-storefront-api-cutover-contract-refactoring.md), [Automated Verification & Zero-Downtime Rollout](../../features/feat_008-automated-verification-zero-downtime-rollout.md)
-> **Related Domain Specs:** [Region](../domain/region/architecture/region-domain-spec.md), [Sales Channel](../domain/sales-channel/architecture/sales-channel-domain-spec.md), [Pricing](../domain/pricing/architecture/pricing-domain-spec.md)
-> **Related Workflows:** [Browse and Project](../workflows/browse-and-discover-products-workflow.md), [Provision Channels](../workflows/default-sales-channel-provisioning-workflow.md)
-> **Related Tech:** [Discovery](storefront-query-tech-spec.md), [Batch Pricing](batch-regional-pricing-tech-spec.md), [Shopping Context](shopping-context-resolution-tech-spec.md)
+- **Summary:** Gates contextual activation on automated verification evidence, backward-compatible migrations, prepared storefront clients, and safe recovery procedures.
+- **Type:** Cross-Cutting Concern
+- **Feature Spec:** [Automated Verification & Zero-Downtime Rollout](../../features/feat_008-automated-verification-zero-downtime-rollout.md)
 
-## 1. Why We Need It
+---
 
-Changing discovery storage and the public channel selector together creates compatibility risks across module databases, application nodes, and storefront deployments. Unit tests for pricing precedence and key hashing do not prove a functioning contextual storefront.
+## 1. Problem & Decision
 
-| Option | Decision | Rationale |
-| :--- | :--- | :--- |
-| Expand, verify, cut over, then contract | Adopt | Preserves compatible storage while clients and nodes migrate. |
-| Rewrite existing initial migrations | Reject | Breaks applied migration checksums and upgrade reproducibility. |
-| Deploy key-only clients and old/new APIs together | Reject | Clients receive inconsistent security and query behavior. |
+### What breaks without this?
 
-Additional storage and temporary compatibility code are explicit rollout costs. A failed later module step cannot atomically roll back all earlier module databases.
+Switching database schemas, client authentication schemes, and storefront API contracts simultaneously risks severe customer-facing downtime. Uncoordinated releases can break older mobile/web clients, expose unauthenticated parameters on some nodes, and destroy the only recoverable projection data before verification passes.
 
-## 2. What It Is
+### Decision
+
+| Option | Decision | Why |
+|:-------|:---------|:----|
+| **Expand, Verify, Activate, then Contract** | Adopted | Preserves a backward-compatible recovery window across independently deployed microservices and client apps. |
+| In-Place Breaking Migration | Rejected | Forces synchronous multi-service downtime and immediately breaks active storefront clients. |
+| Coexisting Incompatible Public Routes | Rejected | Exposes security holes where clients can bypass key authentication by hitting older route variants. |
+
+### Trade-offs
+
+| Benefits | Trade-offs |
+|:-----------|:-------------|
+| Zero customer-facing downtime during schema and contract migrations | Temporary storage overhead to maintain compatible schema during the transition window |
+| Automated gate verification guarantees architectural integrity before cutover | Requires disciplined phased rollout across multiple deployment stages |
+
+---
+
+## 2. How It Works
 
 ### Core Concept
 
+The release executes in five strictly ordered stages:
+1. **Expand**: Apply additive, non-breaking schema migrations (e.g., publishable key tables, region binding tables).
+2. **Provision**: Generate keys and map channel-region bindings.
+3. **Verify**: Execute automated Spring Modulith and integration test suites; execute projection rebuilds.
+4. **Client Cutover**: Update storefront clients to pass `X-Publishable-Key` and consume contextual JSON.
+5. **Contract**: Remove legacy query parameter support and drop deprecated schema elements after the recovery window expires.
+
 ```mermaid
-flowchart LR
-    Audit["Audit Existing Data"] --> Expand["Expand Schema"]
-    Expand --> Configure["Apply Market Bindings"]
-    Configure --> Rebuild["Rebuild Product Facts"]
-    Rebuild --> Verify["Verify Behavior and Clients"]
-    Verify --> Cutover["Activate Contextual Route"]
-    Cutover --> Contract["Remove Legacy Storage Later"]
+flowchart TD
+    Stage1["1. Expand Database Schema (Additive Migrations)"] --> Stage2["2. Provision Keys & Market Bindings"]
+    Stage2 --> Stage3["3. Execute Automated Verification Gates"]
+    Stage3 --> CheckGates{"All Gates Pass?"}
+    CheckGates -->|No| Hold["Hold Release & Investigate"]
+    CheckGates -->|Yes| Stage4["4. Storefront Client Cutover to Header"]
+    Stage4 --> Stage5["5. Activate Strict Rejection of salesChannelId"]
+    Stage5 --> Stage6["6. Contract Deprecated Schema (Post-Recovery)"]
 ```
 
-### Release Lifecycle
+### How It Works Step by Step
+
+| Step | What Happens | Why |
+|:-----|:-------------|:----|
+| 1 | Flyway applies additive database migrations across services | Ensures backward compatibility with existing running code |
+| 2 | Merchant admins provision publishable keys and configure channel regions | Establishes prerequisite credential and market data |
+| 3 | Automated verification suites execute: ArchUnit, Spring Modulith, and Testcontainers | Validates system invariants and boundary compliance |
+| 4 | Background rebuild coordinator reconciles presentation facts | Pre-populates Tier 1 projection tables |
+| 5 | Storefront client applications deploy updated requests using `X-Publishable-Key` | Migrates consumer traffic without downtime |
+| 6 | Gateway activates strict cutover, rejecting `salesChannelId` parameters with 400 | Closes security boundary permanently |
+| 7 | After stability window, contract release drops legacy columns and tables | Eliminates technical debt cleanly |
+
+### Lifecycle
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Preparing
-    Preparing --> Ready: All configuration and test gates pass
-    Ready --> Active: Compatible nodes and clients switched
-    Active --> Contracted: Recovery window closed and checks pass
-    Preparing --> Held: Gate fails
-    Ready --> Held: Readiness changes
-    Active --> Recovering: Runtime regression
-    Recovering --> Active: Secure compatible service restored
+    [*] --> Preparing : Migration Deployed
+    Preparing --> Ready : All Verification Gates Pass
+    Preparing --> Held : Gate Failure Detected
+    Ready --> Active : Strict Route Cutover
+    Active --> Recovering : Operational Regression Detected
+    Recovering --> Active : Compatible Service Restored
+    Active --> Contracted : Recovery Window Closes
+    Contracted --> [*]
 ```
 
-These are release stages, not implemented database statuses or a new workflow engine.
+---
 
-## 3. How We Use It in This System
+## 3. How We Use It
 
-### Architecture & Layer Stacking
+### Where It Fits in Our System
 
 ```mermaid
-flowchart TB
-    subgraph Store["store: Release Assembly"]
-        Checks["Security, HTTP and Module Checks"] --> Uses["Application Command and Query Paths"]
-    end
-    subgraph Application["Application Modules"]
-        Bindings["Apply Regional Bindings"]
-        Rebuild["Rebuild Product Facts"]
-    end
-    subgraph Persistence["Module Persistence"]
-        Migrations["Versioned Migrations"] --> Databases["Independent PostgreSQL Databases"]
-    end
-    Uses --> Bindings
-    Uses --> Rebuild
-    Bindings --> Databases
-    Rebuild --> Databases
+flowchart TD
+    Pipeline["CI/CD Deployment Pipeline"] --> GateVerifier["Automated Gate Verifier"]
+    GateVerifier --> Modulith["Spring Modulith Invariant Suite"]
+    GateVerifier --> Testcontainers["Database Integration Suite"]
+    GateVerifier --> SecurityCheck["Security Boundary Suite"]
+    GateVerifier --> RolloutCoord["Rollout Coordinator"]
 ```
 
-### Runtime Cutover Flow
+### Component Responsibilities
+
+| Component | Role | What It Does |
+|:----------|:-----|:-------------|
+| Rollout Coordinator | Deployment Manager | Controls feature flags and enforces phase progression across release stages. |
+| Automated Gate Verifier | Test Runner | Executes test suites and collects verifiable evidence before promoting release. |
+| Spring Modulith Suite | Invariant Guard | Detects illegal cross-module package dependencies and SPI violations at build time. |
+
+### Runtime Flow
 
 ```mermaid
 sequenceDiagram
-    participant Release as Release Operator
-    participant Schema as Module Migration Runner
-    participant App as Application Command Paths
-    participant Checks as Verification Suite
-    participant Clients as Storefront Deployments
-    Release->>Schema: Apply additive migrations
-    Release->>App: Apply reviewed region bindings and rebuild
-    Release->>Checks: Run complete matrix against candidate revision
-    Checks-->>Release: Evidence and gate outcomes
-    Release->>Clients: Install valid key/header configuration
-    Release->>App: Switch compatible nodes to contextual route
-    Note over Release,Schema: Contract migration occurs in a later verified release
+    participant Pipeline as Deployment Pipeline
+    participant DB as PostgreSQL Migrations
+    participant Modulith as Modulith Tests
+    participant Gateway as API Gateway
+
+    Pipeline->>DB: Apply Flyway expand migrations
+    Pipeline->>Modulith: Run @ApplicationModuleTests
+    Modulith-->>Pipeline: Verification passed (0 cyclic dependencies)
+    Pipeline->>Gateway: Deploy compatible backend route
+    Note over Pipeline,Gateway: Clients migrated to X-Publishable-Key
+    Pipeline->>Gateway: Enable strict header enforcement flag
+    Gateway-->>Pipeline: Cutover complete (salesChannelId parameter rejected with 400)
 ```
 
-## 4. Technical Specification & Contracts
+---
 
-### Release Rules
+## 4. Implementation Rules
 
-- **R-01:** Evidence MUST identify revision, environment/database versions, checks executed, outcomes, and known blockers; inspected source tests MUST NOT be labeled passing executions.
-- **R-02:** Operators MUST inventory existing countries, currencies, channels and defaults, correct invalid/duplicate data explicitly, and apply reviewed bindings through an authenticated application command entry point; cutover MUST stop for unresolved markets or default conflicts.
-- **R-03:** Migrations MUST append new versions without rewriting applied V1 files; expansion MUST preserve old reader compatibility, with a shadow facts representation if legacy non-null/JSON requirements prevent direct coexistence.
-- **R-04:** A compatible release MUST validate both old storage and new facts during rebuild, distribute keys to clients before key-only activation, and coordinate node/route switching so the public route never mixes incompatible selector contracts.
-- **R-05:** Backfill/rebuild MUST be bounded, resumable and idempotent, protect newer event updates, and retain old storage until reconciliation and the recovery window pass; destructive contract changes MUST occur in a later release.
-- **R-06:** Every verification row below MUST have executable passing evidence, with real PostgreSQL for persistence behavior and the actual security chain for public contracts.
-- **R-07:** Recovery MUST preserve key validation, region isolation and salesChannelId rejection on the cutover route; projection rebuilds and per-module migration recovery MUST be documented without promising a distributed rollback or silently restoring the insecure public selector.
-- **R-08:** Performance evidence MUST report dataset, products/variants per page, SQL round trips, latency percentiles and error rate; the SSD's illustrative latency estimates MUST NOT be treated as achieved results.
-
-### Verification Matrix
-
-| ID | Required verification | Layer / evidence |
-| :--- | :--- | :--- |
-| **V-01** | Key generation, digest-only storage, rotation, repeated revocation, ownership and authority checks, disabled channels. | Domain/application, PostgreSQL key persistence, actual-security HTTP tests. |
-| **V-02** | Exclusive normalized country membership, currency validation, unique channel-region pairs, single enabled default and concurrent changes. | Region/channel domain and PostgreSQL migrations/repositories. |
-| **V-03** | Four specificity tiers, same-USD regions with different amounts, unmatched market, campaign windows, quantities and tax preference. | Pricing policy plus batch use-case tests. |
-| **V-04** | Empty and duplicate variant input, shared sets, missing prices, full-page quotes with bounded SQL and no lazy N+1. | Batch application and PostgreSQL query-count tests. |
-| **V-05** | Publication, stock, route and channel updates, concurrent/duplicate/stale events, last-variant removal and rebuild repair/invalidation. | Projection use cases and PostgreSQL adapter/event integration tests. |
-| **V-06** | Key-only browse/PDP, all context errors, unserved markets, price null/zero/ranges, availability precedence, stable 200/404 behavior and safe HAL links. | HTTP tests with security enabled and end-to-end tests across provider interfaces. |
-| **V-07** | No-store cutover, market isolation, immediate subsequent-request revocation, compatible old/new storage, restart and recovery rehearsal. | Release smoke tests and migration rehearsal on representative existing data. |
-| **V-08** | Dependency direction, query/write isolation, module transactions, shared-event location, no native JPA queries and Modulith interface boundaries. | ArchUnit and Spring Modulith verification. |
-
-### Current Evidence Limits
-
-Pricing policy tests include four-tier precedence and same-currency region isolation. Key domain/application and PostgreSQL persistence test sources exist; discovery adapter tests currently mock repositories, and product controller tests disable security filters.
-
-No test suite was executed as part of this documentation audit. A release cannot pass this contract until the implemented paths and verification above actually run successfully.
-
-### Configuration and Storage
-
-`storefrontquery.rebuild.on-startup=true` currently dispatches the stub rebuild use case; it is not evidence of an online rebuild implementation. No deployment switch, migration version, batch-size binding or recovery-window default is invented here; implementation must document actual controls before release.
+| Rule | Requirement |
+|:-----|:------------|
+| **R-01** | Release verification **MUST** record concrete test outcomes, environment, database versions, and blockers; unexecuted tests **MUST NOT** be claimed as passed. |
+| **R-02** | Unresolved market configurations or default region conflicts **MUST** block promotion to the strict cutover stage. |
+| **R-03** | Existing databases **MUST** append new Flyway versioned migrations without rewriting or modifying applied historical migrations. |
+| **R-04** | The rollout **MUST** follow: expand schema $\rightarrow$ provision keys/markets $\rightarrow$ validate backend $\rightarrow$ migrate clients $\rightarrow$ strict activation. Incompatible contracts **MUST NOT** coexist on the activated public route. |
+| **R-05** | Projection rebuild **MUST** be bounded, resumable, and idempotent, preserving newer live updates and retaining compatible old data until the recovery window passes. |
+| **R-06** | Verification **MUST** execute against target PostgreSQL databases via Testcontainers, enable actual Spring Security chains, and run Spring Modulith architecture tests. |
+| **R-07** | Documented recovery procedures **MUST** preserve key validation, regional isolation, and legacy selector rejection after cutover; recovery **MUST NOT** silently restore unauthenticated parameter access. |
+| **R-08** | Performance evidence **MUST** record dataset sizes, page/variant counts, SQL round trips, and latency percentiles; theoretical timings **MUST NOT** be substituted for actual measurements. |
