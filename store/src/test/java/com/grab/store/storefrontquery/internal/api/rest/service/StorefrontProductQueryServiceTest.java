@@ -1,6 +1,6 @@
 package com.grab.store.storefrontquery.internal.api.rest.service;
 
-import com.grab.discovery.application.model.read.DiscoveryProductView;
+import com.grab.discovery.application.model.read.BuyableOfferResult;
 import com.grab.discovery.application.model.read.GetBuyableOfferBySlugQuery;
 import com.grab.discovery.application.model.read.ResolveShoppingContextQuery;
 import com.grab.discovery.application.model.read.ResolveShoppingContextResult;
@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StorefrontProductQueryServiceTest {
-
     @Mock
     private QueryBus queryBus;
     @Mock
@@ -41,121 +40,89 @@ class StorefrontProductQueryServiceTest {
     private ResolveShoppingContextRequestMapper resolveContextMapper;
 
     private StorefrontProductQueryService service;
+    private ShoppingContext context;
+    private ResolveShoppingContextResult contextResult;
 
     @BeforeEach
     void setUp() {
         service = new StorefrontProductQueryService(queryBus, searchMapper, getMapper, resolveContextMapper);
+        context = new ShoppingContext(new CommonId("web-1"), new CommonId("region-1"), "SG", "SGD", "en-SG");
+        contextResult = new ResolveShoppingContextResult(context, true);
     }
 
     @Test
-    void list_validChannelAndPageable_returnsPagedResponses() {
-        String salesChannelId = "web-1";
-        Pageable pageable = Pageable.unpaged();
+    void list_resolvesContextThenDispatchesOfferQuery() {
+        String key = "pk_test";
         String keyword = "coffee";
         String categoryId = "category-1";
-        SearchBuyableOffersQuery query = new SearchBuyableOffersQuery(
-                new CommonId(salesChannelId), keyword, new CommonId(categoryId), pageable
-        );
-        DiscoveryProductView view = createView();
-        Page<DiscoveryProductView> viewPage = new PageImpl<>(List.of(view));
+        Pageable pageable = Pageable.unpaged();
+        ResolveShoppingContextQuery contextQuery = new ResolveShoppingContextQuery(key, "SG", "en-SG");
+        SearchBuyableOffersQuery offerQuery = new SearchBuyableOffersQuery(
+                context, true, keyword, new CommonId(categoryId), pageable);
         BuyableOfferResponse response = createResponse();
+        Page<BuyableOfferResult> resultPage = new PageImpl<>(List.of(createResult()));
 
-        when(searchMapper.toQuery(salesChannelId, keyword, categoryId, pageable)).thenReturn(query);
-        when(queryBus.dispatch(query)).thenReturn(viewPage);
-        when(searchMapper.toResponse(view)).thenReturn(response);
+        when(resolveContextMapper.toQuery(key, "SG", "en-SG")).thenReturn(contextQuery);
+        when(queryBus.dispatch(contextQuery)).thenReturn(contextResult);
+        when(searchMapper.toQuery(context, true, keyword, categoryId, pageable)).thenReturn(offerQuery);
+        when(queryBus.dispatch(offerQuery)).thenReturn(resultPage);
+        when(searchMapper.toResponse(resultPage.getContent().getFirst())).thenReturn(response);
 
-        Page<BuyableOfferResponse> actual = service.list(salesChannelId, keyword, categoryId, pageable);
+        Page<BuyableOfferResponse> actual = service.list(key, "SG", "en-SG", keyword, categoryId, pageable);
 
         assertThat(actual.getContent()).containsExactly(response);
-        verify(queryBus).dispatch(query);
+        verify(queryBus).dispatch(contextQuery);
+        verify(queryBus).dispatch(offerQuery);
     }
 
     @Test
-    void getBySlug_validChannelAndSlug_returnsResponse() {
-        String salesChannelId = "web-1";
+    void getBySlug_resolvesContextThenDispatchesDetailQuery() {
+        String key = "pk_test";
         String slug = "iced-coffee";
-        GetBuyableOfferBySlugQuery query = new GetBuyableOfferBySlugQuery(new CommonId(salesChannelId), slug);
-        DiscoveryProductView view = createView();
+        ResolveShoppingContextQuery contextQuery = new ResolveShoppingContextQuery(key, "SG", "en-SG");
+        GetBuyableOfferBySlugQuery offerQuery = new GetBuyableOfferBySlugQuery(context, true, slug);
+        BuyableOfferResult result = createResult();
         BuyableOfferResponse response = createResponse();
 
-        when(getMapper.toQuery(salesChannelId, slug)).thenReturn(query);
-        when(queryBus.dispatch(query)).thenReturn(view);
-        when(getMapper.toResponse(view)).thenReturn(response);
+        when(resolveContextMapper.toQuery(key, "SG", "en-SG")).thenReturn(contextQuery);
+        when(queryBus.dispatch(contextQuery)).thenReturn(contextResult);
+        when(getMapper.toQuery(context, true, slug)).thenReturn(offerQuery);
+        when(queryBus.dispatch(offerQuery)).thenReturn(result);
+        when(getMapper.toResponse(result)).thenReturn(response);
 
-        BuyableOfferResponse actual = service.getBySlug(salesChannelId, slug);
+        BuyableOfferResponse actual = service.getBySlug(key, "SG", "en-SG", slug);
 
         assertThat(actual).isEqualTo(response);
-        verify(queryBus).dispatch(query);
+        verify(queryBus).dispatch(contextQuery);
+        verify(queryBus).dispatch(offerQuery);
     }
 
     @Test
-    void resolveShoppingContext_validParams_returnsResponse() {
-        String publishableKey = "pk_test";
-        String countryCode = "SG";
-        String locale = "en-SG";
-        ResolveShoppingContextQuery query = new ResolveShoppingContextQuery(publishableKey, countryCode, locale);
-        ShoppingContext context = new ShoppingContext(
-                new CommonId("chan-1"),
-                new CommonId("reg-1"),
-                "SG",
-                "SGD",
-                "en-SG"
-        );
-        ResolveShoppingContextResult result = new ResolveShoppingContextResult(context, true);
-        ShoppingContextResponse expected = new ShoppingContextResponse(
-                "chan-1",
-                "reg-1",
-                "SG",
-                "SGD",
-                "en-SG",
-                true
-        );
+    void resolveShoppingContext_returnsMappedContext() {
+        String key = "pk_test";
+        ResolveShoppingContextQuery query = new ResolveShoppingContextQuery(key, "SG", "en-SG");
+        ShoppingContextResponse response = new ShoppingContextResponse("web-1", "region-1", "SG", "SGD", "en-SG", true);
 
-        when(resolveContextMapper.toQuery(publishableKey, countryCode, locale)).thenReturn(query);
-        when(queryBus.dispatch(query)).thenReturn(result);
-        when(resolveContextMapper.toResponse(result)).thenReturn(expected);
+        when(resolveContextMapper.toQuery(key, "SG", "en-SG")).thenReturn(query);
+        when(queryBus.dispatch(query)).thenReturn(contextResult);
+        when(resolveContextMapper.toResponse(contextResult)).thenReturn(response);
 
-        ShoppingContextResponse actual = service.resolveShoppingContext(publishableKey, countryCode, locale);
-
-        assertThat(actual).isEqualTo(expected);
+        assertThat(service.resolveShoppingContext(key, "SG", "en-SG")).isEqualTo(response);
         verify(queryBus).dispatch(query);
     }
 
-    private DiscoveryProductView createView() {
-        return new DiscoveryProductView(
-                new CommonId("web-1"),
-                new CommonId("prod-1"),
-                new CommonId("seller-1"),
-                new CommonId("category-1"),
-                "Iced Coffee",
-                "iced-coffee",
-                null,
-                null,
-                "ACTIVE",
-                true,
-                true,
-                true,
-                List.of(),
-                List.of()
-        );
+    private BuyableOfferResult createResult() {
+        return new BuyableOfferResult(
+                new CommonId("web-1"), new CommonId("region-1"), "SG", "SGD", "en-SG", true,
+                new CommonId("prod-1"), new CommonId("seller-1"), new CommonId("category-1"),
+                "Iced Coffee", "iced-coffee", null, null, "ACTIVE", true, true, true, true,
+                null, null, List.of(), List.of());
     }
 
     private BuyableOfferResponse createResponse() {
         return new BuyableOfferResponse(
-                "web-1",
-                "prod-1",
-                "seller-1",
-                "category-1",
-                "Iced Coffee",
-                "iced-coffee",
-                null,
-                null,
-                "ACTIVE",
-                true,
-                true,
-                true,
-                List.of(),
-                List.of()
-        );
+                "web-1", "prod-1", "seller-1", "category-1", "Iced Coffee", "iced-coffee", null, null,
+                "ACTIVE", true, true, true, List.of(), List.of(), "region-1", "SG", "SGD", "en-SG", true,
+                true, null, null);
     }
 }

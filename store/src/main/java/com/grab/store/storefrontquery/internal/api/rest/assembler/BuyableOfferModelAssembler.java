@@ -17,16 +17,12 @@ public class BuyableOfferModelAssembler
     @Override
     public EntityModel<BuyableOfferResponse> toModel(BuyableOfferResponse response) {
         String slug = response.slug();
-        String salesChannelId = response.salesChannelId();
-
         Link selfLink = linkTo(methodOn(StorefrontProductController.class)
-                .get(slug, salesChannelId))
+                .getBySlug(slug, null, response.countryCode(), response.locale()))
                 .withSelfRel();
-
         Link listLink = linkTo(methodOn(StorefrontProductController.class)
-                .list(salesChannelId, null, null, null, null))
+                .list(null, response.countryCode(), response.locale(), null, null, null, null))
                 .withRel("list-storefront-products");
-
         return EntityModel.of(response, selfLink, listLink);
     }
 }

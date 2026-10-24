@@ -12,12 +12,12 @@ public final class StorefrontQueryApiLinks {
     }
 
     public static Link listStorefrontProducts() {
-        return linkTo(methodOn(StorefrontProductController.class).list(null, null, null, null, null))
+        return linkTo(methodOn(StorefrontProductController.class).list(null, null, null, null, null, null, null))
                 .withRel("list-storefront-products");
     }
 
     public static Link getStorefrontProduct() {
-        return linkTo(methodOn(StorefrontProductController.class).get(null, null))
+        return linkTo(methodOn(StorefrontProductController.class).getBySlug(null, null, null, null))
                 .withRel("get-storefront-product");
     }
 

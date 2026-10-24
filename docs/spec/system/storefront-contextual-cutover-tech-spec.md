@@ -33,11 +33,11 @@ Accepting legacy `salesChannelId` query parameters exposes private channels to p
 
 ### Core Concept
 
-The controller validates the `X-Publishable-Key` header and rejects legacy `salesChannelId` parameters with HTTP 400. It resolves `ShoppingContext`, reads visible presentation facts from the Tier 1 read model, executes a single-trip batch quote from Tier 2 pricing for visible variants, evaluates the 4-state availability machine, computes dynamic price ranges, and returns a contextual HAL JSON payload.
+The controller validates the `X-Publishable-Key` header and rejects legacy `salesChannelId` and `publishableKey` parameters with HTTP 400. The contract applies to collection, slug detail, and `/api/v1/storefront-query/products/context`. It resolves `ShoppingContext`, reads visible presentation facts from the Tier 1 read model, executes a single-trip batch quote from Tier 2 pricing for visible variants, evaluates the 4-state availability machine, computes dynamic price ranges, and returns a contextual HAL JSON payload.
 
 ```mermaid
 flowchart TD
-    Req["Storefront Request (Key Header)"] --> CheckParam{"Legacy salesChannelId Param Present?"}
+    Req["Storefront Request (Key Header)"] --> CheckParam{"Legacy selector Param Present?"}
     CheckParam -->|Yes| Reject["Reject with HTTP 400 Bad Request"]
     CheckParam -->|No| ResolveContext["Resolve ShoppingContext (Channel, Region, Currency)"]
     ResolveContext --> ReadFacts["Query Tier 1 Factual Products"]
@@ -51,7 +51,7 @@ flowchart TD
 
 | Step | What Happens | Why |
 |:-----|:-------------|:----|
-| 1 | Validates `X-Publishable-Key` header presence; rejects any `salesChannelId` query parameter with HTTP 400 | Enforces secure credential ingress |
+| 1 | Validates exactly one nonblank `X-Publishable-Key` header; rejects any `salesChannelId` or `publishableKey` query parameter with HTTP 400 | Enforces secure credential ingress |
 | 2 | Resolves immutable `ShoppingContext` (channel, region, settlement currency, `regionServed` flag) | Establishes authoritative market context |
 | 3 | Queries Tier 1 projection for visible products and published active variants | Reads presentation facts without prices |
 | 4 | If region is served and variants exist, invokes Tier 2 batch pricing for all visible variants | Single-trip bulk quote at quantity one |
@@ -68,8 +68,8 @@ stateDiagram-v2
     RegionCheck --> PriceCheck : Channel serves region
     PriceCheck --> PRICE_UNAVAILABLE : No regional price configured
     PriceCheck --> StockCheck : Valid price quote resolved
-    StockCheck --> SOLD_OUT : inStock <= 0 AND backorder == false
-    StockCheck --> AVAILABLE : inStock > 0 OR backorder == true
+    StockCheck --> SOLD_OUT : manageInventory AND availableQty <= 0 AND backorder == false
+    StockCheck --> AVAILABLE : manageInventory == false OR availableQty > 0 OR backorder == true
 ```
 
 ---
@@ -81,10 +81,14 @@ stateDiagram-v2
 ```mermaid
 flowchart TD
     Client["Storefront Client"] --> Controller["Storefront Query Controller"]
-    Controller --> ContextResolver["Edge Context Resolver"]
-    Controller --> DiscoveryQuery["Tier 1 Discovery Query"]
-    Controller --> BatchPricing["Tier 2 Batch Pricing Engine"]
-    Controller --> Composer["Contextual Offer Composer"]
+    Controller --> QueryService["StorefrontProductQueryService"]
+    QueryService --> QueryBus["Query Bus"]
+    QueryBus --> Handler["Storefront Query Handler"]
+    Handler --> UseCase["Discovery Query Use Case"]
+    UseCase --> ContextResolver["Shopping Context Port"]
+    UseCase --> DiscoveryQuery["Tier 1 Discovery Query Port"]
+    UseCase --> BatchPricing["Tier 2 Pricing Port"]
+    UseCase --> Composer["Pure Contextual Offer Policy"]
 ```
 
 ### Component Responsibilities
@@ -106,14 +110,14 @@ sequenceDiagram
     participant Tier2 as Pricing Engine
 
     Client->>Controller: GET /products?countryCode=SG (X-Publishable-Key: pk_...)
-    Controller->>Context: resolve("pk_...", "SG")
+    Controller->>Context: StorefrontProductQueryService resolves context
     Context-->>Controller: ShoppingContext(channel="sc_01", region="reg_sg", currency="SGD")
-    Controller->>Tier1: findVisibleProducts("sc_01")
+    Controller->>Tier1: Query handler reads visible products for "sc_01"
     Tier1-->>Controller: Page of products (45 variants)
     Controller->>Tier2: quoteBatch([variants], "SGD", "reg_sg")
     Tier2-->>Controller: Map<VariantId, QuotedPrice>
     Controller->>Controller: Compute availability & min/max ranges
-    Controller-->>Client: 200 OK Contextual JSON (Cache-Control: no-store)
+    Controller-->>Client: 200 OK Contextual HAL (Cache-Control: no-store)
 ```
 
 ---
@@ -122,7 +126,7 @@ sequenceDiagram
 
 | Rule | Requirement |
 |:-----|:------------|
-| **R-01** | GET `/api/v1/storefront-query/products` and GET `/api/v1/storefront-query/products/{slug}` **MUST** require `X-Publishable-Key`; invalid credential outcomes **MUST** be generic 401. |
+| **R-01** | GET `/api/v1/storefront-query/products`, GET `/api/v1/storefront-query/products/{slug}`, and GET `/api/v1/storefront-query/products/context` **MUST** require `X-Publishable-Key`; invalid credential outcomes **MUST** be generic 401. |
 | **R-02** | Any `salesChannelId` query parameter, including empty or repeated values, **MUST** yield 400 before provider reads; client parameters **MUST NOT** override resolved context. |
 | **R-03** | Offers **MUST** expose resolved channel, region, country, currency, locale, and `regionServed` eligibility with presentation facts; monetary amounts **MUST** be strings or null, and internal IDs or credentials **MUST NOT** be exposed. |
 | **R-04** | Availability **MUST** evaluate: unserved region (`NOT_AVAILABLE_IN_REGION`), missing price (`PRICE_UNAVAILABLE`), depleted tracked inventory without backorder (`SOLD_OUT`), then `AVAILABLE`. Buyability is true only for `AVAILABLE`. |

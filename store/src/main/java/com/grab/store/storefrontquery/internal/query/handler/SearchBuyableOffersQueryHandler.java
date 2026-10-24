@@ -1,6 +1,6 @@
 package com.grab.store.storefrontquery.internal.query.handler;
 
-import com.grab.discovery.application.model.read.DiscoveryProductView;
+import com.grab.discovery.application.model.read.BuyableOfferResult;
 import com.grab.discovery.application.model.read.SearchBuyableOffersQuery;
 import com.grab.discovery.application.port.inbound.SearchBuyableOffersUseCase;
 import com.grab.framework.cqrs.query.QueryHandler;
@@ -12,12 +12,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class SearchBuyableOffersQueryHandler
-        implements QueryHandler<SearchBuyableOffersQuery, Page<DiscoveryProductView>> {
+        implements QueryHandler<SearchBuyableOffersQuery, Page<BuyableOfferResult>> {
     private final SearchBuyableOffersUseCase searchBuyableOffersUseCase;
 
     @Override
     @StorefrontQueryReadTransactional
-    public Page<DiscoveryProductView> handle(SearchBuyableOffersQuery query) {
+    public Page<BuyableOfferResult> handle(SearchBuyableOffersQuery query) {
         return searchBuyableOffersUseCase.execute(query);
     }
 

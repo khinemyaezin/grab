@@ -15,7 +15,8 @@ public sealed interface StorefrontQueryServiceError extends MessageSource permit
         StorefrontQueryServiceError.LocaleInvalid,
         StorefrontQueryServiceError.RegionUnavailable,
         StorefrontQueryServiceError.DefaultRegionUnavailable,
-        StorefrontQueryServiceError.UnsupportedChannelSelector {
+        StorefrontQueryServiceError.UnsupportedChannelSelector,
+        StorefrontQueryServiceError.LegacyPublishableKeyQuery {
 
     record SalesChannelRequired() implements StorefrontQueryServiceError {
         @Override
@@ -179,6 +180,23 @@ public sealed interface StorefrontQueryServiceError extends MessageSource permit
         @Override
         public String code() {
             return "sfq.service.context.channel_selector_unsupported";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of();
+        }
+    }
+
+    record LegacyPublishableKeyQuery() implements StorefrontQueryServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "sfq.service.publishable_key.query_unsupported";
         }
 
         @Override

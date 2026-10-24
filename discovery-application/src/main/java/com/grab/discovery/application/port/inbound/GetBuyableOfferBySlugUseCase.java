@@ -1,9 +1,9 @@
 package com.grab.discovery.application.port.inbound;
 
-import com.grab.discovery.application.model.read.DiscoveryProductView;
+import com.grab.discovery.application.model.read.BuyableOfferResult;
 import com.grab.discovery.application.model.read.GetBuyableOfferBySlugQuery;
 
 public interface GetBuyableOfferBySlugUseCase {
-    DiscoveryProductView execute(GetBuyableOfferBySlugQuery query);
+    BuyableOfferResult execute(GetBuyableOfferBySlugQuery query);
 }
 

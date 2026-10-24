@@ -1,6 +1,7 @@
 package com.grab.store.storefrontquery.internal.api.rest.controller;
 
 import com.grab.store.storefrontquery.internal.api.rest.assembler.BuyableOfferModelAssembler;
+import com.grab.store.storefrontquery.internal.api.rest.assembler.ShoppingContextModelAssembler;
 import com.grab.store.storefrontquery.internal.api.rest.dto.response.BuyableOfferResponse;
 import com.grab.store.storefrontquery.internal.api.rest.dto.response.ShoppingContextResponse;
 import com.grab.store.storefrontquery.internal.api.rest.service.StorefrontProductQueryService;
@@ -14,6 +15,7 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,41 +29,66 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class StorefrontProductController {
     private final StorefrontProductQueryService storefrontQueryService;
     private final BuyableOfferModelAssembler assembler;
+    private final ShoppingContextModelAssembler contextAssembler;
 
     @GetMapping
     public ResponseEntity<PagedModel<EntityModel<BuyableOfferResponse>>> list(
-            @RequestParam String salesChannelId,
+            @RequestHeader(value = "X-Publishable-Key", required = false) String publishableKey,
+            @RequestParam(required = false) String countryCode,
+            @RequestParam(required = false) String locale,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String categoryId,
             Pageable pageable,
             PagedResourcesAssembler<BuyableOfferResponse> pagedAssembler
     ) {
-        Page<BuyableOfferResponse> page = storefrontQueryService.list(salesChannelId, keyword, categoryId, pageable);
-        PagedModel<EntityModel<BuyableOfferResponse>> model = pagedAssembler.toModel(page, assembler);
+        Page<BuyableOfferResponse> page = storefrontQueryService.list(
+                publishableKey,
+                countryCode,
+                locale,
+                keyword,
+                categoryId,
+                pageable
+        );
+        Link navigationBase = linkTo(methodOn(StorefrontProductController.class)
+                .list(null, countryCode, locale, keyword, categoryId, null, null))
+                .withSelfRel();
+        PagedModel<EntityModel<BuyableOfferResponse>> model = pagedAssembler.toModel(page, assembler, navigationBase);
         Link listLink = linkTo(methodOn(StorefrontProductController.class)
-                .list(salesChannelId, keyword, categoryId, pageable, null))
+                .list(null, countryCode, locale, keyword, categoryId, pageable, null))
                 .withRel("list-storefront-products");
         model.add(listLink);
-        return ResponseEntity.ok(model);
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(model);
     }
 
     @GetMapping("/context")
-    public ResponseEntity<ShoppingContextResponse> resolveContext(
-            @RequestParam String publishableKey,
+    public ResponseEntity<EntityModel<ShoppingContextResponse>> resolveContext(
+            @RequestHeader(value = "X-Publishable-Key", required = false) String publishableKey,
             @RequestParam(required = false) String countryCode,
             @RequestParam(required = false) String locale
     ) {
-        ShoppingContextResponse response = storefrontQueryService.resolveShoppingContext(publishableKey, countryCode, locale);
-        return ResponseEntity.ok(response);
+        ShoppingContextResponse response = storefrontQueryService.resolveShoppingContext(
+                publishableKey,
+                countryCode,
+                locale
+        );
+        EntityModel<ShoppingContextResponse> model = contextAssembler.toModel(response);
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(model);
     }
 
     @GetMapping("/{slug}")
-    public ResponseEntity<EntityModel<BuyableOfferResponse>> get(
+    public ResponseEntity<EntityModel<BuyableOfferResponse>> getBySlug(
             @PathVariable String slug,
-            @RequestParam String salesChannelId
+            @RequestHeader(value = "X-Publishable-Key", required = false) String publishableKey,
+            @RequestParam(required = false) String countryCode,
+            @RequestParam(required = false) String locale
     ) {
-        BuyableOfferResponse response = storefrontQueryService.getBySlug(salesChannelId, slug);
+        BuyableOfferResponse response = storefrontQueryService.getBySlug(
+                publishableKey,
+                countryCode,
+                locale,
+                slug
+        );
         EntityModel<BuyableOfferResponse> model = assembler.toModel(response);
-        return ResponseEntity.ok(model);
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(model);
     }
 }
