@@ -44,7 +44,7 @@ class InventoryItemTest {
     class InventoryRecordsTests {
 
         @Test
-        void create_shouldInitializeWithRequiredFields() {
+        void create_requiredFields_shouldInitializeWithRequiredFields() {
             assertThat(item.getId()).isEqualTo(ID);
             assertThat(item.getSku()).isEqualTo(SKU);
             assertThat(item.getMerchantId()).isEqualTo(MERCHANT_ID);
@@ -104,7 +104,7 @@ class InventoryItemTest {
     class StockAvailabilityTests {
 
         @Test
-        void getAvailableQuantity_shouldCalculateOnHandMinusReservedMinusDamaged() {
+        void getAvailableQuantity_reservedAndDamagedStock_shouldCalculateOnHandMinusReservedMinusDamaged() {
             item.reserveStock(20, "order-1", USER_ID, MOVEMENT_ID);
             item.markDamaged(10, "damaged", USER_ID, id("mov-2"));
 
@@ -112,7 +112,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void getAvailableQuantity_shouldNeverBeNegative() {
+        void getAvailableQuantity_deductionsExceedingOnHand_shouldNeverBeNegative() {
             InventoryQuantity quantity = new InventoryQuantity(10, 15, 0, 5);
             InventoryItem testItem = new InventoryItem(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, quantity, null, InventoryStatus.ACTIVE, LocalDateTime.now());
 
@@ -120,7 +120,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void quantity_shouldTrackAllDimensions() {
+        void quantity_mixedStockMovements_shouldTrackAllDimensions() {
             item.reserveStock(10, "order-1", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getQuantity().onHand()).isEqualTo(100);
@@ -135,7 +135,7 @@ class InventoryItemTest {
     class ReservationManagementTests {
 
         @Test
-        void reserveStock_shouldReduceAvailableQuantity() {
+        void reserveStock_sufficientAvailableStock_shouldReduceAvailableQuantity() {
             StockMovement movement = item.reserveStock(30, "order-1", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getAvailableQuantity()).isEqualTo(70);
@@ -145,7 +145,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void reserveStock_shouldEmitStockReservedEvent() {
+        void reserveStock_validReservation_shouldEmitStockReservedEvent() {
             item.reserveStock(30, "order-1", USER_ID, MOVEMENT_ID);
 
             List<Event> events = item.getEvents();
@@ -177,7 +177,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void releaseReservation_shouldReturnStockToAvailable() {
+        void releaseReservation_validReservedQuantity_shouldReturnStockToAvailable() {
             item.reserveStock(30, "order-1", USER_ID, MOVEMENT_ID);
             StockMovement movement = item.releaseReservation(20, "order-1", USER_ID, id("mov-2"));
 
@@ -195,7 +195,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void shipStock_shouldDeductFromReservedAndOnHand() {
+        void shipStock_reservedStock_shouldDeductFromReservedAndOnHand() {
             item.reserveStock(30, "order-1", USER_ID, MOVEMENT_ID);
             StockMovement movement = item.shipStock(20, "order-1", USER_ID, id("mov-2"));
 
@@ -206,7 +206,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void shipStock_shouldEmitStockShippedEvent() {
+        void shipStock_validShipment_shouldEmitStockShippedEvent() {
             item.reserveStock(30, "order-1", USER_ID, MOVEMENT_ID);
             item.shipStock(20, "order-1", USER_ID, id("mov-2"));
 
@@ -264,7 +264,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void receiveStock_shouldEmitStockReceivedEvent() {
+        void receiveStock_validReceipt_shouldEmitStockReceivedEvent() {
             item.receiveStock(50, StockMovementType.PURCHASE_ORDER_RECEIPT, "PO-123", "notes", USER_ID, MOVEMENT_ID);
 
             List<Event> events = item.getEvents();
@@ -273,7 +273,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void adjustStock_shouldSetAbsoluteOnHandQuantity() {
+        void adjustStock_validAbsoluteQuantity_shouldSetAbsoluteOnHandQuantity() {
             StockMovement movement = item.adjustStock(80, AdjustmentReason.CYCLE_COUNT, "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getQuantity().onHand()).isEqualTo(80);
@@ -281,7 +281,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void adjustStock_shouldEmitStockAdjustedEvent() {
+        void adjustStock_validAdjustment_shouldEmitStockAdjustedEvent() {
             item.adjustStock(80, AdjustmentReason.CYCLE_COUNT, "notes", USER_ID, MOVEMENT_ID);
 
             List<Event> events = item.getEvents();
@@ -293,7 +293,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void markDamaged_shouldNotSubtractWithOnHandQty() {
+        void markDamaged_availableStock_shouldNotSubtractWithOnHandQty() {
             StockMovement movement = item.markDamaged(15, "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getQuantity().onHand()).isEqualTo(100);
@@ -303,7 +303,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void markDamaged_shouldEmitStockAdjustedEvent() {
+        void markDamaged_validDamageQuantity_shouldEmitStockAdjustedEvent() {
             item.markDamaged(15, "notes", USER_ID, MOVEMENT_ID);
 
             List<Event> events = item.getEvents();
@@ -314,7 +314,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void writeOff_shouldReduceOnHand() {
+        void writeOff_availableStock_shouldReduceOnHand() {
             StockMovement movement = item.writeOff(25, "EXPIRED", "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getQuantity().onHand()).isEqualTo(75);
@@ -329,7 +329,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void transferOut_shouldReduceOnHand() {
+        void transferOut_availableStock_shouldReduceOnHand() {
             StockMovement movement = item.transferOut(30, "TRF-456", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getQuantity().onHand()).isEqualTo(70);
@@ -344,7 +344,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void returnToVendor_shouldReduceOnHand() {
+        void returnToVendor_availableStock_shouldReduceOnHand() {
             StockMovement movement = item.returnToVendor(20, "DEFECTIVE", "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getQuantity().onHand()).isEqualTo(80);
@@ -359,7 +359,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void allStockOperations_shouldReturnStockMovement() {
+        void allStockOperations_validQuantities_shouldReturnStockMovement() {
             StockMovement receive = item.receiveStock(10, StockMovementType.PURCHASE_ORDER_RECEIPT, "ref", "notes", USER_ID, id("mov-1"));
             StockMovement reserve = item.reserveStock(5, "order-1", USER_ID, id("mov-2"));
             StockMovement release = item.releaseReservation(3, "order-1", USER_ID, id("mov-3"));
@@ -387,7 +387,7 @@ class InventoryItemTest {
     class OversellPreventionTests {
 
         @Test
-        void reserveStock_shouldPreventOverselling() {
+        void reserveStock_excessQuantity_shouldPreventOverselling() {
             item.reserveStock(80, "order-1", USER_ID, MOVEMENT_ID);
 
             assertThatThrownBy(() -> item.reserveStock(30, "order-2", USER_ID, id("mov-2")))
@@ -395,13 +395,13 @@ class InventoryItemTest {
         }
 
         @Test
-        void writeOff_shouldPreventGoingBelowZero() {
+        void writeOff_excessQuantity_shouldPreventGoingBelowZero() {
             assertThatThrownBy(() -> item.writeOff(150, "LOST", "notes", USER_ID, MOVEMENT_ID))
                     .isInstanceOf(InventoryDomainValidationException.class);
         }
 
         @Test
-        void shipStock_shouldPreventShippingMoreThanReserved() {
+        void shipStock_excessReservedQuantity_shouldPreventShippingMoreThanReserved() {
             item.reserveStock(30, "order-1", USER_ID, MOVEMENT_ID);
 
             assertThatThrownBy(() -> item.shipStock(50, "order-1", USER_ID, id("mov-2")))
@@ -409,13 +409,13 @@ class InventoryItemTest {
         }
 
         @Test
-        void transferOut_shouldPreventGoingBelowZero() {
+        void transferOut_excessQuantity_shouldPreventGoingBelowZero() {
             assertThatThrownBy(() -> item.transferOut(150, "TRF-1", USER_ID, MOVEMENT_ID))
                     .isInstanceOf(InventoryDomainValidationException.class);
         }
 
         @Test
-        void returnToVendor_shouldPreventGoingBelowZero() {
+        void returnToVendor_excessQuantity_shouldPreventGoingBelowZero() {
             assertThatThrownBy(() -> item.returnToVendor(150, "DEFECTIVE", "notes", USER_ID, MOVEMENT_ID))
                     .isInstanceOf(InventoryDomainValidationException.class);
         }
@@ -426,14 +426,14 @@ class InventoryItemTest {
     class StatusLifecycleTests {
 
         @Test
-        void status_shouldAutoTransitionToOutOfStock_whenAvailableReachesZero() {
+        void status_whenAvailableReachesZero_shouldAutoTransitionToOutOfStock() {
             item.writeOff(100, "LOST", "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(item.getStatus()).isEqualTo(InventoryStatus.OUT_OF_STOCK);
         }
 
         @Test
-        void status_shouldAutoTransitionToActive_whenStockReplenished() {
+        void status_whenStockReplenished_shouldAutoTransitionToActive() {
             item.writeOff(100, "LOST", "notes", USER_ID, MOVEMENT_ID);
             assertThat(item.getStatus()).isEqualTo(InventoryStatus.OUT_OF_STOCK);
 
@@ -443,30 +443,30 @@ class InventoryItemTest {
         }
 
         @Test
-        void suspend_shouldSetStatusToSuspended() {
+        void suspend_activeItem_shouldSetStatusToSuspended() {
             item.suspend();
 
             assertThat(item.getStatus()).isEqualTo(InventoryStatus.SUSPENDED);
         }
 
         @Test
-        void discontinue_shouldSetStatusToDiscontinued() {
+        void discontinue_activeItem_shouldSetStatusToDiscontinued() {
             item.discontinue();
 
             assertThat(item.getStatus()).isEqualTo(InventoryStatus.DISCONTINUED);
         }
 
         @Test
-        void discontinue_shouldEmitInventoryItemDiscontinuedEvent() {
+        void discontinue_activeItem_shouldEmitInventoryItemStatusChangedEvent() {
             item.discontinue();
 
             List<Event> events = item.getEvents();
             assertThat(events).hasSize(2);
-            assertThat(events.get(1)).isInstanceOf(InventoryItemDiscontinuedEvent.class);
+            assertThat(events.get(1)).isInstanceOf(InventoryItemStatusChangedEvent.class);
         }
 
         @Test
-        void activate_shouldSetStatusToActive() {
+        void activate_suspendedItemWithStock_shouldSetStatusToActive() {
             item.suspend();
             item.activate();
 
@@ -595,7 +595,7 @@ class InventoryItemTest {
     class ReorderServiceTests {
 
         @Test
-        void isLowStock_shouldReturnTrueWhenBelowSafetyStock() {
+        void isLowStock_stockBelowSafetyThreshold_shouldReturnTrueWhenBelowSafetyStock() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 10, config);
 
@@ -603,7 +603,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void isLowStock_shouldReturnFalseWhenAboveSafetyStock() {
+        void isLowStock_stockAboveSafetyThreshold_shouldReturnFalseWhenAboveSafetyStock() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem normalItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
 
@@ -611,7 +611,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void needsReorder_shouldReturnTrueWhenBelowReorderPoint() {
+        void needsReorder_stockBelowReorderPoint_shouldReturnTrueWhenBelowReorderPoint() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
 
@@ -619,7 +619,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void getSuggestedReorderQuantity_shouldReturnConfiguredQuantity() {
+        void getSuggestedReorderQuantity_stockBelowReorderPoint_shouldReturnConfiguredQuantity() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
 
@@ -627,7 +627,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void getSuggestedReorderQuantity_shouldCapAtMaxStock() {
+        void getSuggestedReorderQuantity_reorderExceedingMaxStock_shouldCapAtMaxStock() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 40);
             InventoryItem lowStockItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 25, config);
 
@@ -635,7 +635,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void create_shouldReject_whenInitialQuantityExceedsMaxStock() {
+        void create_whenInitialQuantityExceedsMaxStock_shouldReject() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 80);
 
             assertThatThrownBy(() -> InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config))
@@ -647,7 +647,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void receiveStock_shouldReject_whenExceedingMaxStock() {
+        void receiveStock_whenExceedingMaxStock_shouldReject() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 120);
             InventoryItem cappedItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config);
 
@@ -661,7 +661,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void receiveStock_shouldAllow_whenWithinMaxStock() {
+        void receiveStock_whenWithinMaxStock_shouldAllow() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 120);
             InventoryItem cappedItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config);
 
@@ -671,7 +671,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void adjustStock_shouldReject_whenNewOnHandExceedsMaxStock() {
+        void adjustStock_whenNewOnHandExceedsMaxStock_shouldReject() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 120);
             InventoryItem cappedItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 100, config);
 
@@ -684,7 +684,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void receiveStock_shouldEmitLowStockAlertWhenBelowThreshold() {
+        void receiveStock_receiptBelowThreshold_shouldEmitLowStockAlertWhenBelowThreshold() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem testItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
             testItem.pullEvents();
@@ -696,7 +696,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void reserveStock_shouldEmitLowStockAlertWhenBelowThreshold() {
+        void reserveStock_reservationCrossingThreshold_shouldEmitLowStockAlertWhenBelowThreshold() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem testItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
             testItem.pullEvents();
@@ -708,7 +708,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void shipStock_shouldEmitLowStockAlertWhenBelowThreshold() {
+        void shipStock_shipmentBelowThreshold_shouldEmitLowStockAlertWhenBelowThreshold() {
             ReorderConfig config = new ReorderConfig(10, 30, 50, 200);
             InventoryItem testItem = InventoryItem.create(ID, SKU, MERCHANT_ID, PRODUCT_VARIANT_ID, LOCATION_ID, 50, config);
             testItem.reserveStock(40, "order-1", USER_ID, id("mov-1"));
@@ -719,7 +719,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void updateReorderConfig_shouldReplaceConfig() {
+        void updateReorderConfig_newConfiguration_shouldReplaceConfig() {
             item.updateReorderConfig(new ReorderConfig(5, 15, 40, 100));
 
             assertThat(item.getReorderConfig().safetyStock()).isEqualTo(5);
@@ -729,7 +729,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void announceAndReceiveInTransit_shouldMoveQtyToOnHand() {
+        void announceAndReceiveInTransit_announcedQuantity_shouldMoveQtyToOnHand() {
             item.announceInTransit(20, "PO-9", USER_ID, id("mov-announce"));
             assertThat(item.getQuantity().inTransit()).isEqualTo(20);
             assertThat(item.getQuantity().onHand()).isEqualTo(100);
@@ -740,7 +740,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void receiveInTransit_shouldRejectWhenExceedsInTransit() {
+        void receiveInTransit_excessQuantity_shouldRejectWhenExceedsInTransit() {
             item.announceInTransit(5, "PO-9", USER_ID, MOVEMENT_ID);
 
             assertThatThrownBy(() -> item.receiveInTransit(6, "PO-9", USER_ID, id("mov-2")))
@@ -785,14 +785,14 @@ class InventoryItemTest {
         }
 
         @Test
-        void reserveStock_shouldCreateReservationMovementType() {
+        void reserveStock_validQuantity_shouldCreateReservationMovementType() {
             StockMovement movement = item.reserveStock(10, "order-1", USER_ID, MOVEMENT_ID);
 
             assertThat(movement.getType()).isEqualTo(StockMovementType.RESERVATION);
         }
 
         @Test
-        void releaseReservation_shouldCreateReservationReleaseMovementType() {
+        void releaseReservation_validQuantity_shouldCreateReservationReleaseMovementType() {
             item.reserveStock(10, "order-1", USER_ID, MOVEMENT_ID);
             StockMovement movement = item.releaseReservation(5, "order-1", USER_ID, id("mov-2"));
 
@@ -800,7 +800,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void shipStock_shouldCreateSaleMovementType() {
+        void shipStock_validQuantity_shouldCreateSaleMovementType() {
             item.reserveStock(10, "order-1", USER_ID, MOVEMENT_ID);
             StockMovement movement = item.shipStock(10, "order-1", USER_ID, id("mov-2"));
 
@@ -808,35 +808,35 @@ class InventoryItemTest {
         }
 
         @Test
-        void adjustStock_shouldCreateCycleCountAdjustmentMovementType() {
+        void adjustStock_validQuantity_shouldCreateCycleCountAdjustmentMovementType() {
             StockMovement movement = item.adjustStock(80, AdjustmentReason.CYCLE_COUNT, "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(movement.getType()).isEqualTo(StockMovementType.CYCLE_COUNT_ADJUSTMENT);
         }
 
         @Test
-        void markDamaged_shouldCreateDamageAdjustmentMovementType() {
+        void markDamaged_validQuantity_shouldCreateDamageAdjustmentMovementType() {
             StockMovement movement = item.markDamaged(10, "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(movement.getType()).isEqualTo(StockMovementType.DAMAGE_ADJUSTMENT);
         }
 
         @Test
-        void writeOff_shouldCreateWriteOffMovementType() {
+        void writeOff_validQuantity_shouldCreateWriteOffMovementType() {
             StockMovement movement = item.writeOff(10, "LOST", "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(movement.getType()).isEqualTo(StockMovementType.WRITE_OFF);
         }
 
         @Test
-        void transferOut_shouldCreateTransferOutMovementType() {
+        void transferOut_validQuantity_shouldCreateTransferOutMovementType() {
             StockMovement movement = item.transferOut(10, "TRF-1", USER_ID, MOVEMENT_ID);
 
             assertThat(movement.getType()).isEqualTo(StockMovementType.TRANSFER_OUT);
         }
 
         @Test
-        void returnToVendor_shouldCreateReturnToVendorMovementType() {
+        void returnToVendor_validQuantity_shouldCreateReturnToVendorMovementType() {
             StockMovement movement = item.returnToVendor(10, "DEFECTIVE", "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(movement.getType()).isEqualTo(StockMovementType.RETURN_TO_VENDOR);
@@ -848,41 +848,41 @@ class InventoryItemTest {
     class QueryMethodsTests {
 
         @Test
-        void isOutOfStock_shouldReturnTrueWhenAvailableIsZero() {
+        void isOutOfStock_zeroAvailableQuantity_shouldReturnTrueWhenAvailableIsZero() {
             item.writeOff(100, "LOST", "notes", USER_ID, MOVEMENT_ID);
 
             assertThat(item.isOutOfStock()).isTrue();
         }
 
         @Test
-        void isOutOfStock_shouldReturnFalseWhenAvailableIsPositive() {
+        void isOutOfStock_positiveAvailableQuantity_shouldReturnFalseWhenAvailableIsPositive() {
             assertThat(item.isOutOfStock()).isFalse();
         }
 
         @Test
-        void isActive_shouldReturnTrueWhenStatusIsActive() {
+        void isActive_activeStatus_shouldReturnTrueWhenStatusIsActive() {
             assertThat(item.isActive()).isTrue();
         }
 
         @Test
-        void isActive_shouldReturnFalseWhenStatusIsSuspended() {
+        void isActive_suspendedStatus_shouldReturnFalseWhenStatusIsSuspended() {
             item.suspend();
 
             assertThat(item.isActive()).isFalse();
         }
 
         @Test
-        void canFulfill_shouldReturnTrueWhenActiveAndSufficientStock() {
+        void canFulfill_activeItemWithSufficientStock_shouldReturnTrueWhenActiveAndSufficientStock() {
             assertThat(item.canFulfill(50)).isTrue();
         }
 
         @Test
-        void canFulfill_shouldReturnFalseWhenInsufficientStock() {
+        void canFulfill_insufficientStock_shouldReturnFalseWhenInsufficientStock() {
             assertThat(item.canFulfill(150)).isFalse();
         }
 
         @Test
-        void canFulfill_shouldReturnFalseWhenNotActive() {
+        void canFulfill_inactiveItem_shouldReturnFalseWhenNotActive() {
             item.suspend();
 
             assertThat(item.canFulfill(50)).isFalse();
@@ -910,7 +910,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void multipleOperations_shouldMaintainConsistency() {
+        void multipleOperations_mixedStockMovements_shouldMaintainConsistency() {
             item.receiveStock(50, StockMovementType.PURCHASE_ORDER_RECEIPT, "PO-1", "notes", USER_ID, id("mov-1"));
             item.reserveStock(30, "order-1", USER_ID, id("mov-2"));
             item.shipStock(20, "order-1", USER_ID, id("mov-3"));
@@ -924,7 +924,7 @@ class InventoryItemTest {
         }
 
         @Test
-        void lastUpdated_shouldBeUpdatedOnEveryOperation() {
+        void lastUpdated_successiveStockOperations_shouldBeUpdatedOnEveryOperation() {
             LocalDateTime before = item.getLastUpdated();
 
             item.receiveStock(10, StockMovementType.PURCHASE_ORDER_RECEIPT, "PO-1", "notes", USER_ID, id("mov-1"));

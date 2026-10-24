@@ -2,6 +2,7 @@ package com.catalog.adapter.persistence.repository.impl;
 
 import com.catalog.adapter.persistence.entity.CategoryEntity;
 import com.catalog.adapter.persistence.repository.CategoryJpaRetrievingDelegate;
+import com.catalog.application.model.read.CategoryBoundsView;
 import com.nestedset.app.config.JpaNestedSetRepositoryConfiguration;
 import com.nestedset.app.delegate.jpa.JpaNestedSetRetrievingDelegate;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -35,25 +36,26 @@ public class CategoryJpaRetrievingDelegateImpl extends JpaNestedSetRetrievingDel
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         String escapedPrefix = escapeLike(categoryName.toLowerCase(Locale.ROOT)) + "%";
 
-        CriteriaQuery<Object[]> matchQuery = cb.createQuery(Object[].class);
+        CriteriaQuery<CategoryBoundsView> matchQuery = cb.createQuery(CategoryBoundsView.class);
         Root<CategoryEntity> matchedNode = matchQuery.from(entityClassType);
         Path<String> matchedNodeName = matchedNode.get(configs.getNameFieldName());
         Expression<Integer> matchedNodeLeft = matchedNode.get(configs.getLeftFieldName()).as(Integer.class);
         Expression<Integer> matchedNodeRight = matchedNode.get(configs.getRightFieldName()).as(Integer.class);
 
-        matchQuery.multiselect(matchedNodeLeft, matchedNodeRight)
+        matchQuery.select(cb.construct(CategoryBoundsView.class, matchedNodeLeft, matchedNodeRight))
                 .where(cb.like(cb.lower(matchedNodeName), escapedPrefix, '\\'))
                 .orderBy(cb.asc(matchedNodeLeft));
 
-        List<Object[]> nodeMatches = entityManager.createQuery(matchQuery)
+        List<CategoryBoundsView> nodeMatches = entityManager.createQuery(matchQuery)
                 .setMaxResults(1)
                 .getResultList();
         if (nodeMatches.isEmpty()) {
             return Collections.emptyList();
         }
 
-        Integer matchedLeft = (Integer) nodeMatches.getFirst()[0];
-        Integer matchedRight = (Integer) nodeMatches.getFirst()[1];
+        CategoryBoundsView bounds = nodeMatches.getFirst();
+        Integer matchedLeft = bounds.left();
+        Integer matchedRight = bounds.right();
         if (matchedLeft == null || matchedRight == null) {
             return Collections.emptyList();
         }

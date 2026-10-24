@@ -2,20 +2,28 @@ package com.pricing.application.service;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.pricing.application.model.read.CalculatePricesQuery;
+import com.pricing.application.exception.PricingServiceError;
+import com.pricing.application.exception.PricingServiceException;
 import com.pricing.application.model.read.CalculatedPriceSetResult;
 import com.pricing.application.model.read.QuoteVariantPricesQuery;
 import com.pricing.application.model.read.QuoteVariantPricesResult;
 import com.pricing.application.model.read.VariantPriceSetLinkView;
-import com.pricing.application.port.inbound.CalculatePricesUseCase;
 import com.pricing.application.port.inbound.QuoteVariantPricesUseCase;
+import com.pricing.application.port.outbound.PriceQueryPort;
 import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
-import com.pricing.application.policy.QuoteVariantPricesPolicy;
+import com.pricing.application.util.PricingResultMapper;
+import com.pricing.domain.policy.CalculatePricesPolicy;
+import com.pricing.domain.policy.CalculatedPriceSet;
+import com.pricing.domain.policy.PriceCandidate;
+import com.pricing.domain.policy.PricePreferenceView;
+import com.pricing.domain.policy.QuoteVariantPricesPolicy;
+import com.pricing.domain.valueobject.CurrencyCode;
 import com.pricing.domain.valueobject.PricingAttributeKeys;
+import com.pricing.domain.valueobject.PricingContext;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,21 +34,29 @@ import java.util.Set;
 public class QuoteVariantPricesService implements QuoteVariantPricesUseCase {
 
     private final VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort;
-    private final CalculatePricesUseCase calculatePricesUseCase;
+    private final PriceQueryPort priceQueryPort;
+    private final CalculatePricesPolicy calculatePricesPolicy;
     private final IdGenerator idGenerator;
     private final QuoteVariantPricesPolicy quoteVariantPricesPolicy;
 
     public QuoteVariantPricesService(
             VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort,
-            CalculatePricesUseCase calculatePricesUseCase,
+            PriceQueryPort priceQueryPort,
+            CalculatePricesPolicy calculatePricesPolicy,
             IdGenerator idGenerator
     ) {
-        this(variantPriceSetLinkQueryPort, calculatePricesUseCase, idGenerator, new QuoteVariantPricesPolicy());
+        this(
+                variantPriceSetLinkQueryPort,
+                priceQueryPort,
+                calculatePricesPolicy,
+                idGenerator,
+                new QuoteVariantPricesPolicy()
+        );
     }
 
     @Override
     public QuoteVariantPricesResult execute(QuoteVariantPricesQuery query) {
-        quoteVariantPricesPolicy.validate(query);
+        validate(query);
 
         LinkedHashMap<String, Id> requestedVariants = deduplicate(query.variantIds());
         if (requestedVariants.isEmpty()) {
@@ -56,18 +72,52 @@ public class QuoteVariantPricesService implements QuoteVariantPricesUseCase {
             return unpricedResults(requestedVariants, linksByVariant, noCalculatedPrices);
         }
 
+        CurrencyCode currencyCode = CurrencyCode.of(query.currencyCode());
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(PricingAttributeKeys.SALES_CHANNEL_ID, query.salesChannelId().getValue());
         attributes.put(PricingAttributeKeys.REGION_ID, query.regionId().getValue());
         List<Id> priceSetIds = toIds(priceSetValues);
-        List<CalculatedPriceSetResult> calculated = calculatePricesUseCase.execute(new CalculatePricesQuery(
+        PricingContext context = new PricingContext(currencyCode, query.quantity(), attributes);
+
+        List<PriceCandidate> candidates = priceQueryPort.findCandidates(priceSetIds, currencyCode.value());
+        List<PricePreferenceView> preferences = priceQueryPort.findPreferences();
+        List<CalculatedPriceSet> calculated = calculatePricesPolicy.calculate(
                 priceSetIds,
-                query.currencyCode(),
-                query.quantity(),
-                Collections.unmodifiableMap(attributes)
-        ));
-        Map<String, CalculatedPriceSetResult> calculatedByPriceSet = indexCalculated(calculated);
+                context,
+                candidates,
+                preferences,
+                Instant.now()
+        );
+
+        List<CalculatedPriceSetResult> calculatedResults = calculated.stream()
+                .map(PricingResultMapper::toCalculatedResult)
+                .toList();
+        Map<String, CalculatedPriceSetResult> calculatedByPriceSet = indexCalculated(calculatedResults);
         return unpricedResults(requestedVariants, linksByVariant, calculatedByPriceSet);
+    }
+
+    private void validate(QuoteVariantPricesQuery query) {
+        if (query == null) {
+            throw new PricingServiceException(
+                    new PricingServiceError.InvalidBatchQuote("query"),
+                    "query is required"
+            );
+        }
+        try {
+            quoteVariantPricesPolicy.validate(
+                    query.variantIds(),
+                    query.currencyCode(),
+                    query.salesChannelId(),
+                    query.regionId(),
+                    query.quantity()
+            );
+        } catch (IllegalArgumentException exception) {
+            String field = exception.getMessage();
+            throw new PricingServiceException(
+                    new PricingServiceError.InvalidBatchQuote(field),
+                    "Invalid batch quote field: " + field
+            );
+        }
     }
 
     private LinkedHashMap<String, Id> deduplicate(List<Id> variantIds) {

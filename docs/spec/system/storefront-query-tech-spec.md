@@ -1,144 +1,68 @@
-# Tech Specification: Storefront Query & Product Discovery
+# Technical Specification: Storefront Query and Discovery Facts
 
-> **Summary:** Maintains currency-agnostic channel/product facts in Tier 1 and delegates regional prices and availability to the contextual query path.
-> **Classification:** Architectural Pattern / CQRS Read Model
-> **Supporting Modules:** `discovery-application` / `discovery-persistence-adapter` / `store/storefrontquery`
-> **Key Lifecycle Feature:** [Sales-Channel Key Lifecycle & Authenticated Management](../../features/feat_003-sales-channel-key-lifecycle-management.md)
-> **Related Features:** [DiscoveryProduct baseline](../../features/feat_002-discovery_product.md), [Discovery Wiring & Projection Reconciliation](../../features/feat_006-discovery-wiring-projection-reconciliation.md), [Storefront API Cutover & Response Contract Refactoring](../../features/feat_007-storefront-api-cutover-contract-refactoring.md)
-> **Related Domain Specs:** [Product](../domain/catalog/architecture/product-domain-spec.md), [Publication](../domain/catalog/architecture/product-publication-domain-spec.md), [Inventory](../domain/inventory/architecture/inventory-item-domain-spec.md), [Sales Channel](../domain/sales-channel/architecture/sales-channel-domain-spec.md), [Pricing](../domain/pricing/architecture/pricing-domain-spec.md)
+> **Summary:** Stores and queries channel-scoped catalog and inventory facts. Prices and contextual availability are computed in Phase 5.
+> **Classification:** CQRS Read Model / Modulith Integration
+> **Supporting Modules:** `discovery-application`, `discovery-persistence-adapter`, `store/storefrontquery`
+> **Related Feature:** [Discovery Facts, Projection Reconciliation, and Rebuild](../../features/feat_006-discovery-wiring-projection-reconciliation.md)
 > **Related Workflow:** [Browse, Project, and Rebuild](../workflows/browse-and-discover-products-workflow.md)
-> **Supporting Tech:** [Shopping Context](shopping-context-resolution-tech-spec.md), [Batch Pricing](batch-regional-pricing-tech-spec.md), [Rollout](contextual-discovery-rollout-tech-spec.md)
 > **System Design:** [SSD-001](../../system-design/001-multi_regional_contextual_discovery_system_design.md)
 
-## 1. Why We Need It
+## 1. Scope
 
-### Implementation Baseline and Contract Change
+Phase 4 completes facts-only discovery search and product detail queries, event-driven projection refresh, and persisted bounded rebuild. It does not cut product endpoints over to shopping-context resolution or add regional quote/availability composition; those are Phase 5.
 
-Audit date: 2026-10-23, current working tree. `ProjectDiscoveryProductService` and `RebuildDiscoveryProductsService` have empty bodies; `SearchBuyableOffersService` and `GetBuyableOfferBySlugService` return null, and their configuration constructs them without dependencies.
+The discovery V1 migration is the clean initial schema for an empty discovery database. Existing discovery databases are not reset automatically. No upgrade migration, legacy-data backfill, or dual-read/write mechanism is provided.
 
-The entity, migration, adapters, listener, handlers, and REST scaffolding exist. The current schema and JSON variants still persist currency, price ranges, individual prices, and buyability; mocked adapter/controller tests do not establish a working runtime pipeline.
+## 2. Module boundaries
 
-This revision defines the planned Tier 1 replacement. It supersedes the price-materialization and raw-channel-selection clauses in the baseline feature when features 006 and 007 cut over; it does not claim those features are implemented.
+Catalog and Inventory publish read-only discovery interfaces in their public `port` packages. Their provider adapters delegate to inbound read use cases within module read transactions. `store/storefrontquery` consumes those interfaces through consumer adapters and owns event-to-command wiring. Discovery persistence reads and writes only its own database. Projection, factual query and rebuild services do not call Pricing.
 
-### Technology Decision & Alternatives
+Cross-module events live under `store/shared/events/{catalog,inventory,saleschannel}`. `@EventListener` consumers dispatch local discovery commands through `CommandBus`; command handlers own discovery transactions. A failed listener propagates so the source outbox does not acknowledge an unsuccessful projection update.
 
-| Option | Decision | Rationale |
-| :--- | :--- | :--- |
-| Channel/product projection plus request-time prices | Adopt | Separates catalog and inventory refresh from regional pricing changes. |
-| Document per channel/product/region/currency | Reject | Multiplies stored documents and price-driven updates. |
-| Join write aggregates on every customer read | Reject | Breaks read-model isolation and module boundaries. |
+## 3. Factual model and search
 
-Catalog and stock facts remain eventually consistent. Pricing availability and latency become part of the request path, so the previous promise of no runtime pricing coupling no longer applies.
+One row is keyed by `(sales_channel_id, product_id)` and enforces channel-scoped slug uniqueness. Product facts include merchant/category IDs, title, slug, description, thumbnail, options, product status, publication membership, channel status, stock badge, update watermark and optimistic-lock version. Variant JSON contains ID, SKU, title, status, option values, quantity, inventory-management/backorder facts and stock state.
 
-## 2. What It Is
+No currency, monetary amount, compare-at amount, range, or buyability is persisted. The relational variant-membership table indexes exact variant ID and SKU. Membership changes are written atomically with the projection. Local foreign keys do not cross module databases.
 
-### Core Concept
+Search uses an injected JPA specification with optional case-insensitive literal keyword matching against title/description, exact category filtering, pagination and deterministic product-ID ordering. Visibility requires enabled channel, ACTIVE parent product, and at least one ACTIVE published variant. Stock and price do not affect visibility. PDP lookup applies the same visibility conditions and reports an invisible or missing product as `OfferNotFound`.
 
-```mermaid
-flowchart LR
-    Sources["Catalog, Inventory, Channel"] --> Listener["Integration Listener"]
-    Listener --> Projector["Projection Use Case"]
-    Projector --> Facts["Channel Product Facts"]
-    Context["Resolved Shopping Context"] --> Reader["Discovery Query"]
-    Facts --> Reader
-    Reader --> Prices["Batch Regional Quotes"]
-    Prices --> Offers["Contextual Offers"]
-```
+## 4. Projection rules
 
-### Projection Lifecycle
+Every event is a refresh signal, not a source of authoritative fact values. The use case resolves affected product/channel pairs, deduplicates identifiers, rereads current Catalog, Inventory and Channel facts, then composes a complete projection. Channel-targeted publication changes affect their addressed channel; product-wide, variant, SKU, route, stock, and channel changes also cover existing projections needed to remove stale facts.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Absent
-    Absent --> Visible: Active product published to enabled channel
-    Visible --> Hidden: Channel disabled or product inactive
-    Hidden --> Visible: Eligibility restored
-    Visible --> Unpublished: Last publication or variant removed
-    Hidden --> Unpublished: Last publication or variant removed
-    Unpublished --> Visible: Eligible publication restored
-```
+Publication membership is retained even when a variant is inactive; query visibility separately requires an active variant. Description selection is the first nonblank description ordered by ID. Thumbnail selection is the first usable media URL ordered by rank then ID. Inventory counts nonnegative eligible quantity from active locations routed to the channel, excluding suspended/discontinued inventory. Backordering is true when an eligible routed item permits it. Untracked variants have no fabricated stock quantity.
 
-Stock depletion and missing regional prices do not change visibility. These conditions affect the contextual response according to the [availability contract](shopping-context-resolution-tech-spec.md#4-technical-specification--contracts).
+Events strictly older than the stored watermark are ignored; equal timestamps reconcile against current source facts. Updates check expected projection version and flush. Optimistic conflicts and concurrent channel/product insert collisions retry at most three times in separate transactions with a fresh reread. Slug conflicts, provider failures, and exhausted retries propagate. Invalidation retains a tombstone and watermark, clears slug, publication and variants, and rechecks current publication before writing.
 
-## 3. How We Use It in This System
+`NEW_PROJECTION_VERSION` (`-1`) denotes expected absence, independently of database version `0` on a newly inserted row. The write adapter checks both expected existence and version. It executes the local membership delete before inserting replacements and flushes the membership writes within the handler transaction. Cursor and aggregate queries return typed immutable local records rather than positional arrays. Inventory variant-view updates also pass through CommandBus, an inventory transactional handler, an application use case and a local projection repository; projection notifications live under `shared/events/inventory`.
 
-### Architecture & Layer Stacking
+## 5. Persisted rebuild
 
-```mermaid
-flowchart TB
-    subgraph Store["store: HTTP, Events, Composition"]
-        Boundary["Controllers and Event Listeners"] --> Dispatch["Command or Query Service / Bus"]
-        Dispatch --> Handler["Transactional Handlers"]
-        Cross["Consumer Interface Adapters"]
-    end
-    subgraph Application["discovery-application"]
-        UseCase["Projection and Read Use Cases"] --> Ports["Outbound Capability Ports"]
-    end
-    subgraph Persistence["discovery-persistence-adapter"]
-        Adapter["Local Repository and Query Adapters"] --> Database["Discovery Database"]
-    end
-    Handler --> UseCase
-    Ports --> Cross
-    Ports --> Adapter
-```
+`storefrontquery.rebuild.on-startup` defaults to `false`; `storefrontquery.rebuild.batch-size` defaults to `100` and must be positive. Startup submits work to a managed executor and does not wait for completion. Each rebuild command processes one batch. The coordinator dispatches subsequent commands after the current handler transaction commits.
 
-The repository currently has no `discovery-domain` module; the projection is an application read model, not a new business aggregate. Projection persistence remains local to discovery, and cross-module catalog/inventory/channel adapters remain in `store`.
+One unfinished run is allowed. Its persisted record contains framework run ID, start time/watermark, stage, product/channel cursor, processed and invalidated counts, and optimistic-lock version. Stages are `PUBLICATIONS`, `EXISTING_PROJECTIONS`, and `COMPLETED`. A keyset query enumerates distinct current publication product/channel pairs, then a second keyset pass visits existing projection rows. Batches and checkpoints commit atomically; a failed batch leaves the cursor unchanged. The run resumes after restart and serializes checkpoint advancement. Refresh reuses the same projection use case and preserves rows updated after the run watermark. Publication is rechecked immediately before invalidation. Completed runs and tombstones are retained; retention cleanup is out of scope.
 
-### Runtime Flow
+## 6. Schema and verification
 
-```mermaid
-sequenceDiagram
-    participant Source as Source Domain Outbox
-    participant Listener as Integration Listener
-    participant Handler as Command Handler
-    participant Projector as Projection Use Case
-    participant Ports as Source Read Interfaces
-    participant Store as Discovery Store
-    Source->>Listener: Catalog, stock, route, or channel event
-    Listener->>Handler: Dispatch projection command
-    Handler->>Projector: Execute within discovery transaction
-    Projector->>Store: Read current projection and ordering state
-    Projector->>Ports: Fetch current source facts
-    Projector->>Store: Conditional upsert or invalidate
-    Store-->>Source: Successful listener return permits acknowledgement
-```
+The initial discovery migration creates `discovery_product`, indexed exact variant membership, and `discovery_rebuild_run`, with channel/product and channel/slug uniqueness and only local foreign keys. The migration is designed for a fresh empty discovery database; applying it does not reset an existing database.
 
-Listener failures propagate to outbox delivery; no source write is rolled back across module databases. Exact projection and rebuild steps are defined in the linked workflow.
+Persistence tests use PostgreSQL Testcontainers to verify the fresh schema, constraints, exact membership, atomic replacement, visibility and checkpoint persistence. Application tests cover projection policy, search/detail use cases and rebuild resume/races. Store Modulith verification checks public-interface dependencies and shared-event placement. The R21 review checks CQRS layering, immutable records, `Id` usage, MapStruct mapping, transaction boundaries, and absence of price dependencies in factual paths.
 
-## 4. Technical Specification & Contracts
+## 7. Scope & Phase Boundary (Phase 4 vs Phase 5)
 
-### Normative Rules
+This specification strictly governs **Phase 4 (Discovery Facts, Projection Reconciliation, and Rebuild)**. The delivery contract for Phase 4 is:
+- **Facts-Only DTOs:** Responses from `SearchBuyableOffersService` and `GetBuyableOfferBySlugService` contain catalog presentation facts, channel-routed stock badges, and variant inventory facts.
+- **No Pricing or Buyability:** Discovery persistence and query services do not depend on, persist, or return currency codes, monetary amounts, compare-at amounts, price ranges, or commercial availability reason codes.
+- **Phase 5 Handoff:** All contextual requirements (mandatory `X-Publishable-Key` resolution, legacy parameter rejection, single-trip batch pricing quotation, 4-state availability precedence, dynamic price ranges, and `Cache-Control: no-store`) are specified in the dedicated Phase 5 document:
+  - 👉 [Storefront Contextual Cutover & Response Contract Tech Specification](./storefront-contextual-cutover-tech-spec.md)
 
-- **DISC-01:** Tier 1 MUST contain at most one document per `(salesChannelId, productId)` with channel-scoped slug uniqueness; region and currency MUST NOT extend its identity.
-- **DISC-02:** Documents MUST retain product presentation, options, published variant identities, SKUs, routing-dependent quantity, tracking/backorder facts and channel/product eligibility; regional currency, monetary values, contextual ranges, and contextual buyability MUST NOT be persisted in the final Tier 1 schema or variant JSON.
-- **DISC-03:** Catalog, stock, routing, and channel events MUST dispatch commands through `@EventListener`; cross-module records MUST reside under `store/.../shared/events/{module}/`, and source reads MUST use published interfaces backed by inbound use cases.
-- **DISC-04:** A strictly older event MUST NOT overwrite a newer document; duplicates MUST converge, and ordering checks plus save/invalidation MUST use concurrency protection with retry/re-read on conflicts rather than an unguarded read-then-save.
-- **DISC-05:** Visibility MUST require an enabled channel, ACTIVE parent product, and at least one published variant; last-variant removal MUST invalidate every existing channel document and clear its offers, while stock or price absence MUST NOT hide eligible products.
-- **DISC-06:** Search and PDP use cases MUST use query ports returning immutable application views; query adapters MUST use an injected search specification for pagination, with no write-repository or aggregate reads, and invisible/missing PDPs MUST raise OfferNotFound.
-- **DISC-07:** Rebuild MUST enumerate current publications and existing projections in bounded batches, deduplicate product/channel pairs, repair missing/drifted facts, and invalidate orphaned rows without overwriting newer event updates; retries MUST be safe.
-- **DISC-08:** Tier 1 MUST NOT subscribe to price-change events for document recalculation or call Pricing during projection/rebuild; contextual queries MUST use the batch pricing capability instead.
-- **DISC-09:** New schema changes MUST be append-only migrations verified with PostgreSQL Testcontainers; existing applied V1 files MUST NOT be rewritten to achieve cutover.
-- **DISC-10:** Controllers MUST inject only query/command services and assemblers; handlers and provider adapters own module transaction boundaries, and use cases alone orchestrate ports with business decisions in policies.
+## 8. Detailed Decision Specifications
 
-### Storage Contract
+This specification serves as the architectural umbrella for Phase 4 discovery facts and storefront queries. For complete design details, rationale, sequence diagrams, and implementation rules, refer to the individual per-decision technical specifications:
 
-| Data group | Final Tier 1 content |
-| :--- | :--- |
-| Identity | Channel ID, product ID, seller reference, channel-scoped slug, concurrency version. |
-| Presentation | Title, description, thumbnail/media and product options. |
-| Eligibility | Product status, publication presence, channel status. |
-| Variant facts | Variant ID, SKU, title, option values, available quantity, manage-inventory and allow-backorder facts. |
-| Ordering | Event occurrence/update watermark used by guarded projection updates. |
-| Excluded values | Currency, price, compare-at price, min/max prices, region-specific availability and buyability. |
-
-Existing `InventoryPort.Availability` exposes quantity and untracked state only; preserving backorder behavior requires completing the source read contract and its mapping. Existing records under owner `events/` packages must be moved to the shared event location for affected flows.
-
-### Endpoints and Configuration
-
-| Surface | Target contract |
-| :--- | :--- |
-| `GET /api/v1/storefront-query/products` | Contextual paged representation using key-only channel resolution. |
-| `GET /api/v1/storefront-query/products/{slug}` | Contextual PDP representation with explicit variant availability. |
-| `storefrontquery.rebuild.on-startup` | Existing opt-in startup dispatch; a no-op until the rebuild use case is implemented. |
-
-No operational batch-rebuild control or progress checkpoint is currently implemented. The old specification's `fallbackCurrency`, `defaultPageSize`, and `maxPageSize` entries were not verified implementation bindings; the target design forbids currency fallback and requires release measurements rather than claiming a latency guarantee.
+- [Discovery Facts-Only Projection](./discovery-facts-only-projection-tech-spec.md) — Currency-agnostic CQRS read model decoupling pricing write amplification from materialized projections.
+- [Discovery Event-Driven Reconciliation](./discovery-event-reconciliation-tech-spec.md) — Events as refresh signals, affected target resolution, 19-event-to-6-command mapping, and watermark protection.
+- [Discovery Projection Concurrency Control](./discovery-concurrency-control-tech-spec.md) — Optimistic locking with `@Version`, `NEW_PROJECTION_VERSION` (-1) sentinel, and bounded 3-attempt fresh-transaction retry loop.
+- [Discovery Rebuild Coordinator](./discovery-rebuild-coordinator-tech-spec.md) — Two-stage keyset-paginated rebuild, checkpoint atomicity, resume across restarts, and rebuild-vs-live safety.
+- [Discovery Search Specification & Visibility](./discovery-search-visibility-tech-spec.md) — JPA Criteria specification enforcing channel-scoped visibility, literal keyword escaping (`%`, `_`, `\`), and deterministic ordering.

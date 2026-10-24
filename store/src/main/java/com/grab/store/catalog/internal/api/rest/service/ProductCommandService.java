@@ -2,7 +2,6 @@ package com.grab.store.catalog.internal.api.rest.service;
 
 import com.catalog.application.model.write.*;
 import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -11,8 +10,6 @@ import com.grab.store.catalog.internal.api.rest.dto.response.*;
 import com.grab.store.catalog.internal.api.rest.mapper.SaveProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductDtoMapper;
 import com.grab.store.catalog.internal.api.rest.mapper.UpdateProductStatusDtoMapper;
-import com.catalog.application.model.read.ListProductPublicationsQuery;
-import com.catalog.application.model.read.ProductPublicationItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +22,6 @@ public class ProductCommandService {
     private static final Logger log = Loggers.getLogger(ProductCommandService.class);
 
     private final CommandBus commandBus;
-    private final QueryBus queryBus;
     private final SaveProductDtoMapper saveProductDtoMapper;
     private final UpdateProductDtoMapper updateProductDtoMapper;
     private final UpdateProductStatusDtoMapper updateProductStatusDtoMapper;
@@ -157,27 +153,15 @@ public class ProductCommandService {
         return new BulkUpsertProductsResponse(results);
     }
 
-    public ProductPublicationResponse unpublishFromChannel(String productId, UnpublishProductFromChannelRequest request) {
+    public UnpublishProductFromChannelResult unpublishFromChannel(String productId, UnpublishProductFromChannelRequest request) {
         log.info("Unpublishing product {} from channel {}", productId, request.salesChannelId());
         String merchantId = merchantResolver.resolveCurrentMerchantId();
-        commandBus.dispatch(new UnpublishProductFromChannelCommand(
+        return commandBus.dispatch(new UnpublishProductFromChannelCommand(
                 idGenerator.convertIdFrom(merchantId),
                 idGenerator.convertIdFrom(productId),
                 idGenerator.convertIdFrom(request.variantId()),
                 idGenerator.convertIdFrom(request.salesChannelId())
         ));
-        List<ProductPublicationItem> publications = queryBus.dispatch(
-                new ListProductPublicationsQuery(merchantId, productId)
-        );
-        return new ProductPublicationResponse(
-                productId,
-                publications.stream()
-                        .map(item -> new ProductPublicationResponse.Publication(
-                                item.variantId(),
-                                item.salesChannelId()
-                        ))
-                        .toList()
-        );
     }
 
     private List<GetProductResponse.Description> mapDescriptions(ProductDescriptionsResult result) {

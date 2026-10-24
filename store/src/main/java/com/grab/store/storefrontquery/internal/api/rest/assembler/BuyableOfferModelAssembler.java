@@ -24,7 +24,7 @@ public class BuyableOfferModelAssembler
                 .withSelfRel();
 
         Link listLink = linkTo(methodOn(StorefrontProductController.class)
-                .list(salesChannelId, null, null))
+                .list(salesChannelId, null, null, null, null))
                 .withRel("list-storefront-products");
 
         return EntityModel.of(response, selfLink, listLink);

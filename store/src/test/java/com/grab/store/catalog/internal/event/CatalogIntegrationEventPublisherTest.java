@@ -10,35 +10,47 @@ import com.catalog.domain.event.ProductVariantChangeEvent;
 import com.catalog.domain.event.ProductVariantDeletedEvent;
 import com.catalog.domain.event.ProductVariantRestoredEvent;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductNameChangedIntegrationEvent;
-import com.grab.store.catalog.events.ProductPublishedToChannelIntegrationEvent;
-import com.grab.store.catalog.events.ProductStatusChangedIntegrationEvent;
-import com.grab.store.catalog.events.ProductUnpublishedFromChannelIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantRestoredIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantUpdatedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPresentationChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPublishedToChannelIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductStatusChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductUnpublishedFromChannelIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantAddedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantRestoredIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantUpdatedIntegrationEvent;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 class CatalogIntegrationEventPublisherTest {
 
-    private final AtomicReference<Object> published = new AtomicReference<>();
-    private final ApplicationEventPublisher events = published::set;
-    private final CatalogIntegrationEventPublisher publisher = new CatalogIntegrationEventPublisher(events);
+    @Mock
+    private ApplicationEventPublisher events;
+    @Captor
+    private ArgumentCaptor<Object> published;
+    @InjectMocks
+    private CatalogIntegrationEventPublisher publisher;
 
     @Test
-    void handleProductVariantAdded_shouldPublishIntegrationEvent() {
+    void handleProductVariantAdded_domainEvent_shouldPublishIntegrationEvent() {
         publisher.handleProductVariantAdded(new ProductVariantAddedEvent(
                 new CommonId("product-1"), new CommonId("variant-1"), "SKU001", "T-Shirt", true));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductVariantAddedIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductVariantAddedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantId()).isEqualTo("variant-1");
             assertThat(event.sku()).isEqualTo("SKU001");
@@ -50,11 +62,12 @@ class CatalogIntegrationEventPublisherTest {
     }
 
     @Test
-    void handleProductVariantChanged_shouldPublishIntegrationEvent() {
+    void handleProductVariantChanged_domainEvent_shouldPublishIntegrationEvent() {
         publisher.handleProductVariantChanged(new ProductVariantChangeEvent(
                 new CommonId("product-1"), new CommonId("variant-1"), "SKU002", false));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductVariantUpdatedIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductVariantUpdatedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantId()).isEqualTo("variant-1");
             assertThat(event.sku()).isEqualTo("SKU002");
@@ -63,79 +76,86 @@ class CatalogIntegrationEventPublisherTest {
     }
 
     @Test
-    void handleProductVariantDeleted_shouldPublishIntegrationEvent() {
+    void handleProductVariantDeleted_domainEvent_shouldPublishIntegrationEvent() {
         publisher.handleProductVariantDeleted(new ProductVariantDeletedEvent(
                 new CommonId("product-1"), new CommonId("category-1"), new CommonId("variant-1")));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductVariantDeletedIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductVariantDeletedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantId()).isEqualTo("variant-1");
         });
     }
 
     @Test
-    void handleProductVariantRestored_shouldPublishIntegrationEvent() {
+    void handleProductVariantRestored_domainEvent_shouldPublishIntegrationEvent() {
         publisher.handleProductVariantRestored(new ProductVariantRestoredEvent(
                 new CommonId("product-1"), new CommonId("variant-1")));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductVariantRestoredIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductVariantRestoredIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantId()).isEqualTo("variant-1");
         });
     }
 
     @Test
-    void handleProductUpdated_shouldPublishNameChangeIntegrationEvent() {
+    void handleProductUpdated_domainEvent_shouldPublishProductPresentationChangeIntegrationEvent() {
         publisher.handleProductUpdated(new ProductUpdatedEvent(
                 new CommonId("product-1"), "New Name", new CommonId("category-1")));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductNameChangedIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductPresentationChangedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
-            assertThat(event.newName()).isEqualTo("New Name");
+            assertThat(event.productName()).isEqualTo("New Name");
         });
     }
 
     @Test
-    void handleProductDeleted_shouldPublishIntegrationEventWithVariantIds() {
+    void handleProductDeleted_domainEvent_shouldPublishIntegrationEventWithVariantIds() {
         publisher.handleProductDeleted(new ProductDeletedEvent(
                 new CommonId("product-1"),
                 new CommonId("category-1"),
                 List.of(new CommonId("variant-1"), new CommonId("variant-2"))));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductDeletedIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductDeletedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.variantIds()).containsExactly("variant-1", "variant-2");
         });
     }
 
     @Test
-    void handleProductPublishedToChannel_shouldPublishIntegrationEvent() {
+    void handleProductPublishedToChannel_domainEvent_shouldPublishIntegrationEvent() {
         publisher.handleProductPublishedToChannel(new ProductPublishedToChannelEvent(
                 new CommonId("variant-1"), new CommonId("channel-1")));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductPublishedToChannelIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductPublishedToChannelIntegrationEvent.class, event -> {
             assertThat(event.variantId()).isEqualTo("variant-1");
             assertThat(event.salesChannelId()).isEqualTo("channel-1");
         });
     }
 
     @Test
-    void handleProductUnpublishedFromChannel_shouldPublishIntegrationEvent() {
+    void handleProductUnpublishedFromChannel_domainEvent_shouldPublishIntegrationEvent() {
         publisher.handleProductUnpublishedFromChannel(new ProductUnpublishedFromChannelEvent(
                 new CommonId("variant-1"), new CommonId("channel-1")));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductUnpublishedFromChannelIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductUnpublishedFromChannelIntegrationEvent.class, event -> {
             assertThat(event.variantId()).isEqualTo("variant-1");
             assertThat(event.salesChannelId()).isEqualTo("channel-1");
         });
     }
 
     @Test
-    void handleProductStatusChanged_shouldPublishIntegrationEvent() {
+    void handleProductStatusChanged_domainEvent_shouldPublishIntegrationEvent() {
         publisher.handleProductStatusChanged(new ProductStatusChangedEvent(
                 new CommonId("product-1"), "DRAFT", "ACTIVE"));
 
-        assertThat(published.get()).isInstanceOfSatisfying(ProductStatusChangedIntegrationEvent.class, event -> {
+        verify(events).publishEvent(published.capture());
+        assertThat(published.getValue()).isInstanceOfSatisfying(ProductStatusChangedIntegrationEvent.class, event -> {
             assertThat(event.productId()).isEqualTo("product-1");
             assertThat(event.oldStatus()).isEqualTo("DRAFT");
             assertThat(event.newStatus()).isEqualTo("ACTIVE");

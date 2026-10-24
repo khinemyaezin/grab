@@ -4,7 +4,7 @@ import com.grab.framework.id.IdGenerator;
 import com.pricing.application.port.inbound.*;
 import com.pricing.application.port.outbound.PriceQueryPort;
 import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
-import com.pricing.application.policy.QuoteVariantPricesPolicy;
+import com.pricing.domain.policy.QuoteVariantPricesPolicy;
 import com.pricing.application.service.*;
 import com.pricing.domain.policy.CalculatePricesPolicy;
 import com.pricing.domain.port.outbound.PriceListRepository;
@@ -213,13 +213,15 @@ public class PricingUseCaseConfig {
     @Bean
     public QuoteVariantPricesUseCase quoteVariantPricesUseCase(
             VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort,
-            CalculatePricesUseCase calculatePricesUseCase,
+            PriceQueryPort priceQueryPort,
+            CalculatePricesPolicy calculatePricesPolicy,
             IdGenerator idGenerator,
             QuoteVariantPricesPolicy quoteVariantPricesPolicy
     ) {
         return new QuoteVariantPricesService(
                 variantPriceSetLinkQueryPort,
-                calculatePricesUseCase,
+                priceQueryPort,
+                calculatePricesPolicy,
                 idGenerator,
                 quoteVariantPricesPolicy
         );

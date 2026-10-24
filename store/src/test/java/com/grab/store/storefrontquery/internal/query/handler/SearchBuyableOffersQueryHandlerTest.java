@@ -29,7 +29,9 @@ class SearchBuyableOffersQueryHandlerTest {
 
     @Test
     void handle_validQuery_delegatesToUseCase() {
-        SearchBuyableOffersQuery query = new SearchBuyableOffersQuery(new CommonId("web-1"), Pageable.unpaged());
+        SearchBuyableOffersQuery query = new SearchBuyableOffersQuery(
+                new CommonId("web-1"), "coffee", new CommonId("category-1"), Pageable.unpaged()
+        );
         Page<DiscoveryProductView> expectedPage = new PageImpl<>(List.of());
         when(searchBuyableOffersUseCase.execute(query)).thenReturn(expectedPage);
 

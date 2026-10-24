@@ -56,9 +56,10 @@ stateDiagram-v2
 - [Pricing Domain Specification](../spec/domain/pricing/architecture/pricing-domain-spec.md)
 
 #### Workflow Specifications (if cross-domain business flows, choreography, or sagas change)
-- [Browse and Discover Products Workflow](../spec/workflows/browse-and-discover-products-workflow.md)
+- [Browse Contextual Storefront Offers Workflow](../spec/workflows/browse-contextual-storefront-offers-workflow.md) — Dedicated Phase 5 end-to-end customer query workflow
 
 #### Technical Specifications (if platform capabilities, read models, or security mechanisms change)
-- [Shopping Context Resolution Tech Specification](../spec/system/shopping-context-resolution-tech-spec.md)
-- [Batch Regional Pricing Tech Specification](../spec/system/batch-regional-pricing-tech-spec.md)
-- [Storefront Query Tech Specification](../spec/system/storefront-query-tech-spec.md)
+- [Storefront Contextual Cutover & Response Contract Tech Specification](../spec/system/storefront-contextual-cutover-tech-spec.md) — Primary Phase 5 technical specification
+- [Shopping Context Resolution Tech Specification](../spec/system/shopping-context-resolution-tech-spec.md) — Phase 2 edge context resolution
+- [Batch Regional Pricing Tech Specification](../spec/system/batch-regional-pricing-tech-spec.md) — Phase 3 single-trip vectorized batch pricing
+- [Storefront Query and Discovery Facts Tech Specification](../spec/system/storefront-query-tech-spec.md) — Phase 4 foundational facts-only discovery read model

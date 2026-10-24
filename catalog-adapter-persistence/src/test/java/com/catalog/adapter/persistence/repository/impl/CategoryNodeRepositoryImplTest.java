@@ -5,7 +5,7 @@ import com.catalog.adapter.persistence.exception.CatalogInfraError;
 import com.catalog.adapter.persistence.exception.CatalogInfraException;
 import com.catalog.adapter.persistence.repository.*;
 import com.catalog.adapter.persistence.repository.config.CategoryRepositoryTestConfig;
-import com.catalog.adapter.persistence.category.CategoryTreeNode;
+import com.catalog.application.model.read.CategoryNodeView;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,33 +84,33 @@ public class CategoryNodeRepositoryImplTest extends CategoryRepositoryTestConfig
     }
 
     @Test
-    void findSubtree_returnsHierarchyWithParentIds() {
+    void findSubtree_existingRoot_returnsHierarchyWithParentIds() {
         seedElectronicsTree();
         flushAndClear();
 
-        CategoryTreeNode rootTree = categoryNodeRepository.findSubtree("root").orElseThrow();
+        CategoryNodeView rootTree = categoryNodeRepository.findSubtree("root").orElseThrow();
 
-        assertThat(rootTree.entity().getUuid()).isEqualTo("root");
+        assertThat(rootTree.id()).isEqualTo("root");
         assertThat(rootTree.parentId()).isNull();
         assertThat(rootTree.children())
-                .extracting(node -> node.entity().getUuid())
+                .extracting(node -> node.id())
                 .containsExactlyInAnyOrder("phones", "laptops");
 
-        CategoryTreeNode phones = rootTree.children().stream()
-                .filter(node -> "phones".equals(node.entity().getUuid()))
+        CategoryNodeView phones = rootTree.children().stream()
+                .filter(node -> "phones".equals(node.id()))
                 .findFirst()
                 .orElseThrow();
         assertThat(phones.parentId()).isEqualTo("root");
         assertThat(phones.children())
-                .extracting(node -> node.entity().getUuid())
+                .extracting(node -> node.id())
                 .containsExactlyInAnyOrder("android", "ios");
         assertThat(phones.children())
-                .extracting(CategoryTreeNode::parentId)
+                .extracting(CategoryNodeView::parentId)
                 .containsOnly("phones");
     }
 
     @Test
-    void findImmediateChildren_returnsOnlyDirectChildren_andEmptyWhenMissing() {
+    void findImmediateChildren_existingAndMissingParents_returnsDirectChildrenOrEmpty() {
         seedElectronicsTree();
         flushAndClear();
 
@@ -124,7 +124,7 @@ public class CategoryNodeRepositoryImplTest extends CategoryRepositoryTestConfig
     }
 
     @Test
-    void findLeafNodeByName_returnsLeavesFromMatchedSubtree() {
+    void findLeafNodeByName_matchingName_returnsLeavesFromMatchedSubtree() {
         seedElectronicsTree();
         flushAndClear();
 
@@ -137,7 +137,7 @@ public class CategoryNodeRepositoryImplTest extends CategoryRepositoryTestConfig
     }
 
     @Test
-    void findSubtreeIds_returnsPreOrderIds_andEmptyWhenMissing() {
+    void findSubtreeIds_existingAndMissingRoots_returnsPreOrderIdsOrEmpty() {
         seedElectronicsTree();
         flushAndClear();
 
@@ -147,7 +147,7 @@ public class CategoryNodeRepositoryImplTest extends CategoryRepositoryTestConfig
     }
 
     @Test
-    void removeSubtree_removesOnlyTargetSubtree_andIgnoresMissing() {
+    void removeSubtree_existingAndMissingRoots_removesOnlyTargetSubtree() {
         seedElectronicsTree();
         flushAndClear();
 

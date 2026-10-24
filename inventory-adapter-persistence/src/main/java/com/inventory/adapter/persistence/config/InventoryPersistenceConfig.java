@@ -20,6 +20,8 @@ import com.inventory.adapter.persistence.mapper.jpa.impl.ZoneJpaAssemblerImpl;
 import com.inventory.adapter.persistence.adapter.ProductVariantViewQueryAdapter;
 import com.inventory.adapter.persistence.repository.jpa.ProductVariantViewJpaRepository;
 import com.inventory.application.port.outbound.ProductVariantViewQueryPort;
+import com.inventory.application.port.outbound.ProductVariantProjectionRepository;
+import com.inventory.adapter.persistence.mapper.ProductVariantProjectionMapper;
 import com.inventory.adapter.persistence.repository.jpa.BinJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.ChannelFulfillmentRouteJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.InventoryItemJpaRepository;
@@ -67,6 +69,15 @@ import java.time.Duration;
 
 @Configuration
 public class InventoryPersistenceConfig {
+
+    @Bean
+    public ProductVariantProjectionRepository productVariantProjectionRepository(
+            ProductVariantViewJpaRepository repository,
+            ProductVariantProjectionMapper mapper,
+            @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new ProductVariantProjectionRepositoryAdapter(repository, mapper, executor);
+    }
 
     @Bean("inventoryOutboxEventSerializer")
     public OutboxEventSerializer inventoryOutboxEventSerializer() {

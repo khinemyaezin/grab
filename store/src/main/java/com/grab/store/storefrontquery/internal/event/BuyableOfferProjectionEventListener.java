@@ -1,31 +1,33 @@
 package com.grab.store.storefrontquery.internal.event;
 
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.CatalogVariantChanged;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.ChannelEnabled;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.PriceSetChanged;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.ProductStatusChanged;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.Published;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RouteChanged;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.StockChanged;
-import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.Unpublished;
+import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshChannel;
+import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshLocation;
+import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshProduct;
+import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshSku;
+import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshVariant;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.grab.store.catalog.events.ProductPublishedToChannelIntegrationEvent;
-import com.grab.store.catalog.events.ProductStatusChangedIntegrationEvent;
-import com.grab.store.catalog.events.ProductUnpublishedFromChannelIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantUpdatedIntegrationEvent;
-import com.grab.store.inventory.events.LocationLinkedToChannelIntegrationEvent;
-import com.grab.store.inventory.events.LocationUnlinkedFromChannelIntegrationEvent;
-import com.grab.store.inventory.events.StockAdjustedIntegrationEvent;
-import com.grab.store.inventory.events.StockReceivedIntegrationEvent;
-import com.grab.store.inventory.events.StockReservedIntegrationEvent;
-import com.grab.store.inventory.events.StockShippedIntegrationEvent;
-import com.grab.store.pricing.events.PriceSetChangedIntegrationEvent;
-import com.grab.store.saleschannel.events.SalesChannelDisabledIntegrationEvent;
-import com.grab.store.saleschannel.events.SalesChannelEnabledIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPresentationChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPublishedToChannelIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductStatusChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductUnpublishedFromChannelIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantAddedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantRestoredIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantUpdatedIntegrationEvent;
+import com.grab.store.shared.events.inventory.LocationLinkedToChannelIntegrationEvent;
+import com.grab.store.shared.events.inventory.LocationUnlinkedFromChannelIntegrationEvent;
+import com.grab.store.shared.events.inventory.InventoryStatusChangedIntegrationEvent;
+import com.grab.store.shared.events.inventory.LocationStatusChangedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockAdjustedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockReceivedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockReservedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockShippedIntegrationEvent;
+import com.grab.store.shared.events.saleschannel.SalesChannelDisabledIntegrationEvent;
+import com.grab.store.shared.events.saleschannel.SalesChannelEnabledIntegrationEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -39,111 +41,117 @@ public class BuyableOfferProjectionEventListener {
     @EventListener
     public void onPublished(ProductPublishedToChannelIntegrationEvent event) {
         Id variantId = idGenerator.convertIdFrom(event.variantId());
-        Id salesChannelId = idGenerator.convertIdFrom(event.salesChannelId());
-        Published update = new Published(variantId, salesChannelId, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        Id channelId = idGenerator.convertIdFrom(event.salesChannelId());
+        dispatch(new RefreshVariant(variantId, channelId, event.occurredAt()));
     }
 
     @EventListener
     public void onUnpublished(ProductUnpublishedFromChannelIntegrationEvent event) {
         Id variantId = idGenerator.convertIdFrom(event.variantId());
-        Id salesChannelId = idGenerator.convertIdFrom(event.salesChannelId());
-        Unpublished update = new Unpublished(variantId, salesChannelId, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        Id channelId = idGenerator.convertIdFrom(event.salesChannelId());
+        dispatch(new RefreshVariant(variantId, channelId, event.occurredAt()));
     }
 
     @EventListener
     public void onVariantAdded(ProductVariantAddedIntegrationEvent event) {
-        Id variantId = idGenerator.convertIdFrom(event.variantId());
-        CatalogVariantChanged update = new CatalogVariantChanged(variantId, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        dispatch(new RefreshProduct(productId, event.occurredAt()));
     }
 
     @EventListener
     public void onVariantUpdated(ProductVariantUpdatedIntegrationEvent event) {
-        Id variantId = idGenerator.convertIdFrom(event.variantId());
-        CatalogVariantChanged update = new CatalogVariantChanged(variantId, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        dispatch(new RefreshProduct(productId, event.occurredAt()));
+    }
+
+    @EventListener
+    public void onVariantDeleted(ProductVariantDeletedIntegrationEvent event) {
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        dispatch(new RefreshProduct(productId, event.occurredAt()));
+    }
+
+    @EventListener
+    public void onVariantRestored(ProductVariantRestoredIntegrationEvent event) {
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        dispatch(new RefreshProduct(productId, event.occurredAt()));
+    }
+
+    @EventListener
+    public void onProductDeleted(ProductDeletedIntegrationEvent event) {
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        dispatch(new RefreshProduct(productId, event.occurredAt()));
+    }
+
+    @EventListener
+    public void onProductPresentationChanged(ProductPresentationChangedIntegrationEvent event) {
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        dispatch(new RefreshProduct(productId, event.occurredAt()));
     }
 
     @EventListener
     public void onProductStatusChanged(ProductStatusChangedIntegrationEvent event) {
         Id productId = idGenerator.convertIdFrom(event.productId());
-        ProductStatusChanged update = new ProductStatusChanged(productId, event.newStatus(), event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        dispatch(new RefreshProduct(productId, event.occurredAt()));
     }
 
     @EventListener
     public void onStockReceived(StockReceivedIntegrationEvent event) {
-        StockChanged update = new StockChanged(event.sku(), event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        dispatch(new RefreshSku(event.sku(), event.occurredAt()));
     }
 
     @EventListener
     public void onStockReserved(StockReservedIntegrationEvent event) {
-        StockChanged update = new StockChanged(event.sku(), event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        dispatch(new RefreshSku(event.sku(), event.occurredAt()));
     }
 
     @EventListener
     public void onStockAdjusted(StockAdjustedIntegrationEvent event) {
-        StockChanged update = new StockChanged(event.sku(), event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        dispatch(new RefreshSku(event.sku(), event.occurredAt()));
     }
 
     @EventListener
     public void onStockShipped(StockShippedIntegrationEvent event) {
-        StockChanged update = new StockChanged(event.sku(), event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        dispatch(new RefreshSku(event.sku(), event.occurredAt()));
+    }
+
+    @EventListener
+    public void onInventoryStatusChanged(InventoryStatusChangedIntegrationEvent event) {
+        dispatch(new RefreshSku(event.sku(), event.occurredAt()));
+    }
+
+    @EventListener
+    public void onLocationStatusChanged(LocationStatusChangedIntegrationEvent event) {
+        Id locationId = idGenerator.convertIdFrom(event.locationId());
+        dispatch(new RefreshLocation(locationId, null, event.occurredAt()));
     }
 
     @EventListener
     public void onLocationLinked(LocationLinkedToChannelIntegrationEvent event) {
         Id locationId = idGenerator.convertIdFrom(event.locationId());
-        Id salesChannelId = idGenerator.convertIdFrom(event.salesChannelId());
-        RouteChanged update = new RouteChanged(locationId, salesChannelId, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        Id channelId = idGenerator.convertIdFrom(event.salesChannelId());
+        dispatch(new RefreshLocation(locationId, channelId, event.occurredAt()));
     }
 
     @EventListener
     public void onLocationUnlinked(LocationUnlinkedFromChannelIntegrationEvent event) {
         Id locationId = idGenerator.convertIdFrom(event.locationId());
-        Id salesChannelId = idGenerator.convertIdFrom(event.salesChannelId());
-        RouteChanged update = new RouteChanged(locationId, salesChannelId, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
-    }
-
-    @EventListener
-    public void onPriceChanged(PriceSetChangedIntegrationEvent event) {
-        Id priceSetId = idGenerator.convertIdFrom(event.priceSetId());
-        PriceSetChanged update = new PriceSetChanged(priceSetId, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        Id channelId = idGenerator.convertIdFrom(event.salesChannelId());
+        dispatch(new RefreshLocation(locationId, channelId, event.occurredAt()));
     }
 
     @EventListener
     public void onChannelEnabled(SalesChannelEnabledIntegrationEvent event) {
-        Id salesChannelId = idGenerator.convertIdFrom(event.salesChannelId());
-        ChannelEnabled update = new ChannelEnabled(salesChannelId, true, event.occurredAt());
-        ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
-        commandBus.dispatch(command);
+        Id channelId = idGenerator.convertIdFrom(event.salesChannelId());
+        dispatch(new RefreshChannel(channelId, event.occurredAt()));
     }
 
     @EventListener
     public void onChannelDisabled(SalesChannelDisabledIntegrationEvent event) {
-        Id salesChannelId = idGenerator.convertIdFrom(event.salesChannelId());
-        ChannelEnabled update = new ChannelEnabled(salesChannelId, false, event.occurredAt());
+        Id channelId = idGenerator.convertIdFrom(event.salesChannelId());
+        dispatch(new RefreshChannel(channelId, event.occurredAt()));
+    }
+
+    private void dispatch(ProjectDiscoveryProductCommand.ProjectionUpdate update) {
         ProjectDiscoveryProductCommand command = new ProjectDiscoveryProductCommand(update);
         commandBus.dispatch(command);
     }

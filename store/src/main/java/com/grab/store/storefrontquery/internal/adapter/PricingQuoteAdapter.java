@@ -2,7 +2,6 @@ package com.grab.store.storefrontquery.internal.adapter;
 
 import com.grab.discovery.application.port.outbound.PricingPort;
 import com.grab.framework.id.Id;
-import com.grab.framework.id.IdGenerator;
 import com.grab.store.pricing.port.PricingQuoteQuery;
 import com.grab.store.storefrontquery.internal.adapter.mapper.PricingQuoteMapper;
 import lombok.RequiredArgsConstructor;
@@ -19,13 +18,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class PricingQuoteAdapter implements PricingPort {
     private final PricingQuoteQuery pricing;
-    private final IdGenerator idGenerator;
     private final PricingQuoteMapper mapper;
-
-    @Override
-    public Optional<QuotedPrice> quote(Id variantId, String currencyCode, int quantity, Id salesChannelId) {
-        return quote(variantId, currencyCode, quantity, salesChannelId, null);
-    }
 
     @Override
     public Optional<QuotedPrice> quote(
@@ -71,18 +64,13 @@ public class PricingQuoteAdapter implements PricingPort {
         for (Id variantId : variantIds) {
             String variantValue = variantId.getValue();
             PricingQuoteQuery.QuotedPrice quote = batch.quotes().get(variantValue);
+            if (quote == null) {
+                throw new IllegalStateException("Pricing batch response is missing a requested variant.");
+            }
             QuotedPrice mapped = mapper.toQuotedPrice(quote);
-            QuotedPrice outcome = mapped == null ? new QuotedPrice(null, null, null, null) : mapped;
-            result.put(variantId, outcome);
+            result.put(variantId, mapped);
         }
         return Collections.unmodifiableMap(result);
-    }
-
-    @Override
-    public List<Id> variantIdsForPriceSet(Id priceSetId) {
-        String priceSetValue = priceSetId.getValue();
-        List<String> variantValues = pricing.variantIdsForPriceSet(priceSetValue);
-        return toIds(variantValues);
     }
 
     private List<String> toVariantValues(List<Id> variantIds) {
@@ -92,14 +80,4 @@ public class PricingQuoteAdapter implements PricingPort {
         }
         return result;
     }
-
-    private List<Id> toIds(List<String> variantValues) {
-        List<Id> result = new ArrayList<>();
-        for (String variantValue : variantValues) {
-            Id variantId = idGenerator.convertIdFrom(variantValue);
-            result.add(variantId);
-        }
-        return result;
-    }
-
 }

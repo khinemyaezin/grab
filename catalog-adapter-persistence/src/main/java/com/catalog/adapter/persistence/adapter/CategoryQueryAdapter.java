@@ -3,10 +3,9 @@ package com.catalog.adapter.persistence.adapter;
 import com.catalog.adapter.persistence.entity.CategoryEntity;
 import com.catalog.adapter.persistence.repository.CategoryJpaRepo;
 import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.adapter.persistence.category.CategoryTreeNode;
+import com.catalog.application.model.read.CategoryNodeView;
 import com.catalog.adapter.persistence.repository.CategoryNodeRepository;
 import com.catalog.application.model.read.CategoryChildrenView;
-import com.catalog.application.model.read.CategoryNodeView;
 import com.catalog.application.model.read.CategoryView;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
@@ -34,8 +33,7 @@ public class CategoryQueryAdapter implements CategoryQueryPort {
     @Override
     public Optional<CategoryNodeView> findTree(String categoryId) {
         log.debug("Loading category tree for id={}", categoryId);
-        return executor.query("Category", () -> categoryNodeRepository.findSubtree(categoryId)
-                .map(this::toNodeView));
+        return executor.query("Category", () -> categoryNodeRepository.findSubtree(categoryId));
     }
 
     @Override
@@ -90,19 +88,7 @@ public class CategoryQueryAdapter implements CategoryQueryPort {
                 categoryJpaRepo.findByDepthOrderByLftAsc(0).stream()
                         .map(root -> categoryNodeRepository.findSubtree(root.getUuid()))
                         .flatMap(Optional::stream)
-                        .map(this::toNodeView)
                         .toList());
-    }
-
-    private CategoryNodeView toNodeView(CategoryTreeNode node) {
-        return new CategoryNodeView(
-                node.entity().getUuid(),
-                node.entity().getName(),
-                node.parentId(),
-                node.children().stream()
-                        .map(this::toNodeView)
-                        .toList()
-        );
     }
 
     private CategoryView toCategoryView(CategoryEntity entity, String parentId) {

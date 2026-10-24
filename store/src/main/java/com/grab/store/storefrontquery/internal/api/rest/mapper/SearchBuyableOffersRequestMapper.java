@@ -10,7 +10,12 @@ import org.springframework.data.domain.Pageable;
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class SearchBuyableOffersRequestMapper {
 
-    public abstract SearchBuyableOffersQuery toQuery(String salesChannelId, Pageable pageable);
+    public abstract SearchBuyableOffersQuery toQuery(
+            String salesChannelId,
+            String keyword,
+            String categoryId,
+            Pageable pageable
+    );
 
     public abstract BuyableOfferResponse toResponse(DiscoveryProductView result);
 }

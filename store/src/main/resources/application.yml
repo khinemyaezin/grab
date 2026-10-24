@@ -7,3 +7,8 @@ spring:
       pool:
         size: 5
       thread-name-prefix: store-scheduled-
+
+storefrontquery:
+  rebuild:
+    on-startup: false
+    batch-size: 100

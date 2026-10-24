@@ -2,6 +2,7 @@ package com.grab.store.storefrontquery.internal.api.rest.controller;
 
 import com.grab.store.storefrontquery.internal.api.rest.assembler.BuyableOfferModelAssembler;
 import com.grab.store.storefrontquery.internal.api.rest.dto.response.BuyableOfferResponse;
+import com.grab.store.storefrontquery.internal.api.rest.dto.response.ShoppingContextResponse;
 import com.grab.store.storefrontquery.internal.api.rest.service.StorefrontProductQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,15 +31,28 @@ public class StorefrontProductController {
     @GetMapping
     public ResponseEntity<PagedModel<EntityModel<BuyableOfferResponse>>> list(
             @RequestParam String salesChannelId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String categoryId,
             Pageable pageable,
             PagedResourcesAssembler<BuyableOfferResponse> pagedAssembler
     ) {
-        Page<BuyableOfferResponse> page = storefrontQueryService.list(salesChannelId, pageable);
+        Page<BuyableOfferResponse> page = storefrontQueryService.list(salesChannelId, keyword, categoryId, pageable);
         PagedModel<EntityModel<BuyableOfferResponse>> model = pagedAssembler.toModel(page, assembler);
-        Link listLink = linkTo(methodOn(StorefrontProductController.class).list(salesChannelId, pageable, null))
+        Link listLink = linkTo(methodOn(StorefrontProductController.class)
+                .list(salesChannelId, keyword, categoryId, pageable, null))
                 .withRel("list-storefront-products");
         model.add(listLink);
         return ResponseEntity.ok(model);
+    }
+
+    @GetMapping("/context")
+    public ResponseEntity<ShoppingContextResponse> resolveContext(
+            @RequestParam String publishableKey,
+            @RequestParam(required = false) String countryCode,
+            @RequestParam(required = false) String locale
+    ) {
+        ShoppingContextResponse response = storefrontQueryService.resolveShoppingContext(publishableKey, countryCode, locale);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{slug}")

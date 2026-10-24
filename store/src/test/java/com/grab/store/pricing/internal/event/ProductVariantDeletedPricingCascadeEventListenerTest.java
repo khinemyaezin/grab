@@ -1,59 +1,59 @@
 package com.grab.store.pricing.internal.event;
 
-import com.grab.framework.cqrs.command.Command;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
 import com.pricing.application.model.write.DeletePriceSetForDeletedVariantCommand;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ProductVariantDeletedPricingCascadeEventListenerTest {
-
-    private List<Command<?>> dispatched;
+    @Mock
+    private CommandBus commandBus;
+    @Mock
+    private IdGenerator idGenerator;
+    @Captor
+    private ArgumentCaptor<DeletePriceSetForDeletedVariantCommand> commandCaptor;
+    @InjectMocks
     private ProductVariantDeletedPricingCascadeEventListener listener;
 
-    @BeforeEach
-    void setUp() {
-        dispatched = new ArrayList<>();
-        CommandBus commandBus = new CommandBus() {
-            @Override
-            public <R> R dispatch(Command<R> command) {
-                dispatched.add(command);
-                return null;
-            }
-        };
-        IdGenerator idGenerator = new IdGenerator() {
-            @Override
-            public Id generateId() {
-                return new CommonId("new");
-            }
+    @Test
+    void onVariantDeleted_existingVariant_dispatchesDeleteCommand() {
+        Id variantId = new CommonId("variant-1");
+        when(idGenerator.convertIdFrom("variant-1")).thenReturn(variantId);
+        ProductVariantDeletedIntegrationEvent event = new ProductVariantDeletedIntegrationEvent(
+                "product-1", "variant-1", Instant.parse("2026-10-01T00:00:00Z"), 1
+        );
 
-            @Override
-            public Id convertIdFrom(String id) {
-                return new CommonId(id);
-            }
-        };
-        listener = new ProductVariantDeletedPricingCascadeEventListener(commandBus, idGenerator);
+        listener.onVariantDeleted(event);
+
+        verify(commandBus).dispatch(commandCaptor.capture());
+        assertThat(commandCaptor.getValue().variantId()).isEqualTo(variantId);
     }
 
     @Test
-    void onVariantDeleted_shouldDispatchDeleteCommand() {
-        listener.onVariantDeleted(new ProductVariantDeletedIntegrationEvent(
-                "product-1", "variant-1", Instant.now(), 1));
-
-        assertThat(dispatched).hasSize(1);
-        assertThat(dispatched.getFirst()).isInstanceOfSatisfying(
-                DeletePriceSetForDeletedVariantCommand.class,
-                command -> assertThat(command.variantId().getValue()).isEqualTo("variant-1")
+    void onVariantDeleted_missingVariant_doesNotDispatchCommand() {
+        ProductVariantDeletedIntegrationEvent event = new ProductVariantDeletedIntegrationEvent(
+                "product-1", null, Instant.parse("2026-10-01T00:00:00Z"), 1
         );
+
+        listener.onVariantDeleted(event);
+
+        verifyNoInteractions(commandBus, idGenerator);
     }
 }

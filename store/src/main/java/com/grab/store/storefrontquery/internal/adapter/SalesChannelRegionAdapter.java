@@ -3,6 +3,7 @@ package com.grab.store.storefrontquery.internal.adapter;
 import com.grab.discovery.application.port.outbound.SalesChannelRegionPort;
 import com.grab.framework.id.Id;
 import com.grab.store.saleschannel.port.ChannelRegionQueryPort;
+import com.grab.store.storefrontquery.internal.adapter.mapper.SalesChannelRegionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,10 +13,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class SalesChannelRegionAdapter implements SalesChannelRegionPort {
     private final ChannelRegionQueryPort channelRegions;
+    private final SalesChannelRegionMapper mapper;
 
     @Override
     public Optional<Id> findDefaultRegion(Id salesChannelId) {
-        return channelRegions.findDefaultRegion(salesChannelId);
+        return mapper.toDefaultRegion(channelRegions.findDefaultRegion(salesChannelId));
     }
 
     @Override

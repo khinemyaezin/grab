@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import com.grab.framework.id.Id;
 
 public interface InventoryQueryPort {
     Page<InventoryItemView> search(InventorySearchCriteria criteria, Pageable pageable);
@@ -28,7 +29,12 @@ public interface InventoryQueryPort {
 
     int sumAvailableForAllocation(String sku, String salesChannelId);
 
+    DiscoveryAvailability discoveryAvailability(Id merchantId, String sku, Id salesChannelId);
+
     List<String> findSkusByLocation(String locationId);
 
     List<InventoryItemView> findReorderCandidates(String merchantId, String locationId);
+
+    record DiscoveryAvailability(int availableQty, boolean allowBackorder) {
+    }
 }

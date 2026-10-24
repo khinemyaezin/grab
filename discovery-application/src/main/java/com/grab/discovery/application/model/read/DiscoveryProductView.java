@@ -2,26 +2,24 @@ package com.grab.discovery.application.model.read;
 
 import com.grab.framework.id.Id;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 public record DiscoveryProductView(
         Id salesChannelId,
         Id productId,
-        Id sellerId,
+        Id merchantId,
+        Id categoryId,
         String title,
         String slug,
         String description,
         String thumbnail,
         String productStatus,
         boolean published,
+        boolean channelEnabled,
         boolean hasStock,
-        String currency,
-        BigDecimal minPrice,
-        BigDecimal maxPrice,
         List<ProductOption> options,
-        List<VariantOffer> variants
+        List<VariantFact> variants
 ) {
     public DiscoveryProductView {
         options = options == null ? List.of() : List.copyOf(options);
@@ -34,20 +32,18 @@ public record DiscoveryProductView(
         }
     }
 
-    public record VariantOffer(
+    public record VariantFact(
             Id variantId,
             String sku,
             String title,
+            String status,
             Map<String, String> optionValues,
-            BigDecimal price,
-            BigDecimal compareAtPrice,
             int availableQty,
             boolean manageInventory,
             boolean allowBackorder,
-            boolean inStock,
-            boolean buyable
+            boolean inStock
     ) {
-        public VariantOffer {
+        public VariantFact {
             optionValues = optionValues == null ? Map.of() : Map.copyOf(optionValues);
         }
     }

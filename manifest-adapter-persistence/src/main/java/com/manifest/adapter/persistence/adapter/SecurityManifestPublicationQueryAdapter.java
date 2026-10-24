@@ -3,7 +3,9 @@ package com.manifest.adapter.persistence.adapter;
 import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import com.manifest.adapter.persistence.entity.SecurityManifestPublicationState;
+import com.grab.framework.security.SecurityManifestBacklogView;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 public class SecurityManifestPublicationQueryAdapter implements SecurityManifestPublicationQueryPort {
     private final EntityManager entityManager;
@@ -19,15 +21,15 @@ public class SecurityManifestPublicationQueryAdapter implements SecurityManifest
 
     @Override
     public PublicationStatus status(String moduleKey) {
-        var state = entityManager.find(stateType, moduleKey);
-        String jpql = "select count(o), min(o.occurredAt) from " + outboxEntityName
+        SecurityManifestPublicationState state = entityManager.find(stateType, moduleKey);
+        String jpql = "select new com.grab.framework.security.SecurityManifestBacklogView(count(o), min(o.occurredAt)) from " + outboxEntityName
                 + " o where o.aggregateType = :aggregateType and o.status <> :published";
-        var query = entityManager.createQuery(jpql, Object[].class);
+        TypedQuery<SecurityManifestBacklogView> query = entityManager.createQuery(jpql, SecurityManifestBacklogView.class);
         query.setParameter("aggregateType", "SecurityManifest");
         query.setParameter("published", OutboxStatus.PUBLISHED);
-        Object[] backlog = query.getSingleResult();
-        long pending = ((Number) backlog[0]).longValue();
-        String oldest = backlog[1] == null ? null : backlog[1].toString();
+        SecurityManifestBacklogView backlog = query.getSingleResult();
+        long pending = backlog.pendingCount();
+        String oldest = backlog.oldestOccurredAt() == null ? null : backlog.oldestOccurredAt().toString();
         int revision = state == null ? 0 : state.revision();
         String digest = state == null ? null : state.digest();
         String lastEnqueued = state == null || state.lastEnqueuedAt() == null ? null : state.lastEnqueuedAt().toString();

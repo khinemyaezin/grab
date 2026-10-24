@@ -10,7 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +32,7 @@ class GetBuyableOfferBySlugQueryHandlerTest {
                 new CommonId("web-1"),
                 new CommonId("product-1"),
                 new CommonId("seller-1"),
+                new CommonId("category-1"),
                 "Iced Coffee",
                 "iced-coffee",
                 null,
@@ -40,12 +40,19 @@ class GetBuyableOfferBySlugQueryHandlerTest {
                 "ACTIVE",
                 true,
                 true,
-                "MMK",
-                BigDecimal.valueOf(5_000),
-                BigDecimal.valueOf(5_000),
+                true,
                 List.of(),
-                List.of(new DiscoveryProductView.VariantOffer(new CommonId("variant-1"), "SKU-1", "Iced Coffee",
-                        Map.of(), BigDecimal.valueOf(5_000), null, 3, true, false, true, true))
+                List.of(new DiscoveryProductView.VariantFact(
+                        new CommonId("variant-1"),
+                        "SKU-1",
+                        "Iced Coffee",
+                        "ACTIVE",
+                        Map.of(),
+                        3,
+                        true,
+                        false,
+                        true
+                ))
         );
         when(getBuyableOfferBySlugUseCase.execute(query)).thenReturn(product);
 

@@ -3,8 +3,8 @@ package com.grab.store.inventory.internal.event;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.id.impl.CommonId;
-import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
 import com.inventory.application.model.write.DiscontinueInventoryForDeletedVariantCommand;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +36,7 @@ class ProductVariantDeletedInventoryCascadeEventListenerTest {
     private ProductVariantDeletedInventoryCascadeEventListener listener;
 
     @Test
-    void onVariantDeleted_dispatchesDiscontinueCommand() {
+    void onVariantDeleted_deletedVariant_dispatchesDiscontinueCommand() {
         when(idGenerator.convertIdFrom("variant-1")).thenReturn(new CommonId("variant-1"));
 
         listener.onVariantDeleted(new ProductVariantDeletedIntegrationEvent(
@@ -49,7 +49,7 @@ class ProductVariantDeletedInventoryCascadeEventListenerTest {
     }
 
     @Test
-    void onProductDeleted_dispatchesOneCommandPerVariant() {
+    void onProductDeleted_multipleVariants_dispatchesCommandPerVariant() {
         when(idGenerator.convertIdFrom("variant-1")).thenReturn(new CommonId("variant-1"));
         when(idGenerator.convertIdFrom("variant-2")).thenReturn(new CommonId("variant-2"));
 

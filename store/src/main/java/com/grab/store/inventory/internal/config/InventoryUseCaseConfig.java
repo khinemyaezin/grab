@@ -5,6 +5,7 @@ import com.inventory.application.port.inbound.*;
 import com.inventory.application.port.outbound.*;
 import com.inventory.application.service.*;
 import com.inventory.domain.policy.InventoryLocationAccessPolicy;
+import com.inventory.application.policy.ProductVariantProjectionPolicy;
 import com.inventory.domain.port.outbound.*;
 import com.inventory.domain.service.InventoryAllocationService;
 import com.inventory.domain.service.InventoryStockService;
@@ -17,6 +18,12 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class InventoryUseCaseConfig {
+
+    @Bean
+    public ProjectProductVariantViewUseCase projectProductVariantViewUseCase(ProductVariantProjectionRepository repository) {
+        ProductVariantProjectionPolicy policy = new ProductVariantProjectionPolicy();
+        return new ProjectProductVariantViewService(repository, policy);
+    }
 
     @Bean
     public InventoryAllocationService inventoryAllocationService(
@@ -148,6 +155,10 @@ public class InventoryUseCaseConfig {
     @Bean
     public GetAllocationAvailabilityUseCase getAllocationAvailabilityUseCase(InventoryQueryPort inventoryQueryPort, ProductVariantViewQueryPort productVariantViewQueryPort) {
         return new GetAllocationAvailabilityService(inventoryQueryPort, productVariantViewQueryPort);
+    }
+    @Bean
+    public GetDiscoveryInventoryFactsUseCase getDiscoveryInventoryFactsUseCase(InventoryQueryPort inventoryQueryPort) {
+        return new GetDiscoveryInventoryFactsService(inventoryQueryPort);
     }
     @Bean
     public ListSkusAtLocationUseCase listSkusAtLocationUseCase(InventoryQueryPort inventoryQueryPort) {

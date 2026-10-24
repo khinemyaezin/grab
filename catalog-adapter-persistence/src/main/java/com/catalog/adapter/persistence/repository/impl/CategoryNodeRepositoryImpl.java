@@ -5,7 +5,7 @@ import com.catalog.adapter.persistence.exception.CatalogInfraError;
 import com.catalog.adapter.persistence.exception.CatalogInfraException;
 import com.catalog.adapter.persistence.repository.CategoryJpaRepo;
 import com.catalog.adapter.persistence.repository.CategoryNestedSetNodeRepository;
-import com.catalog.adapter.persistence.category.CategoryTreeNode;
+import com.catalog.application.model.read.CategoryNodeView;
 import com.catalog.adapter.persistence.repository.CategoryNodeRepository;
 import com.nestedset.library.model.NodeComponent;
 import lombok.AllArgsConstructor;
@@ -48,7 +48,7 @@ public class CategoryNodeRepositoryImpl implements CategoryNodeRepository  {
     }
 
     @Override
-    public Optional<CategoryTreeNode> findSubtree(String categoryUuid) {
+    public Optional<CategoryNodeView> findSubtree(String categoryUuid) {
         return categoryJpaRepo.findByUuid(categoryUuid)
                 .map(categoryNestedSetNodeRepository::getTree)
                 .map(this::toTreeNode);
@@ -84,7 +84,7 @@ public class CategoryNodeRepositoryImpl implements CategoryNodeRepository  {
                 .ifPresent(categoryNestedSetNodeRepository::removeSubtree);
     }
 
-    private CategoryTreeNode toTreeNode(NodeComponent<CategoryEntity> node) {
+    private CategoryNodeView toTreeNode(NodeComponent<CategoryEntity> node) {
         if (node == null || node.getNode() == null) {
             return null;
         }
@@ -93,27 +93,28 @@ public class CategoryNodeRepositoryImpl implements CategoryNodeRepository  {
                 ? node.getParent().getNode().getUuid()
                 : null;
 
-        List<CategoryTreeNode> children = safeChildren(node).stream()
+        List<CategoryNodeView> children = safeChildren(node).stream()
                 .map(this::toTreeNode)
                 .filter(Objects::nonNull)
                 .toList();
 
-        return new CategoryTreeNode(node.getNode(), parentId, children);
+        CategoryEntity entity = node.getNode();
+        return new CategoryNodeView(entity.getUuid(), entity.getName(), parentId, children);
     }
 
-    private Set<String> collectSubtreeIds(CategoryTreeNode node) {
+    private Set<String> collectSubtreeIds(CategoryNodeView node) {
         Set<String> categoryIds = new LinkedHashSet<>();
         collectSubtreeIds(node, categoryIds);
         return categoryIds;
     }
 
-    private void collectSubtreeIds(CategoryTreeNode node, Set<String> categoryIds) {
-        if (node == null || node.entity() == null || node.entity().getUuid() == null) {
+    private void collectSubtreeIds(CategoryNodeView node, Set<String> categoryIds) {
+        if (node == null || node.id() == null) {
             return;
         }
 
-        categoryIds.add(node.entity().getUuid());
-        for (CategoryTreeNode child : node.children()) {
+        categoryIds.add(node.id());
+        for (CategoryNodeView child : node.children()) {
             collectSubtreeIds(child, categoryIds);
         }
     }

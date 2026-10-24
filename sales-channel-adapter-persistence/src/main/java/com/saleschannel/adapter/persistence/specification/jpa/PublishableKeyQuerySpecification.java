@@ -5,6 +5,8 @@ import com.saleschannel.adapter.persistence.entity.SalesChannelEntity;
 import com.saleschannel.adapter.persistence.entity.meta.PublishableKeyJpaEntity_;
 import com.saleschannel.adapter.persistence.entity.meta.SalesChannelEntity_;
 import com.saleschannel.domain.enums.ChannelStatus;
+import com.saleschannel.application.model.read.PublishableKeyView;
+import com.saleschannel.application.model.read.ResolvedPublishableKeyView;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -38,7 +40,7 @@ public class PublishableKeyQuerySpecification {
         this.entityManager = entityManager;
     }
 
-    public Page<KeyMetadata> list(String salesChannelId, Pageable pageable) {
+    public Page<PublishableKeyView> list(String salesChannelId, Pageable pageable) {
         CriteriaBuilder builder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Long> countQuery = builder.createQuery(Long.class);
         Root<PublishableKeyJpaEntity> countRoot = countQuery.from(PublishableKeyJpaEntity.class);
@@ -50,7 +52,7 @@ public class PublishableKeyQuerySpecification {
         TypedQuery<Long> count = entityManager.createQuery(countQuery);
         long total = count.getSingleResult();
 
-        CriteriaQuery<KeyMetadata> query = builder.createQuery(KeyMetadata.class);
+        CriteriaQuery<PublishableKeyView> query = builder.createQuery(PublishableKeyView.class);
         Root<PublishableKeyJpaEntity> key = query.from(PublishableKeyJpaEntity.class);
         Path<String> keyId = key.get(PublishableKeyJpaEntity_.UUID);
         Path<String> channelId = key.get(PublishableKeyJpaEntity_.SALES_CHANNEL_ID);
@@ -58,14 +60,14 @@ public class PublishableKeyQuerySpecification {
         Path<String> prefix = key.get(PublishableKeyJpaEntity_.DISPLAY_PREFIX);
         Path<Instant> createdAt = key.get(PublishableKeyJpaEntity_.CREATED_AT);
         Path<Instant> revokedAt = key.get(PublishableKeyJpaEntity_.REVOKED_AT);
-        CompoundSelection<KeyMetadata> selection = builder.construct(
-                KeyMetadata.class, keyId, channelId, label, prefix, createdAt, revokedAt);
+        CompoundSelection<PublishableKeyView> selection = builder.construct(
+                PublishableKeyView.class, keyId, channelId, label, prefix, createdAt, revokedAt);
         query.select(selection);
         Predicate filter = builder.equal(channelId, salesChannelId);
         query.where(filter);
         Sort sort = pageable.getSort();
         applySort(builder, query, key, sort);
-        TypedQuery<KeyMetadata> data = entityManager.createQuery(query);
+        TypedQuery<PublishableKeyView> data = entityManager.createQuery(query);
         if (pageable.isPaged()) {
             long requestedOffset = pageable.getOffset();
             int offset = Math.toIntExact(requestedOffset);
@@ -73,19 +75,21 @@ public class PublishableKeyQuerySpecification {
             data.setFirstResult(offset);
             data.setMaxResults(pageSize);
         }
-        List<KeyMetadata> content = data.getResultList();
+        List<PublishableKeyView> content = data.getResultList();
         return new PageImpl<>(content, pageable, total);
     }
 
-    public Optional<ChannelMetadata> findActiveByDigest(String digest) {
+    public Optional<ResolvedPublishableKeyView> findActiveByDigest(String digest) {
         CriteriaBuilder builder = entityManager.getCriteriaBuilder();
-        CriteriaQuery<ChannelMetadata> query = builder.createQuery(ChannelMetadata.class);
+        CriteriaQuery<ResolvedPublishableKeyView> query = builder.createQuery(ResolvedPublishableKeyView.class);
         Root<PublishableKeyJpaEntity> key = query.from(PublishableKeyJpaEntity.class);
         Root<SalesChannelEntity> channel = query.from(SalesChannelEntity.class);
         Path<String> channelId = channel.get(SalesChannelEntity_.UUID);
         Path<ChannelStatus> channelStatus = channel.get(SalesChannelEntity_.STATUS);
-        CompoundSelection<ChannelMetadata> selection = builder.construct(
-                ChannelMetadata.class, channelId, channelStatus);
+        Predicate channelEnabled = builder.equal(channelStatus, ChannelStatus.ENABLED);
+        Expression<Boolean> keyActive = builder.literal(true);
+        CompoundSelection<ResolvedPublishableKeyView> selection = builder.construct(
+                ResolvedPublishableKeyView.class, channelId, channelEnabled, keyActive);
         query.select(selection);
         Path<String> tokenDigest = key.get(PublishableKeyJpaEntity_.TOKEN_DIGEST);
         Path<Instant> revokedAt = key.get(PublishableKeyJpaEntity_.REVOKED_AT);
@@ -94,13 +98,13 @@ public class PublishableKeyQuerySpecification {
         Predicate active = builder.isNull(revokedAt);
         Predicate matchingChannel = builder.equal(keyChannelId, channelId);
         query.where(matchingDigest, active, matchingChannel);
-        TypedQuery<ChannelMetadata> data = entityManager.createQuery(query);
+        TypedQuery<ResolvedPublishableKeyView> data = entityManager.createQuery(query);
         data.setMaxResults(1);
-        List<ChannelMetadata> content = data.getResultList();
+        List<ResolvedPublishableKeyView> content = data.getResultList();
         return content.stream().findFirst();
     }
 
-    private void applySort(CriteriaBuilder builder, CriteriaQuery<KeyMetadata> query,
+    private void applySort(CriteriaBuilder builder, CriteriaQuery<PublishableKeyView> query,
                            Root<PublishableKeyJpaEntity> key, Sort sort) {
         List<Order> orders = new ArrayList<>();
         if (sort.isUnsorted()) {
@@ -124,10 +128,4 @@ public class PublishableKeyQuerySpecification {
         query.orderBy(orders);
     }
 
-    public record KeyMetadata(String keyId, String salesChannelId, String label,
-                              String displayPrefix, Instant createdAt, Instant revokedAt) {
-    }
-
-    public record ChannelMetadata(String salesChannelId, ChannelStatus channelStatus) {
-    }
 }

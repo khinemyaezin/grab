@@ -304,7 +304,7 @@ Handles reorder point monitoring and suggestions.
 | `StockShippedEvent` | Stock shipped | id, sku, qty, orderId, timestamp |
 | `StockAdjustedEvent` | Stock adjusted | id, sku, before, after, reason, timestamp |
 | `LowStockAlertEvent` | Stock below threshold | id, sku, currentQty, reorderPoint, timestamp |
-| `InventoryItemDiscontinuedEvent` | Item discontinued | id, sku, timestamp |
+| `InventoryItemStatusChangedEvent` | Item suspended, activated, or discontinued | id, sku, status, timestamp |
 
 ---
 

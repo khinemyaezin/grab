@@ -1,6 +1,10 @@
 package com.grab.discovery.adapter.persistence.entity;
 
+import com.grab.discovery.adapter.persistence.converter.DiscoveryVariantFactsConverter;
+import com.grab.discovery.application.model.projection.DiscoveryProductProjection.ProductOption;
+import com.grab.discovery.application.model.projection.DiscoveryProductProjection.VariantFact;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,7 +18,6 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -47,8 +50,11 @@ public class DiscoveryProductEntity {
     @Column(name = "product_id", nullable = false)
     private String productId;
 
-    @Column(name = "seller_id")
-    private String sellerId;
+    @Column(name = "merchant_id")
+    private String merchantId;
+
+    @Column(name = "category_id")
+    private String categoryId;
 
     @Column
     private String title;
@@ -59,10 +65,10 @@ public class DiscoveryProductEntity {
     @Column(columnDefinition = "text")
     private String description;
 
-    @Column
+    @Column(length = 2048)
     private String thumbnail;
 
-    @Column(name = "product_status")
+    @Column(name = "product_status", length = 64)
     private String productStatus;
 
     @Column(nullable = false)
@@ -74,22 +80,14 @@ public class DiscoveryProductEntity {
     @Column(name = "has_stock", nullable = false)
     private boolean hasStock;
 
-    @Column
-    private String currency;
-
-    @Column(name = "min_price", precision = 19, scale = 4)
-    private BigDecimal minPrice;
-
-    @Column(name = "max_price", precision = 19, scale = 4)
-    private BigDecimal maxPrice;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb", nullable = false)
+    private List<ProductOption> options;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private List<DiscoveryProductOptionDocument> options;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
-    private List<DiscoveryVariantOfferDocument> variants;
+    @Convert(converter = DiscoveryVariantFactsConverter.class)
+    @Column(columnDefinition = "jsonb", nullable = false)
+    private List<VariantFact> variants;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

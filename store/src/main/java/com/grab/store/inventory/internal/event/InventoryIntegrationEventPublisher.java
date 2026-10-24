@@ -1,14 +1,20 @@
 package com.grab.store.inventory.internal.event;
 
 import com.grab.framework.id.Id;
-import com.grab.store.inventory.events.LocationLinkedToChannelIntegrationEvent;
-import com.grab.store.inventory.events.LocationUnlinkedFromChannelIntegrationEvent;
-import com.grab.store.inventory.events.StockAdjustedIntegrationEvent;
-import com.grab.store.inventory.events.StockReceivedIntegrationEvent;
-import com.grab.store.inventory.events.StockReservedIntegrationEvent;
-import com.grab.store.inventory.events.StockShippedIntegrationEvent;
+import com.grab.store.shared.events.inventory.LocationLinkedToChannelIntegrationEvent;
+import com.grab.store.shared.events.inventory.LocationUnlinkedFromChannelIntegrationEvent;
+import com.grab.store.shared.events.inventory.InventoryStatusChangedIntegrationEvent;
+import com.grab.store.shared.events.inventory.LocationStatusChangedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockAdjustedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockReceivedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockReservedIntegrationEvent;
+import com.grab.store.shared.events.inventory.StockShippedIntegrationEvent;
 import com.inventory.domain.event.LocationLinkedToChannelEvent;
+import com.inventory.domain.event.LocationActivatedEvent;
+import com.inventory.domain.event.LocationDeactivatedEvent;
+import com.inventory.domain.event.LocationDeletedEvent;
 import com.inventory.domain.event.LocationUnlinkedFromChannelEvent;
+import com.inventory.domain.event.InventoryItemStatusChangedEvent;
 import com.inventory.domain.event.StockAdjustedEvent;
 import com.inventory.domain.event.StockReceivedEvent;
 import com.inventory.domain.event.StockReservedEvent;
@@ -96,6 +102,41 @@ public class InventoryIntegrationEventPublisher {
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
         ));
+    }
+
+    @EventListener
+    public void handleInventoryStatusChanged(InventoryItemStatusChangedEvent event) {
+        events.publishEvent(new InventoryStatusChangedIntegrationEvent(
+                event.sku(),
+                event.status().name(),
+                toInstant(event.occurredAt()),
+                EVENT_VERSION
+        ));
+    }
+
+    @EventListener
+    public void handleLocationActivated(LocationActivatedEvent event) {
+        publishLocationStatusChanged(event.locationId(), true, event.occurredAt());
+    }
+
+    @EventListener
+    public void handleLocationDeactivated(LocationDeactivatedEvent event) {
+        publishLocationStatusChanged(event.locationId(), false, event.occurredAt());
+    }
+
+    @EventListener
+    public void handleLocationDeleted(LocationDeletedEvent event) {
+        publishLocationStatusChanged(event.locationId(), false, event.occurredAt());
+    }
+
+    private void publishLocationStatusChanged(Id locationId, boolean active, LocalDateTime occurredAt) {
+        LocationStatusChangedIntegrationEvent event = new LocationStatusChangedIntegrationEvent(
+                valueOf(locationId),
+                active,
+                toInstant(occurredAt),
+                EVENT_VERSION
+        );
+        events.publishEvent(event);
     }
 
     private static String valueOf(Id id) {

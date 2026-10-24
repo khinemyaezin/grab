@@ -5,6 +5,7 @@ import com.grab.store.cart.internal.api.rest.dto.request.AddItemToCartRequest;
 import com.grab.store.cart.internal.api.rest.dto.response.CartResponse;
 import com.cart.application.model.read.CartResult;
 import com.cart.application.model.write.AddItemToCartCommand;
+import com.grab.store.cart.internal.api.rest.mapper.CartResponseMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +15,7 @@ public class CartCommandService {
     private final CommandBus commandBus;
 
     public CartResponse addItem(String guestToken, AddItemToCartRequest request) {
-        return toResponse(commandBus.dispatch(new AddItemToCartCommand(
+        return CartResponseMapper.toResponse(commandBus.dispatch(new AddItemToCartCommand(
                 guestToken,
                 request.salesChannelId(),
                 request.regionId(),
@@ -23,30 +24,5 @@ public class CartCommandService {
                 request.quantity(),
                 request.displayedAmount()
         )));
-    }
-
-    static CartResponse toResponse(CartResult result) {
-        return new CartResponse(
-                result.cartId(),
-                result.guestToken(),
-                result.salesChannelId(),
-                result.channelType(),
-                result.regionId(),
-                result.currencyCode(),
-                result.status(),
-                result.lines().stream()
-                        .map(line -> new CartResponse.CartLineResponse(
-                                line.lineId(),
-                                line.variantId(),
-                                line.productId(),
-                                line.sellerId(),
-                                line.title(),
-                                line.sku(),
-                                line.unitPrice(),
-                                line.quantity()
-                        ))
-                        .toList(),
-                result.priceAdjusted()
-        );
     }
 }

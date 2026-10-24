@@ -23,8 +23,6 @@ public interface PricingQuoteQuery {
 
     BatchQuoteResult quoteBatch(BatchQuoteRequest request);
 
-    List<String> variantIdsForPriceSet(String priceSetId);
-
     record QuotedPrice(
             BigDecimal amount,
             BigDecimal originalAmount,

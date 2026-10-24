@@ -3,12 +3,7 @@ package com.saleschannel.adapter.persistence.mapper;
 import com.grab.framework.mapper.IdMapper;
 import com.saleschannel.adapter.persistence.entity.PublishableKeyJpaEntity;
 import com.saleschannel.adapter.persistence.entity.meta.PublishableKeyJpaEntity_;
-import com.saleschannel.adapter.persistence.specification.jpa.PublishableKeyQuerySpecification.KeyMetadata;
-import com.saleschannel.adapter.persistence.specification.jpa.PublishableKeyQuerySpecification.ChannelMetadata;
-import com.saleschannel.application.model.read.PublishableKeyView;
-import com.saleschannel.application.model.read.ResolvedPublishableKeyView;
 import com.saleschannel.domain.aggregate.PublishableKey;
-import com.saleschannel.domain.enums.ChannelStatus;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -40,13 +35,4 @@ public abstract class PublishableKeyEntityMapper {
     @Mapping(target = "revokedAt", source = PublishableKeyJpaEntity_.REVOKED_AT)
     public abstract PublishableKey toDomain(PublishableKeyJpaEntity source);
 
-    public abstract PublishableKeyView toView(KeyMetadata source);
-
-    @Mapping(target = "channelEnabled", source = "channelStatus")
-    @Mapping(target = "keyActive", constant = "true")
-    public abstract ResolvedPublishableKeyView toResolvedView(ChannelMetadata source);
-
-    protected boolean enabled(ChannelStatus status) {
-        return status == ChannelStatus.ENABLED;
-    }
 }

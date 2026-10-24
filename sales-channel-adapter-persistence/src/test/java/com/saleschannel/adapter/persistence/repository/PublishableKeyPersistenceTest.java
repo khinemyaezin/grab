@@ -64,7 +64,7 @@ class PublishableKeyPersistenceTest extends PublishableKeyRepositoryTestConfig {
     void setUp() {
         repository = new PublishableKeyRepositoryAdapter(jpa, mapper, events, executor);
         PublishableKeyQuerySpecification specification = new PublishableKeyQuerySpecification(entityManager);
-        queries = new PublishableKeyQueryAdapter(specification, mapper, executor);
+        queries = new PublishableKeyQueryAdapter(specification, executor);
         persistChannel("channel-1", ChannelStatus.ENABLED);
         persistChannel("channel-2", ChannelStatus.ENABLED);
         entityManager.flush();

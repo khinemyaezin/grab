@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class ProjectDiscoveryProductCommandHandler implements CommandHandler<ProjectDiscoveryProductCommand, Void> {
+
     private final ProjectDiscoveryProductUseCase projectDiscoveryProductUseCase;
 
     @Override

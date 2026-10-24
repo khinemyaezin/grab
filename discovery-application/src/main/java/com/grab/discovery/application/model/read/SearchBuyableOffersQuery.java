@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 
 public record SearchBuyableOffersQuery(
         Id salesChannelId,
+        String keyword,
+        Id categoryId,
         Pageable pageable
 ) implements Query<Page<DiscoveryProductView>>, PageableQueryRequest {
 }

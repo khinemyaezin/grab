@@ -8,4 +8,7 @@ public record CategoryNodeView(
         String parentId,
         List<CategoryNodeView> children
 ) {
+    public CategoryNodeView {
+        children = children == null ? List.of() : List.copyOf(children);
+    }
 }

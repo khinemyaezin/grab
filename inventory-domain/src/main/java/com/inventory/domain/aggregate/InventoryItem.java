@@ -6,7 +6,7 @@ import com.inventory.domain.entity.StockMovement;
 import com.inventory.domain.enums.AdjustmentReason;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.domain.enums.StockMovementType;
-import com.inventory.domain.event.InventoryItemDiscontinuedEvent;
+import com.inventory.domain.event.InventoryItemStatusChangedEvent;
 import com.inventory.domain.event.LowStockAlertEvent;
 import com.inventory.domain.event.StockAdjustedEvent;
 import com.inventory.domain.event.StockReceivedEvent;
@@ -377,11 +377,10 @@ public class InventoryItem extends AggregateRoot<Id> {
     public void discontinue() {
         this.status = InventoryStatus.DISCONTINUED;
         this.lastUpdated = LocalDateTime.now();
-        addEvent(new InventoryItemDiscontinuedEvent(
+        addEvent(new InventoryItemStatusChangedEvent(
                 getId(),
                 sku,
-                productVariantId != null ? productVariantId.getValue() : null,
-                locationId,
+                status,
                 LocalDateTime.now()
         ));
     }
@@ -389,12 +388,14 @@ public class InventoryItem extends AggregateRoot<Id> {
     public void suspend() {
         this.status = InventoryStatus.SUSPENDED;
         this.lastUpdated = LocalDateTime.now();
+        addEvent(new InventoryItemStatusChangedEvent(getId(), sku, status, LocalDateTime.now()));
     }
 
     public void activate() {
         this.status = InventoryStatus.ACTIVE;
         this.lastUpdated = LocalDateTime.now();
         updateStatusBasedOnQuantity();
+        addEvent(new InventoryItemStatusChangedEvent(getId(), sku, status, LocalDateTime.now()));
     }
 
     public boolean isLowStock() {

@@ -14,6 +14,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ProductQueryService {
@@ -88,5 +90,22 @@ public class ProductQueryService {
         GetProductAuditQuery query = new GetProductAuditQuery(merchantId, productId);
         GetProductAuditResult result = queryBus.dispatch(query);
         return productAuditDtoMapper.toResponse(result);
+    }
+
+    public ProductPublicationResponse listProductPublications(String productId) {
+        log.info("Listing product publications: {}", productId);
+        String merchantId = merchantResolver.resolveCurrentMerchantId();
+        List<ProductPublicationItem> publications = queryBus.dispatch(
+                new ListProductPublicationsQuery(merchantId, productId)
+        );
+        return new ProductPublicationResponse(
+                productId,
+                publications.stream()
+                        .map(item -> new ProductPublicationResponse.Publication(
+                                item.variantId(),
+                                item.salesChannelId()
+                        ))
+                        .toList()
+        );
     }
 }

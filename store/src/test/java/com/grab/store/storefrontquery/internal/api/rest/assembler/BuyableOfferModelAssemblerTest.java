@@ -4,7 +4,6 @@ import com.grab.store.storefrontquery.internal.api.rest.dto.response.BuyableOffe
 import org.junit.jupiter.api.Test;
 import org.springframework.hateoas.EntityModel;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,6 +18,7 @@ class BuyableOfferModelAssemblerTest {
                 "web-1",
                 "prod-1",
                 "seller-1",
+                "category-1",
                 "Iced Coffee",
                 "iced-coffee",
                 null,
@@ -26,9 +26,7 @@ class BuyableOfferModelAssemblerTest {
                 "ACTIVE",
                 true,
                 true,
-                "MMK",
-                BigDecimal.valueOf(5000),
-                BigDecimal.valueOf(5000),
+                true,
                 List.of(),
                 List.of()
         );

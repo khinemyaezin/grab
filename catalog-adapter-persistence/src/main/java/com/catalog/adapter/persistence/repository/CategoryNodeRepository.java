@@ -1,7 +1,7 @@
 package com.catalog.adapter.persistence.repository;
 
 import com.catalog.adapter.persistence.entity.CategoryEntity;
-import com.catalog.adapter.persistence.category.CategoryTreeNode;
+import com.catalog.application.model.read.CategoryNodeView;
 import com.nestedset.app.NestedSetNodeRepository;
 
 import java.util.List;
@@ -18,7 +18,7 @@ public interface CategoryNodeRepository {
 
     Optional<CategoryEntity> findParent(String categoryUuid);
 
-    Optional<CategoryTreeNode> findSubtree(String categoryUuid);
+    Optional<CategoryNodeView> findSubtree(String categoryUuid);
 
     List<CategoryEntity> findImmediateChildren(String categoryUuid);
 
