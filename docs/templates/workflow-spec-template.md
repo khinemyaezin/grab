@@ -1,6 +1,6 @@
-You are writing a Workflow Specification for an event-driven cross-domain business process.
+You are writing a Workflow Specification (Workflow Architecture Decision Record): a micro-architectural decision record defining an event-driven cross-domain business process, its orchestration, compensation, and failure recovery.
 
-A workflow orchestrates or choreographs steps across multiple domain aggregate lifecycles to complete one business case or feature.
+A Workflow Specification is an **Architecture Decision Record (ADR)**. It is NOT an implementation task tracker or class orchestration log.
 
 Keep the document cohesive and answer four core questions:
 1. What happens step by step across domain aggregates?
@@ -12,15 +12,15 @@ Keep the document cohesive and answer four core questions:
 - Describe the business flow across bounded contexts, not workflow framework internals.
 - List steps in exact execution order with precise step and event names.
 - Keep each table cell to one clear sentence.
-- In sequence diagrams, use participant roles and module names (e.g. `Workflow Coordinator`, `Catalog`, `Pricing`, `Inventory`), never Java class names.
+- In sequence diagrams and specifications, use participant roles and bounded contexts (e.g. `Workflow Coordinator`, `Catalog`, `Pricing`, `Inventory`), **never** framework class names (`*Service`, `*Handler`, `*Listener`) or Java types.
 - List compensation undo actions in reverse execution order unless a specific business policy dictates otherwise.
 - Explicitly state why any completed action is intentionally not compensated.
-- Link participating Domain Specifications instead of repeating domain model details.
+- Link participating Domain Decision Records instead of repeating domain model details.
 - Replace every `[placeholder]` before publishing.
 
 ---
 
-# Workflow: [Workflow Display Name]
+# Workflow Decision Record: [Workflow Display Name]
 
 > **Purpose:** [The business outcome delivered when this cross-domain workflow completes.]
 > **Starts When:** [API call, scheduled trigger, or upstream business event.]

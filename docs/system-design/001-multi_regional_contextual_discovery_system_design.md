@@ -186,31 +186,57 @@ flowchart LR
 
 ---
 
-## 5. Implementation Phases
+## 5. Architectural Capability Decomposition & Feature Decisions
 
-Phrase 1: Sales-Channel Key Lifecycle & Authenticated Management
-  - Implement `PublishableKey` aggregate root, 32-byte secure random token generator with `pk_` prefix, SHA-256 digest hashing adapter.
-  - security manifest revision (`KEY_READ`, `KEY_WRITE`, `KEY_ADMIN`), and authenticated management REST controller (`POST`, `GET`, `DELETE`).
-  - [link](../features/feat_003-sales-channel-key-lifecycle-management.md)
+### Phase 1: Cryptographic Channel Identity & Access Boundary
+- **Boundary & Scope**: Edge Ingress $\leftrightarrow$ `Sales Channel` Bounded Context.
+- **Architectural Decisions & Invariants**:
+  - Replace unauthenticated, spoofable client parameters (`salesChannelId`) with cryptographically unforgeable public tokens.
+  - Enforce defense-in-depth: store only irreversible SHA-256 digests at rest to prevent credential harvesting upon database compromise.
+  - Support concurrent active publishable keys per sales channel to enable non-destructive, zero-downtime key rotation.
+- **Core Algorithms & Mechanics**: CSPRNG 32-byte token generation with routing prefixes (`pk_live_...`) and constant-time digest comparison for $O(1)$ indexed key lookups. Role-based access control scoped strictly to channel ownership.
+- **Feature Decision Record**: [feat_003: Sales-Channel Key Lifecycle Management](../features/feat_003-sales-channel-key-lifecycle-management.md)
 
-Phrase 2: Edge Shopping-Context Resolution & Shared Ports
-  - Implement shared `PublishableKeyQuery` port & provider adapter in saleschannel, define immutable `ShoppingContext` value object in `discovery-application`, implement inbound `ResolveShoppingContextUseCase` & service verifying channel status and active region bindings (`RegionQuery`, `ChannelRegion`), create outbound discovery SPIs & consumer adapters in `store/`, and define sealed RFC 7807 `ProblemDetail` error taxonomy (401, 403, 400, 422).
-  - [link](../features/feat_004-edge-shopping-context-resolution.md)
+### Phase 2: Edge Ingress & Shopping-Context Resolution Boundary
+- **Boundary & Scope**: Ingress Gateway $\leftrightarrow$ `Sales Channel` & `Region` Bounded Contexts.
+- **Architectural Decisions & Invariants**:
+  - Decouple contextual identity from query execution by resolving inbound requests into an immutable 5-tuple context `(channel, region, country, currency, locale)` before reaching read projections.
+  - Enforce territorial isolation: channels cannot serve unassigned or disabled regional markets.
+- **Core Algorithms & Mechanics**: Deterministic country-to-region membership resolution with fallback to the channel's designated primary regional market; upfront boundary rejection using RFC 7807 problem details (`401`, `403`, `422`).
+- **Feature Decision Record**: [feat_004: Edge Shopping-Context Resolution](../features/feat_004-edge-shopping-context-resolution.md)
 
-Phrase 3: Vectorized Batch Regional Pricing Engine
-  - Introduce `QuoteVariantPricesQuery` application model, implement `QuoteVariantPricesService` to resolve variant-to-price-set links in bulk, evaluate 4-tier rule ranking (`Channel+Region > Region > Channel > Base`) in memory, isolate dual-USD markets, and extend `PricingQuoteQuery.quoteBatch` shared method for single-trip batch quotes.
-  - [link](../features/feat_005-vectorized-batch-regional-pricing.md)
+### Phase 3: Vectorized Batch Pricing & Rule Precedence Boundary
+- **Boundary & Scope**: `Pricing` Bounded Context $\leftrightarrow$ Storefront Read Engine.
+- **Architectural Decisions & Invariants**:
+  - Pricing operates as an isolated, high-throughput calculation engine without presentation coupling.
+  - Eliminate the Cartesian storage explosion of pre-materialized documents ($O(P \times C \times R) \rightarrow O(P \times C)$) by calculating regional prices on demand.
+  - Strict currency isolation: prohibit cross-currency fallbacks and isolate dual-USD markets.
+- **Core Algorithms & Mechanics**: In-memory 4-Tier Specificity Ranking Algorithm ($Channel + Region \succ Region \succ Channel \succ Base$) executed in a single-trip vectorized batch matrix for arbitrary $N$ variants.
+- **Feature Decision Record**: [feat_005: Vectorized Batch Regional Pricing](../features/feat_005-vectorized-batch-regional-pricing.md)
 
-Phrase 4: Discovery Wiring & Projection Reconciliation
-  - Implement `SearchBuyableOffersService` and `GetBuyableOfferBySlugService` for storefront query paths, implement `ProjectDiscoveryProductService` and `RebuildDiscoveryProductsService` for Tier 1 currency-agnostic catalog presentation facts, and wire Spring Modulith event listeners for factual projections from Catalog and Inventory events.
-  - [link](../features/feat_006-discovery-wiring-projection-reconciliation.md)
+### Phase 4: Two-Tier CQRS Catalog Projection Boundary
+- **Boundary & Scope**: `Discovery` Read Model $\leftrightarrow$ `Catalog` & `Inventory` Write Contexts.
+- **Architectural Decisions & Invariants**:
+  - Establish Tier 1 eventual consistency read boundary: denormalized search projections store strictly currency-agnostic and region-agnostic catalog presentation facts.
+  - Prohibit synchronous cross-boundary joins across transactional write modules during browse requests.
+- **Core Algorithms & Mechanics**: Asynchronous event-driven projection reconciliation reconciling presentation read models out-of-band upon upstream domain events.
+- **Feature Decision Record**: [feat_006: Discovery Wiring & Projection Reconciliation](../features/feat_006-discovery-wiring-projection-reconciliation.md)
 
-Phrase 5: Storefront API Cutover & Response Contract Refactoring
-  - Enforce mandatory `X-Publishable-Key` header and reject legacy `salesChannelId` query parameters with 400, cut over to restructured `BuyableOfferResponse` schema, implement 3-tier variant availability precedence state machine (`NOT_AVAILABLE_IN_REGION > PRICE_UNAVAILABLE > SOLD_OUT > AVAILABLE`), dynamically compute price ranges, and configure HATEOAS assemblers (preserving country, omitting key) with `Cache-Control: no-store`.
-  - [link](../features/feat_007-storefront-api-cutover-contract-refactoring.md)
+### Phase 5: Storefront Presentation & Availability Contract Boundary
+- **Boundary & Scope**: Storefront Query Surface $\leftrightarrow$ Client Applications & Web Crawlers.
+- **Architectural Decisions & Invariants**:
+  - Dynamic composition boundary: compose Tier 1 catalog presentation facts with Tier 2 batch pricing results on the fly.
+  - Preserve SEO crawl integrity: return uniform HTTP 200 responses with granular variant availability states instead of dropping missing regional products into HTTP 404.
+  - Enforce mandatory `X-Publishable-Key` header authentication, strictly rejecting legacy query parameters.
+- **Core Algorithms & Mechanics**: 4-State Availability Precedence State Machine ($NOT\_AVAILABLE\_IN\_REGION \succ PRICE\_UNAVAILABLE \succ SOLD\_OUT \succ AVAILABLE$) and dynamic min/max price range derivation over active quoted variants.
+- **Feature Decision Record**: [feat_007: Storefront API Cutover & Contract Refactoring](../features/feat_007-storefront-api-cutover-contract-refactoring.md)
 
-Phrase 6: Automated Verification & Zero-Downtime Rollout
-  - Execute multi-tenant key security slice tests, context resolution edge & failure tests, multi-regional quotes (SG vs MY) & dual-USD isolation tests, Spring Modulith `ApplicationModules.verify()` architectural checks & R21 checklist, and complete zero-downtime production cutover via expand/backfill/cutover procedure.
-  - [link](../features/feat_008-automated-verification-zero-downtime-rollout.md)
+### Phase 6: Architectural Invariant Verification & Safe Migration Boundary
+- **Boundary & Scope**: System Modular Invariants & Production Deployment Pipeline.
+- **Architectural Decisions & Invariants**:
+  - Enforce modular boundaries and prevent architectural drift (zero circular dependencies, verified cross-module SPI boundaries).
+  - Guarantee zero-downtime rollout with zero disruption to active storefront clients.
+- **Core Algorithms & Mechanics**: Expand-Contract migration protocol (Introduce cryptographic authentication $\rightarrow$ Parallel dual-resolution validation $\rightarrow$ Deprecation and strict header cutover).
+- **Feature Decision Record**: [feat_008: Automated Verification & Zero-Downtime Rollout](../features/feat_008-automated-verification-zero-downtime-rollout.md)
 
 

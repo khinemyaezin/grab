@@ -1,11 +1,13 @@
-You are writing a Tech Specification (Architecture Pattern Specification): a living technical specification for one platform technology, infrastructure pattern, or cross-cutting mechanism.
+You are writing a Technical Specification (Technical Architecture Decision Record): a micro-architectural decision record defining one platform capability, infrastructure pattern, cross-cutting mechanism, or read projection contract.
 
-A Tech Spec is a **contract**. Sections 1–3 explain the rationale and mechanics. Section 4 states what must be true for an implementation to be compliant.
+A Technical Specification is an **Architecture Decision Record (ADR)**. It is NOT an implementation task tracker or class configuration file.
+
+A Tech Spec is a **contract**. Sections 1–3 explain the architectural rationale, algorithms, and mechanics. Section 4 states normative rules that an implementation must satisfy to be compliant.
 
 **Flow:** Why We Need It → What It Is → How We Use It in This System → Specification & Contracts.
 
 **Author rules:**
-- Use role names in diagrams (e.g. `Event Producer`, `Outbox Poller`, `Message Dispatcher`). Never Java class types or database table names.
+- Use architectural role names in diagrams and text (e.g. `Event Producer`, `Outbox Poller`, `Message Dispatcher`, `Query Projector`). **NEVER** use Java class types, framework annotations, or database table names.
 - Required diagrams:
   1. Concept flowchart (core pattern abstraction).
   2. State lifecycle diagram (omit if completely stateless).
@@ -18,7 +20,7 @@ A Tech Spec is a **contract**. Sections 1–3 explain the rationale and mechanic
 
 ---
 
-# Tech Specification: [Technology / Pattern Name]
+# Technical Decision Record: [Technology / Pattern Name]
 
 > **Summary:** [One clear sentence anyone on the team can repeat explaining what this tech does.]
 > **Classification:** [Platform Infrastructure / Architectural Pattern / Cross-Cutting Concern]

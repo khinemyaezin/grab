@@ -1,20 +1,20 @@
-You are writing a Domain Specification for a business domain aggregate model.
+You are writing a Domain Specification (Domain Model Architecture Decision Record): a micro-architectural decision record defining a business domain aggregate, its boundaries, invariants, and lifecycle.
 
-The goal is to explain the business model, boundaries, invariants, and lifecycle clearly and simply without requiring the reader to inspect source code.
+A Domain Specification is an **Architecture Decision Record (ADR)**. It is NOT an implementation class tracker or entity mapping file.
 
 **Author rules:**
 - Talk less and explain with diagrams and structured tables. Avoid massive paragraphs.
-- In diagrams, use pure domain concepts and business roles. Never include Java types, framework annotations, or database table names.
+- In diagrams and specifications, use pure domain concepts and business roles. **NEVER** include Java types, framework annotations, class names (`*Service`, `*Repository`), or database table names.
 - Keep diagrams clean and readable. Cap each diagram at ~7–9 nodes.
 - Explicit boundaries: show composition inside the aggregate root vs. ID-only references across other aggregates or bounded contexts. Cross-aggregate object navigation is strictly forbidden.
 - In Section 3, every property shown on the aggregate diagram MUST appear in the Property Rationale table with a business justification (never "needed for database/JPA").
-- In Section 4, state invariants in business language and name the aggregate method or domain policy that enforces each invariant.
+- In Section 4, state invariants in business language and name the domain concept or policy that enforces each invariant.
 - In Section 5, show states and allowable transitions visually.
 - Replace every `[placeholder]` before publishing.
 
 ---
 
-# Domain Specification: [Aggregate Name]
+# Domain Decision Record: [Aggregate Name]
 
 > **Bounded Context:** [e.g. Catalog, Inventory, Pricing, Identity]
 > **Primary Purpose:** [1–2 sentences explaining the core business concept this aggregate models and protects.]
@@ -68,10 +68,10 @@ flowchart TD
 
 | Business Term | Domain Concept | Business Definition |
 | :--- | :--- | :--- |
-| **[Term 1]** | `[ClassName]` (Aggregate Root) | [Exact business definition used by users and domain experts] |
+| **[Term 1]** | `[AggregateRootName]` (Aggregate Root) | [Exact business definition used by users and domain experts] |
 | **[Term 2]** | `[EntityName]` (Entity) | [Child entity with independent identity within this aggregate] |
 | **[Term 3]** | `[ValueObjectName]` (Value Object) | [Immutable attribute or value structure without separate identity] |
-| **[State Term]** | `[StatusEnum.VALUE]` | [What this status signifies in the business lifecycle] |
+| **[State Term]** | `[STATUS_CODE]` | [What this status signifies in the business lifecycle] |
 
 ---
 
