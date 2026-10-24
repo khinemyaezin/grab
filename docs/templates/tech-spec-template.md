@@ -1,115 +1,156 @@
-You are writing a Tech Specification (Architecture Pattern Specification): a living technical specification for one platform technology, infrastructure pattern, or cross-cutting mechanism.
+<!-- TEMPLATE INSTRUCTIONS
+─────────────────────────────────────────────────────────────────
+This documents a technology or architectural pattern decision.
 
-A Tech Spec is a **contract**. Sections 1–3 explain the architectural rationale, algorithms, and mechanics. Section 4 states normative rules that an implementation must satisfy to be compliant.
+PURPOSE: Explain WHY a specific technology/pattern is needed, HOW it works,
+         and WHAT rules implementations must follow.
+         Developers use the Rules section as the compliance contract.
 
-**Flow:** Why We Need It → What It Is → How We Use It in This System → Specification & Contracts.
+WHEN TO CREATE: When a Feature Spec involves a technology choice, infrastructure pattern,
+                or cross-cutting concern (caching, messaging, auth, etc.) that needs
+                shared understanding and consistent usage rules.
 
-**Author rules:**
-- Use architectural role names in diagrams and text (e.g. `Event Producer`, `Outbox Poller`, `Message Dispatcher`, `Query Projector`). 
-- Required diagrams:
-  1. Concept flowchart (core pattern abstraction).
-  2. State lifecycle diagram (omit if completely stateless).
-  3. Project architecture stacking flowchart (how layers interact: `framework` → `infrastructure` → `store`).
-  4. Runtime flow sequence diagram.
-- Cap each diagram at ~7–9 nodes. No messy tangled graphs.
-- No complex massive sentences. Explain simply and show it with diagrams and tables.
-- Section 4 uses normative MUST / MUST NOT statements. Knobs are logical names and defaults.
-- Replace every `[placeholder]` before publishing.
+RULES:
+- Lead with the problem — not the technology.
+- Compare against alternatives so the decision is justified.
+- Keep diagrams to ~7–9 nodes.
+- Rules section uses MUST / MUST NOT — these are non-negotiable contracts.
+- Replace every [placeholder] before publishing.
+─────────────────────────────────────────────────────────────────
+-->
 
----
+# Tech Spec: [Technology / Pattern Name]
 
-# Technical Decision Record: [Technology / Pattern Name]
-
-- **Summary:** [One clear sentence anyone on the team can repeat explaining what this tech does.]
-- **Classification:** [Platform Infrastructure / Architectural Pattern / Cross-Cutting Concern]
-- **Supporting Modules:** `[e.g. framework / outbox-infrastructure / store]`
-- **Related Architecture ADRs:** [[ADR Reference]](../../dev/system/[file.md])
-
----
-
-## 1. Why We Need It
-
-### The Problem
-
-[What breaks or degrades without this technology — concrete, direct, under 150 words.]
-
-### Technology Decision & Alternatives
-
-| Technology Option | Decision | Evaluation Rationale |
-| :--- | :--- | :--- |
-| **[Chosen Option]** | **Adopted** | [Why this is the best fit for our architecture] |
-| [Alternative A] | Rejected | [Why rejected: complexity, coupling, lack of fit, etc.] |
-| [Alternative B] | Deferred | [Under what future conditions we would reconsider] |
-
-### Key Benefits & Trade-offs
-
-**Core Benefits:**
-- [Benefit 1: State the behavior the implementation demonstrates and its limits]
-- [Benefit 2: State a verified benefit without implying an unsupported guarantee]
-
-**Known Trade-offs:**
-- [Trade-off 1: e.g. Eventual consistency latency instead of immediate delivery]
-- [Trade-off 2: e.g. Requires background poller management and database storage]
+- **Summary:** [One sentence anyone on the team can understand — what this technology does for us]
+- **Type:** Infrastructure | Architecture Pattern | Cross-Cutting Concern
+- **Feature Spec:** [[Feature Name]](../../features/[feat-xxx-feature-name].md)
 
 ---
 
-## 2. What It Is
+## 1. Problem & Decision
+
+### What breaks without this?
+
+[Concrete problem in under 100 words — what fails, degrades, or becomes impossible without this technology.]
+
+### Decision
+
+| Option | Decision | Why |
+|:-------|:---------|:----|
+| **[Chosen Option]** | Adopted | [Why this fits — performance, simplicity, team familiarity, ecosystem support] |
+| [Alternative A] | Rejected | [Why not — too complex, doesn't scale, wrong fit, cost] |
+| [Alternative B] | Deferred | [Under what conditions we'd reconsider] |
+
+### Trade-offs
+
+| Benefits | Trade-offs |
+|:-----------|:-------------|
+| [Benefit 1 — what this gives us] | [Trade-off 1 — what we accept in return] |
+| [Benefit 2] | [Trade-off 2] |
+
+---
+
+## 2. How It Works
 
 ### Core Concept
 
-[The pattern in plain language without project-specific module names with mermaid flowchart.]
+> Explain the pattern or technology in plain language. Then choose the diagram type that best shows how it works.
 
-### Internal Mechanics & Lifecycle
+[2–3 sentences explaining the core idea — as if explaining to someone who hasn't used this pattern before.]
 
-> Visual lifecycle for stateful entities or tasks managed by this technology in mermaid stateDiagram.
+<!-- USE THE DIAGRAM TYPE THAT FITS BEST:
 
----
+For ARCHITECTURE PATTERNS (CQRS, Event Sourcing, Hexagonal):
+  → Use a flowchart/topology showing the structural split
 
-## 3. How We Use It in This System
+For SECURITY PATTERNS (OAuth, JWT, mTLS):
+  → Use a sequence diagram showing the auth/handshake flow
 
-### Architecture & Layer Stacking
+For ALGORITHMS (vectorized query, search ranking, cache invalidation):
+  → Use a flowchart showing the step-by-step algorithm logic
 
-> Show how this capability lives across repository layers. Use role names. use mermaid flowchart.
-
-### Component Responsibilities
-
-| Architectural Role | Layer Location | Responsibility |
-| :--- | :--- | :--- |
-| `[Producer / Caller]` | `store` or domain | Initiates the action within the local transaction boundary. |
-| `[Engine / Core]` | `framework` | Defines contracts, state machines, and pure processing logic. |
-| `[Persistence Adapter]` | `*-infrastructure` | Manages database persistence, schema bindings, and queries. |
-| `[Dispatcher / Poller]` | `*-infrastructure` | Polls, claims, and delivers messages to external sinks. |
-
-### Runtime Flow
-
-> Show a realistic request trace through the stacked architecture.
+For INFRASTRUCTURE (logging, monitoring, CI/CD):
+  → Use a flowchart showing how data flows through the tool
+-->
 
 ```mermaid
-sequenceDiagram
-    participant App as Application Handler
-    participant Port as Engine Port (Framework)
-    participant Store as Persistent Store (Infra)
-    participant Worker as Background Processor (Infra)
-    participant Target as External Target / Consumer
+flowchart TD
+    A["[Step / Component A]"] --> B["[Step / Component B]"]
+    B --> C["[Step / Component C]"]
+    C --> D["[Result / Output]"]
+```
 
-    App->>Port: Submit payload
-    Port->>Store: Save record within caller transaction
-    Note over Store: Transaction commits
-    Worker->>Store: Claim pending records
-    Worker->>Target: Dispatch payload
-    Target-->>Worker: Acknowledge success
-    Worker->>Store: Mark record completed
+### How It Works Step by Step
+
+> Walk through the mechanism — whether it's an algorithm, a protocol handshake, or a processing pipeline.
+
+| Step | What Happens | Why |
+|:-----|:-------------|:----|
+| 1 | [First thing that happens — e.g., "Client redirects to authorization server"] | [Why this step exists] |
+| 2 | [Next step — e.g., "Auth server validates credentials and issues authorization code"] | [Why] |
+| 3 | [Next step — e.g., "Client exchanges code for access token"] | [Why] |
+| 4 | [Final step — e.g., "Client uses token to access protected resource"] | [Why] |
+
+### Lifecycle *(optional — include if this technology manages stateful resources)*
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created : [trigger]
+    Created --> Processing : [action]
+    Processing --> Completed : [success]
+    Processing --> Failed : [error]
+    Failed --> Processing : [retry]
+    Completed --> [*]
 ```
 
 ---
 
-## 4. Technical Specification & Contracts
+## 3. How We Use It
 
-Normative specification. An implementation is compliant only when all MUST / MUST NOT statements are satisfied.
+### Where It Fits in Our System
 
-### Normative Rules
+> Show how this technology integrates into the project's architecture. Use whatever diagram shape fits — don't force it into layers if it doesn't belong there.
 
-- **R-01:** The system **MUST** persist state changes atomically within the initiating command's database transaction.
-- **R-02:** The system **MUST NOT** perform remote network I/O inside the active database transaction boundary.
-- **R-03:** State the implemented retry and duplicate-delivery behavior precisely. Do not promise eventual success unless the implementation supports it; identify an attempt cutoff or dead-letter behavior only when it exists.
-- **R-04:** If the implementation can redeliver a message, consumers **MUST** be idempotent or handle duplicate delivery safely.
+```mermaid
+flowchart TD
+    A["[Component / Service A]"] --> B["[This Technology / Pattern]"]
+    B --> C["[Component / Service C]"]
+    D["[Another Consumer]"] --> B
+```
+
+### Component Responsibilities
+
+| Component | Role | What It Does |
+|:----------|:-----|:-------------|
+| [Component name] | [e.g., Producer, Consumer, Gateway, Logger] | [What this component does in relation to this technology] |
+| [Component name] | [Role] | [Responsibility] |
+| [Component name] | [Role] | [Responsibility] |
+
+### Runtime Flow
+
+> Show a realistic trace of this technology in action — a request, an auth handshake, a query, or a log pipeline.
+
+```mermaid
+sequenceDiagram
+    participant A as [Initiator]
+    participant B as [This Technology]
+    participant C as [Target / Downstream]
+
+    A->>B: [Action]
+    B->>C: [Processing / Forwarding]
+    C-->>B: [Response]
+    B-->>A: [Result]
+```
+
+---
+
+## 4. Implementation Rules
+
+> These are **non-negotiable contracts**. An implementation is compliant only when **all** rules are satisfied.
+
+| Rule | Requirement |
+|:-----|:------------|
+| **R-01** | The system **MUST** [specific required behavior — e.g., "validate JWT signature before granting access"] |
+| **R-02** | The system **MUST NOT** [specific prohibited behavior — e.g., "store plaintext credentials in configuration files"] |
+| **R-03** | [Another implementation rule] |
+| **R-04** | [Another implementation rule] |

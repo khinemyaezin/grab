@@ -1,34 +1,93 @@
-You are writing a Feature Specification (Feature Umbrella Architecture Decision Record): the cohesive feature-level architectural decision record that bridges a macro System Design capability phase to detailed modular specifications.
+<!-- TEMPLATE INSTRUCTIONS
+─────────────────────────────────────────────────────────────────
+This document bridges a System Design feature to its implementation details.
 
-**Author rules:**
-- Explain the architectural decision and business problem clearly.
-- **Acceptance Criteria (AC) Checklist:** The AC list serves as the testable verification checklist indicating when the architectural decision is fully satisfied. Every criterion must use RFC 2119 keywords (`MUST`, `MUST NOT`) and state concrete, observable behavior (HTTP response codes, security invariants, data constraints, boundary rules) without referencing code-level artifacts.
-- **Decomposition:** Decompose the feature into underlying (Domain Specs, Workflow Specs, and Technical Specs). Developers will reference these decision records as the definitive specification to code against.
+PURPOSE: Define WHAT a feature does, WHY it matters, and HOW it's verified —
+         then link to the detailed specs (domain, workflow, tech) that developers
+         will code against.
+
+WHEN TO CREATE: When a feature is identified in a System Design's Feature Breakdown (Section 5).
+
+RULES:
+- One Feature Spec per feature identified in the System Design.
+- Acceptance Criteria must be testable — clear pass/fail, no ambiguity.
+- This document does NOT contain implementation details. Those live in the linked specs.
+- Replace every [placeholder] before publishing.
+─────────────────────────────────────────────────────────────────
+-->
+
+# Feature: [Feature Name]
+
+> **System Design:** [[System Design Name]](../system/[system-design-name].md)
 
 ---
 
-# [Feature Name]
-## Participating Bounded Contexts:
+## 1. What & Why
 
-### 1. Problem Statement & Architectural Context
-[What friction, security vulnerability, scalability bottleneck, or business need does this feature address? Why can't existing platform capabilities or current boundaries satisfy this?]
+### What does this feature do?
+
+[2–3 sentences explaining what this feature delivers. Write it so someone unfamiliar with the system understands the value.]
+
+### Why is it needed?
+
+[Connect back to the business problem. What part of the System Design's problem does this feature solve?]
+
+### What's in scope / out of scope?
+
+| In Scope | Out of Scope |
+|:---------|:-------------|
+| [What this feature covers] | [What it explicitly does NOT cover] |
+| [Another in-scope item] | [Another exclusion] |
 
 ---
 
-### 2. Acceptance Criteria (Architectural Verification Checklist)
+## 2. Acceptance Criteria
 
-> The Acceptance Criteria list constitutes the testable verification checklist. An implementation satisfies this architectural decision record if and only if all criteria pass.
+> This feature is **done** when all criteria below pass. Each criterion must be testable — no vague language.
+
+| # | Criteria | How to Verify |
+|:--|:---------|:--------------|
+| AC-1 | [Observable behavior — e.g., "System returns HTTP 201 with created resource when valid payload is submitted"] | [Test method — API test, UI check, log inspection] |
+| AC-2 | [Another testable behavior] | [How to verify] |
+| AC-3 | [Another testable behavior] | [How to verify] |
+
 ---
 
-### 3. Underlying Architectural Decision Records (Decomposition)
+## 3. Solution Design
 
-This feature decision record decomposes into the following detailed micro-decision records that these referenced specifications must be consulted when implementing the solution and those must br contained only related to this feature.
+### How does this feature work?
 
-#### Domain Decision Records (Aggregate boundaries, invariants, & entities)
-- [[Domain Spec Name]](../spec/domain/{domain}/architecture/{aggregate}-domain-spec.md) — [Summary of domain aggregate decisions]
+> Show the key architectural flow for this feature. This is the "zoomed-in" view of the relevant part of the System Design.
 
-#### Workflow Decision Records (Cross-domain business orchestration & sagas)
-- [[Workflow Spec Name]](../spec/workflows/{workflow-name}.md) — [Summary of cross-aggregate workflow decisions]
+```mermaid
+flowchart LR
+    A["[Entry Point]"] --> B["[Processing Step]"]
+    B --> C["[Data / Action]"]
+    C --> D["[Output / Result]"]
+```
 
-#### Technical Decision Records (Platform infrastructure, read models, & protocols)
-- [[Tech Spec Name]](../spec/system/{tech-name}-tech-spec.md) — [Summary of technical capability contracts]
+### Key Design Decisions
+
+[If there are feature-specific design decisions not already covered in the System Design, document them here.]
+
+| Decision | Choice | Rationale |
+|:---------|:-------|:----------|
+| [e.g., Validation approach] | [e.g., Schema-based validation at API layer] | [Why — catches errors early, single validation point] |
+
+---
+
+## 4. Implementation Specifications
+
+> These are the detailed blueprints developers code against. Each spec covers one aspect of this feature's implementation.
+
+### Domain Specs (Data Models & Business Rules)
+
+[Domain Spec Name](../spec/domain/[domain]/[aggregate]-domain-spec.md)
+
+### Workflow Specs (Process Flows)
+
+[Workflow Spec Name](../spec/workflows/[workflow-name].md)
+
+### Tech Specs (Technology Decisions & Rules)
+
+[Tech Spec Name](../spec/system/[tech-name]-tech-spec.md)

@@ -1,67 +1,136 @@
-You are writing a System Design Document: a high-level architectural specification to create the business requirement or issue in the system.
+<!-- TEMPLATE INSTRUCTIONS
+─────────────────────────────────────────────────────────────────
+This is the starting point for any new business requirement.
 
-A System Design Document is an **Architecture Decision Record (ADR)** that establishes the subsystem topology, bounded context boundaries, architectural invariants, and core algorithms.
+PURPOSE: Translate a business requirement into a high-level technical blueprint.
+         Anyone reading this should understand:
+         - WHY this work exists (the business need)
+         - WHAT the solution looks like (architecture overview)
+         - HOW it breaks down into buildable features
 
-**Author rules:**
-- Explain architecture, trade-offs, boundaries, and algorithms.
-- Use logical architectural role names and bounded contexts (e.g., `Edge Context Resolver`, `Catalog Projection Engine`, `Pricing Engine`).
-- In Section 5, decompose the subsystem into sequential **Architectural Capability Phases**. Each phase represents an architectural boundary transition and maps 1:1 to a Feature Decision Record (`docs/features/feat_xxx.md`).
-- Keep diagrams clean and capped at ~7–9 nodes.
----
+WHEN TO CREATE: When a new business requirement, initiative, or major change request arrives.
 
-# [Document Title: Subsystem & Architecture Decision Record]
+RULES:
+- Start from the business requirement — not from technology.
+- Keep architecture diagrams to ~7–9 nodes. If it's more complex, you need more features.
+- Every feature listed in Section 5 maps to its own Feature Spec document.
+- Replace every [placeholder] before publishing.
+─────────────────────────────────────────────────────────────────
+-->
 
-## 1. The Problem
+# [System Design Title]
 
-### What's Not Working?
-[Describe specific architectural and business problems using clear, concise bullet points.]
+## 1. Business Requirement
 
-### What's at Stake?
-[A concise summary explaining the business impact, security risk, CDN/cache inconsistency, or performance degradation if this architecture is NOT adopted.]
+### What does the business need?
 
----
+[Summarize the business requirement in 2–3 sentences. Write it as if you're explaining to a new team member who just joined.]
 
-## 2. The Proposed Design
+### What happens if we don't solve this?
 
-### 2.1 Architecture Overview
-[High-level description of the proposed subsystem topology and its place within the platform. Include a simplified Mermaid architecture diagram showing participating bounded contexts.]
+[Bullet points — business impact, revenue risk, user friction, security exposure, or operational cost.]
 
-### 2.2 Key Components
-- [List and describe the major architectural roles, bounded contexts and algorithm that make up this subsystem.]
-- [Walk through the primary end-to-end interactions, data flows, and algorithmic mechanisms. Include Mermaid diagrams to virtualize best.]
-
----
-
-## 3. Implementation Approach
-
-### 3.1 Technology & Tooling Choices
-[Explain the technology stack, architectural styles and platform tooling. Justify why each choice satisfies the architectural invariants.]
-
-| Technology / Architectural Pattern | Selection Rationale |
-| :--- | :--- |
-| **[Technology / Pattern 1]** | [Why this is selected and how it enforces boundaries] |
+- [Impact 1]
+- [Impact 2]
+- [Impact 3]
 
 ---
 
-## 4. Why This Approach (Technical Rationale)
-[Compare the chosen architectural design against concrete alternatives across simplicity, performance, scalability, maintainability, and security.]
+## 2. Current State & Problem
 
-| Evaluation Metric | Selected Design | Alternative A | Alternative B |
-| :--- | :--- | :--- | :--- |
-| **Simplicity** | [Evaluation and rationale] | [Evaluation and rationale] | [Evaluation and rationale] |
-| **Performance** | [Evaluation and rationale] | [Evaluation and rationale] | [Evaluation and rationale] |
-| **Scalability** | [Evaluation and rationale] | [Evaluation and rationale] | [Evaluation and rationale] |
-| **Maintainability** | [Evaluation and rationale] | [Evaluation and rationale] | [Evaluation and rationale] |
-| **Security** | [Evaluation and rationale] | [Evaluation and rationale] | [Evaluation and rationale] |
+### How does it work today?
+
+> Show the current system behavior relevant to this requirement. Highlight what's missing or broken.
+
+```mermaid
+flowchart LR
+    A["[Current Component A]"] --> B["[Current Component B]"]
+    B --> C["[Current Component C]"]
+    C -.-x D["❌ [What's missing or broken]"]
+```
+
+### What's the problem?
+
+| # | Problem | Impact |
+|:--|:--------|:-------|
+| 1 | [Specific technical or process gap] | [How it manifests — errors, latency, manual work, data loss] |
+| 2 | [Another problem] | [Its impact] |
 
 ---
 
-## 5. Architectural Capability Decomposition & Feature Decisions
+## 3. Solution Overview
 
-Decompose the subsystem into sequential architectural capability phases. Each phase represents an architectural boundary transition and maps 1:1 to a Feature Decision Record (`docs/features/feat_xxx.md`). 
+### Architecture
 
-### Phase XX: [Capability / Boundary Name]
-- **Boundary & Scope**: [Which bounded contexts and communication boundaries are established or modified]
-- **Architectural Decisions & Invariants**: [Key architectural rules to solve or create for this phase]
-- **Core Algorithms & Design Mechanics**: [Key algorithms, evaluation precedence, or protocols executed in this boundary]
-- **Feature Decision Record**: [[feat_00x-feature-name.md](../features/feat_00x-feature-name.md)]
+> Show the proposed system design. Use role names (e.g., "API Gateway", "Order Engine", "Notification Service"), not class names. Keep it to ~7–9 nodes.
+
+```mermaid
+flowchart TD
+    subgraph Proposed ["Proposed Architecture"]
+        A["[Component A]"] --> B["[Component B]"]
+        B --> C["[Component C]"]
+        C --> D["[Component D]"]
+    end
+```
+
+### Key Components
+
+| Component | Role | What It Does |
+|:----------|:-----|:-------------|
+| **[Component A]** | [e.g., API Gateway] | [One sentence — what this component is responsible for] |
+| **[Component B]** | [e.g., Processing Engine] | [One sentence] |
+| **[Component C]** | [e.g., Data Store] | [One sentence] |
+
+### How It Works (End-to-End Flow)
+
+> Walk through the main interaction flow. This should tell the story of a request from start to finish.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant A as [Component A]
+    participant B as [Component B]
+    participant C as [Component C]
+
+    User->>A: [Action]
+    A->>B: [What happens next]
+    B->>C: [Processing step]
+    C-->>A: [Result]
+    A-->>User: [Response]
+```
+
+---
+
+## 4. Technology & Design Decisions
+
+[Explain the key technology and architectural pattern choices. Focus on *why* — not just *what*.]
+
+| Decision | Choice | Why (not alternatives) |
+|:---------|:-------|:-----------------------|
+| **[Decision area, e.g., Message Broker]** | [e.g., Kafka] | [Why this over RabbitMQ, SQS, etc. — fit for our scale, ordering guarantees, team familiarity] |
+| **[Decision area, e.g., Data Storage]** | [e.g., PostgreSQL] | [Why this — ACID transactions needed, relational model fits domain] |
+| **[Decision area, e.g., Architecture Style]** | [e.g., Event-Driven] | [Why this — decoupling between services, async processing required] |
+
+---
+
+## 5. Feature Breakdown
+
+> Decompose this system design into manageable, buildable features. Each feature gets its own Feature Spec where domain models, workflows, and tech decisions are detailed.
+
+```mermaid
+flowchart TD
+    SD["📐 This System Design"]
+    F1["🧩 Feature 1: [Name]"]
+    F2["🧩 Feature 2: [Name]"]
+    F3["🧩 Feature 3: [Name]"]
+
+    SD --> F1
+    SD --> F2
+    SD --> F3
+```
+
+| # | Feature | What It Solves | Scope | Feature Spec |
+|:--|:--------|:---------------|:------|:-------------|
+| 1 | **[Feature Name]** | [Which part of the problem this feature addresses] | [Key boundaries — what's in/out] | [feat-001-feature-name.md](../features/feat-001-feature-name.md) |
+| 2 | **[Feature Name]** | [Problem it addresses] | [Boundaries] | [feat-002-feature-name.md](../features/feat-002-feature-name.md) |
+| 3 | **[Feature Name]** | [Problem it addresses] | [Boundaries] | [feat-003-feature-name.md](../features/feat-003-feature-name.md) |
