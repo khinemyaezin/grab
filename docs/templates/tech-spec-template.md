@@ -107,7 +107,7 @@ stateDiagram-v2
 
 ## 3. How We Use It
 
-### Where It Fits in Our System
+### Where It Fits in Our System / Architecture & Layer Stacking
 
 > Show how this technology integrates into the project's architecture. Use whatever diagram shape fits — don't force it into layers if it doesn't belong there.
 

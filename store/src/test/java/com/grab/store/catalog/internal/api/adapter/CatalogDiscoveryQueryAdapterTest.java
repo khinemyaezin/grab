@@ -7,11 +7,15 @@ import com.catalog.application.model.read.GetCatalogVariantFactsQuery;
 import com.catalog.application.model.read.GetProductResult;
 import com.catalog.application.model.read.ListPublishedProductChannelsAfterQuery;
 import com.catalog.application.model.read.ListPublishedProductChannelsAfterResult;
+import com.catalog.application.model.read.ListPublishedProductChannelsBySkuQuery;
+import com.catalog.application.model.read.ListPublishedProductChannelsForSalesChannelAfterQuery;
 import com.catalog.application.model.read.PublishedProductChannel;
 import com.catalog.application.port.inbound.CheckProductPublishedToChannelUseCase;
 import com.catalog.application.port.inbound.GetCatalogProductFactsUseCase;
 import com.catalog.application.port.inbound.GetCatalogVariantFactsUseCase;
 import com.catalog.application.port.inbound.ListPublishedProductChannelsAfterUseCase;
+import com.catalog.application.port.inbound.ListPublishedProductChannelsBySkuUseCase;
+import com.catalog.application.port.inbound.ListPublishedProductChannelsForSalesChannelAfterUseCase;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.store.catalog.internal.api.adapter.mapper.CatalogDiscoveryQueryMapper;
@@ -50,6 +54,10 @@ class CatalogDiscoveryQueryAdapterTest {
     @Mock
     private ListPublishedProductChannelsAfterUseCase listPublishedProductChannelsAfterUseCase;
     @Mock
+    private ListPublishedProductChannelsBySkuUseCase listPublishedProductChannelsBySkuUseCase;
+    @Mock
+    private ListPublishedProductChannelsForSalesChannelAfterUseCase listPublishedProductChannelsForSalesChannelAfterUseCase;
+    @Mock
     private CheckProductPublishedToChannelUseCase checkProductPublishedToChannelUseCase;
     @Mock
     private CatalogDiscoveryQueryMapper mapper;
@@ -62,6 +70,8 @@ class CatalogDiscoveryQueryAdapterTest {
                 getCatalogProductFactsUseCase,
                 getCatalogVariantFactsUseCase,
                 listPublishedProductChannelsAfterUseCase,
+                listPublishedProductChannelsBySkuUseCase,
+                listPublishedProductChannelsForSalesChannelAfterUseCase,
                 checkProductPublishedToChannelUseCase,
                 mapper
         );
@@ -126,6 +136,42 @@ class CatalogDiscoveryQueryAdapterTest {
     }
 
     @Test
+    void findPublishedProductChannelsBySku_delegatesToUseCaseAndMapper() {
+        PublishedProductChannel item = new PublishedProductChannel("prod-1", "chan-1");
+        CatalogDiscoveryQuery.ProductChannelPair pair = new CatalogDiscoveryQuery.ProductChannelPair(PRODUCT_ID, CHANNEL_ID);
+
+        when(listPublishedProductChannelsBySkuUseCase.execute(new ListPublishedProductChannelsBySkuQuery("SKU-1")))
+                .thenReturn(List.of(item));
+        when(mapper.toProductChannelPairsFromCatalog(List.of(item))).thenReturn(List.of(pair));
+
+        List<CatalogDiscoveryQuery.ProductChannelPair> actual = adapter.findPublishedProductChannelsBySku("SKU-1");
+
+        assertThat(actual).containsExactly(pair);
+        verify(listPublishedProductChannelsBySkuUseCase)
+                .execute(new ListPublishedProductChannelsBySkuQuery("SKU-1"));
+    }
+
+    @Test
+    void findPublishedProductChannelsForSalesChannelAfter_delegatesToUseCaseAndMapper() {
+        PublishedProductChannel item = new PublishedProductChannel("prod-1", "chan-1");
+        CatalogDiscoveryQuery.ProductChannelPair pair = new CatalogDiscoveryQuery.ProductChannelPair(PRODUCT_ID, CHANNEL_ID);
+        ListPublishedProductChannelsForSalesChannelAfterQuery query =
+                new ListPublishedProductChannelsForSalesChannelAfterQuery(CHANNEL_ID, PRODUCT_ID, 10);
+
+        when(listPublishedProductChannelsForSalesChannelAfterUseCase.execute(query)).thenReturn(List.of(item));
+        when(mapper.toProductChannelPairsFromCatalog(List.of(item))).thenReturn(List.of(pair));
+
+        List<CatalogDiscoveryQuery.ProductChannelPair> actual = adapter.findPublishedProductChannelsForSalesChannelAfter(
+                CHANNEL_ID,
+                PRODUCT_ID,
+                10
+        );
+
+        assertThat(actual).containsExactly(pair);
+        verify(listPublishedProductChannelsForSalesChannelAfterUseCase).execute(query);
+    }
+
+    @Test
     void isPublishedInChannel_delegatesToUseCase() {
         when(checkProductPublishedToChannelUseCase.execute(new CheckProductPublishedToChannelQuery("prod-1", "chan-1")))
                 .thenReturn(true);
@@ -141,11 +187,20 @@ class CatalogDiscoveryQueryAdapterTest {
         Method findProduct = CatalogDiscoveryQueryAdapter.class.getMethod("findProduct", Id.class);
         Method findVariant = CatalogDiscoveryQueryAdapter.class.getMethod("findVariant", Id.class);
         Method findChannels = CatalogDiscoveryQueryAdapter.class.getMethod("findPublishedProductChannelsAfter", Id.class, Id.class, int.class);
+        Method findChannelsBySku = CatalogDiscoveryQueryAdapter.class.getMethod("findPublishedProductChannelsBySku", String.class);
+        Method findChannelPage = CatalogDiscoveryQueryAdapter.class.getMethod(
+                "findPublishedProductChannelsForSalesChannelAfter",
+                Id.class,
+                Id.class,
+                int.class
+        );
         Method isPublished = CatalogDiscoveryQueryAdapter.class.getMethod("isPublishedInChannel", Id.class, Id.class);
 
         assertThat(findProduct.isAnnotationPresent(CatalogReadTransactional.class)).isTrue();
         assertThat(findVariant.isAnnotationPresent(CatalogReadTransactional.class)).isTrue();
         assertThat(findChannels.isAnnotationPresent(CatalogReadTransactional.class)).isTrue();
+        assertThat(findChannelsBySku.isAnnotationPresent(CatalogReadTransactional.class)).isTrue();
+        assertThat(findChannelPage.isAnnotationPresent(CatalogReadTransactional.class)).isTrue();
         assertThat(isPublished.isAnnotationPresent(CatalogReadTransactional.class)).isTrue();
     }
 }

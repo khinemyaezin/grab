@@ -2,9 +2,10 @@ package com.grab.store.storefrontquery.internal.command.handler;
 
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshProductChannel;
-import com.grab.discovery.application.port.inbound.ProjectDiscoveryProductUseCase;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.impl.CommonId;
+import com.grab.discovery.application.port.inbound.ProjectDiscoveryProductUseCase;
+import com.grab.store.storefrontquery.internal.config.DiscoveryProjectionRetryable;
 import com.grab.store.storefrontquery.internal.config.StorefrontQueryTransactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class ProjectDiscoveryProductCommandHandlerTest {
     }
 
     @Test
-    void handle_validCommand_delegatesDirectlyToUseCase() {
+    void handle_validCommand_delegatesToUseCase() {
         ProjectDiscoveryProductCommand command = command();
 
         Void result = handler.handle(command);
@@ -54,12 +55,14 @@ class ProjectDiscoveryProductCommandHandlerTest {
     }
 
     @Test
-    void handle_hasDeclarativeStorefrontQueryTransactionalAnnotation() throws NoSuchMethodException {
+    void handle_hasDeclarativeRetryableAndTransactionalAnnotations() throws NoSuchMethodException {
         Method handleMethod = ProjectDiscoveryProductCommandHandler.class.getMethod("handle", ProjectDiscoveryProductCommand.class);
-        StorefrontQueryTransactional annotation = handleMethod.getAnnotation(StorefrontQueryTransactional.class);
+        StorefrontQueryTransactional txAnnotation = handleMethod.getAnnotation(StorefrontQueryTransactional.class);
+        DiscoveryProjectionRetryable retryAnnotation = handleMethod.getAnnotation(DiscoveryProjectionRetryable.class);
 
-        assertThat(annotation).isNotNull();
-        assertThat(annotation.propagation()).isEqualTo(Propagation.REQUIRED);
+        assertThat(txAnnotation).isNotNull();
+        assertThat(txAnnotation.propagation()).isEqualTo(Propagation.REQUIRES_NEW);
+        assertThat(retryAnnotation).isNotNull();
     }
 
     @Test

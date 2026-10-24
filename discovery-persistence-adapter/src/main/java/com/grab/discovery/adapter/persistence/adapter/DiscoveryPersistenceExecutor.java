@@ -7,6 +7,7 @@ import com.grab.framework.logger.Loggers;
 import com.grab.framework.support.PersistenceExecutor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -30,7 +31,7 @@ public class DiscoveryPersistenceExecutor implements PersistenceExecutor {
     public <T> T command(String resource, Supplier<T> operation) {
         try {
             return operation.get();
-        } catch (DataIntegrityViolationException ex) {
+        } catch (DataIntegrityViolationException | OptimisticLockingFailureException ex) {
             String message = rootMessage(ex);
             log.warn("Persistence conflict for resource={}: {}", resource, message, ex);
             throw conflict(resource, ex);

@@ -1,7 +1,6 @@
 package com.grab.discovery.application.service;
 
 import com.grab.discovery.application.model.projection.DiscoveryProductProjection;
-import com.grab.discovery.application.model.read.DiscoveryProductKey;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.ProjectionUpdate;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshChannel;
@@ -20,6 +19,7 @@ import com.grab.framework.id.Id;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +41,11 @@ public class ProjectDiscoveryProductService implements ProjectDiscoveryProductUs
         Instant watermark = command.update().occurredAt() == null ? Instant.now() : command.update().occurredAt();
         Map<String, TargetPair> targets = new LinkedHashMap<>();
         collectTargets(command.update(), targets);
-        for (TargetPair target : targets.values()) {
+        List<TargetPair> orderedTargets = targets.values().stream()
+                .sorted(Comparator.comparing(TargetPair::salesChannelId, this::compareIds)
+                        .thenComparing(TargetPair::productId, this::compareIds))
+                .toList();
+        for (TargetPair target : orderedTargets) {
             refresh(target, watermark);
         }
     }
@@ -54,15 +58,10 @@ public class ProjectDiscoveryProductService implements ProjectDiscoveryProductUs
         } else if (update instanceof RefreshProductChannel productChannelUpdate) {
             addTarget(targets, productChannelUpdate.salesChannelId(), productChannelUpdate.productId());
         } else if (update instanceof RefreshSku skuUpdate) {
-            for (DiscoveryProductProjection projection : projections.findBySku(skuUpdate.sku())) {
-                addTarget(targets, projection.salesChannelId(), projection.productId());
-            }
+            collectStoredSkuTargets(skuUpdate.sku(), targets);
+            collectCurrentSkuTargets(skuUpdate.sku(), targets);
         } else if (update instanceof RefreshLocation locationUpdate) {
-            if (locationUpdate.salesChannelId() == null) {
-                collectAllProjectionTargets(targets);
-            } else {
-                collectChannelTargets(locationUpdate.salesChannelId(), targets);
-            }
+            collectLocationTargets(locationUpdate, targets);
         } else if (update instanceof RefreshChannel channelUpdate) {
             collectChannelTargets(channelUpdate.salesChannelId(), targets);
         }
@@ -106,26 +105,83 @@ public class ProjectDiscoveryProductService implements ProjectDiscoveryProductUs
     }
 
     private void collectChannelTargets(Id channelId, Map<String, TargetPair> targets) {
-        for (DiscoveryProductProjection projection : projections.findBySalesChannel(channelId)) {
+        List<DiscoveryProductProjection> storedProjections = projections.findBySalesChannel(channelId);
+        for (DiscoveryProductProjection projection : safeList(storedProjections)) {
             addTarget(targets, channelId, projection.productId());
+        }
+        Id lastProductId = null;
+        List<CatalogPort.ProductChannelPair> batch;
+        do {
+            List<CatalogPort.ProductChannelPair> currentBatch = catalog.findPublishedProductChannelsForSalesChannelAfter(
+                    channelId,
+                    lastProductId,
+                    TARGET_SCAN_BATCH_SIZE
+            );
+            batch = safeList(currentBatch);
+            addTargets(targets, batch);
+            if (!batch.isEmpty()) {
+                lastProductId = batch.getLast().productId();
+            }
+        } while (batch.size() == TARGET_SCAN_BATCH_SIZE);
+    }
+
+    private void collectStoredSkuTargets(String sku, Map<String, TargetPair> targets) {
+        List<DiscoveryProductProjection> storedProjections = projections.findBySku(sku);
+        if (storedProjections == null) {
+            return;
+        }
+        for (DiscoveryProductProjection projection : storedProjections) {
+            addTarget(targets, projection.salesChannelId(), projection.productId());
         }
     }
 
-    private void collectAllProjectionTargets(Map<String, TargetPair> targets) {
-        Id lastProductId = null;
-        Id lastChannelId = null;
-        List<DiscoveryProductKey> batch;
-        do {
-            batch = projections.findKeysAfter(lastProductId, lastChannelId, TARGET_SCAN_BATCH_SIZE);
-            for (DiscoveryProductKey key : batch) {
-                addTarget(targets, key.salesChannelId(), key.productId());
+    private void collectCurrentSkuTargets(String sku, Map<String, TargetPair> targets) {
+        List<CatalogPort.ProductChannelPair> currentPairs = catalog.findPublishedProductChannelsBySku(sku);
+        addTargets(targets, currentPairs);
+    }
+
+    private void collectLocationTargets(RefreshLocation update, Map<String, TargetPair> targets) {
+        List<String> skus = inventory.skusAtLocation(update.locationId());
+        if (skus == null) {
+            return;
+        }
+        for (String sku : skus) {
+            collectLocationSkuTargets(sku, update.salesChannelId(), targets);
+        }
+    }
+
+    private void collectLocationSkuTargets(
+            String sku,
+            Id requestedChannelId,
+            Map<String, TargetPair> targets
+    ) {
+        List<DiscoveryProductProjection> storedProjections = projections.findBySku(sku);
+        if (storedProjections != null) {
+            for (DiscoveryProductProjection projection : storedProjections) {
+                if (requestedChannelId == null || sameId(requestedChannelId, projection.salesChannelId())) {
+                    addTarget(targets, projection.salesChannelId(), projection.productId());
+                }
             }
-            if (!batch.isEmpty()) {
-                DiscoveryProductKey lastKey = batch.getLast();
-                lastProductId = lastKey.productId();
-                lastChannelId = lastKey.salesChannelId();
+        }
+        List<CatalogPort.ProductChannelPair> currentPairs = catalog.findPublishedProductChannelsBySku(sku);
+        for (CatalogPort.ProductChannelPair pair : safeList(currentPairs)) {
+            if (requestedChannelId == null || sameId(requestedChannelId, pair.salesChannelId())) {
+                addTarget(targets, pair.salesChannelId(), pair.productId());
             }
-        } while (batch.size() == TARGET_SCAN_BATCH_SIZE);
+        }
+    }
+
+    private void addTargets(
+            Map<String, TargetPair> targets,
+            List<CatalogPort.ProductChannelPair> pairs
+    ) {
+        for (CatalogPort.ProductChannelPair pair : safeList(pairs)) {
+            addTarget(targets, pair.salesChannelId(), pair.productId());
+        }
+    }
+
+    private <T> List<T> safeList(List<T> values) {
+        return values == null ? List.of() : values;
     }
 
     private void refresh(TargetPair target, Instant watermark) {
@@ -154,7 +210,14 @@ public class ProjectDiscoveryProductService implements ProjectDiscoveryProductUs
         }
         long version = previous == null ? DiscoveryProductProjection.NEW_PROJECTION_VERSION : previous.version();
         List<DiscoveryProductProjection.ProductOption> options = product.options().stream()
-                .map(option -> new DiscoveryProductProjection.ProductOption(option.name(), option.values()))
+                .sorted(Comparator.comparing(
+                        CatalogPort.ProductOption::name,
+                        Comparator.nullsLast(String::compareTo)
+                ))
+                .map(option -> new DiscoveryProductProjection.ProductOption(
+                        option.name(),
+                        option.values().stream().sorted().toList()
+                ))
                 .toList();
         DiscoveryProductProjection projection = policy.compose(
                 target.salesChannelId(),
@@ -181,7 +244,10 @@ public class ProjectDiscoveryProductService implements ProjectDiscoveryProductUs
             List<CatalogPort.VariantFacts> sourceVariants
     ) {
         List<DiscoveryProductProjection.VariantFact> variants = new ArrayList<>();
-        for (CatalogPort.VariantFacts variant : sourceVariants) {
+        List<CatalogPort.VariantFacts> orderedVariants = sourceVariants.stream()
+                .sorted(Comparator.comparing(CatalogPort.VariantFacts::variantId, this::compareIds))
+                .toList();
+        for (CatalogPort.VariantFacts variant : orderedVariants) {
             boolean published = variant.salesChannelIds().stream().anyMatch(channel -> sameId(channel, salesChannelId));
             if (!published) {
                 continue;
@@ -195,7 +261,7 @@ public class ProjectDiscoveryProductService implements ProjectDiscoveryProductUs
                     variant.sku(),
                     variant.title(),
                     variant.status(),
-                    variant.optionValues(),
+                    orderedOptionValues(variant.optionValues()),
                     quantity,
                     variant.manageInventory(),
                     availability.allowBackorder(),
@@ -240,6 +306,43 @@ public class ProjectDiscoveryProductService implements ProjectDiscoveryProductUs
 
     private boolean sameId(Id first, Id second) {
         return first != null && second != null && first.getValue().equals(second.getValue());
+    }
+
+    private int compareIds(Id first, Id second) {
+        if (first == second) {
+            return 0;
+        }
+        if (first == null) {
+            return 1;
+        }
+        if (second == null) {
+            return -1;
+        }
+        return first.getValue().compareTo(second.getValue());
+    }
+
+    private Map<String, String> orderedOptionValues(Map<String, String> optionValues) {
+        if (optionValues == null || optionValues.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> orderedValues = new LinkedHashMap<>();
+        optionValues.entrySet().stream()
+                .sorted((first, second) -> compareStrings(first.getKey(), second.getKey()))
+                .forEach(entry -> orderedValues.put(entry.getKey(), entry.getValue()));
+        return orderedValues;
+    }
+
+    private int compareStrings(String first, String second) {
+        if (first == second) {
+            return 0;
+        }
+        if (first == null) {
+            return 1;
+        }
+        if (second == null) {
+            return -1;
+        }
+        return first.compareTo(second);
     }
 
     private record TargetPair(Id salesChannelId, Id productId) {

@@ -66,6 +66,7 @@ public class StorefrontQueryModuleDataSourceConfig {
     }
 
     @Bean("storefrontQueryEntityManagerFactory")
+    @DependsOn("storefrontQueryFlyway")
     public LocalContainerEntityManagerFactoryBean storefrontQueryEntityManagerFactory(
             @Qualifier("storefrontQueryDataSource") DataSource dataSource
     ) {

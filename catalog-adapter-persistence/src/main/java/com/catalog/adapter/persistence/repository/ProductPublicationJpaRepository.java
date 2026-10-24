@@ -50,4 +50,31 @@ public interface ProductPublicationJpaRepository
             @Param("afterSalesChannelId") String afterSalesChannelId,
             Pageable pageable
     );
+
+    @Query("""
+            SELECT DISTINCT new com.catalog.application.model.read.PublishedProductChannel(product.uuid, publication.salesChannelId)
+            FROM ProductPublicationEntity publication
+            JOIN ProductVariantEntity variant ON publication.variantId = variant.id
+            JOIN variant.product product
+            WHERE variant.sku = :sku
+            ORDER BY product.uuid, publication.salesChannelId
+            """)
+    List<PublishedProductChannel> findPublishedProductChannelsBySku(
+            @Param("sku") String sku
+    );
+
+    @Query("""
+            SELECT DISTINCT new com.catalog.application.model.read.PublishedProductChannel(product.uuid, publication.salesChannelId)
+            FROM ProductPublicationEntity publication
+            JOIN ProductVariantEntity variant ON publication.variantId = variant.id
+            JOIN variant.product product
+            WHERE publication.salesChannelId = :salesChannelId
+              AND (:afterProductId IS NULL OR product.uuid > :afterProductId)
+            ORDER BY product.uuid
+            """)
+    List<PublishedProductChannel> findPublishedProductChannelsBySalesChannelAfter(
+            @Param("salesChannelId") String salesChannelId,
+            @Param("afterProductId") String afterProductId,
+            Pageable pageable
+    );
 }

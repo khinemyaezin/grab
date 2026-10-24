@@ -44,13 +44,17 @@ public class DiscoveryProductQueryAdapter implements DiscoveryProductQueryPort {
                 keyword,
                 categoryIdValue
         );
+        Sort productIdOrder = Sort.by("productId").ascending();
+        Sort effectiveSort = pageable.getSort().isSorted()
+                ? pageable.getSort().and(productIdOrder)
+                : productIdOrder;
         Pageable orderedPageable = pageable.isPaged()
                 ? PageRequest.of(
                         pageable.getPageNumber(),
                         pageable.getPageSize(),
-                        pageable.getSort().and(Sort.by("productId").ascending())
+                        effectiveSort
                 )
-                : Pageable.unpaged(pageable.getSort().and(Sort.by("productId").ascending()));
+                : Pageable.unpaged(effectiveSort);
         Page<DiscoveryProductEntity> entityPage = executor.query(
                 RESOURCE,
                 () -> products.findAll(spec, orderedPageable)

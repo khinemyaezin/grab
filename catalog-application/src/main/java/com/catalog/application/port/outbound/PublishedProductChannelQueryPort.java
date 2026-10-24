@@ -7,4 +7,12 @@ import java.util.List;
 
 public interface PublishedProductChannelQueryPort {
     List<PublishedProductChannel> findAfter(Id afterProductId, Id afterSalesChannelId, int limit);
+
+    List<PublishedProductChannel> findBySku(String sku);
+
+    List<PublishedProductChannel> findBySalesChannelAfter(
+            Id salesChannelId,
+            Id afterProductId,
+            int limit
+    );
 }

@@ -7,6 +7,8 @@ import com.grab.store.storefrontquery.internal.adapter.mapper.InventoryDiscovery
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class InventoryDiscoveryAdapter implements InventoryPort {
@@ -21,5 +23,10 @@ public class InventoryDiscoveryAdapter implements InventoryPort {
                 salesChannelId
         );
         return mapper.toAvailability(availability);
+    }
+
+    @Override
+    public List<String> skusAtLocation(Id locationId) {
+        return inventory.skusAtLocation(locationId.getValue());
     }
 }

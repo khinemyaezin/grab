@@ -4,20 +4,23 @@ import com.grab.discovery.application.model.write.RebuildDiscoveryProductsComman
 import com.grab.discovery.application.model.write.RebuildProgressResult;
 import com.grab.discovery.application.port.inbound.RebuildDiscoveryProductsUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.store.storefrontquery.internal.config.DiscoveryProjectionRetryable;
 import com.grab.store.storefrontquery.internal.config.StorefrontQueryTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 
 @Component
 @RequiredArgsConstructor
 public class RebuildDiscoveryProductsCommandHandler implements CommandHandler<RebuildDiscoveryProductsCommand, RebuildProgressResult> {
 
-    private final RebuildDiscoveryProductsUseCase rebuildDiscoveryProductsUseCase;
+    private final RebuildDiscoveryProductsUseCase useCase;
 
     @Override
-    @StorefrontQueryTransactional
+    @DiscoveryProjectionRetryable
+    @StorefrontQueryTransactional(propagation = Propagation.REQUIRES_NEW)
     public RebuildProgressResult handle(RebuildDiscoveryProductsCommand command) {
-        return rebuildDiscoveryProductsUseCase.execute(command);
+        return useCase.execute(command);
     }
 
     @Override

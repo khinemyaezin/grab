@@ -29,4 +29,25 @@ public class PublishedProductChannelQueryAdapter implements PublishedProductChan
                 page
         ));
     }
+
+    @Override
+    public List<PublishedProductChannel> findBySku(String sku) {
+        return executor.query(RESOURCE, () -> publicationRepository.findPublishedProductChannelsBySku(sku));
+    }
+
+    @Override
+    public List<PublishedProductChannel> findBySalesChannelAfter(
+            Id salesChannelId,
+            Id afterProductId,
+            int limit
+    ) {
+        String salesChannelIdValue = salesChannelId.getValue();
+        String productCursor = afterProductId == null ? null : afterProductId.getValue();
+        PageRequest page = PageRequest.of(0, limit);
+        return executor.query(RESOURCE, () -> publicationRepository.findPublishedProductChannelsBySalesChannelAfter(
+                salesChannelIdValue,
+                productCursor,
+                page
+        ));
+    }
 }

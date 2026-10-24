@@ -5,14 +5,19 @@ import com.grab.store.inventory.internal.api.adapter.mapper.InventoryDiscoveryQu
 import com.grab.store.inventory.internal.config.InventoryReadTransactional;
 import com.grab.store.inventory.port.InventoryDiscoveryQuery;
 import com.inventory.application.model.read.GetDiscoveryInventoryFactsQuery;
+import com.inventory.application.model.read.ListSkusAtLocationQuery;
 import com.inventory.application.port.inbound.GetDiscoveryInventoryFactsUseCase;
+import com.inventory.application.port.inbound.ListSkusAtLocationUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class InventoryDiscoveryQueryAdapter implements InventoryDiscoveryQuery {
     private final GetDiscoveryInventoryFactsUseCase getDiscoveryInventoryFactsUseCase;
+    private final ListSkusAtLocationUseCase listSkusAtLocationUseCase;
     private final InventoryDiscoveryQueryMapper mapper;
 
     @Override
@@ -24,5 +29,12 @@ public class InventoryDiscoveryQueryAdapter implements InventoryDiscoveryQuery {
                 salesChannelId
         );
         return mapper.toAvailability(getDiscoveryInventoryFactsUseCase.execute(query));
+    }
+
+    @Override
+    @InventoryReadTransactional
+    public List<String> skusAtLocation(String locationId) {
+        ListSkusAtLocationQuery query = new ListSkusAtLocationQuery(locationId);
+        return listSkusAtLocationUseCase.execute(query);
     }
 }

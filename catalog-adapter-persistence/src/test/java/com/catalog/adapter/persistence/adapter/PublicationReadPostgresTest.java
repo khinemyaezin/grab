@@ -74,6 +74,57 @@ class PublicationReadPostgresTest extends CategoryRepositoryTestConfig {
     }
 
     @Test
+    void findBySku_requiresExactSkuAndReturnsPublishedProductChannels() {
+        ProductEntity product = product("product-a");
+        ProductVariantEntity matchingVariant = variant(product, "variant-a");
+        ProductVariantEntity nonMatchingVariant = variant(product, "variant-b");
+        matchingVariant.setSku("sku-target");
+        nonMatchingVariant.setSku("sku-target-extra");
+        publish(matchingVariant, "channel-1");
+        publish(nonMatchingVariant, "channel-2");
+        flushAndClear();
+
+        List<PublishedProductChannel> pairs = cursorAdapter.findBySku("sku-target");
+
+        assertThat(pairs).containsExactly(new PublishedProductChannel(
+                new CommonId("product-a"),
+                new CommonId("channel-1")
+        ));
+    }
+
+    @Test
+    void findBySalesChannelAfter_isBoundedToChannelAndProductCursor() {
+        ProductEntity firstProduct = product("product-a");
+        ProductEntity secondProduct = product("product-b");
+        ProductVariantEntity firstVariant = variant(firstProduct, "variant-a");
+        ProductVariantEntity secondVariant = variant(secondProduct, "variant-b");
+        publish(firstVariant, "channel-1");
+        publish(firstVariant, "channel-2");
+        publish(secondVariant, "channel-1");
+        flushAndClear();
+
+        List<PublishedProductChannel> firstPage = cursorAdapter.findBySalesChannelAfter(
+                new CommonId("channel-1"),
+                null,
+                1
+        );
+        List<PublishedProductChannel> secondPage = cursorAdapter.findBySalesChannelAfter(
+                new CommonId("channel-1"),
+                firstPage.getLast().productId(),
+                1
+        );
+
+        assertThat(firstPage).containsExactly(new PublishedProductChannel(
+                new CommonId("product-a"),
+                new CommonId("channel-1")
+        ));
+        assertThat(secondPage).containsExactly(new PublishedProductChannel(
+                new CommonId("product-b"),
+                new CommonId("channel-1")
+        ));
+    }
+
+    @Test
     void findAllPublicationVariantUuids_multipleChannels_preservesVariantAndChannelIds() {
         ProductEntity product = product("product-a");
         ProductVariantEntity variant = variant(product, "variant-a");

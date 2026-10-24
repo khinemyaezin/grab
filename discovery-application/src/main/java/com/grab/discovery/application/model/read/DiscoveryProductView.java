@@ -2,6 +2,8 @@ package com.grab.discovery.application.model.read;
 
 import com.grab.framework.id.Id;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +46,9 @@ public record DiscoveryProductView(
             boolean inStock
     ) {
         public VariantFact {
-            optionValues = optionValues == null ? Map.of() : Map.copyOf(optionValues);
+            optionValues = optionValues == null
+                    ? Map.of()
+                    : Collections.unmodifiableMap(new LinkedHashMap<>(optionValues));
         }
     }
 }

@@ -240,6 +240,20 @@ public class CatalogUseCaseConfig {
     }
 
     @Bean
+    public ListPublishedProductChannelsBySkuUseCase listPublishedProductChannelsBySkuUseCase(
+            PublishedProductChannelQueryPort publishedProductChannelQueryPort
+    ) {
+        return new ListPublishedProductChannelsBySkuService(publishedProductChannelQueryPort);
+    }
+
+    @Bean
+    public ListPublishedProductChannelsForSalesChannelAfterUseCase listPublishedProductChannelsForSalesChannelAfterUseCase(
+            PublishedProductChannelQueryPort publishedProductChannelQueryPort
+    ) {
+        return new ListPublishedProductChannelsForSalesChannelAfterService(publishedProductChannelQueryPort);
+    }
+
+    @Bean
     public ListVariantIdsForProductUseCase listVariantIdsForProductUseCase(BuyabilityQueryPort buyabilityQueryPort) {
         return new ListVariantIdsForProductService(buyabilityQueryPort);
     }

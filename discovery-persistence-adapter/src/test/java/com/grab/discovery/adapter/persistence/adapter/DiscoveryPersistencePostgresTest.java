@@ -34,6 +34,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -177,7 +178,7 @@ class DiscoveryPersistencePostgresTest {
                 projection("variant-a", "SKU-A", DiscoveryProductProjection.NEW_PROJECTION_VERSION),
                 "product-a",
                 "category-1",
-                "50%_off item",
+                "50%_off \\literal item",
                 "literal-keyword"
         );
         DiscoveryProductProjection second = withProductFacts(
@@ -212,6 +213,12 @@ class DiscoveryPersistencePostgresTest {
                 new CommonId("category-1"),
                 PageRequest.of(0, 10)
         ).getContent();
+        List<DiscoveryProductView> backslashResults = queryAdapter.searchVisible(
+                first.salesChannelId(),
+                "\\literal",
+                new CommonId("category-1"),
+                PageRequest.of(0, 10)
+        ).getContent();
         Page<DiscoveryProductView> firstPage = queryAdapter.searchVisible(
                 first.salesChannelId(),
                 null,
@@ -224,6 +231,12 @@ class DiscoveryPersistencePostgresTest {
                 null,
                 PageRequest.of(1, 2)
         ).getContent();
+        Page<DiscoveryProductView> sortedPage = queryAdapter.searchVisible(
+                first.salesChannelId(),
+                null,
+                null,
+                PageRequest.of(0, 2, Sort.by(Sort.Direction.DESC, "slug"))
+        );
         List<DiscoveryProductView> categoryResults = queryAdapter.searchVisible(
                 first.salesChannelId(),
                 null,
@@ -232,10 +245,13 @@ class DiscoveryPersistencePostgresTest {
         ).getContent();
 
         assertThat(literalResults).extracting(DiscoveryProductView::slug).containsExactly("literal-keyword");
+        assertThat(backslashResults).extracting(DiscoveryProductView::slug).containsExactly("literal-keyword");
         assertThat(firstPage.getTotalElements()).isEqualTo(3);
         assertThat(firstPage.getContent()).extracting(DiscoveryProductView::slug)
                 .containsExactly("literal-keyword", "wildcard-decoy");
         assertThat(secondPage).extracting(DiscoveryProductView::slug).containsExactly("other-category");
+        assertThat(sortedPage.getContent()).extracting(DiscoveryProductView::slug)
+                .containsExactly("wildcard-decoy", "other-category");
         assertThat(categoryResults).extracting(DiscoveryProductView::slug).containsExactly("other-category");
     }
 

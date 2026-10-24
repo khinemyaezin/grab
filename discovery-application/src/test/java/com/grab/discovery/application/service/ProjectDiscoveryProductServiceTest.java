@@ -1,12 +1,12 @@
 package com.grab.discovery.application.service;
 
 import com.grab.discovery.application.model.projection.DiscoveryProductProjection;
-import com.grab.discovery.application.model.read.DiscoveryProductKey;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshChannel;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshLocation;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshProduct;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshProductChannel;
+import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshSku;
 import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand.RefreshVariant;
 import com.grab.discovery.application.policy.DiscoveryProjectionPolicy;
 import com.grab.discovery.application.port.outbound.CatalogPort;
@@ -89,6 +89,9 @@ class ProjectDiscoveryProductServiceTest {
         assertThat(saved.thumbnail()).isEqualTo(product.thumbnail());
         assertThat(saved.categoryId()).isEqualTo(CATEGORY_ID);
         assertThat(saved.options().getFirst().values()).containsExactly("Blue", "Red");
+        assertThat(saved.options()).extracting(DiscoveryProductProjection.ProductOption::name)
+                .containsExactly("Color", "Size");
+        assertThat(saved.options().getLast().values()).containsExactly("S", "XL");
         assertThat(saved.variants()).extracting(DiscoveryProductProjection.VariantFact::status)
                 .containsExactly("ACTIVE", "INACTIVE");
         DiscoveryProductProjection.VariantFact tracked = saved.variants().getFirst();
@@ -225,11 +228,12 @@ class ProjectDiscoveryProductServiceTest {
     void execute_locationStatusChanged_reconcilesExistingProductsAcrossChannels() {
         DiscoveryProductProjection first = projection(CHANNEL_ID, EVENT_TIME.minusSeconds(1));
         DiscoveryProductProjection second = projection(OTHER_CHANNEL_ID, EVENT_TIME.minusSeconds(1));
-        DiscoveryProductKey firstKey = new DiscoveryProductKey(PRODUCT_ID, CHANNEL_ID);
-        DiscoveryProductKey secondKey = new DiscoveryProductKey(PRODUCT_ID, OTHER_CHANNEL_ID);
         CatalogPort.ProductFacts product = productWithVariants(CHANNEL_ID);
         InventoryPort.Availability availability = new InventoryPort.Availability(3, false);
-        when(projections.findKeysAfter(null, null, 500)).thenReturn(List.of(firstKey, secondKey));
+        when(inventory.skusAtLocation(new CommonId("location-1"))).thenReturn(List.of("SKU-A"));
+        when(projections.findBySku("SKU-A")).thenReturn(List.of(first, second));
+        when(catalog.findPublishedProductChannelsBySku("SKU-A"))
+                .thenReturn(List.of(new CatalogPort.ProductChannelPair(PRODUCT_ID, CHANNEL_ID)));
         when(projections.findBySalesChannelAndProduct(CHANNEL_ID, PRODUCT_ID)).thenReturn(Optional.of(first));
         when(projections.findBySalesChannelAndProduct(OTHER_CHANNEL_ID, PRODUCT_ID)).thenReturn(Optional.of(second));
         when(catalog.findProduct(PRODUCT_ID)).thenReturn(Optional.of(product));
@@ -269,6 +273,41 @@ class ProjectDiscoveryProductServiceTest {
         assertThat(saved.variants()).hasSize(2);
     }
 
+    @Test
+    void execute_skuRefresh_materializesCurrentPublicationWithoutStoredProjection() {
+        CatalogPort.ProductFacts product = productWithVariants(CHANNEL_ID);
+        when(catalog.findPublishedProductChannelsBySku("SKU-A"))
+                .thenReturn(List.of(new CatalogPort.ProductChannelPair(PRODUCT_ID, CHANNEL_ID)));
+        when(catalog.findProduct(PRODUCT_ID)).thenReturn(Optional.of(product));
+        when(inventory.available("SKU-A", MERCHANT_ID, CHANNEL_ID))
+                .thenReturn(new InventoryPort.Availability(4, false));
+        when(salesChannels.isEnabled(CHANNEL_ID)).thenReturn(true);
+
+        service.execute(new ProjectDiscoveryProductCommand(new RefreshSku("SKU-A", EVENT_TIME)));
+
+        verify(projections).save(projectionCaptor.capture());
+        assertThat(projectionCaptor.getValue().salesChannelId()).isEqualTo(CHANNEL_ID);
+        assertThat(projectionCaptor.getValue().productId()).isEqualTo(PRODUCT_ID);
+        assertThat(projectionCaptor.getValue().hasStock()).isTrue();
+    }
+
+    @Test
+    void execute_channelRefresh_materializesCurrentPublicationMissingLocally() {
+        CatalogPort.ProductFacts product = productWithVariants(CHANNEL_ID);
+        when(projections.findBySalesChannel(CHANNEL_ID)).thenReturn(List.of());
+        when(catalog.findPublishedProductChannelsForSalesChannelAfter(CHANNEL_ID, null, 500))
+                .thenReturn(List.of(new CatalogPort.ProductChannelPair(PRODUCT_ID, CHANNEL_ID)));
+        when(catalog.findProduct(PRODUCT_ID)).thenReturn(Optional.of(product));
+        when(inventory.available("SKU-A", MERCHANT_ID, CHANNEL_ID))
+                .thenReturn(new InventoryPort.Availability(4, false));
+        when(salesChannels.isEnabled(CHANNEL_ID)).thenReturn(true);
+
+        service.execute(new ProjectDiscoveryProductCommand(new RefreshChannel(CHANNEL_ID, EVENT_TIME)));
+
+        verify(projections).save(projectionCaptor.capture());
+        assertThat(projectionCaptor.getValue().published()).isTrue();
+    }
+
     private ProjectDiscoveryProductCommand command(Instant occurredAt) {
         RefreshProductChannel refresh = new RefreshProductChannel(PRODUCT_ID, CHANNEL_ID, occurredAt);
         return new ProjectDiscoveryProductCommand(refresh);
@@ -283,10 +322,11 @@ class ProjectDiscoveryProductServiceTest {
                 PRODUCT_ID, UNTRACKED_VARIANT_ID, "SKU-B", "Untracked variant", "INACTIVE", false,
                 Map.of("Color", "Red"), List.of(salesChannelId)
         );
+        CatalogPort.ProductOption size = new CatalogPort.ProductOption("Size", List.of("XL", "S"));
         CatalogPort.ProductOption option = new CatalogPort.ProductOption("Color", List.of("Blue", "Red"));
         return new CatalogPort.ProductFacts(
                 PRODUCT_ID, MERCHANT_ID, CATEGORY_ID, "Product", "product-slug", "Description",
-                "https://example.com/product.jpg", "ACTIVE", List.of(option), List.of(activeTracked, inactiveUntracked)
+                "https://example.com/product.jpg", "ACTIVE", List.of(size, option), List.of(inactiveUntracked, activeTracked)
         );
     }
 

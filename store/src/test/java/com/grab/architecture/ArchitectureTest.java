@@ -111,6 +111,7 @@ public class ArchitectureTest {
                     .and().areNotAnnotations()
                     .and().haveSimpleNameNotEndingWith("Validator")
                     .and().haveSimpleNameNotEndingWith("Port")
+                    .and().areNotAnonymousClasses()
                     .and().resideInAnyPackage("..dto.request..", "..dto.response..")
                     .should().beRecords();
 

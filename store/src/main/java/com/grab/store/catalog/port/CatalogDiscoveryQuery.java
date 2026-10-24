@@ -2,6 +2,8 @@ package com.grab.store.catalog.port;
 
 import com.grab.framework.id.Id;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,6 +14,14 @@ public interface CatalogDiscoveryQuery {
     Optional<VariantFacts> findVariant(Id variantId);
 
     List<ProductChannelPair> findPublishedProductChannelsAfter(Id productId, Id salesChannelId, int limit);
+
+    List<ProductChannelPair> findPublishedProductChannelsBySku(String sku);
+
+    List<ProductChannelPair> findPublishedProductChannelsForSalesChannelAfter(
+            Id salesChannelId,
+            Id afterProductId,
+            int limit
+    );
 
     boolean isPublishedInChannel(Id productId, Id salesChannelId);
 
@@ -50,7 +60,9 @@ public interface CatalogDiscoveryQuery {
             List<Id> salesChannelIds
     ) {
         public VariantFacts {
-            optionValues = optionValues == null ? Map.of() : Map.copyOf(optionValues);
+            optionValues = optionValues == null
+                    ? Map.of()
+                    : Collections.unmodifiableMap(new LinkedHashMap<>(optionValues));
             salesChannelIds = salesChannelIds == null ? List.of() : List.copyOf(salesChannelIds);
         }
     }

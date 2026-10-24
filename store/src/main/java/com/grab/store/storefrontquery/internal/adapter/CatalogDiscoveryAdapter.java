@@ -42,6 +42,26 @@ public class CatalogDiscoveryAdapter implements CatalogPort {
     }
 
     @Override
+    public List<ProductChannelPair> findPublishedProductChannelsBySku(String sku) {
+        List<CatalogDiscoveryQuery.ProductChannelPair> pairs = catalog.findPublishedProductChannelsBySku(sku);
+        return mapper.toProductChannelPairs(pairs);
+    }
+
+    @Override
+    public List<ProductChannelPair> findPublishedProductChannelsForSalesChannelAfter(
+            Id salesChannelId,
+            Id afterProductId,
+            int limit
+    ) {
+        List<CatalogDiscoveryQuery.ProductChannelPair> pairs = catalog.findPublishedProductChannelsForSalesChannelAfter(
+                salesChannelId,
+                afterProductId,
+                limit
+        );
+        return mapper.toProductChannelPairs(pairs);
+    }
+
+    @Override
     public boolean isPublishedInChannel(Id productId, Id salesChannelId) {
         return catalog.isPublishedInChannel(productId, salesChannelId);
     }

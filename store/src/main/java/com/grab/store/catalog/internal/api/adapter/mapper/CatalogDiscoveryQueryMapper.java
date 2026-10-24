@@ -14,9 +14,10 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Collections;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class, unmappedTargetPolicy = ReportingPolicy.ERROR)
 public abstract class CatalogDiscoveryQueryMapper {
@@ -64,18 +65,33 @@ public abstract class CatalogDiscoveryQueryMapper {
         if (variants == null) {
             return List.of();
         }
-        return variants.stream().map(variant -> toVariantFacts(productId, variant)).toList();
+        return variants.stream()
+                .sorted(Comparator.comparing(
+                        GetProductResult.Variant::id,
+                        Comparator.nullsLast(String::compareTo)
+                ))
+                .map(variant -> toVariantFacts(productId, variant))
+                .toList();
     }
 
     public Map<String, String> toOptionValues(List<GetProductResult.Variation> variations) {
         if (variations == null) {
             return Map.of();
         }
-        return variations.stream().collect(Collectors.toUnmodifiableMap(
-                GetProductResult.Variation::typeName,
-                GetProductResult.Variation::optionName,
-                (first, second) -> second
-        ));
+        List<GetProductResult.Variation> orderedVariations = variations.stream()
+                .sorted(Comparator.comparing(
+                        GetProductResult.Variation::typeName,
+                        Comparator.nullsLast(String::compareTo)
+                ).thenComparing(
+                        GetProductResult.Variation::optionName,
+                        Comparator.nullsLast(String::compareTo)
+                ))
+                .toList();
+        Map<String, String> values = new LinkedHashMap<>();
+        for (GetProductResult.Variation variation : orderedVariations) {
+            values.put(variation.typeName(), variation.optionName());
+        }
+        return Collections.unmodifiableMap(values);
     }
 
     public abstract List<Id> toIds(List<String> values);
@@ -87,6 +103,7 @@ public abstract class CatalogDiscoveryQueryMapper {
         List<String> salesChannelIdValues = publications.stream()
                 .map(GetProductResult.Publication::salesChannelId)
                 .filter(value -> value != null && !value.isBlank())
+                .sorted()
                 .toList();
         return toIds(salesChannelIdValues);
     }

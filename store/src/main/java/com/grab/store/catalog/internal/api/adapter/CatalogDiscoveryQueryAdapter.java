@@ -4,10 +4,14 @@ import com.catalog.application.model.read.CheckProductPublishedToChannelQuery;
 import com.catalog.application.model.read.GetCatalogProductFactsQuery;
 import com.catalog.application.model.read.GetCatalogVariantFactsQuery;
 import com.catalog.application.model.read.ListPublishedProductChannelsAfterQuery;
+import com.catalog.application.model.read.ListPublishedProductChannelsBySkuQuery;
+import com.catalog.application.model.read.ListPublishedProductChannelsForSalesChannelAfterQuery;
 import com.catalog.application.port.inbound.CheckProductPublishedToChannelUseCase;
 import com.catalog.application.port.inbound.GetCatalogProductFactsUseCase;
 import com.catalog.application.port.inbound.GetCatalogVariantFactsUseCase;
 import com.catalog.application.port.inbound.ListPublishedProductChannelsAfterUseCase;
+import com.catalog.application.port.inbound.ListPublishedProductChannelsBySkuUseCase;
+import com.catalog.application.port.inbound.ListPublishedProductChannelsForSalesChannelAfterUseCase;
 import com.grab.framework.id.Id;
 import com.grab.store.catalog.internal.api.adapter.mapper.CatalogDiscoveryQueryMapper;
 import com.grab.store.catalog.internal.config.CatalogReadTransactional;
@@ -25,6 +29,8 @@ public class CatalogDiscoveryQueryAdapter implements CatalogDiscoveryQuery {
     private final GetCatalogProductFactsUseCase getCatalogProductFactsUseCase;
     private final GetCatalogVariantFactsUseCase getCatalogVariantFactsUseCase;
     private final ListPublishedProductChannelsAfterUseCase listPublishedProductChannelsAfterUseCase;
+    private final ListPublishedProductChannelsBySkuUseCase listPublishedProductChannelsBySkuUseCase;
+    private final ListPublishedProductChannelsForSalesChannelAfterUseCase listPublishedProductChannelsForSalesChannelAfterUseCase;
     private final CheckProductPublishedToChannelUseCase checkProductPublishedToChannelUseCase;
     private final CatalogDiscoveryQueryMapper mapper;
 
@@ -61,6 +67,27 @@ public class CatalogDiscoveryQueryAdapter implements CatalogDiscoveryQuery {
                 limit
         );
         return mapper.toProductChannelPairsFromCatalog(listPublishedProductChannelsAfterUseCase.execute(query).items());
+    }
+
+    @Override
+    @CatalogReadTransactional
+    public List<ProductChannelPair> findPublishedProductChannelsBySku(String sku) {
+        ListPublishedProductChannelsBySkuQuery query = new ListPublishedProductChannelsBySkuQuery(sku);
+        return mapper.toProductChannelPairsFromCatalog(listPublishedProductChannelsBySkuUseCase.execute(query));
+    }
+
+    @Override
+    @CatalogReadTransactional
+    public List<ProductChannelPair> findPublishedProductChannelsForSalesChannelAfter(
+            Id salesChannelId,
+            Id afterProductId,
+            int limit
+    ) {
+        ListPublishedProductChannelsForSalesChannelAfterQuery query =
+                new ListPublishedProductChannelsForSalesChannelAfterQuery(salesChannelId, afterProductId, limit);
+        return mapper.toProductChannelPairsFromCatalog(
+                listPublishedProductChannelsForSalesChannelAfterUseCase.execute(query)
+        );
     }
 
     @Override

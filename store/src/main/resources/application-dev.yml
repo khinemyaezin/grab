@@ -224,7 +224,7 @@ storefrontquery:
     hibernate:
       dialect: ${STOREFRONTQUERY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
-        auto: ${STOREFRONTQUERY_JPA_DDL_AUTO:update}
+        auto: ${STOREFRONTQUERY_JPA_DDL_AUTO:validate}
       show_sql: ${STOREFRONTQUERY_JPA_SHOW_SQL:false}
       format_sql: ${STOREFRONTQUERY_JPA_FORMAT_SQL:false}
 
