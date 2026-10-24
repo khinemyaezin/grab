@@ -1,7 +1,7 @@
 package com.grab.store.saleschannel.internal.event;
 
-import com.grab.store.saleschannel.events.SalesChannelDisabledIntegrationEvent;
-import com.grab.store.saleschannel.events.SalesChannelEnabledIntegrationEvent;
+import com.grab.store.shared.events.saleschannel.SalesChannelDisabledIntegrationEvent;
+import com.grab.store.shared.events.saleschannel.SalesChannelEnabledIntegrationEvent;
 import com.saleschannel.domain.event.SalesChannelDisabledEvent;
 import com.saleschannel.domain.event.SalesChannelEnabledEvent;
 import lombok.RequiredArgsConstructor;

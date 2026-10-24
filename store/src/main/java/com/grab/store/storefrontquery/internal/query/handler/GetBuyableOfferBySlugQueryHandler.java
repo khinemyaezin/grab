@@ -1,6 +1,6 @@
 package com.grab.store.storefrontquery.internal.query.handler;
 
-import com.grab.discovery.application.model.read.DiscoveryProductView;
+import com.grab.discovery.application.model.read.BuyableOfferResult;
 import com.grab.discovery.application.model.read.GetBuyableOfferBySlugQuery;
 import com.grab.discovery.application.port.inbound.GetBuyableOfferBySlugUseCase;
 import com.grab.framework.cqrs.query.QueryHandler;
@@ -11,12 +11,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class GetBuyableOfferBySlugQueryHandler
-        implements QueryHandler<GetBuyableOfferBySlugQuery, DiscoveryProductView> {
+        implements QueryHandler<GetBuyableOfferBySlugQuery, BuyableOfferResult> {
     private final GetBuyableOfferBySlugUseCase getBuyableOfferBySlugUseCase;
 
     @Override
     @StorefrontQueryReadTransactional
-    public DiscoveryProductView handle(GetBuyableOfferBySlugQuery query) {
+    public BuyableOfferResult handle(GetBuyableOfferBySlugQuery query) {
         return getBuyableOfferBySlugUseCase.execute(query);
     }
 

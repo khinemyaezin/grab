@@ -1,102 +1,85 @@
-You are writing a Domain Specification for a business domain aggregate model.
+<!-- TEMPLATE INSTRUCTIONS
+─────────────────────────────────────────────────────────────────
+This defines the data model, business rules, and lifecycle for one domain entity.
 
-The goal is to explain the business model, boundaries, invariants, and lifecycle clearly and simply without requiring the reader to inspect source code.
+PURPOSE: Blueprint for how data is structured, what rules protect it,
+         and how it transitions through states.
+         Developers code the entity, validation, and state machine from this document.
 
-**Author rules:**
-- Talk less and explain with diagrams and structured tables. Avoid massive paragraphs.
-- In diagrams, use pure domain concepts and business roles. Never include Java types, framework annotations, or database table names.
-- Keep diagrams clean and readable. Cap each diagram at ~7–9 nodes.
-- Explicit boundaries: show composition inside the aggregate root vs. ID-only references across other aggregates or bounded contexts. Cross-aggregate object navigation is strictly forbidden.
-- In Section 3, every property shown on the aggregate diagram MUST appear in the Property Rationale table with a business justification (never "needed for database/JPA").
-- In Section 4, state invariants in business language and name the aggregate method or domain policy that enforces each invariant.
-- In Section 5, show states and allowable transitions visually.
-- Replace every `[placeholder]` before publishing.
+WHEN TO CREATE: When a Feature Spec identifies domain logic that needs
+                a clear model, rules, or state lifecycle.
+
+RULES:
+- Use business language — not database column names or Java types.
+- Every property in the model diagram MUST appear in the Property table with a business reason.
+- Invariants are rules that can NEVER be broken. If violated, the system rejects the action.
+- State diagrams show only real, implemented states — not aspirational ones.
+- Replace every [placeholder] before publishing.
+─────────────────────────────────────────────────────────────────
+-->
+
+# Domain Spec: [Entity / Aggregate Name]
+
+- **Domain:** [e.g., Catalog, Order, Pricing, Identity]
+- **Purpose:** [1–2 sentences — what business concept this entity represents and protects]
+- **Feature Spec:** [[Feature Name]](../../features/[feat-xxx-feature-name].md)
 
 ---
 
-# Domain Specification: [Aggregate Name]
+## 1. Ownership & Boundaries
 
-> **Bounded Context:** [e.g. Catalog, Inventory, Pricing, Identity]
-> **Primary Purpose:** [1–2 sentences explaining the core business concept this aggregate models and protects.]
-> **Module Root:** `[domain]-domain / [domain]-application / [domain]-adapter-persistence / store/[domain]`
-> **Related Workflows:** [[Workflow Name 1]](../../../workflows/[file.md]), [[Workflow Name 2]](../../../workflows/[file.md])
+### What does this domain own?
 
----
+- **Owns:** [Core data and behavior this entity is the source of truth for]
+- **Does NOT own:** [Related concepts that belong to other domains — referenced by ID only]
 
-## 1. Boundary & Context Map
+### Boundary Diagram
 
-### Ownership
-
-- **This aggregate OWNS:** [Core entities, value objects, and lifecycle state it is source-of-truth for]
-- **This aggregate DOES NOT OWN:** [Related business concepts that belong to other aggregates or contexts]
-
-### Context Map
-
-> Show this aggregate, its internal entities/value objects, and external relationships (ID references only).
+> Show this entity, its internal parts, and how it relates to other domains (ID references only — no direct object navigation).
 
 ```mermaid
 flowchart TD
-    subgraph BoundedContext ["[This] Bounded Context"]
-        direction TB
+    subgraph ThisDomain ["[Domain Name]"]
+        Root["[Entity Name]"]
+        Child["[Child Entity / Component]"]
+        Value["[Value Object / Attribute Group]"]
 
-        subgraph AggregateRoot ["[Aggregate Name] (Root)"]
-            RootNode["[Aggregate Name]"]
-            ChildEntity["[Child Entity]"]
-            ValueObj["[Value Object]"]
-
-            RootNode --> ChildEntity
-            RootNode --> ValueObj
-        end
-
-        subgraph PeerAggregate ["[Peer Aggregate]"]
-            PeerRoot["[Peer Root]"]
-        end
-
-        RootNode -.->|"References by [peer]Id"| PeerRoot
+        Root --> Child
+        Root --> Value
     end
 
-    subgraph ExternalContext ["[External] Bounded Context"]
-        ExternalEntity["[External Concept]"]
+    subgraph OtherDomain ["[Other Domain]"]
+        External["[External Entity]"]
     end
 
-    RootNode -.->|"References by [external]Id"| ExternalEntity
+    Root -.-|"references by ID"| External
 ```
 
 ---
 
-## 2. Ubiquitous Language
-
-| Business Term | Domain Concept | Business Definition |
-| :--- | :--- | :--- |
-| **[Term 1]** | `[ClassName]` (Aggregate Root) | [Exact business definition used by users and domain experts] |
-| **[Term 2]** | `[EntityName]` (Entity) | [Child entity with independent identity within this aggregate] |
-| **[Term 3]** | `[ValueObjectName]` (Value Object) | [Immutable attribute or value structure without separate identity] |
-| **[State Term]** | `[StatusEnum.VALUE]` | [What this status signifies in the business lifecycle] |
-
----
-
-## 3. Domain Aggregate Model
+## 2. Domain Model
 
 ### Model Diagram
 
-> Show the aggregate root, child entities, value objects, and method operations. Cap diagram at ~7–9 nodes.
+> Show the entity structure — attributes and key operations. Keep it to ~7–9 nodes.
 
 ```mermaid
 classDiagram
     direction LR
 
-    class RootName {
+    class EntityName {
         +Id id
         +Status status
-        +String businessAttribute
-        +performBusinessOperation()
-        +changeState(...)
+        +String attribute1
+        +String attribute2
+        +create()
+        +update()
+        +changeState()
     }
 
     class ChildEntity {
         +Id id
-        +String businessAttribute
-        +performBusinessOperation()
+        +String attribute
     }
 
     class ValueObject {
@@ -104,71 +87,78 @@ classDiagram
         +String qualifier
     }
 
-    RootName *-- "0..*" ChildEntity : owns
-    RootName *-- "1" ValueObject : contains
+    EntityName *-- "0..*" ChildEntity : contains
+    EntityName *-- "1" ValueObject : has
 ```
 
-### Property & Attribute Rationale
+### Property Rationale
 
-| Property | Type | Belongs To | Business Rationale |
-| :--- | :--- | :--- | :--- |
-| `[business property]` | [Business concept] | Root / Child | [Specific business reason this property exists; not "for DB"]. |
+> Every property must exist for a business reason — not "because the database needs it."
+
+| Property | Type | Belongs To | Why It Exists |
+|:---------|:-----|:-----------|:--------------|
+| `id` | Identifier | [Entity] | [Unique identity for this entity across the system] |
+| `status` | Enum | [Entity] | [Tracks the entity's lifecycle position — controls what actions are allowed] |
+| `[property]` | [Type] | [Owner] | [Business reason this data is captured] |
+
+### Key Terms
+
+| Business Term | Technical Name | Meaning |
+|:--------------|:---------------|:--------|
+| [What users call it] | `[EntityName]` | [What it represents in the system] |
+| [Business state name] | `[STATUS_CODE]` | [What this state means in the business process] |
 
 ---
 
-## 4. Business Invariants & Rules
+## 3. Business Rules (Invariants)
 
-> Invariants are non-negotiable business rules that must ALWAYS hold. If an invariant is violated, the aggregate rejects the command.
+> These rules can **never** be violated. If any rule is broken, the system **rejects** the action immediately.
 
-| Rule ID | Invariant Rule | Violation Outcome | Enforced By |
-| :--- | :--- | :--- | :--- |
-| **INV-01** | [State the implemented business invariant; avoid assuming a review or moderation process.] | [Observed rejection or failure outcome.] | [Actual aggregate method or policy] |
-| **INV-02** | [State the actual uniqueness boundary, such as per aggregate or per merchant, only when enforced.] | [Observed rejection or failure outcome.] | [Actual method, policy, or persistence constraint] |
-| **INV-03** | [Another implemented invariant, if present.] | [Observed rejection or failure outcome.] | [Actual aggregate method or value object] |
+| Rule | What Must Be True | If Violated | Enforced By |
+|:-----|:-------------------|:------------|:------------|
+| **R-01** | [Business rule in plain language — e.g., "An order cannot exceed the customer's credit limit"] | [What happens — e.g., "Command rejected with CREDIT_LIMIT_EXCEEDED error"] | [Method or component that enforces this] |
+| **R-02** | [Another invariant] | [Rejection behavior] | [Enforcement point] |
+| **R-03** | [Another invariant] | [Rejection behavior] | [Enforcement point] |
 
 ---
 
-## 5. State Lifecycle & Transitions
+## 4. State Lifecycle
 
-### State Machine
+### State Diagram
+
+> Show all states and the transitions between them. Label transitions with the action that triggers them.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> InitialState : create()
-    InitialState --> NextState : [Implemented operation and guard]
-    NextState --> TerminalState : [Implemented operation and guard]
+    [*] --> Created : create()
+    Created --> Active : activate()
+    Active --> Suspended : suspend()
+    Suspended --> Active : reactivate()
+    Active --> Closed : close()
+    Closed --> [*]
 ```
 
-### Transition Matrix
+### Transition Rules
 
-| Current State | Trigger / Event | Next State | Guard Condition / Prerequisite |
-| :--- | :--- | :--- | :--- |
-| `[State 1]` | `[Command / Action]` | `[State 2]` | [Condition that must be satisfied before transition is allowed] |
-| `[State 2]` | `[Command / Action]` | `[State 3]` | [Condition that must be satisfied] |
-| `[State 2]` | `[Cancel / Reject]` | `[State 1]` | [Allowed rollback or reversion condition] |
+| Current State | Action | Next State | Conditions |
+|:--------------|:-------|:-----------|:-----------|
+| `—` (new) | `create()` | `Created` | [What must be provided or true to create this entity] |
+| `Created` | `activate()` | `Active` | [Conditions that must be met before activation] |
+| `Active` | `suspend()` | `Suspended` | [When and why suspension is allowed] |
+| `Active` | `close()` | `Closed` | [Conditions for closing — e.g., no pending items] |
 
 ---
 
-## 6. Domain Events
+## 5. Events *(optional — include only if this domain emits or consumes events)*
 
-### Emitted Events (What Happened)
+### Events This Domain Emits
 
-| Event Name | Trigger | Key Attributes | Target Consumers |
-| :--- | :--- | :--- | :--- |
-| [Actual aggregate domain event] | [Actual trigger] | [Actual event fields] | [Observed consumers] |
+| Event | When It's Emitted | Key Data | Who Consumes It |
+|:------|:-------------------|:---------|:----------------|
+| `[EntityCreatedEvent]` | [After successful creation] | [Key fields included in the event] | [Consuming domain or service] |
 
-Separate aggregate-emitted domain events from store-level integration events and workflow request/completion signals; do not label all three as aggregate events.
+### Events This Domain Reacts To
 
-### Store Integration Events
-
-[List only integration event records that are actually published for cross-module consumers, or state that none are currently emitted.]
-
-### Workflow Signals
-
-[List only workflow request, completion, or failure signal records that are actually emitted/consumed, or state that none apply.]
-
-### Consumed Events (Cross-Domain Signals)
-
-| Consumed Event | Emitted By | Aggregate Action | Business Impact |
-| :--- | :--- | :--- | :--- |
-| `[ExternalEvent]` | `[External Domain]` | `[Execute Command]` | [How this aggregate reacts to external business events] |
+| Event | Emitted By | What This Domain Does | Business Impact |
+|:------|:-----------|:----------------------|:----------------|
+| `[ExternalEvent]` | [Other domain] | [Action taken in response] | [Why this reaction matters] |

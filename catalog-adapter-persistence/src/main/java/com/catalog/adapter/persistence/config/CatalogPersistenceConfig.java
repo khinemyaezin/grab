@@ -12,6 +12,7 @@ import com.catalog.application.port.outbound.ProductQueryPort;
 import com.catalog.application.port.outbound.ProductVariantQueryPort;
 import com.catalog.application.port.outbound.VariantOptionQueryPort;
 import com.catalog.application.port.outbound.BuyabilityQueryPort;
+import com.catalog.application.port.outbound.PublishedProductChannelQueryPort;
 import com.catalog.application.port.outbound.VariantTypeQueryPort;
 import com.catalog.adapter.persistence.category.CategoryNodeInserter;
 import com.catalog.adapter.persistence.category.CategoryNodeRemover;
@@ -59,7 +60,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -407,15 +407,24 @@ public class CatalogPersistenceConfig {
     @Bean
     public BuyabilityQueryPort buyabilityQueryPort(
             ProductVariantJpaRepo productVariantJpaRepo,
-            ProductPublicationRepository productPublicationRepository,
             ProductPublicationJpaRepository productPublicationJpaRepository,
             IdGenerator idGenerator
     ) {
         return new BuyabilityQueryAdapter(
                 productVariantJpaRepo,
-                productPublicationRepository,
                 productPublicationJpaRepository,
                 idGenerator
+        );
+    }
+
+    @Bean
+    public PublishedProductChannelQueryPort publishedProductChannelQueryPort(
+            ProductPublicationJpaRepository productPublicationJpaRepository,
+            @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
+    ) {
+        return new PublishedProductChannelQueryAdapter(
+                productPublicationJpaRepository,
+                executor
         );
     }
 }

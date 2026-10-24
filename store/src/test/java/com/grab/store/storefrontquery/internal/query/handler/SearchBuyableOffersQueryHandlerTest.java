@@ -1,7 +1,8 @@
 package com.grab.store.storefrontquery.internal.query.handler;
 
-import com.grab.discovery.application.model.read.DiscoveryProductView;
+import com.grab.discovery.application.model.read.BuyableOfferResult;
 import com.grab.discovery.application.model.read.SearchBuyableOffersQuery;
+import com.grab.discovery.application.model.read.ShoppingContext;
 import com.grab.discovery.application.port.inbound.SearchBuyableOffersUseCase;
 import com.grab.framework.id.impl.CommonId;
 import org.junit.jupiter.api.Test;
@@ -29,11 +30,14 @@ class SearchBuyableOffersQueryHandlerTest {
 
     @Test
     void handle_validQuery_delegatesToUseCase() {
-        SearchBuyableOffersQuery query = new SearchBuyableOffersQuery(new CommonId("web-1"), Pageable.unpaged());
-        Page<DiscoveryProductView> expectedPage = new PageImpl<>(List.of());
+        SearchBuyableOffersQuery query = new SearchBuyableOffersQuery(
+                new ShoppingContext(new CommonId("web-1"), new CommonId("region-1"), "SG", "SGD", "en-SG"),
+                true, "coffee", new CommonId("category-1"), Pageable.unpaged()
+        );
+        Page<BuyableOfferResult> expectedPage = new PageImpl<>(List.of());
         when(searchBuyableOffersUseCase.execute(query)).thenReturn(expectedPage);
 
-        Page<DiscoveryProductView> result = handler.handle(query);
+        Page<BuyableOfferResult> result = handler.handle(query);
 
         assertThat(result).isSameAs(expectedPage);
         verify(searchBuyableOffersUseCase).execute(query);

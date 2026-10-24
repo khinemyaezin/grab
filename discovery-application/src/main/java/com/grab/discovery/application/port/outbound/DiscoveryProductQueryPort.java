@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 
 public interface DiscoveryProductQueryPort {
-    Page<DiscoveryProductView> searchVisible(Id salesChannelId, Pageable pageable);
+    Page<DiscoveryProductView> searchVisible(Id salesChannelId, String keyword, Id categoryId, Pageable pageable);
 
     Optional<DiscoveryProductView> findVisibleBySlug(Id salesChannelId, String slug);
 }

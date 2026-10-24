@@ -1,10 +1,14 @@
 # Domain Specification: Catalog Product Publication
 
-> **Bounded Context:** Catalog
-> **Primary Purpose:** Models publication of one product variant to one sales channel independently of Product content and lifecycle.
-> **Module Root:** `catalog-domain` / `catalog-application` / `catalog-adapter-persistence` / `store/catalog`
-> **Related Domain Specs:** [Catalog Product](product-domain-spec.md), [Sales Channel](../../sales-channel/architecture/sales-channel-domain-spec.md)
-> **Related Workflows:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md)
+- **Bounded Context:** Catalog
+- **Primary Purpose:** Models publication of one product variant to one sales channel independently of Product content and lifecycle.
+- **Discovery Features:** [DiscoveryProduct baseline](../../../../features/feat_002-discovery_product.md), [Discovery Wiring & Projection Reconciliation](../../../../features/feat_006-discovery-wiring-projection-reconciliation.md)
+- **Module Root:** `catalog-domain` / `catalog-application` / `catalog-adapter-persistence` / `store/catalog`
+- **Related Domain Specs:** [Catalog Product](product-domain-spec.md), [Sales Channel](../../sales-channel/architecture/sales-channel-domain-spec.md)
+- **Related Workflows:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md)
+
+- **Discovery Workflow:** [Browse, Project, and Rebuild](../../../workflows/browse-and-discover-products-workflow.md)
+- **Discovery Tech:** [Currency-Agnostic Projection](../../../system/storefront-query-tech-spec.md)
 
 ---
 
@@ -163,12 +167,3 @@ The listener emits completion signals after command dispatch even when the use c
 ### Consumed Events (Cross-Domain Signals)
 
 The aggregate consumes no external events directly. The Catalog workflow listener handles the requests above through `@EventListener` and dispatches commands through `CommandBus`; channel and inventory assertions remain workflow responsibilities.
-
-### Implementation References
-
-- Aggregate: `catalog-domain/src/main/java/com/catalog/domain/aggregate/ProductPublication.java`.
-- Policy: `catalog-domain/src/main/java/com/catalog/domain/policy/ProductPublicationPolicy.java`.
-- Write port: `catalog-domain/src/main/java/com/catalog/domain/port/outbound/ProductPublicationRepository.java`.
-- Use cases: `PublishProductToChannelService` and `UnpublishProductFromChannelService` in `catalog-application/src/main/java/com/catalog/application/service/`.
-- Persistence adapter: `catalog-adapter-persistence/src/main/java/com/catalog/adapter/persistence/adapter/ProductPublicationRepositoryAdapter.java`.
-- Integration bridge and workflow listener: `CatalogIntegrationEventPublisher` and `PublishProductToChannelCatalogEventListener` in `store/src/main/java/com/grab/store/catalog/internal/event/`.

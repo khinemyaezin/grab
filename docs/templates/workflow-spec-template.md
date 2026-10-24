@@ -1,148 +1,129 @@
-You are writing a Workflow Specification for an event-driven cross-domain business process.
+<!-- TEMPLATE INSTRUCTIONS
+─────────────────────────────────────────────────────────────────
+This defines a process that spans multiple domains or services.
 
-A workflow orchestrates or choreographs steps across multiple domain aggregate lifecycles to complete one business case or feature.
+PURPOSE: Blueprint for multi-step business processes — what happens step by step,
+         what events drive the flow, and what happens when things fail.
+         Developers code the orchestration logic from this document.
 
-Keep the document cohesive and answer four core questions:
-1. What happens step by step across domain aggregates?
-2. Which events move the workflow forward or report failure?
-3. What is undone when the workflow fails?
-4. How do participating domain aggregate states transition across the flow?
+WHEN TO CREATE: When a Feature Spec involves a process that coordinates
+                across multiple domains, services, or external systems.
 
-**Author rules:**
-- Describe the business flow across bounded contexts, not workflow framework internals.
-- List steps in exact execution order with precise step and event names.
-- Keep each table cell to one clear sentence.
-- In sequence diagrams, use participant roles and module names (e.g. `Workflow Coordinator`, `Catalog`, `Pricing`, `Inventory`), never Java class names.
-- List compensation undo actions in reverse execution order unless a specific business policy dictates otherwise.
-- Explicitly state why any completed action is intentionally not compensated.
-- Link participating Domain Specifications instead of repeating domain model details.
-- Replace every `[placeholder]` before publishing.
+RULES:
+- Describe the business flow, not framework internals.
+- Steps must be in exact execution order.
+- Use role names (e.g., "Order Service", "Payment Gateway") — not class names.
+- Compensation section is OPTIONAL — include only when the workflow has undo/rollback needs.
+- Replace every [placeholder] before publishing.
+─────────────────────────────────────────────────────────────────
+-->
 
----
+# Workflow: [Workflow Name]
 
-# Workflow: [Workflow Display Name]
-
-> **Purpose:** [The business outcome delivered when this cross-domain workflow completes.]
-> **Starts When:** [API call, scheduled trigger, or upstream business event.]
-> **Successful Result:** [State of the system and created/updated aggregates after all steps complete.]
-> **Participating Domains:** [Catalog] · [Pricing] · [Inventory]
-> **Related Domain Specs:**
-> - [[Catalog Domain Spec]](../domain/catalog/architecture/product-domain-spec.md)
-> - [[Pricing Domain Spec]](../domain/pricing/architecture/pricing-domain-spec.md)
-> - [[Inventory Domain Spec]](../domain/inventory/architecture/inventory-item-domain-spec.md)
+- **Purpose:** [The business outcome when this workflow completes successfully]
+- **Trigger:** [What starts this workflow — API call, scheduled job, upstream event]
+- **Success Result:** [System state after all steps complete]
+- **Feature Spec:** [[Feature Name]](../../features/[feat-xxx-feature-name].md)
+- **Domains Involved:** [Domain A] · [Domain B] · [Domain C]
 
 ---
 
-## 1. Step-by-Step Execution Path
+## 1. Step-by-Step Flow
 
-### Normal Path (Happy Path)
+### Steps
 
-| # | Step Name | Owner Domain | Business Action | Starts When | Complete When |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | `[step-one]` | [Domain A] | [Action performed on Aggregate A] | Workflow initiated | `[StepOneCompletedEvent]` received |
-| **2** | `[step-two]` | [Domain B] | [Action performed on Aggregate B] | Step 1 completes | `[StepTwoCompletedEvent]` received |
-| **3** | `[step-three]` | [Domain C] | [Action performed on Aggregate C] | Step 2 completes | `[StepThreeCompletedEvent]` received → Workflow completes |
+| # | Step | Domain | What Happens | Starts When | Done When |
+|:--|:-----|:-------|:-------------|:------------|:----------|
+| 1 | [Step name] | [Domain A] | [Action performed — e.g., "Create order record with status PENDING"] | Workflow triggered | `[StepOneCompleted]` event |
+| 2 | [Step name] | [Domain B] | [Action performed — e.g., "Reserve inventory for all line items"] | Step 1 completes | `[StepTwoCompleted]` event |
+| 3 | [Step name] | [Domain C] | [Action performed — e.g., "Charge payment method"] | Step 2 completes | `[StepThreeCompleted]` event → Workflow done |
 
-### Special Flows & Edge Conditions
-
-- **Parallel fan-out:** [Describe the actual fan-out and its completion condition, e.g. all requested lines acknowledged.]
-- **Conditional / skipped steps:** [Describe when a step is intentionally bypassed, e.g. when no inventory lines are tracked.]
-
-### Happy Path Flow
-
-> Keep the diagram clean. Use participant roles and module names, not class names.
+### Flow Diagram
 
 ```mermaid
 sequenceDiagram
     participant Caller
     participant Workflow as Workflow Coordinator
-    participant DomainA as [Domain A]
-    participant DomainB as [Domain B]
-    participant DomainC as [Domain C]
+    participant A as [Domain A]
+    participant B as [Domain B]
+    participant C as [Domain C]
 
-    Caller->>Workflow: Start workflow request
-    Workflow->>DomainA: RequestStepOneEvent
-    DomainA-->>Workflow: StepOneCompletedEvent
-    Workflow->>DomainB: RequestStepTwoEvent (fan-out / single)
-    DomainB-->>Workflow: StepTwoCompletedEvent
-    opt [Conditional Step]
-        Workflow->>DomainC: RequestStepThreeEvent
-        DomainC-->>Workflow: StepThreeCompletedEvent
-    end
-    Workflow-->>Caller: Workflow completed notification
+    Caller->>Workflow: Start [workflow name]
+    Workflow->>A: Request [step 1 action]
+    A-->>Workflow: [Step 1 completed]
+    Workflow->>B: Request [step 2 action]
+    B-->>Workflow: [Step 2 completed]
+    Workflow->>C: Request [step 3 action]
+    C-->>Workflow: [Step 3 completed]
+    Workflow-->>Caller: Workflow completed
 ```
+
+### Edge Cases
+
+- **[Parallel steps]:** [If any steps run in parallel, describe what and when — e.g., "Steps 2 and 3 execute concurrently; workflow advances when both complete"]
+- **[Skipped steps]:** [If any step is conditionally skipped — e.g., "Step 3 is skipped when order total is zero"]
 
 ---
 
 ## 2. Events & Signals
 
-### Request Events (Workflow → Domain)
+### Events Sent (Workflow → Domain)
 
-| Event Name | Step | Dispatched To | Intent / Payload Summary |
-| :--- | :--- | :--- | :--- |
-| `[RequestStepOneEvent]` | `[step-one]` | [Domain A] | Requests creation or state mutation of [Aggregate A]. |
-| `[RequestStepTwoEvent]` | `[step-two]` | [Domain B] | Requests creation or state mutation of [Aggregate B]. |
+| Event | Step | Sent To | What It Requests |
+|:------|:-----|:--------|:-----------------|
+| `[RequestStepOneEvent]` | Step 1 | [Domain A] | [What action this event asks the domain to perform] |
+| `[RequestStepTwoEvent]` | Step 2 | [Domain B] | [Requested action] |
 
-### Completion Events (Domain → Workflow)
+### Events Received (Domain → Workflow)
 
-| Event Name | Step | Emitted By | Meaning to Workflow |
-| :--- | :--- | :--- | :--- |
-| `[StepOneCompletedEvent]` | `[step-one]` | [Domain A] | Step 1 succeeded; advance workflow to step 2. |
-| `[StepTwoCompletedEvent]` | `[step-two]` | [Domain B] | Step 2 succeeded; advance workflow to step 3. |
-
-### Failure Events (Domain → Workflow)
-
-| Event Name | Emitted By | Failure Cause | Resulting Workflow Action |
-| :--- | :--- | :--- | :--- |
-| `[StepFailedEvent]` | [Actual failure emitter] | [Observed failure cause] | [Describe current behavior: compensate if actions are defined, otherwise fail, or another implemented outcome.] |
+| Event | Step | Sent By | What It Means |
+|:------|:-----|:--------|:--------------|
+| `[StepOneCompletedEvent]` | Step 1 | [Domain A] | Step 1 succeeded → advance to Step 2 |
+| `[StepOneFailedEvent]` | Step 1 | [Domain A] | Step 1 failed → [trigger failure handling or stop] |
 
 ---
 
-## 3. Compensation & Failure Recovery
+## 3. Failure Recovery *(optional — include only when the workflow needs to undo completed steps)*
 
-> **Starts When:** [Describe the actual trigger for failure handling, including failures before the first completed step.]
+### When Does Failure Handling Start?
 
-### Compensation Requests and Completion
+[Describe the trigger — e.g., "When any step emits a failure event, or when a step times out after 30 minutes."]
 
-Collect the compensations actually defined by the workflow, in reverse step-definition order. State whether requests are published together or dispatched sequentially, and whether acknowledgements gate later requests. Do not imply full rollback when only selected writes are compensated.
+### What Gets Undone?
 
-| Reverse step order | Completed action | Compensation action | Request event | Completion signal |
-| :--- | :--- | :--- | :--- | :--- |
-| [Actual reverse position] | [Action that completed] | [Undo action or "not compensated" with reason] | [Actual request event or N/A] | [Actual signal or N/A] |
+> List compensations in **reverse** order. If a completed action is intentionally NOT undone, state why.
 
-### Explicitly Non-Compensated Actions
+| Reverse # | Completed Action | Undo Action | Undo Event | Why / Notes |
+|:----------|:-----------------|:------------|:-----------|:------------|
+| 2 | [Step 2: Reserved inventory] | [Release inventory reservation] | `[CompensateStepTwoEvent]` | [Inventory must be freed for other orders] |
+| 1 | [Step 1: Created order] | [Mark order as CANCELLED] | `[CompensateStepOneEvent]` | [Order record retained for audit, status changed] |
 
-- **[Action / Resource]:** [State whether it remains applied, and the actual business or technical reason; avoid inventing a policy.]
-
-### Failure Flow
+### Failure Flow Diagram
 
 ```mermaid
 sequenceDiagram
     participant Workflow as Workflow Coordinator
-    participant Domain as [Compensating Domain]
+    participant B as [Domain B]
+    participant A as [Domain A]
 
-    alt Participant emits a typed failure signal
-        Domain-->>Workflow: [Actual failure signal]
-    else Expected completion times out
-        Workflow->>Workflow: Sweeper starts failure recovery
-    end
-    Note over Workflow: Stop forward execution and collect defined compensation requests
-    opt [Compensation requests are defined and required]
-        Workflow->>Domain: [Actual compensation request or batched requests]
-        Domain-->>Workflow: [Actual compensation completion signal]
-    end
-    Note over Workflow: COMPENSATED only when all defined compensations complete
-    Note over Workflow: FAILED when no compensation exists or compensation times out
+    Note over Workflow: Step failure detected
+    Workflow->>B: Undo step 2 [compensation action]
+    B-->>Workflow: Step 2 undone
+    Workflow->>A: Undo step 1 [compensation action]
+    A-->>Workflow: Step 1 undone
+    Note over Workflow: Workflow marked as COMPENSATED
 ```
 
 ---
 
-## 4. Aggregate Cross-Lifecycle Matrix
+## 4. State Matrix *(optional — include only for complex multi-domain workflows)*
 
-| Workflow Stage | [Aggregate A] State | [Aggregate B] State | [Aggregate C] State |
-| :--- | :--- | :--- | :--- |
-| **Initial Start** | Non-existent | Non-existent | Non-existent |
-| **After Step 1** | `CREATED / DRAFT` | Non-existent | Non-existent |
-| **After Step 2** | `CREATED / DRAFT` | `ACTIVE / ASSIGNED` | Non-existent |
-| **Workflow Completed** | [Actual aggregate state] | [Actual aggregate state] | [Actual aggregate state] |
-| **After compensation** | [Actual state, including retained partial changes] | [Actual state] | [Actual state] |
+> Track how each domain's entities change state as the workflow progresses.
+
+| Workflow Stage | [Domain A Entity] State | [Domain B Entity] State | [Domain C Entity] State |
+|:---------------|:------------------------|:------------------------|:------------------------|
+| **Start** | — (not yet created) | — | — |
+| **After Step 1** | `PENDING` | — | — |
+| **After Step 2** | `PENDING` | `RESERVED` | — |
+| **Completed** | `CONFIRMED` | `COMMITTED` | `CHARGED` |
+| **After Compensation** | `CANCELLED` | `RELEASED` | — (not yet reached) |

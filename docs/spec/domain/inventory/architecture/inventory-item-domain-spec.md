@@ -1,9 +1,12 @@
 # Domain Specification: Inventory Item
 
-> **Bounded Context:** Inventory
-> **Primary Purpose:** Tracks quantities, stock operations, reorder settings, and inventory status for a merchant's product variant at a location.
-> **Module Root:** `inventory-domain` / `inventory-application` / `inventory-adapter-persistence` / `store/inventory`
-> **Related Workflow:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md)
+- **Bounded Context:** Inventory
+- **Primary Purpose:** Tracks quantities, stock operations, reorder settings, and inventory status for a merchant's product variant at a location.
+- **Discovery Features:** [DiscoveryProduct baseline](../../../../features/feat_002-discovery_product.md), [Discovery Wiring & Projection Reconciliation](../../../../features/feat_006-discovery-wiring-projection-reconciliation.md)
+- **Module Root:** `inventory-domain` / `inventory-application` / `inventory-adapter-persistence` / `store/inventory`
+- **Discovery Workflow:** [Browse, Project, and Rebuild](../../../workflows/browse-and-discover-products-workflow.md)
+- **Discovery Tech:** [Currency-Agnostic Projection](../../../system/storefront-query-tech-spec.md)
+- **Related Workflow:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md)
 
 ## 1. Boundary & Context Map
 
@@ -134,8 +137,8 @@ stateDiagram-v2
 | `StockShippedEvent` | Shipment of reserved stock | Item, SKU, quantity, order reference, time | Inventory projections and order flows |
 | `StockAdjustedEvent` | Adjustment, damage, or write-off | Item, SKU, before/after quantity, reason | Inventory projections and audit consumers |
 | `LowStockAlertEvent` | Stock falls below its configured reorder point | Item, SKU, quantity and reorder details | Inventory alerts and projections |
-| `InventoryItemDiscontinuedEvent` | Discontinuation | Item, SKU, variant, location | Catalog/inventory integration flows |
+| `InventoryItemStatusChangedEvent` | Suspension, activation, or discontinuation | Item, SKU, current status, time | Catalog/inventory integration flows |
 
-`InventoryItemCreatedEvent` is a workflow acknowledgement, not a domain event emitted by this aggregate. The store layer maps selected stock events to integration records such as `StockReceivedIntegrationEvent`, `StockReservedIntegrationEvent`, `StockShippedIntegrationEvent`, and `StockAdjustedIntegrationEvent`. A `ProductDeletedIntegrationEvent` from Catalog is consumed asynchronously and causes associated inventory items to be discontinued while their quantities remain recorded. Location, zone, and bin events belong to their own Inventory aggregates and are outside this InventoryItem event table.
+`InventoryItemCreatedEvent` is a workflow acknowledgement, not a domain event emitted by this aggregate. The store layer maps stock and lifecycle events to integration records such as `StockReceivedIntegrationEvent`, `StockReservedIntegrationEvent`, `StockShippedIntegrationEvent`, `StockAdjustedIntegrationEvent`, and `InventoryStatusChangedIntegrationEvent`. A `ProductDeletedIntegrationEvent` from Catalog is consumed asynchronously and causes associated inventory items to be discontinued while their quantities remain recorded. Location, zone, and bin events belong to their own Inventory aggregates and are outside this InventoryItem event table.
 
 Implementation references: `inventory-domain/src/main/java/com/inventory/domain/aggregate/InventoryItem.java`, `inventory-domain/src/main/java/com/inventory/domain/valueobject/InventoryQuantity.java`, `inventory-application/src/main/java/com/inventory/application/service/CreateInventoryService.java`, and `store/src/main/java/com/grab/store/inventory/internal/event/ProductVariantDeletedInventoryCascadeEventListener.java`.

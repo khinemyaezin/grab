@@ -4,6 +4,7 @@ import com.grab.framework.id.IdGenerator;
 import com.pricing.application.port.inbound.*;
 import com.pricing.application.port.outbound.PriceQueryPort;
 import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
+import com.pricing.domain.policy.QuoteVariantPricesPolicy;
 import com.pricing.application.service.*;
 import com.pricing.domain.policy.CalculatePricesPolicy;
 import com.pricing.domain.port.outbound.PriceListRepository;
@@ -15,6 +16,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class PricingUseCaseConfig {
+
+    @Bean
+    public QuoteVariantPricesPolicy quoteVariantPricesPolicy() {
+        return new QuoteVariantPricesPolicy();
+    }
 
     @Bean
     public CalculatePricesPolicy calculatePricesPolicy() {
@@ -202,6 +208,23 @@ public class PricingUseCaseConfig {
             IdGenerator idGenerator
     ) {
         return new QuoteVariantPriceService(variantPriceSetLinkQueryPort, calculatePricesUseCase, idGenerator);
+    }
+
+    @Bean
+    public QuoteVariantPricesUseCase quoteVariantPricesUseCase(
+            VariantPriceSetLinkQueryPort variantPriceSetLinkQueryPort,
+            PriceQueryPort priceQueryPort,
+            CalculatePricesPolicy calculatePricesPolicy,
+            IdGenerator idGenerator,
+            QuoteVariantPricesPolicy quoteVariantPricesPolicy
+    ) {
+        return new QuoteVariantPricesService(
+                variantPriceSetLinkQueryPort,
+                priceQueryPort,
+                calculatePricesPolicy,
+                idGenerator,
+                quoteVariantPricesPolicy
+        );
     }
 
     @Bean

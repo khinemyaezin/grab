@@ -1,374 +1,156 @@
 package com.grab.store.inventory.internal.event;
 
-import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductNameChangedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantRestoredIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantUpdatedIntegrationEvent;
-import com.grab.store.workflows.events.ProductVariantViewProjectedEvent;
-import com.inventory.adapter.persistence.entity.ProductVariantViewEntity;
-import com.inventory.adapter.persistence.repository.jpa.ProductVariantViewJpaRepository;
-import com.inventory.application.model.read.ProductView;
-import org.junit.jupiter.api.BeforeEach;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
+import com.grab.framework.id.impl.CommonId;
+import com.grab.store.shared.events.catalog.ProductDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPresentationChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantAddedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantRestoredIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantUpdatedIntegrationEvent;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.DeleteProduct;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.RenameProduct;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.SetVariantStatus;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.UpsertVariant;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.repository.query.FluentQuery;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ProductVariantViewProjectionEventListenerTest {
-
-    private InMemoryProductVariantViewJpaRepository repository;
-    private List<Object> published;
+    private static final Id PRODUCT_ID = new CommonId("product-1");
+    private static final Id VARIANT_ID = new CommonId("variant-1");
+    private static final Instant EVENT_TIME = Instant.parse("2026-10-01T00:00:00Z");
+    @Mock
+    private CommandBus commandBus;
+    @Mock
+    private IdGenerator idGenerator;
+    @Captor
+    private ArgumentCaptor<ProjectProductVariantViewCommand> commandCaptor;
+    @InjectMocks
     private ProductVariantViewProjectionEventListener listener;
 
-    @BeforeEach
-    void setUp() {
-        repository = new InMemoryProductVariantViewJpaRepository();
-        published = new ArrayList<>();
-        listener = new ProductVariantViewProjectionEventListener(
-                repository,
-                (type, id, events) -> published.addAll(events)
+    @Test
+    void onVariantAdded_addedVariant_dispatchesCompleteProjectionCommand() {
+        when(idGenerator.convertIdFrom("product-1")).thenReturn(PRODUCT_ID);
+        when(idGenerator.convertIdFrom("variant-1")).thenReturn(VARIANT_ID);
+        ProductVariantAddedIntegrationEvent event = new ProductVariantAddedIntegrationEvent(
+                "product-1", "variant-1", "SKU1", "Product", true, EVENT_TIME, 1
         );
+
+        listener.onVariantAdded(event);
+
+        verify(commandBus).dispatch(commandCaptor.capture());
+        UpsertVariant update = (UpsertVariant) commandCaptor.getValue().update();
+        assertThat(update.productId()).isEqualTo(PRODUCT_ID);
+        assertThat(update.variantId()).isEqualTo(VARIANT_ID);
+        assertThat(update.sku()).isEqualTo("SKU1");
+        assertThat(update.productName()).isEqualTo("Product");
+        assertThat(update.manageInventory()).isTrue();
+        assertThat(update.replacePresentation()).isTrue();
     }
 
     @Test
-    void onVariantAdded_shouldInsertNewViewRow() {
-        listener.onVariantAdded(new ProductVariantAddedIntegrationEvent(
-                "product-1", "variant-1", "SKU001", "T-Shirt", true, Instant.now(), 1));
+    void onVariantUpdated_updatedVariant_dispatchesPartialProjectionCommand() {
+        when(idGenerator.convertIdFrom("product-1")).thenReturn(PRODUCT_ID);
+        when(idGenerator.convertIdFrom("variant-1")).thenReturn(VARIANT_ID);
+        ProductVariantUpdatedIntegrationEvent event = new ProductVariantUpdatedIntegrationEvent(
+                "product-1", "variant-1", "SKU2", false, EVENT_TIME, 1
+        );
 
-        ProductVariantViewEntity saved = repository.findByVariantUuid("variant-1").orElseThrow();
-        assertThat(saved.getVariantUuid()).isEqualTo("variant-1");
-        assertThat(saved.getProductUuid()).isEqualTo("product-1");
-        assertThat(saved.getSku()).isEqualTo("SKU001");
-        assertThat(saved.getProductName()).isEqualTo("T-Shirt");
-        assertThat(saved.isManageInventory()).isTrue();
-        assertThat(saved.getStatus()).isEqualTo(ProductVariantViewEntity.STATUS_ACTIVE);
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOf(ProductVariantViewProjectedEvent.class);
+        listener.onVariantUpdated(event);
+
+        verify(commandBus).dispatch(commandCaptor.capture());
+        UpsertVariant update = (UpsertVariant) commandCaptor.getValue().update();
+        assertThat(update.sku()).isEqualTo("SKU2");
+        assertThat(update.manageInventory()).isFalse();
+        assertThat(update.replacePresentation()).isFalse();
     }
 
     @Test
-    void onVariantAdded_shouldUpsertExistingRowOnRedelivery() {
-        ProductVariantViewEntity existing = new ProductVariantViewEntity();
-        existing.setVariantUuid("variant-1");
-        existing.setProductUuid("product-1");
-        existing.setSku("OLD");
-        existing.setStatus(ProductVariantViewEntity.STATUS_DELETED);
-        repository.save(existing);
+    void onVariantDeleted_deletedVariant_dispatchesInactiveStatus() {
+        when(idGenerator.convertIdFrom("variant-1")).thenReturn(VARIANT_ID);
+        ProductVariantDeletedIntegrationEvent event = new ProductVariantDeletedIntegrationEvent(
+                "product-1", "variant-1", EVENT_TIME, 1
+        );
 
-        listener.onVariantAdded(new ProductVariantAddedIntegrationEvent(
-                "product-1", "variant-1", "SKU001", "T-Shirt", true, Instant.now(), 1));
+        listener.onVariantDeleted(event);
 
-        ProductVariantViewEntity saved = repository.findByVariantUuid("variant-1").orElseThrow();
-        assertThat(saved.getSku()).isEqualTo("SKU001");
-        assertThat(saved.getStatus()).isEqualTo(ProductVariantViewEntity.STATUS_ACTIVE);
+        verify(commandBus).dispatch(commandCaptor.capture());
+        SetVariantStatus update = (SetVariantStatus) commandCaptor.getValue().update();
+        assertThat(update.variantId()).isEqualTo(VARIANT_ID);
+        assertThat(update.active()).isFalse();
     }
 
     @Test
-    void onVariantUpdated_shouldUpdateSku() {
-        ProductVariantViewEntity existing = new ProductVariantViewEntity();
-        existing.setVariantUuid("variant-1");
-        existing.setProductUuid("product-1");
-        existing.setSku("SKU001");
-        existing.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-        repository.save(existing);
+    void onVariantRestored_restoredVariant_dispatchesActiveStatus() {
+        when(idGenerator.convertIdFrom("variant-1")).thenReturn(VARIANT_ID);
+        ProductVariantRestoredIntegrationEvent event = new ProductVariantRestoredIntegrationEvent(
+                "product-1", "variant-1", EVENT_TIME, 1
+        );
 
-        listener.onVariantUpdated(new ProductVariantUpdatedIntegrationEvent(
-                "product-1", "variant-1", "SKU002", false, Instant.now(), 1));
+        listener.onVariantRestored(event);
 
-        ProductVariantViewEntity saved = repository.findByVariantUuid("variant-1").orElseThrow();
-        assertThat(saved.getSku()).isEqualTo("SKU002");
-        assertThat(saved.isManageInventory()).isFalse();
-        assertThat(published).hasSize(1);
-        assertThat(published.getFirst()).isInstanceOfSatisfying(ProductVariantViewProjectedEvent.class, event -> {
-            assertThat(event.productId()).isEqualTo("product-1");
-            assertThat(event.variantId()).isEqualTo("variant-1");
-            assertThat(event.sku()).isEqualTo("SKU002");
-        });
+        verify(commandBus).dispatch(commandCaptor.capture());
+        SetVariantStatus update = (SetVariantStatus) commandCaptor.getValue().update();
+        assertThat(update.variantId()).isEqualTo(VARIANT_ID);
+        assertThat(update.active()).isTrue();
     }
 
     @Test
-    void onVariantDeleted_shouldMarkRowDeleted() {
-        ProductVariantViewEntity existing = new ProductVariantViewEntity();
-        existing.setVariantUuid("variant-1");
-        existing.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-        repository.save(existing);
+    void onProductPresentationChanged_renamedProduct_dispatchesProductRename() {
+        when(idGenerator.convertIdFrom("product-1")).thenReturn(PRODUCT_ID);
+        ProductPresentationChangedIntegrationEvent event = new ProductPresentationChangedIntegrationEvent(
+                "product-1", "Renamed", EVENT_TIME, 1
+        );
 
-        listener.onVariantDeleted(new ProductVariantDeletedIntegrationEvent(
-                "product-1", "variant-1", Instant.now(), 1));
+        listener.onProductPresentationChanged(event);
 
-        assertThat(repository.findByVariantUuid("variant-1").orElseThrow().getStatus())
-                .isEqualTo(ProductVariantViewEntity.STATUS_DELETED);
+        verify(commandBus).dispatch(commandCaptor.capture());
+        RenameProduct update = (RenameProduct) commandCaptor.getValue().update();
+        assertThat(update.productId()).isEqualTo(PRODUCT_ID);
+        assertThat(update.productName()).isEqualTo("Renamed");
     }
 
     @Test
-    void onVariantDeleted_shouldIgnoreUnknownVariant() {
-        listener.onVariantDeleted(new ProductVariantDeletedIntegrationEvent(
-                "product-1", "variant-1", Instant.now(), 1));
+    void onProductDeleted_deletedProduct_dispatchesTombstoneCommand() {
+        when(idGenerator.convertIdFrom("product-1")).thenReturn(PRODUCT_ID);
+        ProductDeletedIntegrationEvent event = new ProductDeletedIntegrationEvent(
+                "product-1", List.of("variant-1"), EVENT_TIME, 1
+        );
 
-        assertThat(repository.findByVariantUuid("variant-1")).isEmpty();
+        listener.onProductDeleted(event);
+
+        verify(commandBus).dispatch(commandCaptor.capture());
+        DeleteProduct update = (DeleteProduct) commandCaptor.getValue().update();
+        assertThat(update.productId()).isEqualTo(PRODUCT_ID);
     }
 
     @Test
-    void onVariantRestored_shouldMarkRowActive() {
-        ProductVariantViewEntity existing = new ProductVariantViewEntity();
-        existing.setVariantUuid("variant-1");
-        existing.setStatus(ProductVariantViewEntity.STATUS_DELETED);
-        repository.save(existing);
+    void onVariantDeleted_commandFailure_propagatesToOutboxDelivery() {
+        when(idGenerator.convertIdFrom("variant-1")).thenReturn(VARIANT_ID);
+        IllegalStateException failure = new IllegalStateException("projection failed");
+        when(commandBus.dispatch(any(ProjectProductVariantViewCommand.class))).thenThrow(failure);
+        ProductVariantDeletedIntegrationEvent event = new ProductVariantDeletedIntegrationEvent(
+                "product-1", "variant-1", EVENT_TIME, 1
+        );
 
-        listener.onVariantRestored(new ProductVariantRestoredIntegrationEvent(
-                "product-1", "variant-1", Instant.now(), 1));
-
-        assertThat(repository.findByVariantUuid("variant-1").orElseThrow().getStatus())
-                .isEqualTo(ProductVariantViewEntity.STATUS_ACTIVE);
-    }
-
-    @Test
-    void onProductNameChanged_shouldRenameAllVariantRows() {
-        ProductVariantViewEntity first = new ProductVariantViewEntity();
-        first.setVariantUuid("variant-1");
-        first.setProductUuid("product-1");
-        first.setSku("SKU1");
-        first.setProductName("Old");
-        first.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-        ProductVariantViewEntity second = new ProductVariantViewEntity();
-        second.setVariantUuid("variant-2");
-        second.setProductUuid("product-1");
-        second.setSku("SKU2");
-        second.setProductName("Old");
-        second.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-        repository.save(first);
-        repository.save(second);
-
-        listener.onProductNameChanged(new ProductNameChangedIntegrationEvent(
-                "product-1", "New Name", Instant.now(), 1));
-
-        assertThat(repository.findAllByProductUuid("product-1"))
-                .extracting(ProductVariantViewEntity::getProductName)
-                .containsOnly("New Name");
-    }
-
-    @Test
-    void onProductDeleted_shouldMarkAllVariantRowsDeleted() {
-        ProductVariantViewEntity first = new ProductVariantViewEntity();
-        first.setVariantUuid("variant-1");
-        first.setProductUuid("product-1");
-        first.setSku("SKU1");
-        first.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-        ProductVariantViewEntity second = new ProductVariantViewEntity();
-        second.setVariantUuid("variant-2");
-        second.setProductUuid("product-1");
-        second.setSku("SKU2");
-        second.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-        repository.save(first);
-        repository.save(second);
-
-        listener.onProductDeleted(new ProductDeletedIntegrationEvent(
-                "product-1", List.of("variant-1", "variant-2"), Instant.now(), 1));
-
-        assertThat(repository.findAllByProductUuid("product-1"))
-                .extracting(ProductVariantViewEntity::getStatus)
-                .containsOnly(ProductVariantViewEntity.STATUS_DELETED);
-    }
-
-    private static final class InMemoryProductVariantViewJpaRepository implements ProductVariantViewJpaRepository {
-
-        private final AtomicLong ids = new AtomicLong();
-        private final List<ProductVariantViewEntity> rows = new ArrayList<>();
-
-        @Override
-        public Optional<ProductVariantViewEntity> findByVariantUuid(String variantUuid) {
-            return rows.stream().filter(row -> variantUuid.equals(row.getVariantUuid())).findFirst();
-        }
-
-        @Override
-        public List<ProductVariantViewEntity> findAllByProductUuid(String productUuid) {
-            return rows.stream().filter(row -> productUuid.equals(row.getProductUuid())).toList();
-        }
-
-        @Override
-        public Optional<ProductView> findBySkuAndStatus(String sku, String status) {
-            return Optional.empty();
-        }
-
-        @Override
-        public List<ProductView> findAllBySkuIn(Collection<String> skus) {
-            return List.of();
-        }
-
-        @Override
-        public List<ProductView> findBySkuContainingIgnoreCaseAndStatus(String sku, String status) {
-            return List.of();
-        }
-
-        @Override
-        public void flush() {
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> S saveAndFlush(S entity) {
-            return save(entity);
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> List<S> saveAllAndFlush(Iterable<S> entities) {
-            return saveAll(entities);
-        }
-
-        @Override
-        public void deleteAllInBatch(Iterable<ProductVariantViewEntity> entities) {
-        }
-
-        @Override
-        public void deleteAllByIdInBatch(Iterable<Long> longs) {
-        }
-
-        @Override
-        public void deleteAllInBatch() {
-        }
-
-        @Override
-        public ProductVariantViewEntity getOne(Long aLong) {
-            return findById(aLong).orElse(null);
-        }
-
-        @Override
-        public ProductVariantViewEntity getById(Long aLong) {
-            return findById(aLong).orElse(null);
-        }
-
-        @Override
-        public ProductVariantViewEntity getReferenceById(Long aLong) {
-            return findById(aLong).orElse(null);
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> Optional<S> findOne(Example<S> example) {
-            return Optional.empty();
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> List<S> findAll(Example<S> example) {
-            return List.of();
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> List<S> findAll(Example<S> example, Sort sort) {
-            return List.of();
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> Page<S> findAll(Example<S> example, Pageable pageable) {
-            return Page.empty();
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> long count(Example<S> example) {
-            return 0;
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> boolean exists(Example<S> example) {
-            return false;
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity, R> R findBy(
-                Example<S> example,
-                Function<FluentQuery.FetchableFluentQuery<S>, R> queryFunction
-        ) {
-            return null;
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> S save(S entity) {
-            if (entity.getId() == null) {
-                entity.setId(ids.incrementAndGet());
-                rows.removeIf(row -> entity.getVariantUuid() != null && entity.getVariantUuid().equals(row.getVariantUuid()));
-                rows.add(entity);
-            } else {
-                rows.removeIf(row -> entity.getId().equals(row.getId()));
-                rows.add(entity);
-            }
-            return entity;
-        }
-
-        @Override
-        public <S extends ProductVariantViewEntity> List<S> saveAll(Iterable<S> entities) {
-            List<S> saved = new ArrayList<>();
-            for (S entity : entities) {
-                saved.add(save(entity));
-            }
-            return saved;
-        }
-
-        @Override
-        public Optional<ProductVariantViewEntity> findById(Long aLong) {
-            return rows.stream().filter(row -> aLong.equals(row.getId())).findFirst();
-        }
-
-        @Override
-        public boolean existsById(Long aLong) {
-            return findById(aLong).isPresent();
-        }
-
-        @Override
-        public List<ProductVariantViewEntity> findAll() {
-            return List.copyOf(rows);
-        }
-
-        @Override
-        public List<ProductVariantViewEntity> findAllById(Iterable<Long> longs) {
-            return List.of();
-        }
-
-        @Override
-        public long count() {
-            return rows.size();
-        }
-
-        @Override
-        public void deleteById(Long aLong) {
-        }
-
-        @Override
-        public void delete(ProductVariantViewEntity entity) {
-        }
-
-        @Override
-        public void deleteAllById(Iterable<? extends Long> longs) {
-        }
-
-        @Override
-        public void deleteAll(Iterable<? extends ProductVariantViewEntity> entities) {
-        }
-
-        @Override
-        public void deleteAll() {
-            rows.clear();
-        }
-
-        @Override
-        public List<ProductVariantViewEntity> findAll(Sort sort) {
-            return findAll();
-        }
-
-        @Override
-        public Page<ProductVariantViewEntity> findAll(Pageable pageable) {
-            return Page.empty();
-        }
+        assertThatThrownBy(() -> listener.onVariantDeleted(event)).isSameAs(failure);
     }
 }

@@ -208,9 +208,9 @@ pricing:
       drain-timeout-ms: ${PRICING_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
 
 storefrontquery:
-  display-currency: ${STOREFRONTQUERY_DISPLAY_CURRENCY:MMK}
   rebuild:
     on-startup: ${STOREFRONTQUERY_REBUILD_ON_STARTUP:false}
+    batch-size: ${STOREFRONTQUERY_REBUILD_BATCH_SIZE:100}
   datasource:
     url: ${STOREFRONTQUERY_DATASOURCE_URL:jdbc:postgresql://localhost:5432/storefrontquery}
     username: ${STOREFRONTQUERY_DATASOURCE_USERNAME:admin}
@@ -224,7 +224,7 @@ storefrontquery:
     hibernate:
       dialect: ${STOREFRONTQUERY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
       hbm2ddl:
-        auto: ${STOREFRONTQUERY_JPA_DDL_AUTO:update}
+        auto: ${STOREFRONTQUERY_JPA_DDL_AUTO:validate}
       show_sql: ${STOREFRONTQUERY_JPA_SHOW_SQL:false}
       format_sql: ${STOREFRONTQUERY_JPA_FORMAT_SQL:false}
 

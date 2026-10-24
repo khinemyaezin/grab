@@ -1,132 +1,80 @@
 package com.grab.store.inventory.internal.event;
 
-import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductNameChangedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantRestoredIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantUpdatedIntegrationEvent;
-import com.grab.store.workflows.events.ProductVariantViewProjectedEvent;
-import com.grab.store.inventory.internal.config.InventoryTransactional;
-import com.inventory.adapter.persistence.entity.ProductVariantViewEntity;
-import com.inventory.adapter.persistence.repository.jpa.ProductVariantViewJpaRepository;
-import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.logger.Logger;
-import com.grab.framework.logger.Loggers;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.IdGenerator;
+import com.grab.store.shared.events.catalog.ProductDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPresentationChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantAddedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantRestoredIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantUpdatedIntegrationEvent;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.DeleteProduct;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.RenameProduct;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.SetVariantStatus;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.Update;
+import com.inventory.application.model.write.ProjectProductVariantViewCommand.UpsertVariant;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.util.List;
-
 @Component
+@RequiredArgsConstructor
 public class ProductVariantViewProjectionEventListener {
-
-    private static final Logger log = Loggers.getLogger(ProductVariantViewProjectionEventListener.class);
-
-    private static final int EVENT_VERSION = 1;
-
-    private final ProductVariantViewJpaRepository productVariantViewRepository;
-    private final DomainEventProducer domainEventProducer;
-
-    public ProductVariantViewProjectionEventListener(
-            ProductVariantViewJpaRepository productVariantViewRepository,
-            @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer
-    ) {
-        this.productVariantViewRepository = productVariantViewRepository;
-        this.domainEventProducer = domainEventProducer;
-    }
+    private final CommandBus commandBus;
+    private final IdGenerator idGenerator;
 
     @EventListener
-    @InventoryTransactional
     public void onVariantAdded(ProductVariantAddedIntegrationEvent event) {
-        log.info("Projecting variant added: productId={}, variantId={}", event.productId(), event.variantId());
-
-        ProductVariantViewEntity view = productVariantViewRepository.findByVariantUuid(event.variantId())
-                .orElseGet(ProductVariantViewEntity::new);
-        view.setVariantUuid(event.variantId());
-        view.setProductUuid(event.productId());
-        view.setSku(event.sku());
-        view.setProductName(event.productName());
-        view.setManageInventory(event.manageInventory());
-        view.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-        productVariantViewRepository.save(view);
-
-        domainEventProducer.produce("workflow", event.productId(), List.of(new ProductVariantViewProjectedEvent(
-                event.productId(),
-                event.variantId(),
-                event.sku(),
-                Instant.now(),
-                EVENT_VERSION
-        )));
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        Id variantId = idGenerator.convertIdFrom(event.variantId());
+        UpsertVariant update = new UpsertVariant(
+                productId, variantId, event.sku(), event.productName(), event.manageInventory(), true
+        );
+        dispatch(update);
     }
 
     @EventListener
-    @InventoryTransactional
     public void onVariantUpdated(ProductVariantUpdatedIntegrationEvent event) {
-        log.info("Projecting variant updated: productId={}, variantId={}", event.productId(), event.variantId());
-
-        ProductVariantViewEntity view = productVariantViewRepository.findByVariantUuid(event.variantId())
-                .orElseGet(() -> {
-                    var created = new ProductVariantViewEntity();
-                    created.setVariantUuid(event.variantId());
-                    created.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-                    return created;
-                });
-        view.setProductUuid(event.productId());
-        view.setSku(event.sku());
-        view.setManageInventory(event.manageInventory());
-        productVariantViewRepository.save(view);
-
-        domainEventProducer.produce("workflow", event.productId(), List.of(new ProductVariantViewProjectedEvent(
-                event.productId(),
-                event.variantId(),
-                event.sku(),
-                Instant.now(),
-                EVENT_VERSION
-        )));
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        Id variantId = idGenerator.convertIdFrom(event.variantId());
+        UpsertVariant update = new UpsertVariant(
+                productId, variantId, event.sku(), null, event.manageInventory(), false
+        );
+        dispatch(update);
     }
 
     @EventListener
-    @InventoryTransactional
     public void onVariantDeleted(ProductVariantDeletedIntegrationEvent event) {
-        log.info("Projecting variant deleted: productId={}, variantId={}", event.productId(), event.variantId());
-
-        productVariantViewRepository.findByVariantUuid(event.variantId()).ifPresent(view -> {
-            view.setStatus(ProductVariantViewEntity.STATUS_DELETED);
-            productVariantViewRepository.save(view);
-        });
+        Id variantId = idGenerator.convertIdFrom(event.variantId());
+        SetVariantStatus update = new SetVariantStatus(variantId, false);
+        dispatch(update);
     }
 
     @EventListener
-    @InventoryTransactional
     public void onVariantRestored(ProductVariantRestoredIntegrationEvent event) {
-        log.info("Projecting variant restored: productId={}, variantId={}", event.productId(), event.variantId());
-
-        productVariantViewRepository.findByVariantUuid(event.variantId()).ifPresent(view -> {
-            view.setStatus(ProductVariantViewEntity.STATUS_ACTIVE);
-            productVariantViewRepository.save(view);
-        });
+        Id variantId = idGenerator.convertIdFrom(event.variantId());
+        SetVariantStatus update = new SetVariantStatus(variantId, true);
+        dispatch(update);
     }
 
     @EventListener
-    @InventoryTransactional
-    public void onProductNameChanged(ProductNameChangedIntegrationEvent event) {
-        log.info("Projecting product name change: productId={}", event.productId());
-
-        var views = productVariantViewRepository.findAllByProductUuid(event.productId());
-        views.forEach(view -> view.setProductName(event.newName()));
-        productVariantViewRepository.saveAll(views);
+    public void onProductPresentationChanged(ProductPresentationChangedIntegrationEvent event) {
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        RenameProduct update = new RenameProduct(productId, event.productName());
+        dispatch(update);
     }
 
     @EventListener
-    @InventoryTransactional
     public void onProductDeleted(ProductDeletedIntegrationEvent event) {
-        log.info("Projecting product deleted: productId={}", event.productId());
+        Id productId = idGenerator.convertIdFrom(event.productId());
+        DeleteProduct update = new DeleteProduct(productId);
+        dispatch(update);
+    }
 
-        var views = productVariantViewRepository.findAllByProductUuid(event.productId());
-        views.forEach(view -> view.setStatus(ProductVariantViewEntity.STATUS_DELETED));
-        productVariantViewRepository.saveAll(views);
+    private void dispatch(Update update) {
+        ProjectProductVariantViewCommand command = new ProjectProductVariantViewCommand(update);
+        commandBus.dispatch(command);
     }
 }

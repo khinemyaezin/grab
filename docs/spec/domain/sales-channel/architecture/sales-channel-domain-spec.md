@@ -1,228 +1,165 @@
-# Domain Specification: Sales Channel
+# Domain Spec: SalesChannel
 
-> **Bounded Context:** Sales Channel
-> **Primary Purpose:** Defines a selling destination, its platform or merchant ownership, and whether it is enabled for use.
-> **Module Root:** `sales-channel-domain` / `sales-channel-application` / `sales-channel-adapter-persistence` / `store/saleschannel`
-> **Related Domain Specs:** [Merchant](../../merchant/architecture/merchant-domain-spec.md), [Catalog Product Publication](../../catalog/architecture/product-publication-domain-spec.md), [Publishable Key](publishable-key-domain-spec.md)
-> **Related Feature Specs:** [Publishable Keys for Sales Channels](../../../features/feat_003-sales-channel-publishable-keys.md)
-> **Related Workflows:** [Default Sales Channel Provisioning](../../../features/default-sales-channel-provisioning-workflow.md), [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md), [Update Sellable Product](../../../workflows/update-sellable-product-workflow.md)
+- **Domain:** Sales Channel
+- **Purpose:** Defines a commercial selling destination, its ownership hierarchy, active status, and regional market bindings.
+- **Feature Spec:** [Edge Shopping-Context Resolution](../../../../features/feat_004-edge-shopping-context-resolution.md)
 
 ---
 
-## 1. Boundary & Context Map
+## 1. Ownership & Boundaries
 
-### Ownership
+### What does this domain own?
 
-- **This aggregate OWNS:** Channel identity, name, type, ownership classification, merchant reference, enabled/disabled status, and lifecycle timestamps.
-- **This aggregate DOES NOT OWN:** Merchant lifecycle, product data, variant/channel publication records, prices, inventory locations, routing, or storefront buyability projections.
+- **Owns:** Channel identity, display name, channel type (Website, Marketplace, POS), ownership classification, merchant reference, operational status, and `ChannelRegion` market bindings.
+- **Does NOT own:** Merchant lifecycle (`Merchant`), regional definitions or currencies (`Region`), product publications (`Catalog`), or publishable credentials (`PublishableKey`).
 
-The Sales Channel bounded context also owns publishable-key records. Each `PublishableKey` is a separate aggregate root and references its channel by `salesChannelId`; it is not a child of the `SalesChannel` aggregate. Detailed aggregate specification for publishable keys is defined in the [Publishable Key domain spec](publishable-key-domain-spec.md). A key record owns its label, token digest, display prefix, creation time, and revocation time. It does not own channel status or public product data.
+### Boundary Diagram
 
-A Sales Channel has no child entities and references its merchant by `merchantId` only. Catalog owns [ProductPublication](../../catalog/architecture/product-publication-domain-spec.md), which references this aggregate by `salesChannelId`.
-
-### Context Map
+> Show this entity, its internal parts, and how it relates to other domains (ID references only — no direct object navigation).
 
 ```mermaid
 flowchart TD
-    subgraph ChannelContext ["Sales Channel Bounded Context"]
-        Channel["Sales Channel (Root)"]
+    subgraph SalesChannelDomain ["Sales Channel Domain"]
+        Root["SalesChannel (Aggregate Root)"]
+        Binding["ChannelRegion (Entity)"]
+
+        Root --> Binding
     end
-    subgraph MerchantContext ["Merchant Bounded Context"]
-        Merchant["Merchant (Root)"]
+
+    subgraph RegionDomain ["Region Domain"]
+        RegionEntity["Region"]
     end
-    subgraph CatalogContext ["Catalog Bounded Context"]
-        Publication["Product Publication (Root)"]
+
+    subgraph MerchantDomain ["Merchant Domain"]
+        MerchantEntity["Merchant"]
     end
-    Channel -.->|"merchantId for seller-owned channels"| Merchant
-    Publication -.->|"salesChannelId reference only"| Channel
+
+    Binding -.-|"references by regionId"| RegionEntity
+    Root -.-|"references by merchantId"| MerchantEntity
 ```
 
 ---
 
-## 2. Ubiquitous Language
-
-| Business Term | Domain Concept | Business Definition |
-| :--- | :--- | :--- |
-| **Sales Channel** | `SalesChannel` (Aggregate Root) | A destination through which products may be offered to customers. |
-| **Website** | `ChannelType.WEBSITE` | A seller-owned channel associated with one merchant. |
-| **Marketplace** | `ChannelType.MARKETPLACE` | A platform-owned channel without a merchant owner. |
-| **Point of Sale** | `ChannelType.POS` | A seller-owned point-of-sale channel requiring a merchant reference. |
-| **Seller Ownership** | `ChannelOwner.SELLER` | Ownership that restricts channel use to the referenced merchant. |
-| **Platform Ownership** | `ChannelOwner.PLATFORM` | Ownership that permits any merchant to pass the channel ownership guard. |
-| **Enabled** | `ChannelStatus.ENABLED` | Channel status that passes the enabled guard. |
-| **Disabled** | `ChannelStatus.DISABLED` | Channel status that prevents a successful usability assertion. |
-| **Usable Channel** | `CheckSalesChannelUsableResult.usable()` | A channel that exists, is enabled, and is platform-owned or belongs to the acting merchant. |
-| **Publishable Key** | `PublishableKey` (Aggregate Root) | A revocable, channel-scoped credential used to select a sales channel for public storefront reads. |
-| **Active Key** | `PublishableKey.isActive()` | A key whose `revokedAt` value is absent. |
-
----
-
-## 3. Domain Aggregate Model
+## 2. Domain Model
 
 ### Model Diagram
 
+> Show the entity structure — attributes and key operations. Keep it to ~7–9 nodes.
+
 ```mermaid
 classDiagram
+    direction LR
+
     class SalesChannel {
-        +Identifier id
-        +Name name
+        +Identity id
+        +String name
         +ChannelType type
         +ChannelOwner owner
-        +Identifier merchantId
+        +Identity merchantId
         +ChannelStatus status
-        +Timestamp createdAt
-        +Timestamp updatedAt
-        +Revision version
-        +createWebsite(id, merchantId, name, now)
-        +createMarketplace(id, name, now)
-        +enable(now)
-        +disable(now)
-        +requireEnabled()
-        +requireOwnedBy(actingMerchantId)
+        +Instant createdAt
+        +Instant updatedAt
+        +Long version
+        +enable()
+        +disable()
+        +enableRegion()
+        +disableRegion()
     }
+
+    class ChannelRegion {
+        +Identity salesChannelId
+        +Identity regionId
+        +Boolean enabled
+        +Boolean isDefault
+    }
+
+    SalesChannel *-- "0..*" ChannelRegion : contains
 ```
 
-Diagram attribute types describe business concepts; the implementation types are listed below. Type, owner, and merchant reference are fixed after construction, and no rename operation is currently exposed by the aggregate.
+### Property Rationale
 
-### Property & Attribute Rationale
+> Every property must exist for a business reason — not "because the database needs it."
 
-| Property | Type | Belongs To | Business Rationale |
-| :--- | :--- | :--- | :--- |
-| `id` | `Id` | SalesChannel | Provides a stable reference for publications and channel lookups. |
-| `name` | `String` | SalesChannel | Names the selling destination for merchants and operators. |
-| `type` | `ChannelType` | SalesChannel | Distinguishes website, marketplace, and point-of-sale destinations. |
-| `owner` | `ChannelOwner` | SalesChannel | Determines whether use is merchant-specific or platform-wide. |
-| `merchantId` | `Id` (nullable) | SalesChannel | Identifies the seller owner and is absent for a platform marketplace. |
-| `status` | `ChannelStatus` | SalesChannel | Controls whether the destination is enabled for use. |
-| `createdAt` | `Instant` | SalesChannel | Records when the channel was established. |
-| `updatedAt` | `Instant` | SalesChannel | Records the latest effective enable/disable transition. |
-| `version` | `long` | SalesChannel | Supports detection of concurrent changes to the same channel. |
+| Property | Type | Belongs To | Why It Exists |
+|:---------|:-----|:-----------|:--------------|
+| `id` | Identifier | `SalesChannel` | Uniquely identifies a commercial selling channel across the platform. |
+| `name` | String | `SalesChannel` | Operator-facing title for administrative identification and reporting. |
+| `type` | Enum | `SalesChannel` | Differentiates channel capabilities (`WEBSITE`, `MARKETPLACE`, `POINT_OF_SALE`). |
+| `owner` | Enum | `SalesChannel` | Distinguishes merchant-owned channels from platform-owned channels. |
+| `merchantId` | Identifier (nullable) | `SalesChannel` | References the owning merchant; null for platform-owned marketplaces. |
+| `status` | Enum | `SalesChannel` | Lifecycle state (`ENABLED` or `DISABLED`) controlling public storefront usability. |
+| `version` | Long | `SalesChannel` | Optimistic locking version preventing concurrent configuration conflicts. |
+| `salesChannelId` | Identifier | `ChannelRegion` | Foreign key binding the regional rule to its parent sales channel. |
+| `regionId` | Identifier | `ChannelRegion` | Reference to the authoritative `Region` entity. |
+| `enabled` | Boolean | `ChannelRegion` | Controls whether the sales channel commercially serves the specified region. |
+| `isDefault` | Boolean | `ChannelRegion` | Flags the designated fallback region when a shopper's country is omitted. |
 
-### Publishable Key Aggregate
+### Key Terms
 
-`PublishableKey` is a separate aggregate root specified in detail in the [Publishable Key domain spec](publishable-key-domain-spec.md). It stores only a digest of the raw key and a short display prefix; the raw key is returned by the application only during successful creation. Its `salesChannelId` is an ID-only reference to a `SalesChannel` aggregate.
-
-| Property | Type | Business Rationale |
-| :--- | :--- | :--- |
-| `id` | `Id` | Identifies the managed key record. |
-| `salesChannelId` | `Id` | Limits the key to one sales channel. |
-| `label` | `String` | Helps an operator recognize which storefront configuration uses the key. |
-| `tokenDigest` | `String` | Supports lookup without persisting the raw key. |
-| `displayPrefix` | `String` | Helps an operator identify a key without revealing its secret value. |
-| `createdAt` | `Instant` | Records when the key was issued. |
-| `revokedAt` | `Instant` (nullable) | Records revocation; absence means the key is active. |
+| Business Term | Technical Name | Meaning |
+|:--------------|:---------------|:--------|
+| Sales Channel | `SalesChannel` | An aggregate root representing an independent commercial selling surface. |
+| Served Region | `ChannelRegion (enabled=true)` | A regional market where this channel is legally and commercially open for business. |
+| Default Region | `ChannelRegion (isDefault=true)` | The single enabled market resolved when an incoming request provides no country code. |
+| Channel Status | `ChannelStatus` | Controls whether the channel is active (`ENABLED`) or suspended (`DISABLED`). |
 
 ---
 
-## 4. Business Invariants & Rules
+## 3. Business Rules (Invariants)
 
-| Rule ID | Invariant Rule | Violation Outcome | Enforced By |
-| :--- | :--- | :--- | :--- |
-| **SC-01** | Channel name must be nonblank, and type, owner, status, and construction timestamps must be present. | Construction rejects invalid or missing values. | `SalesChannel` constructor / `requireName()` |
-| **SC-02** | Website and POS channels must be seller-owned and identify a merchant. | Construction rejects invalid ownership with `MerchantRequired`; website factory rejects a null merchant. | `SalesChannel.validateOwnership()` / `createWebsite()` |
-| **SC-03** | Marketplace channels must be platform-owned and have no merchant reference. | Construction rejects invalid ownership with `MarketplaceMustBePlatformOwned`. | `SalesChannel.validateOwnership()` / `createMarketplace()` |
-| **SC-04** | A seller-owned channel may be used only by its owning merchant. | Ownership guard raises `ChannelOwnershipForbidden`. | `SalesChannel.requireOwnedBy()` |
-| **SC-05** | A disabled channel must fail the enabled guard. | Guard raises `ChannelDisabled`. | `SalesChannel.requireEnabled()` |
-| **SC-06** | Repeating enable or disable on the current status must not create another lifecycle event. | Operation returns without changing state or timestamps. | `SalesChannel.enable()` / `disable()` |
+> These rules can **never** be violated. If any rule is broken, the system **rejects** the action immediately.
 
-### Publishable Key Invariants
-
-| Rule ID | Invariant Rule | Violation Outcome | Enforced By |
-| :--- | :--- | :--- | :--- |
-| **PK-01** | A key references exactly one sales channel by ID and has a nonblank label of at most 100 characters. | Construction rejects invalid values. | `PublishableKey` constructor |
-| **PK-02** | A key record contains a token digest and display prefix, never the raw token. | Invalid digest or prefix is rejected; raw token is not a domain property. | `PublishableKey` constructor / token generator boundary |
-| **PK-03** | Token digests are unique across keys. | A digest collision fails creation so a new key can be generated. | `PublishableKeyRepository` and persistence uniqueness constraint |
-| **PK-04** | A key is active exactly when `revokedAt` is absent; revocation time cannot precede creation time. | Invalid construction or revocation time is rejected. | `PublishableKey.isActive()` / `revoke()` |
-| **PK-05** | Repeating revocation of an already revoked key does not change its timestamp or emit another event. | Operation is a no-op. | `PublishableKey.revoke()` |
-| **PK-06** | A merchant may manage keys only for its own seller-owned channels; an administrator may manage keys for any channel. | The operation is forbidden when the caller does not own the seller channel and is not an administrator. | `PublishableKeyManagementPolicy.requireAllowed()` |
-
-### Cross-Aggregate Uniqueness Guards
-
-| Business Rule | Guard | Violation Outcome |
-| :--- | :--- | :--- |
-| One website channel per merchant. | `SalesChannelUniquenessService.requireWebsiteAvailable(merchantId)` | `DuplicateWebsite` when a website already exists, including a disabled one. |
-| One marketplace channel across the platform. | `SalesChannelUniquenessService.requireMarketplaceAvailable()` | `DuplicateMarketplace` when a marketplace already exists, including a disabled one. |
-
-These repository-backed guards are separate from the aggregate factories. Current production application services do not invoke them, so factory construction alone does not establish cross-channel uniqueness; no POS uniqueness guard is defined.
-
-The workflow usability check reads a `SalesChannelView` through `SalesChannelQueryPort` and evaluates existence, enabled status, and ownership without loading or mutating the aggregate.
+| Rule | What Must Be True | If Violated | Enforced By |
+|:-----|:-------------------|:------------|:------------|
+| **SC-01** | Name MUST be nonblank; type, owner, status, and timestamps MUST be present. | Rejected with `INVALID_CHANNEL_ATTRIBUTES` | `SalesChannel` constructor |
+| **SC-02** | `WEBSITE` and `POINT_OF_SALE` channels MUST be merchant-owned with a valid `merchantId`. | Rejected with `MERCHANT_OWNERSHIP_REQUIRED` | `SalesChannel` factory methods |
+| **SC-03** | `MARKETPLACE` channels MUST be platform-owned and MUST NOT have a `merchantId`. | Rejected with `MARKETPLACE_MERCHANT_DISALLOWED` | `SalesChannel.createMarketplace()` |
+| **SC-04** | A seller-owned channel MUST restrict management strictly to its owning merchant. | Rejected with `403 Forbidden` | `SalesChannel.requireOwnedBy()` |
+| **SC-05** | A disabled channel MUST reject all storefront query and commercial read requests. | Rejected with `400 ChannelDisabled` | `SalesChannel.requireEnabled()` |
+| **SC-06** | A channel MUST contain at most one `ChannelRegion` binding per `regionId`. | Rejected with `DUPLICATE_CHANNEL_REGION` | Database Unique Constraint & Entity Map |
+| **SC-07** | At most one regional binding per channel MUST be default, and disabled regions MUST NOT be default. | Rejected with `INVALID_DEFAULT_REGION` | `SalesChannel.enableRegion()` |
+| **SC-08** | Setting a new default region MUST atomically unset the previous default region. | Concurrent attempts retry or fail; never permits dual defaults | `SalesChannel.enableRegion()` |
 
 ---
 
-## 5. State Lifecycle & Transitions
+## 4. State Lifecycle
 
-### State Machine
+### State Diagram
+
+> Show all states and the transitions between them. Label transitions with the action that triggers them.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ENABLED : create website or marketplace
-    ENABLED --> DISABLED : disable
-    DISABLED --> ENABLED : enable
-    ENABLED --> ENABLED : repeat enable is a no-op
-    DISABLED --> DISABLED : repeat disable is a no-op
+    [*] --> Enabled : create()
+    Enabled --> Disabled : disable()
+    Disabled --> Enabled : enable()
+    Enabled --> Enabled : repeat enable() (no-op)
+    Disabled --> Disabled : repeat disable() (no-op)
 ```
 
-### Transition Matrix
+### Transition Rules
 
-| Current State | Trigger / Event | Next State | Guard Condition / Prerequisite |
-| :--- | :--- | :--- | :--- |
-| New | `createWebsite()` | `ENABLED` | Nonblank name, merchant reference, and creation time are supplied. |
-| New | `createMarketplace()` | `ENABLED` | Nonblank name and creation time are supplied; ownership is platform-wide. |
-| `ENABLED` | `disable(now)` | `DISABLED` | Updates `updatedAt` and emits `SalesChannelDisabledEvent`. |
-| `DISABLED` | `enable(now)` | `ENABLED` | Updates `updatedAt` and emits `SalesChannelEnabledEvent`. |
-| `ENABLED` | `enable(now)` | `ENABLED` | No state change, timestamp change, or event. |
-| `DISABLED` | `disable(now)` | `DISABLED` | No state change, timestamp change, or event. |
-
-The constructor can reconstitute either supported status without emitting events. POS is a supported type with constructor ownership validation, but has no dedicated creation factory; no draft, archive, or deletion lifecycle is modeled.
-
-Disabling a channel does not delete Catalog publication records. Its integration event causes Storefront Query to update channel eligibility in the buyable-offer projection.
-
-Publishable keys have a separate lifecycle and are not enabled or disabled with their channel. A key remains active until revoked; Storefront Query still fails closed when the associated sales channel is disabled.
-
-### Publishable Key State
-
-| Current State | Trigger | Next State | Guard Condition / Prerequisite |
-| :--- | :--- | :--- | :--- |
-| New | `PublishableKey.create()` | Active | Channel ID, label, digest, prefix, and creation time are valid. |
-| Active | `revoke(now)` | Revoked | Revocation time is not before creation time. |
-| Revoked | `revoke(now)` | Revoked | No state, timestamp, or event change. |
+| Current State | Action | Next State | Conditions |
+|:--------------|:-------|:-----------|:-----------|
+| `—` (new) | `create()` | `Enabled` | Valid name, type, and ownership rules satisfied. |
+| `Enabled` | `disable()` | `Disabled` | Effective status change emits `SalesChannelDisabledEvent`. |
+| `Disabled` | `enable()` | `Enabled` | Effective status change emits `SalesChannelEnabledEvent`. |
+| `Enabled` / `Disabled` | Idempotent repeat | Unchanged | No timestamp modifications or events emitted. |
 
 ---
 
-## 6. Domain Events
+## 5. Events *(optional — include only if this domain emits or consumes events)*
 
-### Emitted Events (What Happened)
+### Events This Domain Emits
 
-| Event Name | Trigger | Key Attributes | Target Consumers |
-| :--- | :--- | :--- | :--- |
-| `SalesChannelCreatedEvent` | Website or marketplace factory creates the aggregate. | Channel ID, name, type, owner, merchant ID, status, occurrence time | No current creation integration bridge or listener. |
-| `SalesChannelEnabledEvent` | Effective transition from disabled to enabled. | Channel ID, type, merchant ID, occurrence time | Sales Channel integration bridge |
-| `SalesChannelDisabledEvent` | Effective transition from enabled to disabled. | Channel ID, type, merchant ID, occurrence time | Sales Channel integration bridge |
-| `PublishableKeyCreatedEvent` | A key aggregate is created. | Key ID, channel ID, occurrence time | No current cross-module integration consumer. |
-| `PublishableKeyRevokedEvent` | An active key is effectively revoked. | Key ID, channel ID, occurrence time | No current cross-module integration consumer. |
+| Event | When It's Emitted | Key Data | Who Consumes It |
+|:------|:-------------------|:---------|:----------------|
+| `SalesChannelCreatedEvent` | Upon channel creation | `channelId`, `name`, `type`, `owner`, `merchantId` | Audit / Provisioning listeners |
+| `SalesChannelEnabledEvent` | When channel transitions to `ENABLED` | `channelId`, `merchantId`, `occurredAt` | Discovery Projection Reconciler |
+| `SalesChannelDisabledEvent` | When channel transitions to `DISABLED` | `channelId`, `merchantId`, `occurredAt` | Discovery Projection Reconciler |
 
-`SalesChannelRepositoryAdapter.save()` persists the aggregate and passes its pulled events to `DomainEventProducer`. Durable dispatch follows the [Transactional Outbox specification](../../../system/transactional-outbox-tech-spec.md).
+### Events This Domain Reacts To
 
-### Store Integration Events
-
-| Domain Event | Integration Record | Consumer / Business Impact |
-| :--- | :--- | :--- |
-| `SalesChannelEnabledEvent` | `SalesChannelEnabledIntegrationEvent` | Storefront Query refreshes channel eligibility for affected offers. |
-| `SalesChannelDisabledEvent` | `SalesChannelDisabledIntegrationEvent` | Storefront Query marks affected offers as ineligible through the disabled channel. |
-
-`SalesChannelIntegrationEventPublisher` adds an event version and preserves channel ID, type, merchant ID, and occurrence time. Creation has no corresponding integration record in the current bridge.
-
-R17 requires cross-module integration records under `store/src/main/java/com/grab/store/shared/events/saleschannel/`; the lifecycle records currently reside under `store/.../saleschannel/events/`, an existing implementation deviation. Security manifest publication is a separate module capability and does not represent SalesChannel aggregate creation or status changes.
-
-### Workflow Signals
-
-| Consumed Request | Read-Only Action | Emitted Signal |
-| :--- | :--- | :--- |
-| `RequestAssertChannelEvent` | Check that the channel exists, is enabled, and is usable by the merchant. | `ChannelAssertedEvent` on success. |
-| `RequestAssertChannelEvent` | Usability assertion fails or its execution raises an exception. | `PublishProductStepFailedEvent` with step `assert-channel`. |
-
-The Sales Channel workflow listener consumes requests via `@EventListener` and dispatches `CheckSalesChannelUsableQuery` through `QueryBus`. These workflow records carry workflow correlation and remain separate from aggregate domain events; they do not enable, disable, or publish products to the channel.
-
-### Consumed Events (Cross-Domain Signals)
-
-The SalesChannel aggregate consumes no cross-domain events directly. Workflow requests above are handled at the store boundary, and shared-interface consumers use `SalesChannelQuery`, whose provider adapter delegates to an inbound read use case under `@SalesChannelReadTransactional`.
+| Event | Emitted By | What This Domain Does | Business Impact |
+|:------|:-----------|:----------------------|:----------------|
+| None | — | Synchronous commands drive aggregate state changes. | High transactional consistency. |

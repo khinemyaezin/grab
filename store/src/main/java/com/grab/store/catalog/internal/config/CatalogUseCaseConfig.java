@@ -233,6 +233,27 @@ public class CatalogUseCaseConfig {
     }
 
     @Bean
+    public ListPublishedProductChannelsAfterUseCase listPublishedProductChannelsAfterUseCase(
+            PublishedProductChannelQueryPort publishedProductChannelQueryPort
+    ) {
+        return new ListPublishedProductChannelsAfterService(publishedProductChannelQueryPort);
+    }
+
+    @Bean
+    public ListPublishedProductChannelsBySkuUseCase listPublishedProductChannelsBySkuUseCase(
+            PublishedProductChannelQueryPort publishedProductChannelQueryPort
+    ) {
+        return new ListPublishedProductChannelsBySkuService(publishedProductChannelQueryPort);
+    }
+
+    @Bean
+    public ListPublishedProductChannelsForSalesChannelAfterUseCase listPublishedProductChannelsForSalesChannelAfterUseCase(
+            PublishedProductChannelQueryPort publishedProductChannelQueryPort
+    ) {
+        return new ListPublishedProductChannelsForSalesChannelAfterService(publishedProductChannelQueryPort);
+    }
+
+    @Bean
     public ListVariantIdsForProductUseCase listVariantIdsForProductUseCase(BuyabilityQueryPort buyabilityQueryPort) {
         return new ListVariantIdsForProductService(buyabilityQueryPort);
     }
@@ -240,5 +261,47 @@ public class CatalogUseCaseConfig {
     @Bean
     public ListSalesChannelIdsForVariantUseCase listSalesChannelIdsForVariantUseCase(BuyabilityQueryPort buyabilityQueryPort) {
         return new ListSalesChannelIdsForVariantService(buyabilityQueryPort);
+    }
+
+    @Bean
+    public ProductDetailResultAssembler productDetailResultAssembler(
+            VariantOptionQueryPort variantOptionQueryPort,
+            IdGenerator idGenerator,
+            CategoryQueryPort categoryQueryPort,
+            MatrixKeyGenerator matrixKeyGenerator,
+            ProductMediaConverter productMediaConverter
+    ) {
+        return new ProductDetailResultAssembler(
+                variantOptionQueryPort,
+                idGenerator,
+                categoryQueryPort,
+                matrixKeyGenerator,
+                productMediaConverter
+        );
+    }
+
+    @Bean
+    public GetCatalogProductFactsUseCase getCatalogProductFactsUseCase(
+            BuyabilityQueryPort buyabilityQueryPort,
+            ProductQueryPort productQueryPort,
+            ProductDetailResultAssembler productDetailResultAssembler
+    ) {
+        return new GetCatalogProductFactsService(buyabilityQueryPort, productQueryPort, productDetailResultAssembler);
+    }
+
+    @Bean
+    public GetCatalogVariantFactsUseCase getCatalogVariantFactsUseCase(
+            BuyabilityQueryPort buyabilityQueryPort,
+            ProductQueryPort productQueryPort,
+            ProductDetailResultAssembler productDetailResultAssembler
+    ) {
+        return new GetCatalogVariantFactsService(buyabilityQueryPort, productQueryPort, productDetailResultAssembler);
+    }
+
+    @Bean
+    public CheckProductPublishedToChannelUseCase checkProductPublishedToChannelUseCase(
+            BuyabilityQueryPort buyabilityQueryPort
+    ) {
+        return new CheckProductPublishedToChannelService(buyabilityQueryPort);
     }
 }

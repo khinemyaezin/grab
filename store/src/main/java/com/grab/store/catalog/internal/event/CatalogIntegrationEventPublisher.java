@@ -1,7 +1,9 @@
 package com.grab.store.catalog.internal.event;
 
 import com.catalog.domain.event.ProductDeletedEvent;
+import com.catalog.domain.event.ProductMediaChangedEvent;
 import com.catalog.domain.event.ProductPublishedToChannelEvent;
+import com.catalog.domain.event.CategoryChangedEvent;
 import com.catalog.domain.event.ProductStatusChangedEvent;
 import com.catalog.domain.event.ProductUnpublishedFromChannelEvent;
 import com.catalog.domain.event.ProductUpdatedEvent;
@@ -9,16 +11,17 @@ import com.catalog.domain.event.ProductVariantAddedEvent;
 import com.catalog.domain.event.ProductVariantChangeEvent;
 import com.catalog.domain.event.ProductVariantDeletedEvent;
 import com.catalog.domain.event.ProductVariantRestoredEvent;
+import com.catalog.domain.event.VariantMediaChangedEvent;
 import com.grab.framework.id.Id;
-import com.grab.store.catalog.events.ProductDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductNameChangedIntegrationEvent;
-import com.grab.store.catalog.events.ProductPublishedToChannelIntegrationEvent;
-import com.grab.store.catalog.events.ProductStatusChangedIntegrationEvent;
-import com.grab.store.catalog.events.ProductUnpublishedFromChannelIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantAddedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantDeletedIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantRestoredIntegrationEvent;
-import com.grab.store.catalog.events.ProductVariantUpdatedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPresentationChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductPublishedToChannelIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductStatusChangedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductUnpublishedFromChannelIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantAddedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantRestoredIntegrationEvent;
+import com.grab.store.shared.events.catalog.ProductVariantUpdatedIntegrationEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -81,12 +84,27 @@ public class CatalogIntegrationEventPublisher {
 
     @EventListener
     public void handleProductUpdated(ProductUpdatedEvent event) {
-        events.publishEvent(new ProductNameChangedIntegrationEvent(
+        events.publishEvent(new ProductPresentationChangedIntegrationEvent(
                 valueOf(event.productId()),
                 event.newName(),
                 Instant.now(),
                 EVENT_VERSION
         ));
+    }
+
+    @EventListener
+    public void handleProductMediaChanged(ProductMediaChangedEvent event) {
+        publishProductPresentationChanged(event.productId());
+    }
+
+    @EventListener
+    public void handleCategoryChanged(CategoryChangedEvent event) {
+        publishProductPresentationChanged(event.productId());
+    }
+
+    @EventListener
+    public void handleVariantMediaChanged(VariantMediaChangedEvent event) {
+        publishProductPresentationChanged(event.productId());
     }
 
     @EventListener
@@ -134,5 +152,14 @@ public class CatalogIntegrationEventPublisher {
 
     private static String valueOf(Id id) {
         return id == null ? null : id.getValue();
+    }
+
+    private void publishProductPresentationChanged(Id productId) {
+        events.publishEvent(new ProductPresentationChangedIntegrationEvent(
+                valueOf(productId),
+                null,
+                Instant.now(),
+                EVENT_VERSION
+        ));
     }
 }

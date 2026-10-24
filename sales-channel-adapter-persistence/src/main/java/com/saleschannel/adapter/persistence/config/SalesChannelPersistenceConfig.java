@@ -68,10 +68,9 @@ public class SalesChannelPersistenceConfig {
     @Bean
     PublishableKeyQueryPort publishableKeyQueryPort(
             PublishableKeyQuerySpecification specification,
-            PublishableKeyEntityMapper mapper,
             @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new PublishableKeyQueryAdapter(specification, mapper, executor);
+        return new PublishableKeyQueryAdapter(specification, executor);
     }
 
     @Bean("salesChannelOutboxEventSerializer")

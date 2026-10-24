@@ -253,7 +253,8 @@ public class ProductController {
     public ResponseEntity<EntityModel<ProductPublicationResponse>> unpublishFromChannel(
             @PathVariable String productId,
             @Valid @RequestBody UnpublishProductFromChannelRequest request) {
-        ProductPublicationResponse response = productCommandService.unpublishFromChannel(productId, request);
+        productCommandService.unpublishFromChannel(productId, request);
+        ProductPublicationResponse response = productQueryService.listProductPublications(productId);
         return ResponseEntity.ok(productPublicationModelAssembler.toModel(response));
     }
 

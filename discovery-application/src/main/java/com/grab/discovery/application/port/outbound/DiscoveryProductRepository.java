@@ -1,6 +1,7 @@
 package com.grab.discovery.application.port.outbound;
 
 import com.grab.discovery.application.model.projection.DiscoveryProductProjection;
+import com.grab.discovery.application.model.read.DiscoveryProductKey;
 import com.grab.framework.id.Id;
 
 import java.util.List;
@@ -16,6 +17,8 @@ public interface DiscoveryProductRepository {
     List<DiscoveryProductProjection> findBySku(String sku);
 
     List<DiscoveryProductProjection> findBySalesChannel(Id salesChannelId);
+
+    List<DiscoveryProductKey> findKeysAfter(Id productId, Id salesChannelId, int limit);
 
     void save(DiscoveryProductProjection projection);
 }

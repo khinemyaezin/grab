@@ -7,7 +7,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public record SearchBuyableOffersQuery(
-        Id salesChannelId,
+        ShoppingContext context,
+        boolean regionServed,
+        String keyword,
+        Id categoryId,
         Pageable pageable
-) implements Query<Page<DiscoveryProductView>>, PageableQueryRequest {
+) implements Query<Page<BuyableOfferResult>>, PageableQueryRequest {
 }

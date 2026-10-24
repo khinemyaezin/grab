@@ -1,93 +1,99 @@
-# Specification Architecture Guide (Pre-Implementation Guidance)
+# Tech Document Templates
 
-This guide establishes the mandatory pre-implementation workflow and specification architecture for the platform. Before any production code, database migration, domain model, or API endpoint is implemented, all features and architectural changes MUST be formally specified.
+> Turn business requirements into technical blueprints that developers can build from.
 
 ---
 
-## 1. Pre-Implementation Workflow
+## The Flow
 
-Every new capability or architectural change progresses through a disciplined 3-step specification process:
+Every business requirement follows this path from idea to implementation:
 
 ```mermaid
 flowchart TD
-    subgraph Step1 ["Step 1: Feature Umbrella Spec"]
-        F["Feature Specification\n(Problem, AC List, Attached Specs)"]
-    end
+    SD["📐 System Design<br/><i>The big picture architecture</i>"]
+    F1["🧩 Feature A<br/><i>Manageable, buildable piece</i>"]
+    F2["🧩 Feature B<br/><i>Another buildable piece</i>"]
+    DS["📦 Domain Spec<br/><i>Data models & rules</i>"]
+    WS["🔄 Workflow Spec<br/><i>Process flows</i>"]
+    TS["⚙️ Tech Spec<br/><i>Technology decisions</i>"]
 
-    subgraph Step2 ["Step 2: Deep-Dive Specifications"]
-        D["Domain Specifications\n(Aggregates, Invariants, State)"]
-        W["Workflow Specifications\n(Cross-Domain Business Flows)"]
-        T["Technical Specifications\n(Platform Capabilities & Engines)"]
-    end
+    SD --> F1
+    SD --> F2
+    F1 --> DS
+    F1 --> WS
+    F1 --> TS
+    F2 --> DS
+    F2 --> TS
 
-    F -->|"Attaches domain changes"| D
-    F -->|"Attaches workflow changes"| W
-    F -->|"Attaches tech capabilities"| T
+    style SD fill:#7b68ee,color:#fff
+    style F1 fill:#e67e22,color:#fff
+    style F2 fill:#e67e22,color:#fff
+    style DS fill:#27ae60,color:#fff
+    style WS fill:#27ae60,color:#fff
+    style TS fill:#27ae60,color:#fff
 ```
 
-### Step 1: Create the Feature Umbrella Specification (`feature-spec-template.md`)
-The feature file acts as the single source of truth anchoring the feature from both product and technical perspectives:
-- **Problem Statement (Pain Points):** Articulates the user, business, or operational friction being solved and explains why existing capabilities are insufficient.
-- **Acceptance Criteria (AC List):** The explicit, testable conditions the feature must fulfill to be considered complete ("Done When").
-- **Related Specifications:** Attaches links to all underlying domain, workflow, and technical specs that must be created or updated to satisfy the ACs:
-  - **Domain changes:** If new domain models or aggregate invariants are introduced.
-  - **Workflow changes:** If end-to-end multi-aggregate business processes change.
-  - **Tech changes:** If platform capabilities, query projections, or security mechanisms change.
+---
 
-### Step 2: Detail Underlying Specifications (The 3-Tier Model)
-Depending on what the feature impacts, author or update specifications across three cohesive tiers:
-1. **Domain Changes:** If new business concepts, aggregate roots, entities, invariants, or state machines are introduced $\rightarrow$ author/update **Domain Specifications** ([`domain-spec-template.md`](domain-spec-template.md)).
-2. **Workflow Changes:** If multi-aggregate choreography, sagas, outbox events, or cross-domain user flows are introduced $\rightarrow$ author/update **Workflow Specifications** ([`workflow-spec-template.md`](workflow-spec-template.md)).
-3. **Technical Changes:** If platform capabilities, query read models, edge context resolvers, security manifests, or performance optimizations are required $\rightarrow$ author/update **Technical Specifications** ([`tech-spec-template.md`](tech-spec-template.md)).
+## Templates
 
-### Step 3: Verify Traceability & Pass Checklist
-Before code implementation starts:
-- Verify that every criterion in the Feature AC list directly maps to a domain invariant, workflow step, or technical contract.
-- Verify bidirectional cross-links between all attached specifications.
-- Ensure all diagrams adhere to the golden authoring rules.
+| Template | What It Does | When to Create |
+|:---------|:-------------|:---------------|
+| [**System Design**](system-design-template.md) | Translates a business requirement into high-level architecture and decomposes it into features | When a new business requirement arrives |
+| [**Feature Spec**](feature-spec-template.md) | Defines what a feature does, its acceptance criteria, and links to implementation specs | For each feature identified in the System Design |
+| [**Domain Spec**](domain-spec-template.md) | Blueprints the data model, business rules, and state lifecycle for a domain entity | When a feature involves domain logic with clear entities and rules |
+| [**Workflow Spec**](workflow-spec-template.md) | Maps out a multi-step process flow across domains/services | When a feature involves coordination across multiple domains |
+| [**Tech Spec**](tech-spec-template.md) | Documents a technology or pattern decision with usage rules | When a feature involves a technology choice or cross-cutting concern |
 
 ---
 
+## Quick Start: A New Requirement Arrived
 
-## 4. Golden Authoring Rules
+**Step 1 →** Create a **System Design** document.
+  - Capture the business requirement
+  - Design the solution architecture
+  - Break it down into features
 
-1. **Explain with diagrams, not massive text blocks:** Keep paragraphs under 3 sentences. Replace long explanations with clear Mermaid flowcharts, sequence diagrams, and state machines.
-2. **Cap diagram complexity:** Cap diagrams at ~7–9 nodes. Do not create tangled webs; split diagrams into focused views when necessary.
-3. **Use role names in diagrams:** In diagrams, use logical participant and architectural roles (e.g. `Workflow Coordinator`, `Pricing Service`, `Outbox Poller`), **never** framework classes, Java types, or table schema names.
-4. **Precise tables:** Use concise tables for invariants, steps, events, properties, and configuration. Keep each cell to 1 clear, unambiguous sentence.
-5. **Strict boundaries:** In Domain Specs, show composition inside an aggregate root vs. ID-only references across aggregates and contexts. Never show direct cross-aggregate navigation.
-6. **Normative contracts:** In Tech Specs and Acceptance Criteria, define non-negotiable rules using RFC 2119 keywords (`MUST`, `MUST NOT`, `REQUIRED`).
-7. **Traceability:** Every criterion in a Feature Spec's Acceptance Criteria MUST correspond to a concrete invariant in a Domain Spec, a step in a Workflow Spec, or a requirement in a Tech Spec.
+**Step 2 →** For each feature, create a **Feature Spec**.
+  - Define what it does and why
+  - Write testable acceptance criteria
+  - Identify which specs are needed (domain? workflow? tech?)
 
----
+**Step 3 →** Create the implementation specs the feature needs:
+  - **Domain Spec** — if the feature has entities, business rules, or state machines
+  - **Workflow Spec** — if the feature has multi-step processes across domains
+  - **Tech Spec** — if the feature requires a technology decision or shared pattern
 
-## 5. File Placement & Naming Conventions
-
-### 1. Feature Specifications (Tier 0)
-Place feature umbrella specifications in:
-- `grab/docs/spec/features/feat_{xxx}-{kebab-feature-name}.md`
-- *Example:* `grab/docs/spec/features/feat_003-regional_discovery_and_publishable_keys.md`
-
-### 2. Domain Specifications (Tier 2)
-Place domain aggregate specifications in the corresponding module directory:
-- `grab/docs/spec/domain/{domain}/architecture/{aggregate}-domain-spec.md`
-- *Example:* `grab/docs/spec/domain/sales-channel/architecture/sales-channel-domain-spec.md`
-
-### 3. Workflow Specifications (Tier 1)
-Place all cross-domain workflows in the central workflows directory:
-- `grab/docs/spec/workflows/{kebab-case-workflow-name}.md`
-- *Example:* `grab/docs/spec/workflows/browse-and-discover-products-workflow.md`
-
-### 4. Tech Specifications (Tier 3)
-Place technical capabilities and pattern specifications in:
-- `grab/docs/spec/system/{kebab-case-tech-name}-tech-spec.md`
-- *Example:* `grab/docs/spec/system/storefront-query-tech-spec.md`
+**Step 4 →** Developers build from the specs. Acceptance criteria in the Feature Spec verify completeness.
 
 ---
 
-## 6. Navigation & Cross-Linking
+## Suggested Folder Structure
 
-- **Feature Specs** MUST link to all underlying **Domain Specs**, **Workflow Specs**, and **Tech Specs** that define its implementation.
-- **Workflow Specs** MUST link to the **Domain Specs** of all participating aggregates and supporting **Tech Specs**.
-- **Domain Specs** MUST link to relevant **Workflow Specs** where the aggregate participates.
-- **Tech Specs** MUST link to relevant **Domain Specs** whose facts they project or enforce.
+```
+docs/
+├── system/                          # System Design documents
+│   └── [system-name].md
+├── features/                        # Feature Specs
+│   ├── feat-001-[feature-name].md
+│   └── feat-002-[feature-name].md
+└── spec/                            # Implementation Specs
+    ├── domain/
+    │   └── [domain-name]/
+    │       └── [entity]-domain-spec.md
+    ├── workflows/
+    │   └── [workflow-name].md
+    └── system/
+        └── [tech-name]-tech-spec.md
+```
+
+---
+
+## Principles
+
+1. **Start from the business need** — not from technology
+2. **Visual first** — if you can show it with a diagram, do it. Diagrams beat paragraphs.
+3. **Simple language** — write so a new team member understands it on first read
+4. **Every section earns its place** — if a section doesn't apply, skip it (optional sections are marked)
+5. **Testable criteria** — acceptance criteria must have a clear pass/fail answer
+6. **Diagrams stay clean** — cap at ~7–9 nodes. If it's more complex, decompose further.

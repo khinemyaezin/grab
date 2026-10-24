@@ -1,7 +1,7 @@
 package com.catalog.adapter.persistence.adapter;
 
+import com.catalog.adapter.persistence.entity.ProductPublicationEntity;
 import com.catalog.application.port.outbound.BuyabilityQueryPort;
-import com.catalog.domain.port.outbound.ProductPublicationRepository;
 import com.catalog.adapter.persistence.entity.ProductEntity;
 import com.catalog.adapter.persistence.entity.ProductVariantEntity;
 import com.catalog.adapter.persistence.repository.ProductPublicationJpaRepository;
@@ -16,7 +16,6 @@ import java.util.Optional;
 public class BuyabilityQueryAdapter implements BuyabilityQueryPort {
 
     private final ProductVariantJpaRepo productVariantJpaRepo;
-    private final ProductPublicationRepository productPublicationRepository;
     private final ProductPublicationJpaRepository productPublicationJpaRepository;
     private final IdGenerator idGenerator;
 
@@ -33,10 +32,10 @@ public class BuyabilityQueryAdapter implements BuyabilityQueryPort {
 
     @Override
     public boolean isPublished(String variantId, String salesChannelId) {
-        return productPublicationRepository.exists(
-                idGenerator.convertIdFrom(variantId),
-                idGenerator.convertIdFrom(salesChannelId)
-        );
+        Optional<ProductVariantEntity> variant = productVariantJpaRepo.findByUuid(variantId);
+        return variant.map(entity -> productPublicationJpaRepository.existsByVariantIdAndSalesChannelId(
+                entity.getId(), salesChannelId
+        )).orElse(false);
     }
 
     @Override
@@ -49,14 +48,19 @@ public class BuyabilityQueryAdapter implements BuyabilityQueryPort {
     @Override
     public List<PublicationSlice> listPublications() {
         return productPublicationJpaRepository.findAllPublicationVariantUuids().stream()
-                .map(row -> new PublicationSlice((String) row[0], (String) row[1]))
+                .map(row -> new PublicationSlice(row.variantId().getValue(), row.salesChannelId().getValue()))
                 .toList();
     }
 
     @Override
     public List<String> salesChannelIdsForVariant(String variantId) {
-        return productPublicationRepository.findByVariantId(idGenerator.convertIdFrom(variantId)).stream()
-                .map(publication -> publication.getSalesChannelId().getValue())
+        Optional<ProductVariantEntity> variant = productVariantJpaRepo.findByUuid(variantId);
+        if (variant.isEmpty()) {
+            return List.of();
+        }
+        Long variantDatabaseId = variant.get().getId();
+        return productPublicationJpaRepository.findByVariantId(variantDatabaseId).stream()
+                .map(ProductPublicationEntity::getSalesChannelId)
                 .toList();
     }
 

@@ -24,13 +24,17 @@ public class StorefrontQueryRootController {
                 .withSelfRel();
         model.add(selfLink);
 
-        Link listProductsLink = linkTo(methodOn(StorefrontProductController.class).list(null, null, null))
+        Link listProductsLink = linkTo(methodOn(StorefrontProductController.class).list(null, null, null, null, null, null, null))
                 .withRel("list-storefront-products");
         model.add(listProductsLink);
 
-        Link getProductLink = linkTo(methodOn(StorefrontProductController.class).get(null, null))
+        Link getProductLink = linkTo(methodOn(StorefrontProductController.class).getBySlug(null, null, null, null))
                 .withRel("get-storefront-product");
         model.add(getProductLink);
+
+        Link resolveContextLink = linkTo(methodOn(StorefrontProductController.class).resolveContext(null, null, null))
+                .withRel("resolve-shopping-context");
+        model.add(resolveContextLink);
 
         return ResponseEntity.ok(model);
     }

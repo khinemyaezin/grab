@@ -1,191 +1,184 @@
-# Domain Specification: Pricing
+# Domain Spec: Pricing
 
-> **Bounded Context:** Pricing
-> **Primary Purpose:** Entity-agnostic pricing engine managing base prices, volume tiers, campaign overrides, and runtime price calculation contexts.
-> **Module Root:** `pricing-domain` / `pricing-application` / `pricing-adapter-persistence` / `store/pricing`
-> **Related Workflows:** [Create Sellable Product](../../../workflows/create-sellable-product-workflow.md)
+- **Domain:** Pricing
+- **Purpose:** Defines price-set ownership, promotional campaign price lists, regional market rules, and deterministic contextual price calculations.
+- **Feature Spec:** [Vectorized Batch Regional Pricing](../../../../features/feat_005-vectorized-batch-regional-pricing.md)
 
 ---
 
-## 1. Boundary & Context Map
+## 1. Ownership & Boundaries
 
-### Ownership
+### What does this domain own?
 
-- **This aggregate OWNS:** Base prices (`PriceSet`), promotional campaigns (`PriceList`), tax inclusivity (`PricePreference`), and the calculation policy synthesizing base vs. sale overrides.
-- **This aggregate DOES NOT OWN:** Products, variants, shipping methods, or merchants. Pricing is completely entity-agnostic.
+- **Owns:** `PriceSet` containers, base currency amounts, promotional `PriceList` campaigns (`OVERRIDE` or `SALE`), contextual `PriceRule` matchers, and tax inclusion `PricePreference` configurations.
+- **Does NOT own:** Catalog product taxonomy or variant lifecycles (`Catalog`), regional market definitions or currencies (`Region`), sales channel bindings (`SalesChannel`), or storefront presentation read models.
 
-### Context Map
+### Boundary Diagram
+
+> Show this entity, its internal parts, and how it relates to other domains (ID references only — no direct object navigation).
 
 ```mermaid
 flowchart TD
-    subgraph PricingContext ["Pricing Bounded Context"]
-        direction TB
+    subgraph PricingDomain ["Pricing Domain"]
+        Set["PriceSet (Aggregate Root)"]
+        BasePrice["Price (Base Amount)"]
+        Rule["PriceRule"]
+        List["PriceList (Aggregate Root)"]
+        CampaignPrice["Price (Campaign Amount)"]
 
-        subgraph PriceSetAgg ["PriceSet Aggregate"]
-            PriceSet["PriceSet (Root)"]
-            BasePrice["Price (Entity)"]
-            PriceRule["PriceRule (Entity)"]
-
-            PriceSet --> BasePrice
-            BasePrice --> PriceRule
-        end
-
-        subgraph PriceListAgg ["PriceList Aggregate"]
-            PriceList["PriceList (Root)"]
-            CampaignPrice["Price (Entity)"]
-            PriceListRule["PriceListRule (Entity)"]
-
-            PriceList --> CampaignPrice
-            PriceList --> PriceListRule
-        end
-
-        subgraph PrefAgg ["PricePreference Aggregate"]
-            Preference["PricePreference (Root)"]
-        end
-
-        CampaignPrice -.->|"References by priceSetId"| PriceSet
+        Set --> BasePrice
+        BasePrice --> Rule
+        List --> CampaignPrice
+        CampaignPrice --> Rule
     end
 
-    subgraph CatalogContext ["Catalog Bounded Context"]
+    subgraph CatalogDomain ["Catalog Domain"]
         Variant["ProductVariant"]
     end
 
-    Variant -.->|"Paired via link table"| PriceSet
+    subgraph RegionDomain ["Region Domain"]
+        RegionEntity["Region"]
+    end
+
+    Variant -.-|"references by priceSetId"| Set
+    CampaignPrice -.-|"references by priceSetId"| Set
+    Rule -.-|"references by regionId"| RegionEntity
 ```
 
 ---
 
-## 2. Ubiquitous Language
-
-| Business Term | Domain Concept | Business Definition |
-| :--- | :--- | :--- |
-| **Price Set** | `PriceSet` (Aggregate Root) | An opaque container of candidate base prices for one priced thing (e.g., a variant). |
-| **Base Price** | `Price` | The default, non-promotional amount owned by a `PriceSet` (`priceListId` is null). |
-| **Campaign Price** | `Price` | A promotional amount owned by a `PriceList` that overrides or discounts a target `PriceSet`. |
-| **Price List** | `PriceList` (Aggregate Root) | A promotional campaign grouping with a type (SALE or OVERRIDE), a time window, and target rules. |
-| **Pricing Context** | `PricingContext` (VO) | The runtime parameters (currency, region, group, quantity) used to evaluate price rules and synthesize the final price. |
-| **Calculated Price** | `CalculatePricesPolicy` Result | The final amount to charge the customer after all rules and campaigns are ranked and applied. |
-| **Original Price** | `CalculatePricesPolicy` Result | The non-sale reference price used for strikethrough display (`~100~ 80`). |
-
----
-
-## 3. Domain Aggregate Model
+## 2. Domain Model
 
 ### Model Diagram
+
+> Show the entity structure — attributes and key operations. Keep it to ~7–9 nodes.
 
 ```mermaid
 classDiagram
     direction LR
 
     class PriceSet {
-        +Id id
-        +create(id, now) PriceSet$
-        +addPrice(price, now)
-        +replacePrice(price, now)
-        +removePrice(priceId, now)
+        +Identity id
+        +create()
+        +addPrice()
+        +removePrice()
     }
 
     class Price {
-        +Id id
+        +Identity id
         +CurrencyCode currencyCode
-        +MoneyAmount amount
+        +BigDecimal amount
         +Integer minQuantity
         +Integer maxQuantity
-        +Id priceSetId
-        +Id priceListId
+        +Identity priceSetId
+        +Identity priceListId
     }
 
     class PriceRule {
         +String attribute
         +String value
-        +PriceRuleOperator operator
+        +RuleOperator operator
     }
 
     class PriceList {
-        +Id id
+        +Identity id
         +String title
-        +PriceListStatus status
-        +PriceListType type
+        +CampaignStatus status
+        +CampaignType type
         +Instant startsAt
         +Instant endsAt
-        +isActiveAt(now) boolean
-    }
-
-    class PricePreference {
-        +Id id
-        +String attribute
-        +String value
-        +boolean taxInclusive
+        +isActiveAt()
     }
 
     PriceSet *-- "0..*" Price : owns base prices
     PriceList *-- "0..*" Price : owns campaign prices
-    Price *-- "0..*" PriceRule : contains
+    Price *-- "0..*" PriceRule : matches context
 ```
 
-### Property & Attribute Rationale
+### Property Rationale
 
-| Property | Type | Belongs To | Business Rationale |
-| :--- | :--- | :--- | :--- |
-| `currencyCode` | `CurrencyCode` | Price | Prices are strictly currency-specific; no auto-conversion occurs in the domain. |
-| `amount` | `MoneyAmount` | Price | The monetary value to charge or promote. |
-| `minQuantity` | `Integer` | Price | Supports tiered pricing (e.g., "$10 each when buying 5+"). |
-| `priceSetId` | `Id` | Price | Associates a campaign price to its target base price set. |
-| `type` | `PriceListType` | PriceList | Dictates calculation strategy (`SALE` = min(sale, base), `OVERRIDE` = replace base). |
-| `startsAt`/`endsAt` | `Instant` | PriceList | Defines the time window during which the campaign is active. |
+> Every property must exist for a business reason — not "because the database needs it."
+
+| Property | Type | Belongs To | Why It Exists |
+|:---------|:-----|:-----------|:--------------|
+| `id` | Identifier | `PriceSet` | Unique container ID referenced by catalog product variants. |
+| `id` | Identifier | `Price` | Distinguishes individual candidate prices and resolves deterministic tie-breaking. |
+| `currencyCode` | CurrencyCode | `Price` | Limits monetary amount to one specific ISO 4217 settlement currency. |
+| `amount` | BigDecimal | `Price` | Non-negative commercial price charged to customers. |
+| `minQuantity` | Integer (nullable) | `Price` | Defines volume discount threshold lower bound. |
+| `maxQuantity` | Integer (nullable) | `Price` | Defines volume discount threshold upper bound. |
+| `priceSetId` | Identifier | `Price` | References the parent `PriceSet` container. |
+| `priceListId` | Identifier (nullable) | `Price` | Identifies campaign ownership; null for standard base prices. |
+| `attribute` | String | `PriceRule` | Context dimension being evaluated (e.g., `regionId`, `salesChannelId`). |
+| `value` | String | `PriceRule` | Expected matching attribute value. |
+| `status` | CampaignStatus | `PriceList` | Lifecycle flag (`DRAFT` or `ACTIVE`) controlling promotion participation. |
+| `type` | CampaignType | `PriceList` | Dictates promotional synthesis behavior (`SALE` markdown vs `OVERRIDE` price). |
+| `startsAt` / `endsAt` | Instant (nullable) | `PriceList` | Schedule window defining when a promotional campaign is in effect. |
+
+### Key Terms
+
+| Business Term | Technical Name | Meaning |
+|:--------------|:---------------|:--------|
+| Price Set | `PriceSet` | Aggregate root holding all base price candidates for a variant. |
+| Price List | `PriceList` | Aggregate root managing a promotional campaign and its override rules. |
+| Specificity Ranking | 4-Tier Ranking | Deterministic priority: `Channel+Region > Region > Channel > Base`. |
+| Campaign Type | `CampaignType` | Promotional behavior: `SALE` (discounted) vs `OVERRIDE` (fixed price). |
 
 ---
 
-## 4. Business Invariants & Rules
+## 3. Business Rules (Invariants)
 
-| Rule ID | Invariant Rule | Violation Outcome | Enforced By |
-| :--- | :--- | :--- | :--- |
-| **INV-01** | Price amount must be non-negative. | Operation rejected. | `MoneyAmount` |
-| **INV-02** | Base prices must belong to a set and cannot specify a `priceListId`. | Domain error. | `Price.createBase()` |
-| **INV-03** | Campaign prices must belong to a list and MUST reference a target `priceSetId`. | Domain error. | `Price.createCampaign()` |
-| **INV-04** | For volume tiers, `minQuantity` must be ≤ `maxQuantity` if both are set. | Update rejected. | `Price.replaceDetails()` |
-| **INV-05** | Only `ACTIVE` price lists whose `startsAt`/`endsAt` window contains the current time are evaluated. | Campaign ignored during calculation. | `CalculatePricesPolicy` |
+> These rules can **never** be violated. If any rule is broken, the system **rejects** the action immediately.
+
+| Rule | What Must Be True | If Violated | Enforced By |
+|:-----|:-------------------|:------------|:------------|
+| **INV-01** | Price amounts MUST be non-negative; configured zero (0.00) MUST remain a valid price. | Rejected with `NEGATIVE_PRICE_AMOUNT` | `Price` constructor |
+| **INV-02** | Base prices MUST belong to a `PriceSet` and MUST NOT reference a `PriceList`. | Rejected with `INVALID_PRICE_CONTAINER` | `Price.createBase()` |
+| **INV-03** | Campaign prices MUST belong to a `PriceList` and reference a target `PriceSet` by ID. | Rejected with `INVALID_CAMPAIGN_REFERENCE` | `Price.createCampaign()` |
+| **INV-04** | Minimum quantity MUST NOT exceed maximum quantity when both are configured. | Rejected with `INVALID_QUANTITY_RANGE` | `Price.replaceDetails()` |
+| **INV-05** | Only `ACTIVE` campaigns within inclusive time boundaries (`startsAt <= now <= endsAt`) MUST participate in quotes. | Campaign candidate excluded from calculation | Price Calculation Engine |
+| **INV-06** | Specificity ranking MUST prioritize: `Channel+Region > Region > Channel > Base`. | Lower tier candidates excluded | Specificity Ranking Policy |
+| **INV-07** | Distinct regional markets sharing a currency (e.g., US and Ecuador in USD) MUST remain strictly isolated. | Rejection of cross-region rule matching | Price Rule Matcher |
+| **INV-08** | Within the winning tier, ranking MUST prefer campaign prices over base, higher rule count, lower amount, and lowest `priceId`. | Deterministic tie-breaking executed | Price Ranking Policy |
+| **INV-09** | `OVERRIDE` campaigns MUST replace the base price; `SALE` campaigns MUST select the lower of the sale or base amount. | Price synthesis calculation | Price Synthesis Policy |
 
 ---
 
-## 5. State Lifecycle & Transitions
+## 4. State Lifecycle
 
-### State Machine (PriceList)
+### State Diagram
+
+> Show all states and the transitions between them. Label transitions with the action that triggers them.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> DRAFT : create()
-    DRAFT --> ACTIVE : update(status=ACTIVE)
-    ACTIVE --> DRAFT : update(status=DRAFT)
+    [*] --> Draft : createPriceList()
+    Draft --> Active : activate()
+    Active --> Draft : deactivate()
 ```
 
-### Transition Matrix (PriceList)
+### Transition Rules
 
-| Current State | Trigger / Event | Next State | Guard Condition / Prerequisite |
-| :--- | :--- | :--- | :--- |
-| `DRAFT` | `update(status=ACTIVE)` | `ACTIVE` | Status is set through `replaceMetadata()`; the time window is checked at calculation time. |
-| `ACTIVE` | `update(status=DRAFT)` | `DRAFT` | Status is set through `replaceMetadata()` and the list is excluded from calculations. |
+| Current State | Action | Next State | Conditions |
+|:--------------|:-------|:-----------|:-----------|
+| `—` (new) | `createPriceList()` | `Draft` | Valid title, campaign type, and valid time windows. |
+| `Draft` | `activate()` | `Active` | Eligible for request-time quote evaluation. |
+| `Active` | `deactivate()` | `Draft` | Immediately excluded from quote evaluation. |
 
 ---
 
-## 6. Domain Events
+## 5. Events *(optional — include only if this domain emits or consumes events)*
 
-### Emitted Events (What Happened)
+### Events This Domain Emits
 
-| Event Name | Trigger | Key Attributes | Target Consumers |
-| :--- | :--- | :--- | :--- |
-| `PriceSetCreatedEvent` | Initial creation | `priceSetId` | Pricing Search / Downstream |
-| `PriceSetUpdatedEvent` | Price set content changes | `priceSetId`, time | Pricing projections and downstream bridges |
-| `PriceListCreatedEvent` | Price list created | `priceListId`, time | Pricing projections |
-| `PriceListUpdatedEvent` | Price list metadata, rules, or prices change | `priceListId`, time | Pricing projections and downstream bridges |
-| `PricePreferenceCreatedEvent` / `PricePreferenceUpdatedEvent` | Preference lifecycle | `pricePreferenceId`, time | Pricing projections |
+| Event | When It's Emitted | Key Data | Who Consumes It |
+|:------|:-------------------|:---------|:----------------|
+| `PriceSetCreatedEvent` | Upon `PriceSet` creation | `priceSetId`, `occurredAt` | Local audit listeners |
+| `PriceSetUpdatedEvent` | When prices are added or removed | `priceSetId`, `occurredAt` | Local audit listeners |
+| `PriceListCreatedEvent` | Upon promotional campaign creation | `priceListId`, `type`, `status` | Promotional indexing listeners |
 
-### Consumed Events (Cross-Domain Signals)
+### Events This Domain Reacts To
 
-*Note: Pricing does not directly listen to domain events for lifecycle management. Pricing links are managed by the application via synchronous commands (e.g., Workflow orchestrators creating Price Sets for new Variants).*
-
-These are aggregate domain events written to the module outbox. Workflow acknowledgements such as `VariantPriceCreatedEvent` and `VariantPriceSyncedEvent` are separate store-level signals and are not emitted by the Pricing aggregates.
-
-The store publisher maps `PriceSetCreatedEvent` and `PriceSetUpdatedEvent` to the separate `PriceSetChangedIntegrationEvent` record. Pricing workflow requests and acknowledgements remain a third event category.
-
-Implementation references: `pricing-domain/src/main/java/com/pricing/domain/aggregate/PriceSet.java`, `PriceList.java`, and `PricePreference.java`.
+| Event | Emitted By | What This Domain Does | Business Impact |
+|:------|:-----------|:----------------------|:----------------|
+| None | — | Operates as a calculation engine without subscribing to external events. | Decoupled and high-throughput. |

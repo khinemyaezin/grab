@@ -4,7 +4,8 @@ import com.grab.framework.cqrs.query.Query;
 import com.grab.framework.id.Id;
 
 public record GetBuyableOfferBySlugQuery(
-        Id salesChannelId,
+        ShoppingContext context,
+        boolean regionServed,
         String slug
-) implements Query<DiscoveryProductView> {
+) implements Query<BuyableOfferResult> {
 }

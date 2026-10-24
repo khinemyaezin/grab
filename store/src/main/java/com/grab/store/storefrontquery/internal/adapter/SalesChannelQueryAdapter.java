@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 @Component("storeFrontQuerySalesChannelQueryAdapter")
 @RequiredArgsConstructor
 public class SalesChannelQueryAdapter implements SalesChannelQueryPort {
-    private static final String DEFAULT_CURRENCY = "MMK";
     private final SalesChannelPort salesChannels;
 
     @Override
@@ -18,8 +17,4 @@ public class SalesChannelQueryAdapter implements SalesChannelQueryPort {
         return salesChannels.isEnabled(channelValue);
     }
 
-    @Override
-    public String currency(Id salesChannelId) {
-        return DEFAULT_CURRENCY;
-    }
 }

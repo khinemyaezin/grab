@@ -1,11 +1,13 @@
 package com.inventory.adapter.persistence.adapter;
 
 import com.grab.framework.support.PersistenceExecutor;
+import com.grab.framework.id.Id;
 import com.inventory.adapter.persistence.entity.InventoryItemEntity;
 import com.inventory.adapter.persistence.entity.LocationEntity;
 import com.inventory.domain.enums.InventoryStatus;
 import com.inventory.adapter.persistence.repository.jpa.ChannelFulfillmentRouteJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.InventoryItemJpaRepository;
+import com.inventory.application.model.read.DiscoveryInventoryAvailabilityView;
 import com.inventory.application.port.outbound.InventoryQueryPort;
 import com.inventory.adapter.persistence.repository.jpa.LocationJpaRepository;
 import com.inventory.application.model.read.InventorySearchCriteria;
@@ -86,6 +88,22 @@ public class InventoryQueryAdapter implements InventoryQueryPort {
                         .filter(item -> salesChannelId == null || routeExists(item.getLocationId(), salesChannelId))
                         .mapToInt(this::availableQuantity)
                         .sum());
+    }
+
+    @Override
+    public InventoryQueryPort.DiscoveryAvailability discoveryAvailability(Id merchantId, String sku, Id salesChannelId) {
+        String merchantIdValue = merchantId.getValue();
+        String salesChannelIdValue = salesChannelId.getValue();
+        List<InventoryStatus> eligibleStatuses = List.of(InventoryStatus.ACTIVE, InventoryStatus.OUT_OF_STOCK);
+        DiscoveryInventoryAvailabilityView row = executor.query(INVENTORY_ITEM_RESOURCE, () -> jpaRepository.findDiscoveryAvailability(
+                merchantIdValue,
+                sku,
+                salesChannelIdValue,
+                eligibleStatuses
+        ));
+        int availableQuantity = Math.toIntExact(row.availableQuantity());
+        boolean allowBackorder = row.backorderItemCount() > 0;
+        return new InventoryQueryPort.DiscoveryAvailability(availableQuantity, allowBackorder);
     }
 
     @Override

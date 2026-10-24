@@ -9,7 +9,8 @@ public sealed interface PricingServiceError extends MessageSource permits
         PricingServiceError.PriceSetNotFound,
         PricingServiceError.PriceListNotFound,
         PricingServiceError.PricePreferenceNotFound,
-        PricingServiceError.CurrencyRequired {
+        PricingServiceError.CurrencyRequired,
+        PricingServiceError.InvalidBatchQuote {
 
     record PriceSetNotFound(String priceSetId) implements PricingServiceError {
         @Override
@@ -76,6 +77,23 @@ public sealed interface PricingServiceError extends MessageSource permits
         @Override
         public Map<String, Object> args() {
             return Map.of();
+        }
+    }
+
+    record InvalidBatchQuote(String field) implements PricingServiceError {
+        @Override
+        public ErrorCategory kind() {
+            return ErrorCategory.BAD_REQUEST;
+        }
+
+        @Override
+        public String code() {
+            return "pri.service.quote_batch.invalid";
+        }
+
+        @Override
+        public Map<String, Object> args() {
+            return Map.of("field", field);
         }
     }
 }

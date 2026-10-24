@@ -3,6 +3,7 @@ package com.grab.discovery.adapter.persistence.adapter;
 import com.grab.discovery.adapter.persistence.entity.DiscoveryProductEntity;
 import com.grab.discovery.adapter.persistence.mapper.DiscoveryProductEntityMapper;
 import com.grab.discovery.adapter.persistence.repository.jpa.DiscoveryProductJpaRepository;
+import com.grab.discovery.adapter.persistence.repository.jpa.DiscoveryProductVariantJpaRepository;
 import com.grab.discovery.adapter.persistence.specification.jpa.DiscoveryProductSearchSpecification;
 import com.grab.discovery.application.model.read.DiscoveryProductView;
 import com.grab.discovery.application.port.outbound.DiscoveryProductQueryPort;
@@ -10,7 +11,9 @@ import com.grab.framework.id.Id;
 import com.grab.framework.support.PersistenceExecutor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Optional;
@@ -22,15 +25,40 @@ public class DiscoveryProductQueryAdapter implements DiscoveryProductQueryPort {
     private static final String ACTIVE = "ACTIVE";
 
     private final DiscoveryProductJpaRepository products;
+    private final DiscoveryProductVariantJpaRepository variants;
     private final DiscoveryProductSearchSpecification searchSpecification;
     private final DiscoveryProductEntityMapper mapper;
     private final PersistenceExecutor executor;
 
     @Override
-    public Page<DiscoveryProductView> searchVisible(Id salesChannelId, Pageable pageable) {
+    public Page<DiscoveryProductView> searchVisible(
+            Id salesChannelId,
+            String keyword,
+            Id categoryId,
+            Pageable pageable
+    ) {
         String channelIdValue = salesChannelId != null ? salesChannelId.getValue() : null;
-        Specification<DiscoveryProductEntity> spec = searchSpecification.visibleForSalesChannel(channelIdValue);
-        Page<DiscoveryProductEntity> entityPage = executor.query(RESOURCE, () -> products.findAll(spec, pageable));
+        String categoryIdValue = categoryId != null ? categoryId.getValue() : null;
+        Specification<DiscoveryProductEntity> spec = searchSpecification.visibleForSalesChannel(
+                channelIdValue,
+                keyword,
+                categoryIdValue
+        );
+        Sort productIdOrder = Sort.by("productId").ascending();
+        Sort effectiveSort = pageable.getSort().isSorted()
+                ? pageable.getSort().and(productIdOrder)
+                : productIdOrder;
+        Pageable orderedPageable = pageable.isPaged()
+                ? PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        effectiveSort
+                )
+                : Pageable.unpaged(effectiveSort);
+        Page<DiscoveryProductEntity> entityPage = executor.query(
+                RESOURCE,
+                () -> products.findAll(spec, orderedPageable)
+        );
         return entityPage.map(mapper::toView);
     }
 
@@ -45,6 +73,10 @@ public class DiscoveryProductQueryAdapter implements DiscoveryProductQueryPort {
                         ACTIVE
                 )
         );
-        return entityOpt.map(mapper::toView);
+        return entityOpt.filter(entity -> executor.query(
+                        RESOURCE,
+                        () -> variants.existsByDiscoveryProduct_IdAndVariantStatus(entity.getId(), ACTIVE)
+                ))
+                .map(mapper::toView);
     }
 }
