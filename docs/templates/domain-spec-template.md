@@ -1,20 +1,20 @@
-You are writing a Domain Specification (Domain Model Architecture Decision Record): a micro-architectural decision record defining a business domain aggregate, its boundaries, invariants, and lifecycle.
+You are writing a Domain Specification for a business domain aggregate model.
 
-A Domain Specification is an **Architecture Decision Record (ADR)**. It is NOT an implementation class tracker or entity mapping file.
+The goal is to explain the business model, boundaries, invariants, and lifecycle clearly.
 
 **Author rules:**
 - Talk less and explain with diagrams and structured tables. Avoid massive paragraphs.
-- In diagrams and specifications, use pure domain concepts and business roles. **NEVER** include Java types, framework annotations, class names (`*Service`, `*Repository`), or database table names.
+- In diagrams and specifications, use pure domain concepts and business roles.
 - Keep diagrams clean and readable. Cap each diagram at ~7–9 nodes.
 - Explicit boundaries: show composition inside the aggregate root vs. ID-only references across other aggregates or bounded contexts. Cross-aggregate object navigation is strictly forbidden.
 - In Section 3, every property shown on the aggregate diagram MUST appear in the Property Rationale table with a business justification (never "needed for database/JPA").
-- In Section 4, state invariants in business language and name the domain concept or policy that enforces each invariant.
+- In Section 4, state invariants in business language and name the aggregate method or domain policy that enforces each invariant.
 - In Section 5, show states and allowable transitions visually.
 - Replace every `[placeholder]` before publishing.
 
 ---
 
-# Domain Decision Record: [Aggregate Name]
+# Domain Specification: [Aggregate Name]
 
 > **Bounded Context:** [e.g. Catalog, Inventory, Pricing, Identity]
 > **Primary Purpose:** [1–2 sentences explaining the core business concept this aggregate models and protects.]
@@ -110,9 +110,9 @@ classDiagram
 
 ### Property & Attribute Rationale
 
-| Property | Type | Belongs To | Business Rationale |
-| :--- | :--- | :--- | :--- |
-| `[business property]` | [Business concept] | Root / Child | [Specific business reason this property exists; not "for DB"]. |
+| Property     | Type      | Belongs To | Business Rationale |
+|:-------------|:----------| :--- | :--- |
+| `[property]` | [concept] | Root / Child | [Specific business reason this property exists; not "for DB"]. |
 
 ---
 
