@@ -1,6 +1,5 @@
 package com.grab.app.channeldiscovery.saleschannel.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,6 +17,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -52,16 +52,14 @@ public class SalesChannelModuleDataSourceConfig {
     }
 
     @Bean("salesChannelDataSource")
-    @ConfigurationProperties("saleschannel.datasource.hikari")
-    public HikariDataSource salesChannelDataSource(
-            @Qualifier("salesChannelDataSourceProperties") DataSourceProperties salesChannelDataSourceProperties
-    ) {
-        return salesChannelDataSourceProperties.initializeDataSourceBuilder()
-                .type(HikariDataSource.class)
-                .build();
+    public DataSource salesChannelDataSource(
+            @Qualifier("channelContextSharedDataSource") DataSource sharedDataSource,
+            @Qualifier("salesChannelDedicatedDataSource") org.springframework.beans.factory.ObjectProvider<DataSource> dedicated) {
+        return new DelegatingDataSource(dedicated.getIfAvailable(() -> sharedDataSource));
     }
 
     @Bean("salesChannelEntityManagerFactory")
+    @DependsOn("salesChannelFlyway")
     public LocalContainerEntityManagerFactoryBean salesChannelEntityManagerFactory(
             @Qualifier("salesChannelDataSource") DataSource salesChannelDataSource
     ) {
@@ -87,6 +85,8 @@ public class SalesChannelModuleDataSourceConfig {
         return Flyway.configure()
                 .dataSource(salesChannelDataSource)
                 .locations("classpath:db/migration/saleschannel")
+                .schemas("saleschannel").defaultSchema("saleschannel")
+                .table("flyway_schema_history_saleschannel")
                 .baselineOnMigrate(false)
                 .load();
     }
@@ -98,6 +98,7 @@ public class SalesChannelModuleDataSourceConfig {
         properties.put("hibernate.hbm2ddl.auto", environment.getProperty("saleschannel.jpa.hibernate.hbm2ddl.auto"));
         properties.put("hibernate.show_sql", environment.getProperty("saleschannel.jpa.hibernate.show_sql"));
         properties.put("hibernate.format_sql", environment.getProperty("saleschannel.jpa.hibernate.format_sql"));
+        properties.put("hibernate.default_schema", "saleschannel");
         return properties;
     }
 }

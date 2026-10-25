@@ -58,19 +58,19 @@ public class DevSqlDataSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         log.info("Starting local development SQL seeding...");
 
-        executeScript(identityDataSource.getIfAvailable(), "db/dev-seed/01_identity.sql", "identity");
-        executeScript(merchantDataSource.getIfAvailable(), "db/dev-seed/02_merchant.sql", "merchant");
-        executeScript(salesChannelDataSource.getIfAvailable(), "db/dev-seed/03_saleschannel.sql", "saleschannel");
-        executeScript(catalogDataSource.getIfAvailable(), "db/dev-seed/04_catalog.sql", "catalog");
-        executeScript(pricingDataSource.getIfAvailable(), "db/dev-seed/05_pricing.sql", "pricing");
-        executeScript(inventoryDataSource.getIfAvailable(), "db/dev-seed/06_inventory.sql", "inventory");
-        executeScript(storefrontQueryDataSource.getIfAvailable(), "db/dev-seed/07_storefrontquery.sql", "storefrontquery");
-        executeScript(regionDataSource.getIfAvailable(), "db/dev-seed/08_region.sql", "region");
+        executeScript(identityDataSource.getIfAvailable(), "db/dev-seed/01_identity.sql", "identity", "identity");
+        executeScript(merchantDataSource.getIfAvailable(), "db/dev-seed/02_merchant.sql", "merchant", "merchant");
+        executeScript(salesChannelDataSource.getIfAvailable(), "db/dev-seed/03_saleschannel.sql", "saleschannel", "saleschannel");
+        executeScript(catalogDataSource.getIfAvailable(), "db/dev-seed/04_catalog.sql", "catalog", "catalog");
+        executeScript(pricingDataSource.getIfAvailable(), "db/dev-seed/05_pricing.sql", "pricing", "pricing");
+        executeScript(inventoryDataSource.getIfAvailable(), "db/dev-seed/06_inventory.sql", "inventory", "inventory");
+        executeScript(storefrontQueryDataSource.getIfAvailable(), "db/dev-seed/07_storefrontquery.sql", "discovery", "discovery");
+        executeScript(regionDataSource.getIfAvailable(), "db/dev-seed/08_region.sql", "region", "region");
 
         log.info("Local development SQL seeding completed successfully.");
     }
 
-    private void executeScript(DataSource dataSource, String scriptPath, String moduleName) {
+    private void executeScript(DataSource dataSource, String scriptPath, String moduleName, String schema) {
         if (dataSource == null) {
             log.info("DataSource for module '{}' is not present. Skipping dev seed for '{}'.", moduleName, scriptPath);
             return;
@@ -86,7 +86,15 @@ public class DevSqlDataSeeder implements ApplicationRunner {
             var populator = new ResourceDatabasePopulator();
             populator.addScript(resource);
             populator.setContinueOnError(false);
-            populator.execute(dataSource);
+            try (var connection = dataSource.getConnection()) {
+                String previousSchema = connection.getSchema();
+                try {
+                    connection.setSchema(schema);
+                    populator.populate(connection);
+                } finally {
+                    connection.setSchema(previousSchema);
+                }
+            }
             log.info("Successfully executed dev SQL seed script '{}' on module '{}'.", scriptPath, moduleName);
         } catch (Exception ex) {
             log.warn("Failed executing dev seed script '{}' on module '{}': {}", scriptPath, moduleName, ex.getMessage());

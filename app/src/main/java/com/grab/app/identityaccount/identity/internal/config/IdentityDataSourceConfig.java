@@ -1,6 +1,5 @@
 package com.grab.app.identityaccount.identity.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -11,6 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import org.flywaydb.core.Flyway;
 
@@ -38,9 +38,10 @@ public class IdentityDataSourceConfig {
     }
 
     @Bean("identityDataSource")
-    @ConfigurationProperties("identity.datasource.hikari")
-    HikariDataSource dataSource(@Qualifier("identityDataSourceProperties") DataSourceProperties p) {
-        return p.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    DataSource dataSource(
+            @Qualifier("identityAccountSharedDataSource") DataSource sharedDataSource,
+            @Qualifier("identityDedicatedDataSource") org.springframework.beans.factory.ObjectProvider<DataSource> dedicated) {
+        return new DelegatingDataSource(dedicated.getIfAvailable(() -> sharedDataSource));
     }
 
     @Bean("identityEntityManagerFactory")
@@ -53,7 +54,8 @@ public class IdentityDataSourceConfig {
         f.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
         f.setJpaPropertyMap(
                 Map.of("hibernate.dialect", env.getProperty("identity.jpa.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect"),
-                        "hibernate.hbm2ddl.auto", env.getProperty("identity.jpa.hibernate.hbm2ddl.auto", "update")));
+                        "hibernate.hbm2ddl.auto", env.getProperty("identity.jpa.hibernate.hbm2ddl.auto", "validate"),
+                        "hibernate.default_schema", "identity"));
         return f;
     }
 
@@ -67,7 +69,9 @@ public class IdentityDataSourceConfig {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/identity")
-                .baselineOnMigrate(true)
+                .schemas("identity").defaultSchema("identity")
+                .table("flyway_schema_history_identity")
+                .baselineOnMigrate(false)
                 .load();
     }
 

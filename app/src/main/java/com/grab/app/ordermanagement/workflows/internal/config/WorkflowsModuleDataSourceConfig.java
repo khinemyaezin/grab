@@ -1,10 +1,8 @@
 package com.grab.app.ordermanagement.workflows.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +16,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -46,16 +45,15 @@ public class WorkflowsModuleDataSourceConfig {
     }
 
     @Bean("workflowsDataSource")
-    @ConfigurationProperties("workflows.datasource.hikari")
-    public HikariDataSource workflowsDataSource(
-            @Qualifier("workflowsDataSourceProperties") DataSourceProperties workflowsDataSourceProperties
+    public DataSource workflowsDataSource(
+            @Qualifier("orderManagementSharedDataSource") DataSource sharedDataSource,
+            @Qualifier("workflowsDedicatedDataSource") org.springframework.beans.factory.ObjectProvider<DataSource> dedicated
     ) {
-        return workflowsDataSourceProperties.initializeDataSourceBuilder()
-                .type(HikariDataSource.class)
-                .build();
+        return new DelegatingDataSource(dedicated.getIfAvailable(() -> sharedDataSource));
     }
 
     @Bean("workflowsEntityManagerFactory")
+    @DependsOn("workflowsFlyway")
     public LocalContainerEntityManagerFactoryBean workflowsEntityManagerFactory(
             @Qualifier("workflowsDataSource") DataSource workflowsDataSource
     ) {
@@ -82,16 +80,18 @@ public class WorkflowsModuleDataSourceConfig {
         properties.put("hibernate.hbm2ddl.auto", environment.getProperty("workflows.jpa.hibernate.hbm2ddl.auto", "validate"));
         properties.put("hibernate.show_sql", environment.getProperty("workflows.jpa.hibernate.show_sql", "false"));
         properties.put("hibernate.format_sql", environment.getProperty("workflows.jpa.hibernate.format_sql", "false"));
+        properties.put("hibernate.default_schema", "workflows");
         return properties;
     }
 
     @Bean(name = "workflowsFlyway", initMethod = "migrate")
-    @ConditionalOnProperty(prefix = "workflows.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Flyway workflowsFlyway(@Qualifier("workflowsDataSource") DataSource dataSource) {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/workflows")
-                .baselineOnMigrate(true)
+                .schemas("workflows").defaultSchema("workflows")
+                .table("flyway_schema_history_workflows")
+                .baselineOnMigrate(false)
                 .load();
     }
 }
