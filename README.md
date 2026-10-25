@@ -24,12 +24,14 @@ Run only one runner against a database set at a time. The app and legacy store r
 ## Docker
 
 `docker-compose.yml` defines the app service and runtime environment.
-The app uses its own fresh PostgreSQL volume (`grab-app-dev-postgres-data`) by default.
+The app provisions five fresh PostgreSQL volumes by default: `grab-app-dev-product-merchandising-data`, `grab-app-dev-order-management-data`, `grab-app-dev-identity-account-data`, `grab-app-dev-channel-context-data`, and `grab-app-dev-discovery-data`. The previous `grab-app-dev-postgres-data` volume is left untouched and is not attached to these services. Starting this Compose topology creates empty databases; it does not transfer existing data.
+
+The databases are available on host ports 5432–5436 in topology order: Product Merchandising, Order Management, Identity & Accounts, Channel Context, and Discovery. Inside Compose, the app connects to each service on port 5432. Schemas are initialized in each database and domain migrations create tables on app startup.
 
 ```bash
 # Start
 docker compose --env-file docker/env/dev.env -f docker-compose.yml up --build -d
 
 # Stop
-docker compose --env-file docker/env/dev.env -f docker-compose.yml down -v
+docker compose --env-file docker/env/dev.env -f docker-compose.yml down
 ```

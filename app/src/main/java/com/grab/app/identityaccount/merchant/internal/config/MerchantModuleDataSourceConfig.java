@@ -1,6 +1,5 @@
 package com.grab.app.identityaccount.merchant.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,6 +12,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -37,16 +37,19 @@ public class MerchantModuleDataSourceConfig {
     DataSourceProperties properties() { return new DataSourceProperties(); }
 
     @Bean("merchantDataSource")
-    @ConfigurationProperties("merchant.datasource.hikari")
-    HikariDataSource dataSource(@Qualifier("merchantDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    DataSource dataSource(
+            @Qualifier("identityAccountSharedDataSource") DataSource sharedDataSource,
+            @Qualifier("merchantDedicatedDataSource") org.springframework.beans.factory.ObjectProvider<DataSource> dedicated) {
+        return new DelegatingDataSource(dedicated.getIfAvailable(() -> sharedDataSource));
     }
 
     @Bean(name = "merchantFlyway", initMethod = "migrate")
     Flyway flyway(@Qualifier("merchantDataSource") DataSource dataSource) {
         return Flyway.configure().dataSource(dataSource)
                 .locations("classpath:db/migration/merchant")
-                .baselineOnMigrate(true).load();
+                .schemas("merchant").defaultSchema("merchant")
+                .table("flyway_schema_history_merchant")
+                .baselineOnMigrate(false).load();
     }
 
     @Bean("merchantEntityManagerFactory")
@@ -62,7 +65,8 @@ public class MerchantModuleDataSourceConfig {
         factory.setJpaPropertyMap(Map.of(
                 "hibernate.dialect", environment.getProperty(
                         "merchant.jpa.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect"),
-                "hibernate.hbm2ddl.auto", environment.getProperty("merchant.jpa.hibernate.hbm2ddl.auto", "validate")
+                "hibernate.hbm2ddl.auto", environment.getProperty("merchant.jpa.hibernate.hbm2ddl.auto", "validate"),
+                "hibernate.default_schema", "merchant"
         ));
         return factory;
     }

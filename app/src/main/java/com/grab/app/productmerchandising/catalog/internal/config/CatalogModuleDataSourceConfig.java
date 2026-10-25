@@ -1,9 +1,7 @@
 package com.grab.app.productmerchandising.catalog.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -19,6 +17,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -52,14 +51,14 @@ public class CatalogModuleDataSourceConfig {
     }
 
     @Bean("catalogDataSource")
-    @ConfigurationProperties("catalog.datasource.hikari")
-    public HikariDataSource catalogDataSource(@Qualifier("catalogDataSourceProperties") DataSourceProperties catalogDataSourceProperties) {
-        return catalogDataSourceProperties.initializeDataSourceBuilder()
-                .type(HikariDataSource.class)
-                .build();
+    public DataSource catalogDataSource(
+            @Qualifier("productMerchandisingSharedDataSource") DataSource sharedDataSource,
+            @Qualifier("catalogDedicatedDataSource") org.springframework.beans.factory.ObjectProvider<DataSource> dedicated) {
+        return new DelegatingDataSource(dedicated.getIfAvailable(() -> sharedDataSource));
     }
 
     @Bean("catalogEntityManagerFactory")
+    @DependsOn("catalogFlyway")
     public LocalContainerEntityManagerFactoryBean catalogEntityManagerFactory(@Qualifier("catalogDataSource")DataSource catalogDataSource) {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
 
@@ -85,16 +84,18 @@ public class CatalogModuleDataSourceConfig {
         properties.put("hibernate.hbm2ddl.auto", environment.getProperty("catalog.jpa.hibernate.hbm2ddl.auto"));
         properties.put("hibernate.show_sql", environment.getProperty("catalog.jpa.hibernate.show_sql"));
         properties.put("hibernate.format_sql", environment.getProperty("catalog.jpa.hibernate.format_sql"));
+        properties.put("hibernate.default_schema", "catalog");
         return properties;
     }
 
-    @Bean(initMethod = "migrate")
-    @ConditionalOnProperty(prefix = "catalog.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @Bean(name = "catalogFlyway", initMethod = "migrate")
     public Flyway catalogFlyway(@Qualifier("catalogDataSource") DataSource dataSource, Environment env) {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/catalog")
-                .baselineOnMigrate(true)
+                .schemas("catalog").defaultSchema("catalog")
+                .table("flyway_schema_history_catalog")
+                .baselineOnMigrate(false)
                 .load();
     }
 

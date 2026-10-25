@@ -1,6 +1,5 @@
 package com.grab.app.channeldiscovery.storefrontquery.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -17,6 +16,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -45,13 +45,8 @@ public class StorefrontQueryModuleDataSourceConfig {
     }
 
     @Bean("storefrontQueryDataSource")
-    @ConfigurationProperties("storefrontquery.datasource.hikari")
-    public HikariDataSource storefrontQueryDataSource(
-            @Qualifier("storefrontQueryDataSourceProperties") DataSourceProperties properties
-    ) {
-        return properties.initializeDataSourceBuilder()
-                .type(HikariDataSource.class)
-                .build();
+    public DataSource storefrontQueryDataSource(@Qualifier("discoveryProductDataSource") DataSource discoveryDataSource) {
+        return new DelegatingDataSource(discoveryDataSource);
     }
 
     @Bean(name = "storefrontQueryFlyway", initMethod = "migrate")
@@ -61,7 +56,9 @@ public class StorefrontQueryModuleDataSourceConfig {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/storefrontquery")
-                .baselineOnMigrate(true)
+                .schemas("discovery").defaultSchema("discovery")
+                .table("flyway_schema_history_discovery")
+                .baselineOnMigrate(false)
                 .load();
     }
 
@@ -93,6 +90,7 @@ public class StorefrontQueryModuleDataSourceConfig {
         properties.put("hibernate.hbm2ddl.auto", environment.getProperty("storefrontquery.jpa.hibernate.hbm2ddl.auto"));
         properties.put("hibernate.show_sql", environment.getProperty("storefrontquery.jpa.hibernate.show_sql"));
         properties.put("hibernate.format_sql", environment.getProperty("storefrontquery.jpa.hibernate.format_sql"));
+        properties.put("hibernate.default_schema", "discovery");
         return properties;
     }
 }

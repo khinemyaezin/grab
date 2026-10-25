@@ -1,6 +1,5 @@
 package com.grab.app.productmerchandising.pricing.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,6 +13,7 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.sql.DataSource;
 import java.util.Map;
@@ -41,9 +41,10 @@ public class PricingModuleDataSourceConfig {
     }
 
     @Bean("pricingDataSource")
-    @ConfigurationProperties("pricing.datasource.hikari")
-    HikariDataSource dataSource(@Qualifier("pricingDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    DataSource dataSource(
+            @Qualifier("productMerchandisingSharedDataSource") DataSource sharedDataSource,
+            @Qualifier("pricingDedicatedDataSource") org.springframework.beans.factory.ObjectProvider<DataSource> dedicated) {
+        return new DelegatingDataSource(dedicated.getIfAvailable(() -> sharedDataSource));
     }
 
     @Bean(name = "pricingFlyway", initMethod = "migrate")
@@ -51,7 +52,9 @@ public class PricingModuleDataSourceConfig {
         return Flyway.configure()
                 .dataSource(dataSource)
                 .locations("classpath:db/migration/pricing")
-                .baselineOnMigrate(true)
+                .schemas("pricing").defaultSchema("pricing")
+                .table("flyway_schema_history_pricing")
+                .baselineOnMigrate(false)
                 .load();
     }
 
@@ -70,7 +73,8 @@ public class PricingModuleDataSourceConfig {
                         "pricing.jpa.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect"),
                 "hibernate.hbm2ddl.auto", environment.getProperty("pricing.jpa.hibernate.hbm2ddl.auto", "validate"),
                 "hibernate.show_sql", environment.getProperty("pricing.jpa.hibernate.show_sql", "false"),
-                "hibernate.format_sql", environment.getProperty("pricing.jpa.hibernate.format_sql", "false")
+                "hibernate.format_sql", environment.getProperty("pricing.jpa.hibernate.format_sql", "false"),
+                "hibernate.default_schema", "pricing"
         ));
         return factory;
     }

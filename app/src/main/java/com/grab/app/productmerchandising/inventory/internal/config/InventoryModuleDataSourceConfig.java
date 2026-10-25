@@ -1,10 +1,8 @@
 package com.grab.app.productmerchandising.inventory.internal.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +16,9 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -52,14 +53,14 @@ public class InventoryModuleDataSourceConfig {
     }
 
     @Bean("inventoryDataSource")
-    @ConfigurationProperties("inventory.datasource.hikari")
-    public HikariDataSource inventoryDataSource(@Qualifier("inventoryDataSourceProperties") DataSourceProperties inventoryDataSourceProperties) {
-        return inventoryDataSourceProperties.initializeDataSourceBuilder()
-                .type(HikariDataSource.class)
-                .build();
+    public DataSource inventoryDataSource(
+            @Qualifier("productMerchandisingSharedDataSource") DataSource shared,
+            @Qualifier("inventoryDedicatedDataSource") ObjectProvider<DataSource> dedicated) {
+        return new DelegatingDataSource(dedicated.getIfAvailable(() -> shared));
     }
 
     @Bean("inventoryEntityManagerFactory")
+    @DependsOn("inventoryFlyway")
     public LocalContainerEntityManagerFactoryBean inventoryEntityManagerFactory(@Qualifier("inventoryDataSource") DataSource inventoryDataSource) {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
 
@@ -80,12 +81,13 @@ public class InventoryModuleDataSourceConfig {
     }
 
     @Bean(name = "inventoryFlyway", initMethod = "migrate")
-    @ConditionalOnProperty(prefix = "inventory.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Flyway inventoryFlyway(@Qualifier("inventoryDataSource") DataSource inventoryDataSource) {
         return Flyway.configure()
                 .dataSource(inventoryDataSource)
                 .locations("classpath:db/migration/inventory")
-                .baselineOnMigrate(true)
+                .schemas("inventory").defaultSchema("inventory")
+                .table("flyway_schema_history_inventory")
+                .baselineOnMigrate(false)
                 .load();
     }
 
@@ -96,6 +98,7 @@ public class InventoryModuleDataSourceConfig {
         properties.put("hibernate.hbm2ddl.auto", environment.getProperty("inventory.jpa.hibernate.hbm2ddl.auto"));
         properties.put("hibernate.show_sql", environment.getProperty("inventory.jpa.hibernate.show_sql"));
         properties.put("hibernate.format_sql", environment.getProperty("inventory.jpa.hibernate.format_sql"));
+        properties.put("hibernate.default_schema", "inventory");
         return properties;
     }
 }

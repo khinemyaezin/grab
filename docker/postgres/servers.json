@@ -1,11 +1,51 @@
 {
   "Servers": {
     "1": {
-      "Name": "Local Postgres",
+      "Name": "Product Merchandising",
       "Group": "Servers",
-      "Host": "postgres",
+      "Host": "product-merchandising-db",
       "Port": 5432,
-      "MaintenanceDB": "postgres",
+      "MaintenanceDB": "product_merchandising",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Order Management",
+      "Group": "Servers",
+      "Host": "order-management-db",
+      "Port": 5432,
+      "MaintenanceDB": "order_management",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "Identity Account",
+      "Group": "Servers",
+      "Host": "identity-account-db",
+      "Port": 5432,
+      "MaintenanceDB": "identity_account",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "4": {
+      "Name": "Channel Context",
+      "Group": "Servers",
+      "Host": "channel-context-db",
+      "Port": 5432,
+      "MaintenanceDB": "channel_context",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "5": {
+      "Name": "Discovery",
+      "Group": "Servers",
+      "Host": "discovery-db",
+      "Port": 5432,
+      "MaintenanceDB": "discovery",
       "Username": "admin",
       "PassFile": "/pgpass",
       "SSLMode": "prefer"
