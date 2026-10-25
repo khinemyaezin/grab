@@ -142,7 +142,7 @@ public class SalesChannelUseCaseConfig {
             SalesChannelRepository salesChannelRepository,
             PublishableKeyRepository publishableKeyRepository,
             Clock salesChannelClock,
-            com.saleschannel.domain.policy.PublishableKeyManagementPolicy managementPolicy
+            PublishableKeyManagementPolicy managementPolicy
     ) {
         return new RevokePublishableKeyService(
                 salesChannelRepository, publishableKeyRepository, salesChannelClock, managementPolicy);
