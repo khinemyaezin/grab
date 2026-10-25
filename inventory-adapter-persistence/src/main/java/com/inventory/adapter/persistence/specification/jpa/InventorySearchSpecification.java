@@ -98,6 +98,7 @@ public class InventorySearchSpecification {
                 root.get(InventoryItemEntity_.RESERVED),
                 root.get(InventoryItemEntity_.IN_TRANSIT),
                 root.get(InventoryItemEntity_.DAMAGED),
+                root.get(InventoryItemEntity_.ALLOW_BACKORDER),
                 root.get(InventoryItemEntity_.SAFETY_STOCK),
                 root.get(InventoryItemEntity_.REORDER_POINT),
                 root.get(InventoryItemEntity_.REORDER_QUANTITY),
