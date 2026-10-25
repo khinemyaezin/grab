@@ -1,0 +1,27 @@
+package com.grab.app.productmerchandising.catalog.internal.command.handler;
+
+import com.catalog.application.model.write.UpdateVariantCommand;
+import com.catalog.application.model.write.UpdateVariantResult;
+import com.catalog.application.port.inbound.UpdateVariantUseCase;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.app.productmerchandising.catalog.internal.config.CatalogTransactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class UpdateVariantCommandHandler implements CommandHandler<UpdateVariantCommand, UpdateVariantResult> {
+
+    private final UpdateVariantUseCase updateVariantUseCase;
+
+    @Override
+    @CatalogTransactional
+    public UpdateVariantResult handle(UpdateVariantCommand command) {
+        return updateVariantUseCase.execute(command);
+    }
+
+    @Override
+    public Class<UpdateVariantCommand> getCommandType() {
+        return UpdateVariantCommand.class;
+    }
+}

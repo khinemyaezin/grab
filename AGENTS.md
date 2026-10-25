@@ -16,8 +16,8 @@ When implementing specific layers or components, inspect the dedicated rule in `
 - **Pure Domain (`{bc}-domain`)**: Framework-agnostic. No Spring, JPA, or Jackson annotations. Contains aggregates, entities, value objects, domain events, domain policies, and outbound write repository ports (`port/outbound/{Domain}Repository`).
 - **Application (`{bc}-application`)**: Inbound use case ports (`port/inbound/*UseCase`), use case services (`service/*Service`), outbound intra query ports (`port/outbound/*QueryPort`), application commands/queries/results, and read views (`model/read/*View`).
 - **Persistence Adapter (`{bc}-adapter-persistence`)**: Strictly INTRA-module persistence. Outbound adapters (`*RepositoryAdapter`, `*QueryAdapter`), JPA entities, Spring Data JPA repositories, specifications, and mappers/assemblers (`mapper/`). Never contains cross-module calls or adapters.
-- **Web & Assembly (`store`)**: REST controllers, DTOs, mappers, HATEOAS assemblers, CQRS command/query handlers delegating to use cases, event listeners, shared interface ports, and cross-module adapters.
-- **Dependency Flow**: `domain` <- `application` <- `adapter-persistence` / `store`. Inner layers NEVER depend on outer layers.
+- **Web & Assembly (`app`)**: REST controllers, DTOs, mappers, HATEOAS assemblers, CQRS command/query handlers delegating to use cases, event listeners, shared interface ports, and cross-module adapters.
+- **Dependency Flow**: `domain` <- `application` <- `adapter-persistence` / `app` and legacy `store`. Inner layers NEVER depend on outer layers.
 
 ### 2. Strict CQRS Separation & Isolation
 - **CommandService (Writes)**: Dispatches `Command<R>` via `CommandBus`. Handles POST, PUT, PATCH, DELETE. MUST NOT inject or dispatch `QueryBus`, nor call `QueryService`.
@@ -40,8 +40,8 @@ When implementing specific layers or components, inspect the dedicated rule in `
 
 ### 5. Spring Modulith & Cross-Module Boundaries
 - Cross-module communication is permitted ONLY via:
-    1. **Integration Events**: Published under `com.grab.store.shared.events.{module}` and consumed via `@EventListener`.
-    2. **Shared Interface Ports**: Public provider interface in `store/.../{domain}/port/` with provider adapter in `store/.../{domain}/internal/api/adapter/` delegating strictly to inbound `*UseCase`.
+    1. **Integration Events**: Published under `com.grab.app.shared.events.{module}` and consumed via `@EventListener`.
+    2. **Shared Interface Ports**: Public provider interface in `app/.../{domain}/port/` with provider adapter in `app/.../{domain}/internal/api/adapter/` delegating strictly to inbound `*UseCase`.
 - No module may directly import classes from another module's `internal/` packages.
 - Cross-domain HATEOAS links use published `{Owner}ApiLinks` facade via `{owner}::api` named interfaces.
 
@@ -117,9 +117,9 @@ Verify all 27 checks before producing or changing code:
 19. Only handlers and use cases inject/use ports and repositories. Never services, controllers, mappers, assemblers, or policies.
 20. Write path: command handler/use case to domain write port `{Domain}Repository`. Query list/search to application query port `{Domain}QueryPort` (implemented by `{Domain}QueryAdapter`), not `JpaRepository`. Spring Data JPA repositories MUST NOT use native queries (`nativeQuery = true`).
 21. Paged search uses a specification class injected into the query adapter. Results are application view records (`{Domain}View`), not JPA entities.
-22. Cross-module integration events MUST be written under `store/src/main/java/com/grab/store/shared/events/{module}/` organized by module folder name. Consuming modules listen via `@EventListener`.
+22. Cross-module integration events MUST be written under `app/src/main/java/com/grab/app/shared/events/{module}/` organized by module folder name. Consuming modules listen via `@EventListener`.
 23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks`. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding. No proxying owner list/search.
 24. `shared` remains `@ApplicationModule(type = OPEN)`.
 25. Strict CQRS isolation: `CommandService` and `QueryService` never mess with each other or cross-call. `CommandService` NEVER injects or invokes `QueryBus` or queries data. `QueryService` NEVER injects or invokes `CommandBus` or mutates state.
-26. Outbound API exposure via shared interface ports: provider public interface lives in `store/.../{domain}/port/` with DTOs declared inside the interface, provider adapter lives in `store/.../{domain}/internal/api/adapter/{port}Adapter` delegating only to `*UseCase` with transaction starting on the adapter method, and mapper lives in `store/.../{domain}/internal/api/adapter/mapper/{PortName}Mapper`. Consuming modules define an outbound port in `{consumer}-application/.../port/outbound/{TargetDomain}{Capability}Port` and implement it via an adapter in `store/.../{consumer}/internal/adapter/{TargetDomain}{Capability}Adapter`. Persistence adapters are strictly intra-domain.
+26. Outbound API exposure via shared interface ports: provider public interface lives in `app/.../{domain}/port/` with DTOs declared inside the interface, provider adapter lives in `app/.../{domain}/internal/api/adapter/{port}Adapter` delegating only to `*UseCase` with transaction starting on the adapter method, and mapper lives in `app/.../{domain}/internal/api/adapter/mapper/{PortName}Mapper`. Consuming modules define an outbound port in `{consumer}-application/.../port/outbound/{TargetDomain}{Capability}Port` and implement it via an adapter in `app/.../{consumer}/internal/adapter/{TargetDomain}{Capability}Adapter`. Persistence adapters are strictly intra-domain.
 27. JPA repository and adapter tests MUST use Testcontainers with the module's target database container (e.g. PostgreSQL, MySQL via `JdbcDatabaseContainer` or `jdbc:tc:...`), avoiding mismatched in-memory databases. Architecture tests in ArchUnit MUST pass without violating layer boundaries, CQRS isolation, or native query prohibitions.

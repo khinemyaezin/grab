@@ -1,0 +1,27 @@
+package com.grab.app.productmerchandising.catalog.internal.query.handler;
+
+import com.catalog.application.port.inbound.GetCategoryChildrenUseCase;
+import com.catalog.application.model.read.CategoryChildrenResult;
+import com.catalog.application.model.read.GetCategoryChildrenQuery;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.app.productmerchandising.catalog.internal.config.CatalogReadTransactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class GetCategoryChildrenQueryHandler implements QueryHandler<GetCategoryChildrenQuery, CategoryChildrenResult> {
+
+    private final GetCategoryChildrenUseCase getCategoryChildrenUseCase;
+
+    @Override
+    @CatalogReadTransactional
+    public CategoryChildrenResult handle(GetCategoryChildrenQuery query) {
+        return getCategoryChildrenUseCase.execute(query);
+    }
+
+    @Override
+    public Class<GetCategoryChildrenQuery> getQueryType() {
+        return GetCategoryChildrenQuery.class;
+    }
+}

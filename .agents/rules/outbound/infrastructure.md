@@ -19,7 +19,7 @@ Outbound platform adapters provide technical capabilities driven by the applicat
 ### 1. Storage (`storage-adapter-s3`)
 - Implements `FileStoragePort` declared in `framework`.
 - Does not contain business logic. Handles S3/MinIO upload, download, presigned URLs, and bucket management.
-- Wired into `store` via Spring `@Configuration`.
+- Wired into `app` via Spring `@Configuration`.
 
 ### 2. Outbox (`outbox-infrastructure`)
 - Outbox table lives in each bounded context's datasource.
@@ -33,7 +33,7 @@ Outbound platform adapters provide technical capabilities driven by the applicat
 - Owner persistence adapters provide the concrete state entity and owner assembly provides the event factory and outbox producer.
 
 ### 4. Workflow (`workflow-infrastructure`)
-- Three-layer platform kit: `framework.workflow` -> `workflow-infrastructure` -> `store/workflows`.
+- Three-layer platform kit: `framework.workflow` -> `workflow-infrastructure` -> `app/ordermanagement/workflows`.
 - No separate `workflow-domain` or `workflow-application`.
 - Orchestrates multi-context seller/store flows without two-phase commit.
 

@@ -71,7 +71,7 @@ HATEOAS links may point across bounded contexts for UI/workflow discovery. Links
 
 ### MUST
 
-- Advertise cross-domain navigation through a published link facade in the owning module: package `com.grab.store.{owner}.api` with `@NamedInterface("api")`.
+- Advertise cross-domain navigation through a published link facade in the owning module: package `com.grab.app.{owner}.api` with `@NamedInterface("api")`.
 - Facade class name: `{Owner}ApiLinks`. Methods return `org.springframework.hateoas.Link` via `linkTo(methodOn(...))`. Never hardcoded path strings.
 - Consuming modules import only `{owner}.api` types and declare `allowedDependencies = { ..., "{owner}::api" }`.
 - Place cross-domain links where the client needs them:
@@ -92,7 +92,7 @@ HATEOAS links may point across bounded contexts for UI/workflow discovery. Links
 ### Published `{Owner}ApiLinks` shape
 
 ```java
-// com.grab.store.{owner}.api — @NamedInterface("api") on package-info.java
+// com.grab.app.{owner}.api — @NamedInterface("api") on package-info.java
 public final class CatalogApiLinks {
     private CatalogApiLinks() {}
 

@@ -1,0 +1,56 @@
+package com.grab.app.shared.events.ordermanagement;
+
+import com.grab.framework.domain.Event;
+
+import java.time.Instant;
+import java.util.List;
+
+public record RequestCreateProductSetEvent(
+        String workflowId,
+        String merchantId,
+        Product product,
+        List<VariantType> variantTypes,
+        Instant occurredAt,
+        int version
+) implements Event {
+
+    public record Product(
+            String name,
+            String categoryId,
+            String condition,
+            String slug,
+            String status,
+            List<Variant> variants
+    ) {
+        public Product(String name, String categoryId, String condition, String slug, List<Variant> variants) {
+            this(name, categoryId, condition, slug, null, variants);
+        }
+    }
+
+    public record VariantType(
+            String typeId,
+            List<VariantOption> options
+    ) {
+    }
+
+    public record VariantOption(
+            String optionId
+    ) {
+    }
+
+    public record Variant(
+            String sku,
+            List<Variation> variations,
+            Boolean manageInventory
+    ) {
+        public Variant(String sku, List<Variation> variations) {
+            this(sku, variations, null);
+        }
+    }
+
+    public record Variation(
+            String optionId,
+            String typeId
+    ) {
+    }
+}

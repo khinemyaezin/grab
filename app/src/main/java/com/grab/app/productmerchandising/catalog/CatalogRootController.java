@@ -1,0 +1,88 @@
+package com.grab.app.productmerchandising.catalog;
+
+import com.grab.app.productmerchandising.catalog.internal.api.rest.controller.CatalogMediaController;
+import com.grab.app.productmerchandising.catalog.internal.api.rest.controller.CategoryController;
+import com.grab.app.productmerchandising.catalog.internal.api.rest.controller.ProductController;
+import com.grab.app.productmerchandising.catalog.internal.api.rest.controller.VariantOptionController;
+import com.grab.app.productmerchandising.catalog.internal.api.rest.controller.VariantTypeController;
+import com.grab.app.productmerchandising.catalog.api.representation.CatalogRootModel;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
+@RestController
+@RequestMapping("/api/v1/catalog")
+public class CatalogRootController {
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
+    public ResponseEntity<CatalogRootModel> root() {
+        CatalogRootModel model = new CatalogRootModel();
+
+        model.add(linkTo(methodOn(CatalogRootController.class)
+                .root())
+                .withSelfRel());
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .searchProducts(null, null, null))
+                .withRel("search-products"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .searchProductVariants(null, null, null))
+                .withRel("search-product-variants"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .getProduct(null))
+                .withRel("get-product"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .getVariant(null, null))
+                .withRel("get-variant"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .saveProduct(null))
+                .withRel("create-product"));
+
+        model.add(linkTo(methodOn(CatalogMediaController.class)
+                .createStagedMediaUpload(null))
+                .withRel("create-staged-media-upload"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .createProductMediaUpload(null, null))
+                .withRel("create-product-media-upload"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .replaceProductMedia(null, null))
+                .withRel("replace-product-media"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .batchVariantImages(null, null, null))
+                .withRel("batch-variant-images"));
+
+        model.add(linkTo(methodOn(ProductController.class)
+                .replaceProductDescriptions(null, null))
+                .withRel("replace-product-descriptions"));
+
+        model.add(linkTo(methodOn(ProductController.class).getVariationMatrix(null))
+                .withRel("generate-variation-matrix"));
+
+        model.add(linkTo(methodOn(CategoryController.class).getLeafNodesByName(null))
+                .withRel("search-category-leaves"));
+
+        model.add(linkTo(methodOn(VariantTypeController.class)
+                .getVariantTypesByName(null))
+                .withRel("search-variant-types"));
+
+        model.add(linkTo(methodOn(VariantOptionController.class)
+                .getVariantOptionsByName(null, null))
+                .withRel("search-variant-options"));
+
+
+        return ResponseEntity.ok(model);
+    }
+}

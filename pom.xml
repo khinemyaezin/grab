@@ -46,13 +46,17 @@
         <module>customer-domain</module>
         <module>customer-application</module>
         <module>customer-adapter-persistence</module>
+        <module>product-merchandising</module>
+        <module>order-management</module>
+        <module>identity-account</module>
+        <module>channel-discovery</module>
+        <module>app</module>
 <!--        <module>order-domain</module>-->
 <!--        <module>order-application</module>-->
 <!--        <module>order-adapter-persistence</module>-->
 <!--        <module>payment-domain</module>-->
 <!--        <module>payment-application</module>-->
 <!--        <module>payment-adapter-persistence</module>-->
-        <module>store</module>
     </modules>
 
     <url/>

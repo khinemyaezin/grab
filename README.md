@@ -1,4 +1,4 @@
-# Commerce Store
+# Grab Ecommerce Platform
 
 This is designed to support online buying and selling through a flexible marketplace model. 
 It supports product catalog management, customer shopping, and seller-driven commerce for retailer, 
@@ -12,13 +12,19 @@ Start here: [Commerce Platform](docs/Commerce_Platform.md) · [Documentation Gui
 # Install modules
 mvn clean install
 
-# Run the store app
-mvn -pl store spring-boot:run
+# Run the new app module
+mvn -pl app -am spring-boot:run
+
+# Run the retained legacy runner
+mvn -pl store -am spring-boot:run
 ```
+
+Run only one runner against a database set at a time. The app and legacy store runner must use isolated databases.
 
 ## Docker
 
 `docker-compose.yml` defines the app service and runtime environment.
+The app uses its own fresh PostgreSQL volume (`grab-app-dev-postgres-data`) by default.
 
 ```bash
 # Start

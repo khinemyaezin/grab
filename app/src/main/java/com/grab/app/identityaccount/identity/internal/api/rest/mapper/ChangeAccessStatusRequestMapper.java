@@ -1,0 +1,24 @@
+package com.grab.app.identityaccount.identity.internal.api.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.response.AccessAssignmentResponse;
+import com.identity.application.model.write.AccessAssignmentResult;
+import com.identity.application.model.write.ChangeAccessStatusCommand;
+import com.identity.domain.enums.AccessAssignmentStatus;
+import org.mapstruct.Mapper;
+
+import java.util.Set;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class ChangeAccessStatusRequestMapper {
+    public abstract ChangeAccessStatusCommand toCommand(
+            String assignmentId,
+            AccessAssignmentStatus requestedStatus,
+            String actorScopeKey,
+            String actorScopeId,
+            String actorId,
+            Set<String> actorRoleCodes
+    );
+
+    public abstract AccessAssignmentResponse toResponse(AccessAssignmentResult result);
+}

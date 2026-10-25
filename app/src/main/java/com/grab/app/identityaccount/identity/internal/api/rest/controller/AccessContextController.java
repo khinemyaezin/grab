@@ -1,0 +1,58 @@
+package com.grab.app.identityaccount.identity.internal.api.rest.controller;
+
+import com.grab.app.identityaccount.identity.internal.api.rest.assembler.AccessContextModelAssembler;
+import com.grab.app.identityaccount.identity.internal.api.rest.assembler.AuthModelAssembler;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.response.AccessContextResponse;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.response.AuthResponse;
+import com.grab.app.identityaccount.identity.internal.api.rest.service.AccessCommandService;
+import com.grab.app.identityaccount.identity.internal.api.rest.service.AccessQueryService;
+import com.grab.app.shared.security.util.AuthCookieHelper;
+import com.grab.app.shared.security.SecurityPrincipal;
+import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
+@Validated
+@RestController
+@RequestMapping("/api/v1/identity/access-contexts")
+@RequiredArgsConstructor
+public class AccessContextController {
+    private final AccessQueryService queryService;
+    private final AccessCommandService commandService;
+    private final AccessContextModelAssembler contextModelAssembler;
+    private final AuthModelAssembler authModelAssembler;
+    private final AuthCookieHelper authCookieHelper;
+
+    @GetMapping
+    public ResponseEntity<CollectionModel<EntityModel<AccessContextResponse>>> listContexts(
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        List<AccessContextResponse> responses = queryService.listContexts(principal.getPlatformUserId());
+        CollectionModel<EntityModel<AccessContextResponse>> model = contextModelAssembler.toCollectionModel(responses);
+        model.add(linkTo(methodOn(AccessContextController.class)
+                .listContexts(null))
+                .withRel("list-access-contexts"));
+        return ResponseEntity.ok(model);
+    }
+
+    @PostMapping("/{assignmentId}/select")
+    public ResponseEntity<EntityModel<AuthResponse>> selectContext(
+            @PathVariable String assignmentId,
+            @CookieValue(name = "refreshToken", required = false) String currentRefreshToken,
+            @AuthenticationPrincipal SecurityPrincipal principal
+    ) {
+        AuthResponse response = commandService.switchContext(assignmentId, currentRefreshToken, principal);
+        return ResponseEntity.ok()
+                .headers(authCookieHelper.createTokenCookies(response.accessToken(), response.refreshToken(), response.expiresInMs()))
+                .body(authModelAssembler.toModel(response));
+    }
+}

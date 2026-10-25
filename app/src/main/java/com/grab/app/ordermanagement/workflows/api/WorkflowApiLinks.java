@@ -1,0 +1,28 @@
+package com.grab.app.ordermanagement.workflows.api;
+
+import com.grab.app.ordermanagement.workflows.internal.workflows.createsellableproduct.rest.controller.CreateSellableProductController;
+import com.grab.app.ordermanagement.workflows.internal.workflows.updateproductvariant.rest.controller.UpdateProductVariantController;
+import com.grab.app.ordermanagement.workflows.internal.workflows.updatesellableproduct.rest.controller.UpdateSellableProductController;
+import org.springframework.hateoas.Link;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
+public final class WorkflowApiLinks {
+    private WorkflowApiLinks(){}
+
+    public static Link createSellableProductLink() {
+        return linkTo(methodOn(CreateSellableProductController.class).start(null, null))
+                .withRel("create-sellable-product");
+    }
+
+    public static Link updateSellableProductLink() {
+        return linkTo(methodOn(UpdateSellableProductController.class).start(null, null))
+                .withRel("update-sellable-product");
+    }
+
+    public static Link updateProductVariantLink() {
+        return linkTo(methodOn(UpdateProductVariantController.class).start(null, null))
+                .withRel("update-product-variant");
+    }
+}

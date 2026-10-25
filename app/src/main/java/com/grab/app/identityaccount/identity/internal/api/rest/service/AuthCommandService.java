@@ -1,0 +1,42 @@
+package com.grab.app.identityaccount.identity.internal.api.rest.service;
+
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.request.*;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.response.AuthResponse;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.response.UserProfileResponse;
+import com.grab.app.identityaccount.identity.internal.api.rest.mapper.*;
+import com.identity.application.model.write.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuthCommandService {
+    private final CommandBus commandBus;
+    private final RegisterRequestMapper registerMapper;
+    private final LoginRequestMapper loginMapper;
+    private final RefreshTokenRequestMapper refreshMapper;
+    private final LogoutRequestMapper logoutMapper;
+
+    public UserProfileResponse register(RegisterRequest r) {
+        RegisterCommand command = registerMapper.toCommand(r);
+        UserProfileResult result = commandBus.dispatch(command);
+        return registerMapper.toResponse(result);
+    }
+
+    public AuthResponse login(LoginRequest r) {
+        LoginCommand command = loginMapper.toCommand(r);
+        AuthResult result =  commandBus.dispatch(command);
+        return loginMapper.toResponse(result);
+    }
+
+    public AuthResponse refresh(RefreshTokenRequest r) {
+        RefreshTokenCommand command = refreshMapper.toCommand(r);
+        AuthResult result = commandBus.dispatch(command);
+        return refreshMapper.toResponse(result);
+    }
+
+    public void logout(LogoutRequest r) {
+        commandBus.dispatch(logoutMapper.toCommand(r));
+    }
+}

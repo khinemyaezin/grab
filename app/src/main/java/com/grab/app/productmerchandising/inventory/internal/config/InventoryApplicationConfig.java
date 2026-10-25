@@ -1,0 +1,15 @@
+package com.grab.app.productmerchandising.inventory.internal.config;
+
+import com.inventory.domain.policy.InventoryLocationAccessPolicy;
+import com.grab.app.productmerchandising.inventory.internal.policy.impl.DefaultInventoryLocationAccessPolicy;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class InventoryApplicationConfig {
+
+    @Bean
+    public InventoryLocationAccessPolicy inventoryLocationAccessPolicy() {
+        return new DefaultInventoryLocationAccessPolicy();
+    }
+}

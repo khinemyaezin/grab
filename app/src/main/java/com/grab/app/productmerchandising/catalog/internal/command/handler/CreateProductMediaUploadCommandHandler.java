@@ -1,0 +1,27 @@
+package com.grab.app.productmerchandising.catalog.internal.command.handler;
+
+import com.catalog.application.model.write.CreateProductMediaUploadCommand;
+import com.catalog.application.model.write.ProductMediaUploadResult;
+import com.catalog.application.port.inbound.CreateProductMediaUploadUseCase;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.app.productmerchandising.catalog.internal.config.CatalogReadTransactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class CreateProductMediaUploadCommandHandler implements CommandHandler<CreateProductMediaUploadCommand, ProductMediaUploadResult> {
+
+    private final CreateProductMediaUploadUseCase createProductMediaUploadUseCase;
+
+    @Override
+    @CatalogReadTransactional
+    public ProductMediaUploadResult handle(CreateProductMediaUploadCommand command) {
+        return createProductMediaUploadUseCase.execute(command);
+    }
+
+    @Override
+    public Class<CreateProductMediaUploadCommand> getCommandType() {
+        return CreateProductMediaUploadCommand.class;
+    }
+}

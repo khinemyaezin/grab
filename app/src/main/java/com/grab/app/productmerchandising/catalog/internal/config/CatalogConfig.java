@@ -1,0 +1,11 @@
+package com.grab.app.productmerchandising.catalog.internal.config;
+
+import com.catalog.adapter.persistence.config.CatalogPersistenceConfig;
+import com.grab.storage.adapter.s3.StorageInfraConfig;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+@Configuration
+@Import({CatalogUseCaseConfig.class, CatalogPersistenceConfig.class, StorageInfraConfig.class})
+public class CatalogConfig {
+}
