@@ -1,0 +1,15 @@
+package com.grab.app.identityaccount.identity.internal.api.rest.mapper;
+
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.request.RefreshTokenRequest;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.response.AuthResponse;
+import com.identity.application.model.write.*;
+import org.mapstruct.Mapper;
+
+import com.grab.framework.mapper.IdMapper;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class RefreshTokenRequestMapper {
+    public abstract RefreshTokenCommand toCommand(RefreshTokenRequest request);
+
+    public abstract AuthResponse toResponse(AuthResult result);
+}

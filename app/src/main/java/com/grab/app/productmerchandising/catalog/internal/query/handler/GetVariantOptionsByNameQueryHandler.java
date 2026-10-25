@@ -1,0 +1,27 @@
+package com.grab.app.productmerchandising.catalog.internal.query.handler;
+
+import com.catalog.application.port.inbound.GetVariantOptionsByNameUseCase;
+import com.catalog.application.model.read.GetVariantOptionsByNameQuery;
+import com.catalog.application.model.read.VariantOptionResult;
+import com.grab.framework.cqrs.query.QueryHandler;
+import com.grab.app.productmerchandising.catalog.internal.config.CatalogReadTransactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class GetVariantOptionsByNameQueryHandler implements QueryHandler<GetVariantOptionsByNameQuery, VariantOptionResult> {
+
+    private final GetVariantOptionsByNameUseCase getVariantOptionsByNameUseCase;
+
+    @Override
+    @CatalogReadTransactional
+    public VariantOptionResult handle(GetVariantOptionsByNameQuery query) {
+        return getVariantOptionsByNameUseCase.execute(query);
+    }
+
+    @Override
+    public Class<GetVariantOptionsByNameQuery> getQueryType() {
+        return GetVariantOptionsByNameQuery.class;
+    }
+}

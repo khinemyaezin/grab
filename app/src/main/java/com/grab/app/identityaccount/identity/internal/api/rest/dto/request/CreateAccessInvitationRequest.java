@@ -1,0 +1,17 @@
+package com.grab.app.identityaccount.identity.internal.api.rest.dto.request;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+import java.time.Instant;
+
+public record CreateAccessInvitationRequest(
+        @Email @NotBlank String inviteeEmail,
+        @NotBlank String roleCode,
+        @NotBlank String scopeKey,
+        @NotBlank String scopeId,
+        @NotNull @Future Instant expiresAt
+) {
+}

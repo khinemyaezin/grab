@@ -57,10 +57,15 @@ COPY workflow-infrastructure/pom.xml workflow-infrastructure/
 COPY storage-adapter-s3/pom.xml storage-adapter-s3/
 
 COPY logger-slf4j/pom.xml logger-slf4j/
+COPY product-merchandising/pom.xml product-merchandising/
+COPY order-management/pom.xml order-management/
+COPY identity-account/pom.xml identity-account/
+COPY channel-discovery/pom.xml channel-discovery/
+COPY app/pom.xml app/
 COPY store/pom.xml store/
 
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -pl store -am dependency:go-offline -B -ntp
+    mvn -pl app -am dependency:go-offline -B -ntp
 
 COPY framework/src framework/src
 COPY outbox-infrastructure/src outbox-infrastructure/src
@@ -110,23 +115,23 @@ COPY workflow-infrastructure/src workflow-infrastructure/src
 COPY storage-adapter-s3/src storage-adapter-s3/src
 
 COPY logger-slf4j/src logger-slf4j/src
-COPY store/src store/src
+COPY app/src app/src
 
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -pl store -am package -DskipTests -Dmaven.javadoc.skip=true -B -ntp
+    mvn -pl app -am package -DskipTests -Dmaven.javadoc.skip=true -B -ntp
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 LABEL maintainer="Khine Myae Zin <hello@khinemyaezin.com>"
-LABEL application="grab-store"
-LABEL description="Grab E-Commerce Store Application"
+LABEL application="grab-app"
+LABEL description="Grab E-Commerce Application"
 
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 --ingroup appgroup appuser
 
-COPY --from=builder /app/store/target/*.jar app.jar
+COPY --from=builder /app/app/target/*.jar app.jar
 
 RUN chown -R appuser:appgroup /app
 

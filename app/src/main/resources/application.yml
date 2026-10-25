@@ -1,0 +1,261 @@
+spring:
+  mvc:
+    async:
+      request-timeout: 360000
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  task:
+    scheduling:
+      pool:
+        size: 5
+      thread-name-prefix: store-scheduled-
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+product-merchandising:
+  datasource:
+    url: ${PM_DATASOURCE_URL:jdbc:postgresql://localhost:5432/product_merchandising}
+    username: ${PM_DATASOURCE_USERNAME:admin}
+    password: ${PM_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${PM_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${PM_HIKARI_MAX_POOL_SIZE:20}
+      minimum-idle: ${PM_HIKARI_MIN_IDLE:5}
+      pool-name: HikariPool-ProductMerchandising
+      register-mbeans: true
+order-management:
+  datasource:
+    url: ${OM_DATASOURCE_URL:jdbc:postgresql://localhost:5433/order_management}
+    username: ${OM_DATASOURCE_USERNAME:admin}
+    password: ${OM_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${OM_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${OM_HIKARI_MAX_POOL_SIZE:20}
+      minimum-idle: ${OM_HIKARI_MIN_IDLE:5}
+      pool-name: HikariPool-OrderManagement
+      register-mbeans: true
+identity-account:
+  datasource:
+    url: ${IA_DATASOURCE_URL:jdbc:postgresql://localhost:5434/identity_account}
+    username: ${IA_DATASOURCE_USERNAME:admin}
+    password: ${IA_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${IA_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${IA_HIKARI_MAX_POOL_SIZE:15}
+      minimum-idle: ${IA_HIKARI_MIN_IDLE:3}
+      pool-name: HikariPool-IdentityAccount
+      register-mbeans: true
+channel-context:
+  datasource:
+    url: ${CHANNEL_CONTEXT_DATASOURCE_URL:jdbc:postgresql://localhost:5435/channel_context}
+    username: ${CHANNEL_CONTEXT_DATASOURCE_USERNAME:admin}
+    password: ${CHANNEL_CONTEXT_DATASOURCE_PASSWORD:123}
+    driver-class-name: ${CHANNEL_CONTEXT_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${CHANNEL_CONTEXT_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${CHANNEL_CONTEXT_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-ChannelContext
+      register-mbeans: true
+discovery:
+  datasource:
+    url: ${DISCOVERY_DATASOURCE_URL:${STOREFRONTQUERY_DATASOURCE_URL:jdbc:postgresql://localhost:5436/discovery}}
+    username: ${DISCOVERY_DATASOURCE_USERNAME:${STOREFRONTQUERY_DATASOURCE_USERNAME:admin}}
+    password: ${DISCOVERY_DATASOURCE_PASSWORD:${STOREFRONTQUERY_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${DISCOVERY_DATASOURCE_DRIVER_CLASS_NAME:${STOREFRONTQUERY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}}
+    hikari:
+      maximum-pool-size: ${DISCOVERY_HIKARI_MAX_POOL_SIZE:25}
+      minimum-idle: ${DISCOVERY_HIKARI_MIN_IDLE:5}
+      pool-name: HikariPool-DiscoveryProduct
+      register-mbeans: true
+
+# Domain DataSource settings are used only when a dedicated pool is explicitly enabled.
+# Their URLs and credentials default to the owning cluster so enabling a dedicated pool
+# does not silently route to an obsolete per-domain database.
+catalog:
+  datasource:
+    dedicated: ${CATALOG_DATASOURCE_DEDICATED:false}
+    url: ${CATALOG_DATASOURCE_URL:${PM_DATASOURCE_URL:jdbc:postgresql://localhost:5432/product_merchandising}}
+    username: ${CATALOG_DATASOURCE_USERNAME:${PM_DATASOURCE_USERNAME:admin}}
+    password: ${CATALOG_DATASOURCE_PASSWORD:${PM_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${CATALOG_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${CATALOG_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${CATALOG_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Catalog
+  jpa:
+    hibernate:
+      dialect: ${CATALOG_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${CATALOG_JPA_DDL_AUTO:validate}
+inventory:
+  datasource:
+    dedicated: ${INVENTORY_DATASOURCE_DEDICATED:false}
+    url: ${INVENTORY_DATASOURCE_URL:${PM_DATASOURCE_URL:jdbc:postgresql://localhost:5432/product_merchandising}}
+    username: ${INVENTORY_DATASOURCE_USERNAME:${PM_DATASOURCE_USERNAME:admin}}
+    password: ${INVENTORY_DATASOURCE_PASSWORD:${PM_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${INVENTORY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${INVENTORY_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${INVENTORY_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Inventory
+  jpa:
+    hibernate:
+      dialect: ${INVENTORY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${INVENTORY_JPA_DDL_AUTO:validate}
+pricing:
+  enabled: ${PRICING_ENABLED:true}
+  datasource:
+    dedicated: ${PRICING_DATASOURCE_DEDICATED:false}
+    url: ${PRICING_DATASOURCE_URL:${PM_DATASOURCE_URL:jdbc:postgresql://localhost:5432/product_merchandising}}
+    username: ${PRICING_DATASOURCE_USERNAME:${PM_DATASOURCE_USERNAME:admin}}
+    password: ${PRICING_DATASOURCE_PASSWORD:${PM_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${PRICING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${PRICING_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${PRICING_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Pricing
+  jpa:
+    hibernate:
+      dialect: ${PRICING_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${PRICING_JPA_DDL_AUTO:validate}
+cart:
+  datasource:
+    dedicated: ${CART_DATASOURCE_DEDICATED:false}
+    url: ${CART_DATASOURCE_URL:${OM_DATASOURCE_URL:jdbc:postgresql://localhost:5433/order_management}}
+    username: ${CART_DATASOURCE_USERNAME:${OM_DATASOURCE_USERNAME:admin}}
+    password: ${CART_DATASOURCE_PASSWORD:${OM_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${CART_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${CART_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${CART_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Cart
+  jpa:
+    hibernate:
+      dialect: ${CART_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${CART_JPA_DDL_AUTO:validate}
+workflows:
+  datasource:
+    dedicated: ${WORKFLOWS_DATASOURCE_DEDICATED:false}
+    url: ${WORKFLOWS_DATASOURCE_URL:${OM_DATASOURCE_URL:jdbc:postgresql://localhost:5433/order_management}}
+    username: ${WORKFLOWS_DATASOURCE_USERNAME:${OM_DATASOURCE_USERNAME:admin}}
+    password: ${WORKFLOWS_DATASOURCE_PASSWORD:${OM_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${WORKFLOWS_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${WORKFLOWS_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${WORKFLOWS_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Workflows
+  jpa:
+    hibernate:
+      dialect: ${WORKFLOWS_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${WORKFLOWS_JPA_DDL_AUTO:validate}
+identity:
+  datasource:
+    dedicated: ${IDENTITY_DATASOURCE_DEDICATED:false}
+    url: ${IDENTITY_DATASOURCE_URL:${IA_DATASOURCE_URL:jdbc:postgresql://localhost:5434/identity_account}}
+    username: ${IDENTITY_DATASOURCE_USERNAME:${IA_DATASOURCE_USERNAME:admin}}
+    password: ${IDENTITY_DATASOURCE_PASSWORD:${IA_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${IDENTITY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${IDENTITY_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${IDENTITY_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Identity
+  jpa:
+    hibernate:
+      dialect: ${IDENTITY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${IDENTITY_JPA_DDL_AUTO:validate}
+merchant:
+  enabled: ${MERCHANT_ENABLED:true}
+  datasource:
+    dedicated: ${MERCHANT_DATASOURCE_DEDICATED:false}
+    url: ${MERCHANT_DATASOURCE_URL:${IA_DATASOURCE_URL:jdbc:postgresql://localhost:5434/identity_account}}
+    username: ${MERCHANT_DATASOURCE_USERNAME:${IA_DATASOURCE_USERNAME:admin}}
+    password: ${MERCHANT_DATASOURCE_PASSWORD:${IA_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${MERCHANT_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${MERCHANT_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${MERCHANT_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Merchant
+  jpa:
+    hibernate:
+      dialect: ${MERCHANT_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${MERCHANT_JPA_DDL_AUTO:validate}
+customer:
+  datasource:
+    dedicated: ${CUSTOMER_DATASOURCE_DEDICATED:false}
+    url: ${CUSTOMER_DATASOURCE_URL:${IA_DATASOURCE_URL:jdbc:postgresql://localhost:5434/identity_account}}
+    username: ${CUSTOMER_DATASOURCE_USERNAME:${IA_DATASOURCE_USERNAME:admin}}
+    password: ${CUSTOMER_DATASOURCE_PASSWORD:${IA_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${CUSTOMER_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${CUSTOMER_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${CUSTOMER_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Customer
+  jpa:
+    hibernate:
+      dialect: ${CUSTOMER_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${CUSTOMER_JPA_DDL_AUTO:validate}
+saleschannel:
+  enabled: ${SALESCHANNEL_ENABLED:true}
+  datasource:
+    dedicated: ${SALESCHANNEL_DATASOURCE_DEDICATED:false}
+    url: ${SALESCHANNEL_DATASOURCE_URL:${CHANNEL_CONTEXT_DATASOURCE_URL:jdbc:postgresql://localhost:5435/channel_context}}
+    username: ${SALESCHANNEL_DATASOURCE_USERNAME:${CHANNEL_CONTEXT_DATASOURCE_USERNAME:admin}}
+    password: ${SALESCHANNEL_DATASOURCE_PASSWORD:${CHANNEL_CONTEXT_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${SALESCHANNEL_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${SALESCHANNEL_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${SALESCHANNEL_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-SalesChannel
+  jpa:
+    hibernate:
+      dialect: ${SALESCHANNEL_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${SALESCHANNEL_JPA_DDL_AUTO:validate}
+region:
+  datasource:
+    dedicated: ${REGION_DATASOURCE_DEDICATED:false}
+    url: ${REGION_DATASOURCE_URL:${CHANNEL_CONTEXT_DATASOURCE_URL:jdbc:postgresql://localhost:5435/channel_context}}
+    username: ${REGION_DATASOURCE_USERNAME:${CHANNEL_CONTEXT_DATASOURCE_USERNAME:admin}}
+    password: ${REGION_DATASOURCE_PASSWORD:${CHANNEL_CONTEXT_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${REGION_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      maximum-pool-size: ${REGION_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${REGION_HIKARI_MIN_IDLE:2}
+      pool-name: HikariPool-Region
+  jpa:
+    hibernate:
+      dialect: ${REGION_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${REGION_JPA_DDL_AUTO:validate}
+storefrontquery:
+  datasource:
+    url: ${DISCOVERY_DATASOURCE_URL:${STOREFRONTQUERY_DATASOURCE_URL:jdbc:postgresql://localhost:5436/discovery}}
+    username: ${DISCOVERY_DATASOURCE_USERNAME:${STOREFRONTQUERY_DATASOURCE_USERNAME:admin}}
+    password: ${DISCOVERY_DATASOURCE_PASSWORD:${STOREFRONTQUERY_DATASOURCE_PASSWORD:123}}
+    driver-class-name: ${DISCOVERY_DATASOURCE_DRIVER_CLASS_NAME:${STOREFRONTQUERY_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}}
+  jpa:
+    hibernate:
+      dialect: ${STOREFRONTQUERY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${STOREFRONTQUERY_JPA_DDL_AUTO:validate}
+
+  rebuild:
+    on-startup: false
+    batch-size: 100

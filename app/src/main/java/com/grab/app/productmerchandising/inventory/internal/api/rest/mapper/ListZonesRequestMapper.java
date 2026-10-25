@@ -1,0 +1,16 @@
+package com.grab.app.productmerchandising.inventory.internal.api.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.productmerchandising.inventory.internal.api.rest.dto.response.ZoneResponse;
+import com.inventory.application.model.read.ListZonesByLocationQuery;
+import com.inventory.application.model.read.ListZonesResult;
+import org.mapstruct.Mapper;
+import org.springframework.data.domain.Pageable;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class ListZonesRequestMapper {
+
+    public abstract ListZonesByLocationQuery toQuery(String locationId, Pageable pageable);
+
+    public abstract ZoneResponse toResponse(ListZonesResult result);
+}

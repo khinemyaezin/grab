@@ -50,7 +50,7 @@ public class StorefrontProductController {
                 pageable
         );
         Link navigationBase = linkTo(methodOn(StorefrontProductController.class)
-                .list(null, countryCode, locale, keyword, categoryId, null, null))
+                .list(null, countryCode, locale, keyword, categoryId, pageable, null))
                 .withSelfRel();
         PagedModel<EntityModel<BuyableOfferResponse>> model = pagedAssembler.toModel(page, assembler, navigationBase);
         Link listLink = linkTo(methodOn(StorefrontProductController.class)

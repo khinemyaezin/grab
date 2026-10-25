@@ -1,0 +1,63 @@
+package com.grab.app.shared.exception;
+
+import com.inventory.application.exception.InventoryServiceError;
+import com.inventory.application.exception.InventoryServiceException;
+import com.inventory.domain.exception.InventoryDomainError;
+import com.inventory.domain.exception.InventoryDomainValidationException;
+import com.inventory.adapter.persistence.exception.InventoryInfraError;
+import com.inventory.adapter.persistence.exception.InventoryInfraException;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+
+@RestController
+@Validated
+class ExceptionTestController {
+
+    @GetMapping("/test/errors/service-not-found")
+    void serviceNotFound() {
+        throw new InventoryServiceException(new InventoryServiceError.LocationNotFound("loc-1"));
+    }
+
+    @GetMapping("/test/errors/domain-insufficient")
+    void domainInsufficient() {
+        throw new InventoryDomainValidationException(
+                new InventoryDomainError.InsufficientQuantity(3, 9),
+                "Insufficient quantity."
+        );
+    }
+
+    @GetMapping("/test/errors/infra-internal")
+    void infraInternal() {
+        throw new InventoryInfraException(
+                new InventoryInfraError.PersistenceInternal("InventoryItem", "db down"),
+                "Infrastructure failure."
+        );
+    }
+
+    @GetMapping("/test/errors/unexpected")
+    void unexpected() {
+        throw new RuntimeException("boom");
+    }
+
+    @GetMapping("/test/errors/async-not-usable")
+    void asyncNotUsable() throws AsyncRequestNotUsableException {
+        throw new AsyncRequestNotUsableException("Response not usable after response errors.");
+    }
+
+    @PostMapping("/test/errors/validation")
+    void validation(@Valid @RequestBody ValidationPayload payload) {
+        // no-op
+    }
+
+    @GetMapping("/test/errors/constraint")
+    void constraint(@RequestParam("page") @Min(1) int page) {
+        // no-op
+    }
+
+    private record ValidationPayload(@NotBlank String name) {
+    }
+}

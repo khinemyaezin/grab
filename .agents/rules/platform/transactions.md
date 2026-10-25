@@ -4,7 +4,8 @@ Load when adding transactional annotations or deciding where a transaction start
 
 ## MUST
 
-- Each module has its own `DataSource` + `TransactionManager` (multi-datasource).
+- Each module has its own logical `DataSource` + `TransactionManager` (multi-persistence-unit).
+- Logical domain DataSources may wrap a shared cluster Hikari pool. Keep each wrapper distinct so Spring binds transactions to the correct persistence unit.
 - Custom meta-annotations: `@{Module}Transactional` (read-write), `@{Module}ReadTransactional` (read-only).
 - Transactions at handler level and outbound API query adapter level only.
 - Handler or outbound query adapter demarcates the transactional unit of work. Business decisions inside that unit belong to aggregates/policies.

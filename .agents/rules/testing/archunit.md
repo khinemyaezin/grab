@@ -25,14 +25,14 @@ static final ArchRule domain_layer_should_not_depend_on_frameworks =
             "com.fasterxml.jackson..",
             "..application..",
             "..adapter..",
-            "..store.."
+            "..store..", "..app.."
         );
 ```
 
 ### 2. Hexagonal Dependency Direction (R1, R2)
 Inner layers must never depend on outer layers:
-- `domain` is depended on by `application`, `adapter-persistence`, and `store`.
-- `application` depends only on `domain` (and framework commons), never on `adapter-persistence` or `store`.
+- `domain` is depended on by `application`, `adapter-persistence`, and `app`.
+- `application` depends only on `domain` (and framework commons), never on `adapter-persistence` or `app`.
 
 ```java
 @ArchTest
@@ -40,7 +40,7 @@ static final ArchRule application_layer_should_not_depend_on_outer_layers =
     noClasses()
         .that().resideInAPackage("..application..")
         .should().dependOnClassesThat()
-        .resideInAnyPackage("..adapter.persistence..", "..store..");
+        .resideInAnyPackage("..adapter.persistence..", "..store..", "..app..");
 ```
 
 ### 3. Strict CQRS Separation & Isolation (R2, R4, R25)
@@ -142,6 +142,6 @@ static final ArchRule commands_and_queries_must_be_records =
 
 ## Test Placement & Execution
 
-- Place ArchUnit architecture test suites in the root test module (`store/src/test/java/com/grab/architecture/ArchitectureTest.java`).
+- Place ArchUnit architecture test suites in the root test module (`app/src/test/java/com/grab/architecture/ArchitectureTest.java`).
 - Group tests with descriptive names referencing the invariant or rule ID (e.g. `R1_DomainIsolationTest`, `R2_CqrsIsolationTest`, `R11_NoNativeQueriesTest`).
 - Ensure ArchUnit runs as part of standard `mvn test` without requiring external services or Docker containers.

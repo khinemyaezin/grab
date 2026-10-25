@@ -1,0 +1,17 @@
+package com.grab.app.identityaccount.identity.internal.policy;
+
+import java.util.List;
+
+public interface CustomerRegistrationAccessPolicy {
+    List<AccessPlacement> placementsFor(CustomerRegistrationContext context);
+
+    record CustomerRegistrationContext(String customerId) {
+    }
+
+    record AccessPlacement(
+            String placementCode,
+            String scopeKey,
+            String scopeId
+    ) {
+    }
+}

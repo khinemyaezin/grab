@@ -9,7 +9,7 @@ Testing in this repository mirrors the **Hexagonal / Clean Architecture + CQRS +
 | Rule File | Topic | Scope | Primary Framework |
 |:---|:---|:---|:---|
 | [jpa-testcontainers.md](jpa-testcontainers.md) | JPA Repository & Adapter Integration | `{bc}-adapter-persistence` | Testcontainers (`JdbcDatabaseContainer`, e.g. PostgreSQL, MySQL), `@DataJpaTest`, AssertJ |
-| [archunit.md](archunit.md) | Architecture & Invariant Conformance | All modules / `store` | ArchUnit (`archunit-junit5`), Spring Modulith |
+| [archunit.md](archunit.md) | Architecture & Invariant Conformance | All modules / `app` | ArchUnit (`archunit-junit5`), Spring Modulith |
 
 ---
 
@@ -39,12 +39,12 @@ Testing in this repository mirrors the **Hexagonal / Clean Architecture + CQRS +
   - All repository tests MUST run against the module's target database engine via Testcontainers. Do not use mismatched in-memory databases (e.g. H2) that hide dialect differences.
   - Test Spring Data derived queries, JPQL `@Query`, Criteria Specifications, and entity-to-view mapping.
 
-### 4. Web & Assembly (`store`)
+### 4. Web & Assembly (`app`)
 - **Type**: Slice Tests (`@WebMvcTest`) & Modulith Verification.
 - **Framework**: MockMvc + `@MockBean` + Spring Modulith `ApplicationModules`.
 - **Rules**:
   - Controllers tested via `@WebMvcTest`: verify HTTP status codes, Bean Validation, and HATEOAS link creation.
-  - Modularity verification: `ApplicationModules.of(StoreApplication.class).verify()`.
+  - Modularity verification: `ApplicationModules.of(EcommerceApplication.class).verify()`.
 
 ### 5. Architectural Invariants
 - **Type**: Automated Static Bytecode Architecture Tests.

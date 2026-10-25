@@ -6,7 +6,7 @@ Load when creating or changing API MapStruct mappers.
 
 ### REST Mappers
 - One mapper class per handler/operation.
-- File: `store/.../api/rest/mapper/{Action}{Entity}RequestMapper.java`
+- File: `app/.../api/rest/mapper/{Action}{Entity}RequestMapper.java`
 - Annotate with `@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)`
 - Declare as `public abstract class` (not interface)
 - Provide exactly two methods:
@@ -15,7 +15,7 @@ Load when creating or changing API MapStruct mappers.
 
 ### Outbound Query Mappers (Shared Interface Ports)
 - One mapper class per outbound query port.
-- File: `store/.../{domain}/internal/api/query/mapper/{QueryPortName}Mapper.java`
+- File: `app/.../{domain}/internal/api/query/mapper/{QueryPortName}Mapper.java`
 - Annotate with `@Mapper(config = CentralMapperConfig.class)`
 - Declare as `public abstract class` (not interface)
 - Map use case `*Result` to the query interface's embedded response DTO (`toResponse(Result) -> ResponseDto`).

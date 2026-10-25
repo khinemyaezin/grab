@@ -15,7 +15,7 @@ Path: `{name}-domain/.../policy/`
 
 ## Application policies
 
-Path: `store/.../{module}/internal/policy/`
+Path: `app/.../{module}/internal/policy/`
 
 - Application/use-case rules that need application context: security scope, actor/session context, cross-cutting access checks against already-loaded aggregates.
 - May use Spring (`@Component`) and application-layer types.

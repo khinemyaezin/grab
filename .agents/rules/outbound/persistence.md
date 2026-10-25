@@ -67,7 +67,7 @@ Separate write and query concerns into distinct ports and adapters:
 
 - Command handlers / use cases -> domain write port `{Domain}Repository` only.
 - Query handlers / use cases (list/search/paged) -> application query port `{Domain}QueryPort` only.
-- Modulith `{module}::query` adapters in `store` -> inbound `*UseCase` only, never outbound `{Domain}QueryPort` directly.
+- Modulith `{module}::query` adapters in `app` -> inbound `*UseCase` only, never outbound `{Domain}QueryPort` directly.
 - Handlers and use cases MUST NOT inject `{Domain}JpaRepository`, `EntityManager`, or concrete `*Adapter` classes directly.
 - Controllers, services, mappers, assemblers, and policies MUST NOT use any repository, port, or adapter. See `application/handlers.md`.
 

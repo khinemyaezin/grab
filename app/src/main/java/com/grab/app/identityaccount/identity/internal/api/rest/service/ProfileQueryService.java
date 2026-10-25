@@ -1,0 +1,24 @@
+package com.grab.app.identityaccount.identity.internal.api.rest.service;
+
+import com.grab.framework.cqrs.query.QueryBus;
+import com.grab.app.identityaccount.identity.internal.api.rest.dto.response.CurrentUserProfileResponse;
+import com.grab.app.identityaccount.identity.internal.api.rest.mapper.GetCurrentUserProfileRequestMapper;
+import com.identity.application.model.read.GetUserProfileQuery;
+import com.identity.application.model.read.GetUserProfileResult;
+import com.grab.app.shared.security.SecurityPrincipal;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ProfileQueryService {
+
+    private final QueryBus queryBus;
+    private final GetCurrentUserProfileRequestMapper profileMapper;
+
+    public CurrentUserProfileResponse getProfile(String userId, SecurityPrincipal principal) {
+        GetUserProfileQuery query = profileMapper.toQuery(userId);
+        GetUserProfileResult result = queryBus.dispatch(query);
+        return profileMapper.toResponse(result, principal.getAccessContext().orElse(null));
+    }
+}
