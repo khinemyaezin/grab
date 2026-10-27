@@ -4,15 +4,17 @@
 
 ### What does the business need?
 
-The business requires an independently scalable and deployable e-commerce service architecture that transitions the monolithic codebase into decoupled domain services (`catalog`, `order`, `account`, `channel`) orchestrated by dedicated platform Backend-for-Frontend (BFF) layers (`sellercentral` and `marketplace`). Each domain service must maintain strict hexagonal layering and isolated persistence schemas on a shared database instance, preventing cascading database pool exhaustion and coupling while paving a zero-downtime migration path toward standalone microservices.
+The business requires a modular e-commerce assembly that replaces the current `store` module with bootstrap in `com.grab.app`, bounded-context assemblies under `com.grab.app.<group>.<context>`, and platform Backend-for-Frontend (BFF) assemblies for Seller Central (`seller`) and `marketplace`. The four service groups (`catalog`, `order`, `account`, `channel`) are future deployment compositions; domain, application, and persistence modules retain their existing packages and inward dependencies.
+
+Each bounded context MUST retain ownership of its datasource, transaction manager, persistence operations, migrations, and distinct outbox table. The initial deployment remains a modular monolith; independent scaling and deployment require subsequent physical extraction, and zero-downtime cutover requires a separate migration design.
 
 ### What happens if we don't solve this?
 
-- **Deployment & Release Coupling**: Any minor change in one domain (e.g., catalog pricing) forces a high-risk full application rebuild and redeployment across all commerce capabilities.
-- **Cascading Database Connection Saturation**: Bursts of traffic or slow queries in one domain exhaust shared database connection pools, bringing down critical checkout and payment flows.
-- **Spaghetti Cross-Domain Dependencies**: Unrestricted internal method calls, cross-context database joins, and shared transactions create tangled boundaries, making microservice extraction cost-prohibitive.
-- **Fragile Cross-Service Communication**: Without isolated CQRS command/query buses and outbox-driven integration events, data mutation and query side-effects leak across domain boundaries.
-- **Monolithic Blast Radius**: An infrastructure failure, memory leak, or schema migration lock in seller back-office functions immediately degrades customer-facing storefronts.
+- **Assembly Coupling**: Platform ingress, context configuration, and application startup remain coupled to the current assembly, increasing the work required to extract a service group.
+- **Boundary Erosion**: Grouping related contexts without explicit ownership can introduce shared transactions, repository access, and outbox tables that make later separation harder.
+- **Transport Coupling**: Consumers that depend on provider implementation classes cannot replace local invocation with remote capability adapters cleanly.
+- **Unclear Event Ownership**: Without an atomic producer transaction and independently recoverable consumers, product updates and discovery projections can diverge after failures.
+- **Shared Runtime Exposure**: Package restructuring alone leaves process memory, runtime availability, and database-instance resources shared until physical separation.
 
 ---
 
@@ -20,23 +22,24 @@ The business requires an independently scalable and deployable e-commerce servic
 
 ### How does it work today?
 
-> The current system operates as a unified monolithic deployment where bounded contexts share a single persistence unit, common connection pools, and in-process execution paths without deployment-level isolation.
+> Seller-based APIs and product discovery are the completed business capabilities in scope. The current `store` application assembles bounded contexts in one deployment and already contains context-specific datasource and transaction-manager configurations; this is not a migration from one universal persistence unit or pool.
 
 ```mermaid
 flowchart LR
-    Storefront["Storefront / Seller Client"] --> Monolith["Monolithic Application (Store)"]
-    Monolith --> DB[("Shared Database Instance")]
-    DB -.-x Failure["❌ Single Pool Saturation, Cross-Context Coupling & Monolithic Blast Radius"]
+    Client["Seller / Discovery Client"] --> Monolith["Current Store Application Assembly"]
+    Monolith --> Contexts["Bounded Contexts with Local Persistence Configuration"]
+    Contexts --> DB[("Shared Database Instance")]
+    Monolith -.-> Exposure["Shared Deployment and Process"]
 ```
 
 ### What's the problem?
 
 | # | Problem | Impact |
 |:--|:--------|:-------|
-| 1 | Monolithic Packaging & Ingress Coupling | Platform interfaces (seller and marketplace) are tightly coupled with domain services, blocking independent scaling and microservice extraction. |
-| 2 | Shared Database Connection Pool Saturation | All domains compete for a single connection pool, causing high-load domains to starve transactional checkout flows. |
-| 3 | Unconstrained Cross-Context Data Access | Lack of explicit schema and repository barriers permits cross-domain joins, foreign keys, and shared transactions that violate bounded context autonomy. |
-| 4 | Blurry CQRS & Communication Boundaries | Cross-service bus dispatching and controller-to-repository shortcuts bypass formal use cases, leading to untracked side-effects. |
+| 1 | Bootstrap & Assembly Coupling | Contexts and platform ingress depend on the current application composition instead of explicit future service-group assemblies. |
+| 2 | Ambiguous Group Ownership | Treating a service group as one transaction or outbox owner would weaken the existing bounded-context separation. |
+| 3 | Package & Contract Migration | Relocating assemblies requires explicit module discovery, published interfaces, and shared-contract migration without leaking internal classes. |
+| 4 | Local Communication Assumptions | In-process capability calls and event delivery need explicit transport replacements when a group becomes a separate process. |
 
 ---
 
@@ -44,70 +47,79 @@ flowchart LR
 
 ### Architecture
 
-> The proposed architecture establishes autonomous Domain Services (`catalog`, `order`, `account`, `channel`) and Platform BFFs (`sellercentral`, `marketplace`) adhering to hexagonal boundaries, isolated schemas, and decoupled CQRS pipelines.
+> Bootstrap lives in `com.grab.app`; context assemblies live in `com.grab.app.<group>.<context>`, and BFF assemblies live in `com.grab.app.platform.seller` and `com.grab.app.platform.marketplace`. Service groups organize future deployments, while bounded contexts remain the units of encapsulation and transaction ownership.
 
 ```mermaid
 flowchart TD
-    Client["Client Layer (Seller / Shopper)"] --> BFF["Platform BFF Services (Seller & Marketplace)"]
-
-    subgraph PlatformLayer ["Platform BFF Services (Stateless Application)"]
-        BFF -->|"Capability Ports (HTTP / In-Process)"| Router["Capability Router"]
+    Boot["Application Bootstrap"] -.-> BFF["Seller / Marketplace BFF Assemblies"]
+    Boot -.-> Groups
+    subgraph Groups ["Service Groups: One Deployment Initially"]
+        Catalog["Catalog: catalog, inventory, pricing"]
+        Order["Order: cart, order, payment"]
+        Account["Account: identity, merchant, customer"]
+        Channel["Channel: saleschannel, region, discovery"]
     end
-
-    subgraph DomainServices ["Domain Services (Hexagonal Architecture)"]
-        Router --> Catalog["Catalog Service (catalog, inventory, pricing)"]
-        Router --> Order["Order Service (cart, order, payment)"]
-        Router --> Account["Account Service (identity, merchant, customer)"]
-        Router --> Channel["Channel Service (saleschannel, region, discovery)"]
-    end
-
-    subgraph DataLayer ["Multi-Schema Database Isolation"]
-        Catalog --> SchemaCat[("Schema: 'catalog'")]
-        Order --> SchemaOrd[("Schema: 'order'")]
-        Account --> SchemaAcc[("Schema: 'account'")]
-        Channel --> SchemaChan[("Schema: 'channel'")]
-    end
+    BFF -->|"Capability Contracts"| Catalog
+    BFF -->|"Capability Contracts"| Order
+    BFF -->|"Capability Contracts"| Account
+    BFF -->|"Capability Contracts"| Channel
+    Catalog --> Persistence
+    Order --> Persistence
+    Account --> Persistence
+    Channel --> Persistence
+    Persistence[("Context-Owned Persistence and Outboxes")]
 ```
+
+The existing core domain, application, and persistence packages do not acquire deployment-group prefixes. Assemblies MUST preserve each context's `internal/` boundary and explicitly register nested contexts for Modulith verification; a group MUST NOT become an unrestricted module that hides its contexts from verification.
+
+Extraction introduces separate boot assemblies and remote capability/event adapters for selected groups. Business logic and local transaction ownership remain in their contexts; startup configuration, contract distribution, remote failure handling, and data cutover require explicit implementation before independent deployment is available.
 
 ### Key Components
 
 | Component | Role | What It Does |
 |:----------|:-----|:-------------|
-| **Platform BFF Services** | Ingress Gateway & Aggregation | Orchestrates seller and marketplace user journeys by consuming domain capability ports without owning persistence schemas. |
-| **Catalog Domain Service** | Product & Inventory Authority | Enapsulates catalog, inventory, and pricing bounded contexts within the dedicated `catalog` database schema. |
-| **Order Domain Service** | Transactional Checkout Coordinator | Manages cart, order, and payment contexts within the dedicated `"order"` database schema and orchestrates checkout workflows. |
-| **Account Domain Service** | Identity & Merchant Authority | Encapsulates identity, merchant, and customer domains within the dedicated `account` database schema. |
-| **Channel Domain Service** | Commercial & Discovery Authority | Manages sales channels, territories, regional markets, and contextual search projections. |
-| **Multi-Schema Database Layer** | Isolated Relational Persistence | Provides separate Flyway migration streams, connection pools, and transactional outboxes per service schema on the database instance. |
-| **Decoupled CQRS Pipeline** | In-Service Bus & Event Relay | Guarantees strict per-service Command/Query bus isolation and asynchronous integration event dispatching via transactional outbox. |
+| **Application Bootstrap** | Runtime Composition | Starts from `com.grab.app` and explicitly assembles selected contexts, platform APIs, and infrastructure without owning business logic or persistence. |
+| **Platform BFF Assemblies** | Ingress & Response Composition | Implements Seller Central and marketplace APIs using consumer-owned capability ports without owning persistence or domain transactions. |
+| **Catalog Service Group** | Future Deployment Composition | Groups `catalog`, `inventory`, and `pricing` assemblies under `com.grab.app.catalog`, preserving each context's ownership. |
+| **Order Service Group** | Future Deployment Composition | Groups `cart`, `order`, and `payment` assemblies under `com.grab.app.order`; unfinished business workflows are outside this restructuring scope. |
+| **Account Service Group** | Future Deployment Composition | Groups `identity`, `merchant`, and `customer` assemblies under `com.grab.app.account`. |
+| **Channel Service Group** | Future Deployment Composition | Groups `saleschannel`, `region`, and `discovery` assemblies under `com.grab.app.channel`. |
+| **Bounded-Context Persistence** | Local Transaction Ownership | Each context owns its datasource, transaction manager, tables, migration stream, and distinct outbox table even when database instances or group schemas are shared. |
+| **Capability & Event Contracts** | Cross-Context Communication | Exposes public provider ports and published integration events while hiding use case implementations and persistence internals. |
 
 ### How It Works (End-to-End Flow)
 
-> A platform BFF receives a client request, dispatches it to the appropriate domain service over an explicit capability port, executes the CQRS use case pipeline, and emits integration events via the transactional outbox.
+> A seller product mutation commits product state and an outgoing event in the catalog context's local transaction; discovery processes the event in its own transaction. This is the target assembly interaction for the existing capabilities, not an endpoint or payload change.
 
 ```mermaid
 sequenceDiagram
-    participant Client as Platform Client
-    participant BFF as Platform BFF (Seller)
-    participant OrderSvc as Order Domain Service
-    participant Bus as Service CommandBus
-    participant Handler as Command Handler
-    participant UseCase as Order UseCase
-    participant DB as Schema 'order'
-    participant Outbox as Transactional Outbox
+    participant Client as Seller Client
+    participant BFF as Seller BFF Pipeline
+    participant Provider as Catalog Public Capability Adapter
+    participant UseCase as Catalog Use Case
+    participant DB as Catalog Persistence and Outbox
+    participant Relay as Outbox Relay
+    participant Discovery as Discovery Consumer
 
-    Client->>BFF: POST /api/seller/orders
-    BFF->>OrderSvc: Invoke Capability Port (CreateOrder)
-    OrderSvc->>Bus: Dispatch Command
-    Bus->>Handler: Handle Command (@OrderTransactional)
-    Handler->>UseCase: Execute Business Logic
-    UseCase->>DB: Persist Aggregate State
-    UseCase->>Outbox: Record Integration Event in same TX
-    DB-->>Handler: TX Committed
-    Handler-->>OrderSvc: Return Order Result
-    OrderSvc-->>BFF: Immutable Result Contract
-    BFF-->>Client: 201 Created (HATEOAS Representation)
+    Client->>BFF: Product mutation request
+    BFF->>Provider: Invoke capability through consumer port and adapter
+    Provider->>UseCase: Execute within catalog transaction
+    UseCase->>DB: Repository persists product and outbox record atomically
+    Provider->>DB: Commit local transaction
+    Provider-->>BFF: Immutable result
+    BFF-->>Client: Existing HTTP response contract
+    Relay->>DB: Claim committed event for delivery
+    Relay->>Discovery: Deliver integration event
+    Discovery->>Discovery: Dispatch local command and commit projection transaction
+    Discovery-->>Relay: Processing success
+    Relay->>DB: Mark delivery complete
 ```
+
+HTTP ingress follows Controller → CommandService/QueryService → local Bus → Handler → UseCase. BFF application orchestration invokes a consumer-owned outbound port; its adapter calls the provider's public interface, whose adapter starts the context transaction and delegates directly to an inbound use case without dispatching the provider bus.
+
+Business rules remain in aggregates and policies; persistence adapters write the aggregate and outbox record using the same local transaction resources. Discovery failure does not roll back the committed product mutation: failed delivery remains retryable, and duplicate delivery must be safe.
+
+The relay dispatches after the producer commit. Once producer and consumer run in separate processes, local Spring event publication MUST be replaced or bridged by durable remote transport with explicit acknowledgement and recovery semantics; package relocation alone does not provide remote delivery.
 
 ---
 
@@ -115,21 +127,23 @@ sequenceDiagram
 
 | Decision | Choice | Why (not alternatives) |
 |:---------|:-------|:-----------------------|
-| **Architecture Pattern** | Hexagonal Modular Monolith with Platform BFFs | Enables independent domain scaling, clean separation of concern, and future microservice extraction without the operational overhead of premature physical clustering. |
-| **Persistence Isolation** | Schema-per-Service Group with Per-Domain Overrides | Provides logical schema boundaries and isolated connection pools by default on a shared instance, while allowing individual domain services to override their connection or target a separate database instance. |
-| **Service Ingress Pipeline** | Controller → Service → Bus → Handler → UseCase | Enforces strict CQRS isolation and decouples HTTP transport representation from business domain execution. |
-| **BFF Communication** | Explicit Capability Ports with Transport Adapters | Allows the BFF to invoke domain capabilities in-process today and transition seamlessly to HTTP remote invocation upon microservice split. |
-| **Cross-Service Eventing** | Transactional Outbox & Integration Events | Guarantees at-least-once asynchronous event delivery across domains without distributed two-phase commit (2PC) transactions. |
-| **Connection Management** | Explicit Replica & Overlap Budgeting | Prevents connection pool starvation during rolling deployments and high-concurrency traffic bursts. |
+| **Architecture Pattern** | Hexagonal Modular Monolith with Future Service Groups | Establishes extraction boundaries before adding separate deployment infrastructure; independent scaling follows physical extraction. |
+| **Bootstrap & Packaging** | Bootstrap in `com.grab.app`, Context Assemblies in `com.grab.app.<group>.<context>` | Replaces the current `store` assembly while keeping core module packages independent of deployment composition. |
+| **Persistence Isolation** | Bounded-Context-Owned Transactions & Outboxes | Sharing an instance or group schema does not merge datasources, transaction managers, table ownership, migrations, or outbox tables. |
+| **HTTP Ingress Pipeline** | Controller → CommandService/QueryService → Bus → Handler → UseCase | Preserves thin controllers, CQRS separation, and handler-level context transaction demarcation. |
+| **Shared-Interface Ingress** | Provider Public Port → Transactional Provider Adapter → UseCase | Preserves the provider boundary without exposing application interfaces directly to consumers or routing shared-interface calls through the provider bus. |
+| **BFF Communication** | Consumer-Owned Capability Ports with Local or Remote Adapters | Keeps provider implementation dependencies out of BFF application logic while allowing transport replacement during extraction. |
+| **Cross-Context Eventing** | Context Outbox & Independent Consumer Transactions | Atomically records outgoing events with business state and supports retryable delivery without a transaction spanning contexts. |
+| **Connection Management** | Budget Every Context Pool Across Replicas & Deployment Overlap | Bounds connection allocation but does not eliminate shared database CPU, I/O, or availability risks. |
 
 ---
 
 ## 5. Feature Breakdown
 
-> This system design is decomposed into 3 core architectural features divided by system responsibility. Note that business domain entities and multi-step business workflows are governed by dedicated Domain and Workflow specs.
+> The three features separate packaging, persistence configuration, and communication responsibilities. This revision establishes the target boundaries; unfinished business workflows and a zero-downtime cutover procedure are outside scope.
 
 | # | Feature | What It Solves | Scope | Feature Spec |
 |:--|:--------|:---------------|:------|:-------------|
-| 1 | **Modular Hexagonal Package Structure** | Eliminates package entanglement and monolithic coupling by enforcing hexagonal module boundaries, domain service groupings, and stateless platform BFF layers. | Domain module boundaries (`catalog`, `order`, `account`, `channel`), platform BFF structures (`seller`, `marketplace`), app boot orchestration. | [feat_009-modular-hexagonal-package-structure.md](../features/feat_009-modular-hexagonal-package-structure.md) |
-| 2 | **Multi-Schema Database Isolation & Connection Budgeting** | Eliminates connection pool starvation and cross-domain data bleeding by isolating schemas, migration streams, pools, and budgeting connections. | Schemas `catalog`, `"order"`, `account`, `channel`, separate `discovery` connection, dedicated pools, Flyway streams, zero cross-schema FKs, connection budget formula. | [feat_010-multi-schema-database-isolation-connection-budgeting.md](../features/feat_010-multi-schema-database-isolation-connection-budgeting.md) |
-| 3 | **Decoupled Service Communication & CQRS Pipeline** | Eliminates cross-service bus dispatching and leaky side-effects by isolating per-service buses, enforcing strict CQRS pipelines, and standardizing capability ports. | Per-service Command/Query buses, strict ingress pipeline, Platform BFF capability ports & HTTP adapters, transactional outbox eventing, checkout coordination rules. | [feat_011-decoupled-service-communication-cqrs-pipeline.md](../features/feat_011-decoupled-service-communication-cqrs-pipeline.md) |
+| 1 | **Modular Hexagonal Package Structure** | Defines bootstrap, grouped assemblies, and verifiable context boundaries for future extraction. | `com.grab.app` bootstrap, four service groups, `seller` and `marketplace` BFFs, core package preservation, nested module discovery. | [feat_009-modular-hexagonal-package-structure.md](../features/feat_009-modular-hexagonal-package-structure.md) |
+| 2 | **Multi-Schema Database Isolation & Connection Budgeting** | Defines context-owned persistence resources within shared hosting constraints. | Context datasources, transaction managers, migration ownership, distinct outboxes, schema allocation, discovery isolation, connection budgeting. | [feat_010-multi-schema-database-isolation-connection-budgeting.md](../features/feat_010-multi-schema-database-isolation-connection-budgeting.md) |
+| 3 | **Decoupled Service Communication & CQRS Pipeline** | Defines capability invocation and recoverable event delivery across context boundaries. | Local bus scoping, HTTP and shared-interface ingress, transport adapters, atomic producer outbox writes, independent consumers, future remote delivery. | [feat_011-decoupled-service-communication-cqrs-pipeline.md](../features/feat_011-decoupled-service-communication-cqrs-pipeline.md) |
