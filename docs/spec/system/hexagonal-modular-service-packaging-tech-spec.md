@@ -34,13 +34,23 @@ Without a standardized hexagonal package structure, business rules become entang
 
 ### Core Concept
 
-The architecture decomposes the platform into two primary tiers: **Stateless Platform BFFs** (`sellercentral`, `marketplace`) and **Domain Service Groups** (`catalog`, `order`, `account`, `channel`). Every domain service strictly applies Hexagonal Architecture (Ports and Adapters), ensuring that dependencies only point inward toward pure domain logic.
+The architecture decomposes the platform into three primary tiers: **Stateless Platform BFFs** (`seller`, `marketplace`), **Domain Service Groups** (`catalog`, `order`, `account`, `channel`), and a dedicated **Cross-Domain Workflow Context Service** (`workflows`). Every domain and context service strictly applies Hexagonal Architecture (Ports and Adapters), ensuring that dependencies only point inward toward pure domain and orchestration logic.
+
+Platform BFFs interact with domain groups for single-domain capabilities, and invoke the **Workflow Context Service** via dedicated **Workflow Capability Ports** for multi-domain business sagas.
 
 ```mermaid
 flowchart TD
     subgraph PlatformBFF ["Platform BFF Layer (Stateless Assembly)"]
-        Controller["REST Controller"] --> BFFService["BFF Application Service"]
+        Controller["REST Controller"] --> BFFService["BFF Application Service / Handler"]
         BFFService --> CapabilityPort["Domain Capability Port"]
+        BFFService --> WorkflowPort["Workflow Capability Port"]
+    end
+
+    subgraph WorkflowContextService ["Workflow Context Service (Stateful Saga)"]
+        WorkflowPort --> WFInboundPort["Inbound Workflow Port"]
+        WFInboundPort --> WFEngine["Transactional Workflow Engine"]
+        WFEngine --> StepDefs["Process & Step Definitions"]
+        WFEngine --> WFStore["Workflow Store & Outbox (workflows DB)"]
     end
 
     subgraph DomainServiceGroup ["Domain Service Group"]
@@ -52,6 +62,8 @@ flowchart TD
     end
 
     PersistenceAdapter --> Database[("Service Schema")]
+    WFEngine -.->|"Outbox Request Events"| InboundPort
+    DomainServiceGroup -.->|"Completion Signals"| WFEngine
 ```
 
 ### How It Works Step by Step
@@ -60,10 +72,12 @@ flowchart TD
 |:-----|:-------------|:----|
 | 1 | Inbound request arrives at Platform BFF Controller (`com.grab.app.platform.{platform}.internal.adapter.inbound.rest`). | Handles HTTP parsing, validation, and HATEOAS representation without containing business logic. |
 | 2 | BFF Controller maps transport DTO to application command/query and dispatches via Platform Service. | Ensures transport contracts remain decoupled from internal domain command records. |
-| 3 | Platform Service invokes Domain Capability Port (`com.grab.{platform}.application.port.outbound.{Domain}QueryPort`). | Keeps the BFF agnostic of whether the domain service is hosted in-process or over HTTP. |
-| 4 | Domain Service receives request via Inbound Port (`com.{domain}.application.port.inbound.*UseCase`). | Directs execution to pure use case orchestration. |
-| 5 | UseCase Service loads aggregate via Outbound Repository Port and applies business rules. | Business logic resides strictly in domain entities and policies. |
-| 6 | Persistence Adapter (`com.{domain}.adapter.persistence`) persists state changes and outbox records. | Infrastructure frameworks (Spring Data JPA, Hibernate) remain isolated at the boundary. |
+| 3a | For single-domain operations, Platform Service invokes Domain Capability Port (`com.grab.{platform}.application.port.outbound.{Domain}QueryPort`). | Keeps the BFF agnostic of whether the domain service is hosted in-process or over HTTP. |
+| 3b | For multi-domain operations (e.g. product creation, checkout), Platform Service invokes Workflow Capability Port (`com.grab.{platform}.application.port.outbound.*WorkflowPort`). | Delegates complex distributed state coordination to the workflow context without leaking saga persistence or transactions into the BFF. |
+| 4 | Workflow Context Service receives request via Inbound Port, launches the workflow process, and tracks step progression and compensations. | Manages the saga lifecycle atomically under `workflowsTransactionManager`. |
+| 5 | Domain Services receive requests via Inbound Port or workflow integration events. | Directs execution to pure use case orchestration. |
+| 6 | UseCase Service loads aggregate via Outbound Repository Port and applies business rules. | Business logic resides strictly in domain entities and policies. |
+| 7 | Persistence Adapter (`com.{domain}.adapter.persistence`) persists state changes and local outbox records. | Infrastructure frameworks (Spring Data JPA, Hibernate) remain isolated at the boundary. |
 
 ---
 
@@ -71,7 +85,7 @@ flowchart TD
 
 ### Package Structure Specification
 
-The codebase is organized into bounded domain service groups and platform BFF modules:
+The codebase is organized into bounded domain service groups, a cross-domain workflow context service, and platform BFF modules:
 
 ```
 com.grab.app/
@@ -91,6 +105,7 @@ com.grab.app/
 │   ├── saleschannel/                       # Sales Channel Bounded Context
 │   ├── region/                             # Region Bounded Context
 │   └── discovery/                          # Discovery Projection Context
+├── workflows/                              # Cross-Domain Workflow Context Service (Saga Orchestration)
 └── platform/                               # Platform BFF Services (Stateless)
     ├── seller/                             # Seller Central BFF
     └── marketplace/                        # Marketplace Storefront BFF
@@ -133,6 +148,28 @@ com.grab.app.{group}/
         └── query/                          # Query Handlers
 ```
 
+#### Workflow Context Service Layout (`com.grab.app.workflows`)
+
+```
+com.grab.app.workflows/
+├── port/                                   # Public Inbound Capability Ports for BFFs / Clients
+│   └── *WorkflowPort.java                  # e.g., SellableProductWorkflowPort.java (request/response records)
+└── internal/
+    ├── config/                             # Workflow DataSource, JPA, and workflowsTransactionManager
+    ├── definition/                         # Saga Process & Step Definitions (pure orchestration)
+    │   └── *Definition.java                # e.g., CreateSellableProductDefinition.java
+    ├── adapter/
+    │   ├── inbound/
+    │   │   ├── event/                      # Inbound Signal Listeners (*WorkflowSignalInbox.java)
+    │   │   └── rest/                       # Direct administrative/sweeper endpoints if needed
+    │   ├── outbound/
+    │   │   ├── outbox/                     # Emits request events to domains via Workflow Outbox
+    │   │   └── persistence/                # JpaWorkflowStore integration
+    │   └── api/
+    │       └── adapter/                    # Provider Adapter implementing public port (*WorkflowPortAdapter.java)
+    └── service/                            # Sweepers, Recovery, and Execution Services
+```
+
 #### Platform BFF Layout (`com.grab.app.platform.{platform}`)
 
 ```
@@ -145,7 +182,8 @@ com.grab.app.platform.{platform}/
     │   ├── inbound/
     │   │   └── rest/                       # Controllers, DTOs, Mappers, Assemblers, Services
     │   └── outbound/
-    │       └── message/                    # Adapters implementing Domain Group Capability Ports
+    │       ├── domain/                     # Adapters implementing Domain Group Capability Ports
+    │       └── workflow/                   # Adapters implementing Workflow Capability Ports
     ├── command/                            # BFF Command Handlers
     └── query/                              # BFF Query Handlers
 ```
@@ -157,8 +195,9 @@ com.grab.app.platform.{platform}/
 | `{domain}-domain` | Pure Domain Core | Contains aggregates, entities, value objects, domain policies, and outbound repository interfaces. Framework-free. |
 | `{domain}-application` | Application Orchestration | Implements use cases, defines command/query records, and orchestrates aggregate mutation and query port lookups. |
 | `{domain}-adapter-persistence` | Intra-Domain Persistence | Implements domain repository ports using JPA/Hibernate; handles entity-to-domain mapping and local outbox persistence. |
-| `platform.{platform}` | Client Experience Gateway | Aggregates domain capabilities for specific client types (seller vs marketplace) without owning persistent state. |
-| `app` (Root Boot Module) | Application Assembler | Configures Spring Boot environment, registers beans, and wires platform BFFs and domain groups into the runtime process. |
+| `workflows` | Cross-Domain Saga Orchestrator | Manages durable multi-step workflows, step definitions, checkpoints, and compensation recovery using dedicated `workflowsTransactionManager` and workflow outbox. Exposes public workflow ports to BFFs. |
+| `platform.{platform}` | Client Experience Gateway | Aggregates domain capabilities for specific client types (seller vs marketplace) without owning persistent state. Dispatches multi-domain workflows through outbound workflow ports. |
+| `app` (Root Boot Module) | Application Assembler | Configures Spring Boot environment, registers beans, and wires platform BFFs, domain groups, and workflow context into the runtime process. |
 
 ---
 
@@ -180,3 +219,6 @@ com.grab.app.platform.{platform}/
 
 - **RULE-PKG-05: Modulith Package Encapsulation**
   Classes residing within `internal/` packages MUST NOT be imported or accessed by external modules. Public interfaces MUST reside in root `port/` packages or published named interfaces.
+
+- **RULE-PKG-06: Workflow Context Isolation & BFF Port Invocations**
+  Cross-domain workflows MUST reside in the dedicated `workflows` context service (`com.grab.app.workflows`), backed by `workflowsTransactionManager` and its dedicated workflow outbox. Platform BFFs MUST NOT contain workflow engines, step listeners, saga definitions, or persistent workflow state. BFFs MUST interact with workflows exclusively through consumer-owned outbound capability ports delegating to provider-published workflow ports.

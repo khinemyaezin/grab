@@ -1,0 +1,40 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.workflows;
+
+import com.grab.app.platform.seller.port.rest.SellerRestApi;
+
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.CreateSellableProductController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.UpdateProductVariantController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.UpdateSellableProductController;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
+@RestController
+@RequestMapping("/api/v1/workflows")
+public class WorkflowsRootController implements SellerRestApi {
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
+    public ResponseEntity<RepresentationModel<?>> root() {
+        RepresentationModel<?> model = new RepresentationModel<>();
+        model.add(linkTo(methodOn(WorkflowsRootController.class).root()).withSelfRel());
+        model.add(linkTo(methodOn(CreateSellableProductController.class).start(null, null))
+                .withRel("create-sellable-product"));
+        model.add(linkTo(methodOn(CreateSellableProductController.class).get(null, null))
+                .withRel("get-create-sellable-product"));
+        model.add(linkTo(methodOn(UpdateSellableProductController.class).start(null, null))
+                .withRel("update-sellable-product"));
+        model.add(linkTo(methodOn(UpdateSellableProductController.class).get(null, null))
+                .withRel("get-update-sellable-product"));
+        model.add(linkTo(methodOn(UpdateProductVariantController.class).start(null, null))
+                .withRel("update-product-variant"));
+        model.add(linkTo(methodOn(UpdateProductVariantController.class).get(null, null))
+                .withRel("get-update-product-variant"));
+        return ResponseEntity.ok(model);
+    }
+}

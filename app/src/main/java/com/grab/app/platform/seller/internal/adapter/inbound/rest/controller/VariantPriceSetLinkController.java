@@ -1,0 +1,52 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.controller;
+
+import com.grab.app.platform.seller.port.rest.SellerRestApi;
+
+import com.grab.app.platform.seller.internal.command.*;
+import com.grab.app.platform.seller.internal.query.*;
+
+import com.grab.app.platform.seller.internal.service.AuthenticatedAccessScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedCatalogMerchantResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedInventoryScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedMerchantScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedSalesChannelMerchantResolver;
+import com.grab.app.platform.seller.internal.service.PublishableKeyAccessResolver;
+import com.grab.app.platform.seller.internal.service.ResolvedInventoryAccess;
+
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.pricing.rest.assembler.VariantPriceSetLinkModelAssembler;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.pricing.rest.dto.request.ListVariantPriceSetLinksRequest;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.pricing.rest.dto.response.VariantPriceSetLinkResponse;
+import com.grab.app.platform.seller.internal.query.VariantPriceSetLinkQueryService;
+import com.grab.app.catalog.pricing.internal.config.PricingEnabled;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@PricingEnabled
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/pricing/variant-price-links")
+public class VariantPriceSetLinkController implements SellerRestApi {
+
+    private final VariantPriceSetLinkQueryService queryService;
+    private final VariantPriceSetLinkModelAssembler modelAssembler;
+
+    @PostMapping
+    public ResponseEntity<CollectionModel<EntityModel<VariantPriceSetLinkResponse>>> list(
+            @Valid @RequestBody ListVariantPriceSetLinksRequest request
+    ) {
+        List<EntityModel<VariantPriceSetLinkResponse>> models = queryService.findByVariantIds(request).stream()
+                .map(modelAssembler::toModel)
+                .toList();
+        CollectionModel<EntityModel<VariantPriceSetLinkResponse>> collection = CollectionModel.of(models);
+        return ResponseEntity.ok(collection);
+    }
+}

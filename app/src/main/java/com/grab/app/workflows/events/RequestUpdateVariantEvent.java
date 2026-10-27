@@ -1,0 +1,17 @@
+package com.grab.app.workflows.events;
+
+import com.grab.framework.domain.Event;
+
+import java.time.Instant;
+
+public record RequestUpdateVariantEvent(
+        String workflowId,
+        String merchantId,
+        String productId,
+        String variantId,
+        String sku,
+        Boolean manageInventory,
+        Instant occurredAt,
+        int version
+) implements Event {
+}

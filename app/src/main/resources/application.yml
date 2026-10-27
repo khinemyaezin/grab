@@ -1,0 +1,16 @@
+spring:
+  modulith:
+    detection-strategy: explicitly-annotated
+  mvc:
+    async:
+      request-timeout: 360000
+  task:
+    scheduling:
+      pool:
+        size: 5
+      thread-name-prefix: store-scheduled-
+
+storefrontquery:
+  rebuild:
+    on-startup: false
+    batch-size: 100

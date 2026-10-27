@@ -1,0 +1,15 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.dto.response.RestoreVariantResponse;
+import com.catalog.application.model.write.RestoreVariantCommand;
+import com.catalog.application.model.write.RestoreVariantResult;
+import org.mapstruct.Mapper;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class RestoreVariantDtoMapper {
+
+    public abstract RestoreVariantCommand toCommand(String merchantId, String productId, String variantId);
+
+    public abstract RestoreVariantResponse toResponse(RestoreVariantResult result);
+}

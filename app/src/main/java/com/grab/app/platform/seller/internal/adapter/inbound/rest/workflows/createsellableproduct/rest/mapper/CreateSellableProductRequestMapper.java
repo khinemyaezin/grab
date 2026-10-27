@@ -1,0 +1,100 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.workflows.createsellableproduct.mapper;
+
+import com.grab.framework.workflow.WorkflowInstance;
+import com.grab.app.workflows.internal.workflows.createsellableproduct.CreateSellableProductContext;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.workflows.createsellableproduct.dto.request.CreateSellableProductRequest;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.workflows.createsellableproduct.dto.response.CreateSellableProductResponse;
+import org.mapstruct.Mapper;
+
+import java.util.List;
+
+@Mapper(config = CentralMapperConfig.class)
+public abstract class CreateSellableProductRequestMapper {
+
+    public CreateSellableProductContext toContext(
+            CreateSellableProductRequest request,
+            String merchantId,
+            String createdBy,
+            String scopeKey,
+            String scopeId
+    ) {
+        CreateSellableProductContext.Product product = toContextProduct(request.product());
+        List<CreateSellableProductContext.VariantType> variantTypes = request.variantTypes() == null
+                ? List.of()
+                : request.variantTypes().stream().map(this::toContextVariantType).toList();
+        List<CreateSellableProductContext.InventoryLine> inventoryLines = request.inventoryLines() == null
+                ? List.of()
+                : request.inventoryLines().stream()
+                .map(this::toContextInventoryLine)
+                .toList();
+        List<CreateSellableProductContext.PricingLine> pricingLines = request.pricingLines() == null
+                ? List.of()
+                : request.pricingLines().stream()
+                .map(this::toContextPricingLine)
+                .toList();
+        List<CreateSellableProductContext.PublicationLine> publicationLines = request.publicationLines() == null
+                ? List.of()
+                : request.publicationLines().stream()
+                .map(this::toContextPublicationLine)
+                .toList();
+        List<CreateSellableProductContext.MediaLine> medias = request.medias() == null
+                ? null
+                : request.medias().stream().map(this::toContextMedia).toList();
+        List<CreateSellableProductContext.DescriptionLine> descriptions = request.descriptions() == null
+                ? null
+                : request.descriptions().stream().map(this::toContextDescription).toList();
+        return CreateSellableProductContext.createContext(
+                merchantId,
+                createdBy,
+                scopeKey,
+                scopeId,
+                product,
+                variantTypes,
+                inventoryLines,
+                pricingLines,
+                publicationLines,
+                medias,
+                descriptions
+        );
+    }
+
+    public CreateSellableProductResponse toResponse(WorkflowInstance instance, CreateSellableProductContext context) {
+        List<CreateSellableProductResponse.PricePair> pricePairs = context == null
+                ? List.of()
+                : context.pricePairs().stream()
+                .map(pair -> new CreateSellableProductResponse.PricePair(
+                        pair.variantId(),
+                        pair.sku(),
+                        pair.priceSetId()
+                ))
+                .toList();
+        return new CreateSellableProductResponse(
+                instance.id(),
+                instance.status().name(),
+                instance.currentStep().orElse(null),
+                context == null ? null : context.productId(),
+                pricePairs,
+                context == null ? List.of() : context.inventoryItemIds(),
+                instance.errorMessage().orElse(null),
+                instance.updatedAt()
+        );
+    }
+
+    protected abstract CreateSellableProductContext.Product toContextProduct(CreateSellableProductRequest.Product product);
+
+    protected abstract CreateSellableProductContext.VariantType toContextVariantType(CreateSellableProductRequest.VariantType variantType);
+
+    protected abstract CreateSellableProductContext.InventoryLine toContextInventoryLine(CreateSellableProductRequest.InventoryLine inventoryLine);
+
+    protected abstract CreateSellableProductContext.PricingLine toContextPricingLine(CreateSellableProductRequest.PricingLine pricingLine);
+
+    protected abstract CreateSellableProductContext.PublicationLine toContextPublicationLine(
+            CreateSellableProductRequest.PublicationLine publicationLine
+    );
+
+    protected abstract CreateSellableProductContext.MediaLine toContextMedia(CreateSellableProductRequest.Media media);
+
+    protected abstract CreateSellableProductContext.DescriptionLine toContextDescription(
+            CreateSellableProductRequest.Description description
+    );
+}

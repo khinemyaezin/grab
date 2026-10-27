@@ -1,0 +1,27 @@
+package com.grab.app.catalog.catalog.internal.command.handler;
+
+import com.catalog.application.model.write.DeleteProductCommand;
+import com.catalog.application.model.write.DeleteProductResult;
+import com.catalog.application.port.inbound.DeleteProductUseCase;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.grab.app.catalog.catalog.internal.config.CatalogTransactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class DeleteProductCommandHandler implements CommandHandler<DeleteProductCommand, DeleteProductResult> {
+
+    private final DeleteProductUseCase deleteProductUseCase;
+
+    @Override
+    @CatalogTransactional
+    public DeleteProductResult handle(DeleteProductCommand command) {
+        return deleteProductUseCase.execute(command);
+    }
+
+    @Override
+    public Class<DeleteProductCommand> getCommandType() {
+        return DeleteProductCommand.class;
+    }
+}

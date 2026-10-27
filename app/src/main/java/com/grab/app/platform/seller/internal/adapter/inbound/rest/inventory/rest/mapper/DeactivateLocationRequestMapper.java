@@ -1,0 +1,25 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.dto.response.LocationAddressResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.dto.response.LocationResponse;
+import com.inventory.application.model.write.DeactivateLocationCommand;
+import com.inventory.application.model.write.LocationResult;
+import java.util.List;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class DeactivateLocationRequestMapper {
+
+    public abstract DeactivateLocationCommand toCommand(String locationId, String initiatedBy, String scopeKey, String scopeId);
+
+    public abstract LocationResponse toResponse(LocationResult result);
+
+    protected LocationAddressResponse mapAddress(LocationResult.Address address) {
+        if (address == null) return null;
+        return new LocationAddressResponse(
+                address.line1(), address.line2(), address.city(),
+                address.state(), address.postalCode(), address.country());
+    }
+}

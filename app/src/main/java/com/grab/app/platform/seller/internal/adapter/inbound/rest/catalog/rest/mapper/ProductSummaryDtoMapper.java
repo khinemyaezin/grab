@@ -1,0 +1,17 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.dto.request.ProductSearchRequest;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.dto.response.ProductSearchResponse;
+import com.catalog.application.model.read.ProductSearchQuery;
+import com.catalog.application.model.read.ProductSearchResult;
+import org.mapstruct.Mapper;
+import org.springframework.data.domain.Pageable;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class ProductSummaryDtoMapper {
+
+  public abstract ProductSearchQuery toQuery(String merchantId, ProductSearchRequest request, Pageable pageable);
+
+  public abstract ProductSearchResponse toResponse(ProductSearchResult result );
+}

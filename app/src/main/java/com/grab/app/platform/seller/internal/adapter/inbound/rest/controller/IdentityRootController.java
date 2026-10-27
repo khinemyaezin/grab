@@ -1,0 +1,95 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.controller;
+
+import com.grab.app.platform.seller.port.rest.SellerRestApi;
+
+import com.grab.app.platform.seller.internal.command.*;
+import com.grab.app.platform.seller.internal.query.*;
+
+import com.grab.app.platform.seller.internal.service.AuthenticatedAccessScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedCatalogMerchantResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedInventoryScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedMerchantScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedSalesChannelMerchantResolver;
+import com.grab.app.platform.seller.internal.service.PublishableKeyAccessResolver;
+import com.grab.app.platform.seller.internal.service.ResolvedInventoryAccess;
+
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.AccessAdminController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.AccessContextController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.AccessInvitationController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.AuthController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.ProfileController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.RoleAdminController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.UserAdminController;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
+@RestController
+@RequestMapping("/api/v1/identity")
+public class IdentityRootController implements SellerRestApi {
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
+    public ResponseEntity<RepresentationModel<?>> root() {
+        RepresentationModel<?> model = new RepresentationModel<>();
+
+        model.add(linkTo(methodOn(IdentityRootController.class)
+                .root())
+                .withSelfRel());
+
+        model.add(linkTo(methodOn(AccessContextController.class)
+                .listContexts(null))
+                .withRel("list-access-contexts"));
+
+        model.add(linkTo(methodOn(ProfileController.class)
+                .getProfile(null))
+                .withRel("get-profile"));
+
+        model.add(linkTo(methodOn(AuthController.class)
+                .login(null))
+                .withRel("login"));
+
+        model.add(linkTo(methodOn(AuthController.class)
+                .logout(null, null))
+                .withRel("logout"));
+
+        model.add(linkTo(methodOn(AuthController.class)
+                .register(null))
+                .withRel("register"));
+
+        model.add(linkTo(methodOn(UserAdminController.class)
+                .listUsers(null, null))
+                .withRel("list-users"));
+
+        model.add(linkTo(methodOn(RoleAdminController.class)
+                .listRoles(null, null))
+                .withRel("list-roles"));
+
+        model.add(linkTo(methodOn(RoleAdminController.class)
+                .createRole(null))
+                .withRel("create-role"));
+
+        model.add(linkTo(methodOn(RoleAdminController.class)
+                .searchRoles(null))
+                .withRel("search-roles"));
+
+        model.add(linkTo(methodOn(AccessAdminController.class)
+                .grant(null, null))
+                .withRel("grant-access"));
+
+        model.add(linkTo(methodOn(AccessInvitationController.class)
+                .create(null, null))
+                .withRel("create-access-invitation"));
+
+        model.add(linkTo(methodOn(AccessInvitationController.class)
+                .accept(null, null))
+                .withRel("accept-access-invitation"));
+
+        return ResponseEntity.ok(model);
+    }
+}

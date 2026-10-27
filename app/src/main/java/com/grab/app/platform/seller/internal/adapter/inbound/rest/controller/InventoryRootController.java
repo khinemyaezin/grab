@@ -1,0 +1,84 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.controller;
+
+import com.grab.app.platform.seller.port.rest.SellerRestApi;
+
+import com.grab.app.platform.seller.internal.command.*;
+import com.grab.app.platform.seller.internal.query.*;
+
+import com.grab.app.platform.seller.internal.service.AuthenticatedAccessScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedCatalogMerchantResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedInventoryScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedMerchantScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedSalesChannelMerchantResolver;
+import com.grab.app.platform.seller.internal.service.PublishableKeyAccessResolver;
+import com.grab.app.platform.seller.internal.service.ResolvedInventoryAccess;
+
+import com.grab.app.catalog.catalog.api.CatalogApiLinks;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.AllocationController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.InventoryController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.LocationController;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.ReorderSuggestionController;
+import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.RepresentationModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
+@RestController
+@RequestMapping("/api/v1/inventory")
+public class InventoryRootController implements SellerRestApi {
+
+    @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
+    public ResponseEntity<RepresentationModel<?>> root() {
+        RepresentationModel<?> model = new RepresentationModel<>();
+
+        model.add(linkTo(methodOn(InventoryRootController.class).root())
+                .withSelfRel());
+
+        model.add(linkTo(methodOn(LocationController.class)
+                .searchLocations(null, null, null, null))
+                .withRel("search-locations"));
+        model.add(linkTo(methodOn(LocationController.class)
+                .createLocation(null, null))
+                .withRel("create-location"));
+        model.add(linkTo(methodOn(LocationController.class)
+                .getLocation(null))
+                .withRel("location"));
+
+        model.add(linkTo(methodOn(InventoryController.class)
+                .searchInventoryItems(null, null, null, null))
+                .withRel("search-inventory-items"));
+        model.add(linkTo(methodOn(InventoryController.class)
+                .createInventory(null, null))
+                .withRel("create-inventory-item"));
+        model.add(linkTo(methodOn(InventoryController.class)
+                .checkExistence(null, null))
+                .withRel("check-inventory-items-existence"));
+        model.add(linkTo(methodOn(InventoryController.class)
+                .getInventorySummary(null, null))
+                .withRel("inventory-summary"));
+        model.add(linkTo(methodOn(InventoryController.class)
+                .getInventory(null))
+                .withRel("inventory-item"));
+
+        model.add(linkTo(methodOn(AllocationController.class)
+                .allocate(null, null))
+                .withRel("allocate-stock"));
+        model.add(linkTo(methodOn(AllocationController.class)
+                .deallocate(null, null))
+                .withRel("deallocate-stock"));
+        model.add(linkTo(methodOn(AllocationController.class)
+                .availability(null, null, null))
+                .withRel("allocation-availability"));
+        model.add(linkTo(methodOn(ReorderSuggestionController.class)
+                .list(null, null, null))
+                .withRel("reorder-suggestions"));
+
+        model.add(CatalogApiLinks.searchProductVariants());
+        return ResponseEntity.ok(model);
+    }
+}

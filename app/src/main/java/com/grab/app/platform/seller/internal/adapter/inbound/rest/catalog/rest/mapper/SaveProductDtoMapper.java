@@ -1,0 +1,18 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.dto.request.SaveProductRequest;
+import com.catalog.application.model.write.CreateProductSetCommand;
+import org.mapstruct.Mapper;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class SaveProductDtoMapper {
+
+    public abstract CreateProductSetCommand toCommand(SaveProductRequest request, String merchantId);
+
+    protected abstract CreateProductSetCommand.Product toCommandProduct(SaveProductRequest.Product product);
+
+    protected abstract CreateProductSetCommand.Variant toCommandVariant(SaveProductRequest.Variant variant);
+
+    protected abstract CreateProductSetCommand.Variation toCommandVariation(SaveProductRequest.Variation variation);
+}

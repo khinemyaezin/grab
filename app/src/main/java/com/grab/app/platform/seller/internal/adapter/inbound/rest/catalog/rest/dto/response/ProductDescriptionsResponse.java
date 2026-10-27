@@ -1,0 +1,10 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.dto.response;
+
+import java.io.Serializable;
+import java.util.List;
+
+public record ProductDescriptionsResponse(
+        String productId,
+        List<GetProductResponse.Description> descriptions
+) implements Serializable {
+}

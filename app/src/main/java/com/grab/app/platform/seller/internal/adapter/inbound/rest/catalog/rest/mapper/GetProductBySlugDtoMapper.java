@@ -1,0 +1,16 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.catalog.rest.dto.response.GetProductBySlugResponse;
+import com.catalog.application.model.read.GetProductBySlugResult;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class GetProductBySlugDtoMapper {
+    @Mapping(source = "merchantId", target = "sellerId")
+    @Mapping(source = "merchantType", target = "sellerType")
+    @Mapping(target = "offerEligible", constant = "false")
+    @Mapping(target = "moderationNote", ignore = true)
+    public abstract GetProductBySlugResponse toResponse(GetProductBySlugResult result);
+}

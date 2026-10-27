@@ -8,7 +8,7 @@
 
 ### What does this feature do?
 
-This feature replaces the current `store` assembly with bootstrap in `com.grab.app`, context assemblies in `com.grab.app.<group>.<context>`, and BFF assemblies in `com.grab.app.platform.seller` and `com.grab.app.platform.marketplace`. The four groups (`catalog`, `order`, `account`, `channel`) organize future deployments while existing domain, application, and persistence module packages remain unchanged.
+This feature replaces the current `store` assembly with bootstrap in `com.grab.app`, context assemblies in `com.grab.app.<group>.<context>`, a dedicated cross-domain workflow context assembly in `com.grab.app.workflows`, and BFF assemblies in `com.grab.app.platform.seller` and `com.grab.app.platform.marketplace`. The four groups (`catalog`, `order`, `account`, `channel`) organize future deployments while existing domain, application, and persistence module packages remain unchanged.
 
 The initial runtime remains a modular monolith. Every bounded context retains its own transaction and outbox ownership; physical extraction, rather than package restructuring alone, enables independent deployment and scaling.
 
@@ -26,9 +26,10 @@ Grouping contexts MUST NOT permit cross-context repository access or merge their
 | Context assemblies under `com.grab.app.order` (cart, order, payment) | Runtime bus dispatching and CQRS pipeline implementation (covered in Feat 011) |
 | Context assemblies under `com.grab.app.account` (identity, merchant, customer) | New business entities or unfinished business workflows |
 | Context assemblies under `com.grab.app.channel` (saleschannel, region, discovery) | Physical Docker or Kubernetes deployments and data cutover |
-| BFF assemblies `com.grab.app.platform.seller` and `com.grab.app.platform.marketplace` (stateless, no persistence) | Infrastructure hosting and cloud network topologies |
-| Existing core domain/application/persistence packages and context-local `internal/`, `port/`, and `api/` boundaries | Frontend implementation and changes to existing endpoint or payload contracts |
-| Bootstrap in `com.grab.app`, nested context discovery, and removal of the legacy `store` assembly | Implementing remote transport, transaction changes, or outbox delivery mechanics in this packaging feature |
+| Workflow context assembly under `com.grab.app.workflows` (replaces `store/workflows`, preserving dedicated `workflowsTransactionManager` and outbox) | Infrastructure hosting and cloud network topologies |
+| BFF assemblies `com.grab.app.platform.seller` and `com.grab.app.platform.marketplace` (stateless, communicating with workflows and domains via outbound ports) | Frontend implementation and changes to existing endpoint or payload contracts |
+| Existing core domain/application/persistence packages and context-local `internal/`, `port/`, and `api/` boundaries | Implementing remote transport, transaction changes, or outbox delivery mechanics in this packaging feature |
+| Bootstrap in `com.grab.app`, nested context discovery, and removal of the legacy `store` assembly | |
 
 ---
 
@@ -47,6 +48,7 @@ Grouping contexts MUST NOT permit cross-context repository access or merge their
 | AC-9 | Assembly wiring MUST preserve a datasource, transaction manager, and distinct outbox table for each context; group membership MUST NOT merge these resources. | Spring context wiring assertions; transaction/outbox integration checks are specified and implemented through Features 010 and 011. |
 | AC-10 | Shared integration contracts MUST have an explicit relocated public package, with `shared` remaining OPEN and cross-context link facades exposed through owner `api` named interfaces. | Modulith named-interface checks, contract import checks, and compatibility review of persisted event type identifiers before relocation. |
 | AC-11 | An extraction-ready group assembly MUST load with its selected contexts and explicit external capability/event adapters without loading unrelated groups. | Focused startup test using external adapter substitutes and assertions on loaded context beans and module dependencies. |
+| AC-12 | Cross-domain workflows MUST reside in the dedicated `com.grab.app.workflows` context assembly with their own transaction manager and outbox; Platform BFFs MUST communicate with workflows strictly through outbound port interfaces without owning workflow state. | ArchUnit checks verifying no workflow persistence or engine beans inside platform BFFs, and verifying BFF controllers invoke workflows through outbound ports. |
 
 ---
 
@@ -89,6 +91,7 @@ For the product/discovery interaction, catalog persistence commits product state
 | **Layering Model** | Preserve Existing Hexagonal Core Modules | Keeps domain write repositories in domain, use cases/query ports in application, and persistence implementations outside both. |
 | **Bootstrap & Grouping** | `com.grab.app` Bootstrap with `com.grab.app.<group>.<context>` Assemblies | Replaces the current `store` assembly while separating deployment composition from core package identity. |
 | **BFF Segregation** | Stateless `seller` and `marketplace` Assemblies | Provides client-specific APIs without domain persistence ownership or direct provider implementation dependencies. |
+| **Workflow Context Encapsulation** | Dedicated `com.grab.app.workflows` Context with Port Interfaces | Separates multi-domain saga orchestration, checkpoints, and outbox state from stateless BFFs; BFFs trigger workflows via outbound ports without acquiring transaction ownership. |
 | **Package Encapsulation** | Context-Level `internal/` Boundaries and Published Contracts | Keeps contexts independently verifiable even when they belong to the same future service group. |
 | **Transaction & Outbox Ownership** | One Owner per Bounded Context | Allows contexts to share hosting or schemas without acquiring cross-context atomicity assumptions. |
 | **Extraction Strategy** | Separate Boot Assemblies and Replaceable Transport Adapters | Prepares group extraction while leaving remote delivery, operational isolation, and data cutover to explicit later work. |

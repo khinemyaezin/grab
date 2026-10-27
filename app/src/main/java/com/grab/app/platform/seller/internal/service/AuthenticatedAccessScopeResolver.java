@@ -1,0 +1,28 @@
+package com.grab.app.platform.seller.internal.service;
+
+import com.grab.framework.security.AccessContext;
+import com.identity.application.exception.IdentityServiceError;
+import com.identity.application.exception.IdentityServiceException;
+import com.grab.app.shared.security.SecurityPrincipal;
+import com.identity.domain.valueobject.AccessScope;
+import com.identity.domain.valueobject.ScopeKey;
+import org.springframework.stereotype.Component;
+
+@Component
+public class AuthenticatedAccessScopeResolver {
+    public ActorScope resolve(SecurityPrincipal principal) {
+        return principal.getAccessContext()
+                .map(this::fromContext)
+                .orElseThrow(()-> new IdentityServiceException(
+                        new IdentityServiceError.AccessScopeForbidden("UNKNOWN", "UNKNOWN"),
+                        "A scoped access context is required"
+                ));
+    }
+
+    private ActorScope fromContext(AccessContext context) {
+        return new ActorScope(context.scopeKey(), context.scopeId());
+    }
+
+    public record ActorScope(String key, String id) {
+    }
+}

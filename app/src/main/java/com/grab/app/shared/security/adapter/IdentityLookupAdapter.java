@@ -1,0 +1,54 @@
+package com.grab.app.shared.security.adapter;
+
+import com.grab.framework.security.AccessContext;
+import com.grab.framework.security.AuthenticatedActor;
+import com.grab.app.account.identity.port.IdentityLookupQuery;
+import com.grab.app.shared.security.IdentityResolverClient;
+import com.grab.app.shared.security.expection.IdentityAuthenticationException;
+import com.grab.app.shared.security.expection.IdentitySecurityError;
+import com.identity.domain.exception.IdentityDomainValidationException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.Optional;
+import java.util.Set;
+
+@Component
+@RequiredArgsConstructor
+public class IdentityLookupAdapter implements IdentityResolverClient {
+
+    private final IdentityLookupQuery identityLookupQuery;
+
+    @Override
+    public Optional<AuthenticatedActor> resolveByPlatformUser(String issuer, String userId, AccessContext ctx) {
+        try {
+            return identityLookupQuery.resolveByPlatformUserId(issuer, userId, ctx);
+        } catch (IdentityDomainValidationException ex) {
+            throw translateException(ex);
+        }
+    }
+
+    @Override
+    public Optional<AuthenticatedActor> resolveByExternalIdentity(String issuer, String subject, Set<String> entitlements, AccessContext ctx) {
+        try {
+            return identityLookupQuery.resolveByExternalIdentity(issuer, subject, entitlements, ctx);
+        } catch (IdentityDomainValidationException ex) {
+            throw translateException(ex);
+        }
+    }
+
+    private RuntimeException translateException(IdentityDomainValidationException ex) {
+        return switch (ex.getMessageSource().code()) {
+            case "idt.domain.user.account_not_active" -> new IdentityAuthenticationException(
+                    new IdentitySecurityError.AccountNotActive(),
+                    "Account is not active",
+                    ex);
+            case "idt.domain.access.code_invalid" -> new IdentityAuthenticationException(
+                    new IdentitySecurityError.InvalidAccessContext(),
+                    "Access context is not active",
+                    ex
+            );
+            default -> ex;
+        };
+    }
+}

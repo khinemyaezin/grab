@@ -1,0 +1,18 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.identity.rest.mapper;
+
+import com.grab.framework.mapper.IdMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.identity.rest.dto.response.AccessAssignmentResponse;
+import com.identity.application.model.write.AccessAssignmentResult;
+import com.identity.application.model.read.ListAccessAssignmentsQuery;
+import org.mapstruct.Mapper;
+
+@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
+public abstract class ListAccessAssignmentsRequestMapper {
+    public abstract ListAccessAssignmentsQuery toQuery(
+            String userId,
+            String actorScopeKey,
+            String actorScopeId
+    );
+
+    public abstract AccessAssignmentResponse toResponse(AccessAssignmentResult result);
+}

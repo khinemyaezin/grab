@@ -1,0 +1,69 @@
+package com.grab.app.platform.seller.internal.command;
+
+import com.grab.app.platform.seller.internal.service.AuthenticatedAccessScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedCatalogMerchantResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedInventoryScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedMerchantScopeResolver;
+import com.grab.app.platform.seller.internal.service.AuthenticatedSalesChannelMerchantResolver;
+import com.grab.app.platform.seller.internal.service.PublishableKeyAccessResolver;
+import com.grab.app.platform.seller.internal.service.ResolvedInventoryAccess;
+
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.dto.request.CreateBinRequest;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.dto.request.UpdateBinRequest;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.dto.response.BinResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.mapper.ActivateBinRequestMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.mapper.CreateBinRequestMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.mapper.DeactivateBinRequestMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.mapper.DeleteBinRequestMapper;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.inventory.rest.mapper.UpdateBinRequestMapper;
+import com.inventory.application.model.write.ActivateBinCommand;
+import com.inventory.application.model.write.BinResult;
+import com.inventory.application.model.write.CreateBinCommand;
+import com.inventory.application.model.write.DeactivateBinCommand;
+import com.inventory.application.model.write.DeleteBinCommand;
+import com.inventory.application.model.write.UpdateBinCommand;
+import lombok.RequiredArgsConstructor;
+import com.grab.app.platform.seller.internal.service.ResolvedInventoryAccess;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class BinCommandService {
+
+    private final CommandBus commandBus;
+    private final CreateBinRequestMapper createBinRequestMapper;
+    private final UpdateBinRequestMapper updateBinRequestMapper;
+    private final ActivateBinRequestMapper activateBinRequestMapper;
+    private final DeactivateBinRequestMapper deactivateBinRequestMapper;
+    private final DeleteBinRequestMapper deleteBinRequestMapper;
+
+    public BinResponse createBin(CreateBinRequest request, ResolvedInventoryAccess access) {
+        CreateBinCommand command = createBinRequestMapper.toCommand(request, access.actorId(), access.scopeKey(), access.scopeId());
+        BinResult result = commandBus.dispatch(command);
+        return createBinRequestMapper.toResponse(result);
+    }
+
+    public BinResponse updateBin(String binId, UpdateBinRequest request, ResolvedInventoryAccess access) {
+        UpdateBinCommand command = updateBinRequestMapper.toCommand(binId, request, access.actorId(), access.scopeKey(), access.scopeId());
+        BinResult result = commandBus.dispatch(command);
+        return updateBinRequestMapper.toResponse(result);
+    }
+
+    public BinResponse activateBin(String binId, ResolvedInventoryAccess access) {
+        ActivateBinCommand command = activateBinRequestMapper.toCommand(binId, access.actorId(), access.scopeKey(), access.scopeId());
+        BinResult result = commandBus.dispatch(command);
+        return activateBinRequestMapper.toResponse(result);
+    }
+
+    public BinResponse deactivateBin(String binId, ResolvedInventoryAccess access) {
+        DeactivateBinCommand command = deactivateBinRequestMapper.toCommand(binId, access.actorId(), access.scopeKey(), access.scopeId());
+        BinResult result = commandBus.dispatch(command);
+        return deactivateBinRequestMapper.toResponse(result);
+    }
+
+    public void deleteBin(String binId, ResolvedInventoryAccess access) {
+        DeleteBinCommand command = deleteBinRequestMapper.toCommand(binId, access.actorId(), access.scopeKey(), access.scopeId());
+        commandBus.dispatch(command);
+    }
+}
