@@ -50,37 +50,33 @@ The persistence architecture employs a **two-tier configuration and schema isola
    - Any individual domain service can override its configuration to bind to a custom pool, distinct schema, or dedicated physical database instance without code modification.
 
 ```mermaid
-flowchart TD
-    subgraph ServiceGroups ["Domain Service Groups (Shared PostgreSQL Instance)"]
+flowchart TB
+ subgraph ServiceGroups["Domain Service Groups (Shared PostgreSQL Instance)"]
         CatGroup["Catalog Group\n(catalog, inventory, pricing)"]
         OrdGroup["Order Group\n(cart, order, payment)"]
         AccGroup["Account Group\n(identity, merchant, customer)"]
         ChanAdmin["Channel Admin\n(saleschannel, region)"]
-    end
-
-    subgraph DedicatedConnections ["Dedicated Domain Connection"]
+  end
+ subgraph DedicatedConnections["Dedicated Domain Connection"]
         DiscoverySvc["Discovery Domain Service\n(storefront browsing projection)"]
-    end
-
-    subgraph SharedDB ["Shared PostgreSQL Database Instance"]
+  end
+ subgraph SharedDB["Shared PostgreSQL Database Instance"]
         CatSchema[("Schema: catalog\nShared Pool (max: 15)")]
-        OrdSchema[("Schema: \"order\"\nShared Pool (max: 20)")]
+        OrdSchema@{ label: "Schema: \"order\"<br>Shared Pool (max: 20)" }
         AccSchema[("Schema: account\nShared Pool (max: 10)")]
-        ChanSchema[("Schema: channel\nAdmin Pool (max: 10)")]
-    end
-
-    subgraph DedicatedTarget ["Discovery Projection Target (Primary or Read-Replica)"]
+        ChanSchema[("Schema: channel Pool (max: 10)")]
+  end
+ subgraph DedicatedTarget["Discovery Projection Target (Primary or Read-Replica)"]
         DiscTables[("Discovery Projection Tables\nDiscovery Dedicated Pool (max: 25)")]
-    end
+  end
+    CatGroup -- Default Group Pool --> CatSchema
+    OrdGroup -- Default Group Pool --> OrdSchema
+    AccGroup -- Default Group Pool --> AccSchema
+    ChanAdmin -- Channel Admin Pool --> ChanSchema
+    DiscoverySvc -- Dedicated Separate Connection --> DiscTables
+    ChanAdmin --> DiscoverySvc
 
-    CatGroup -->|"Default Group Pool"| CatSchema
-    OrdGroup -->|"Default Group Pool"| OrdSchema
-    AccGroup -->|"Default Group Pool"| AccSchema
-    ChanAdmin -->|"Channel Admin Pool"| ChanSchema
-    DiscoverySvc -->|"Dedicated Separate Connection"| DiscTables
-
-    CatSchema -.-x|"❌ Zero Cross-Schema Foreign Keys or Joins"| OrdSchema
-    ChanSchema -.-x|"❌ Discovery Cannot Starve Channel Admin"| DiscTables
+    OrdSchema@{ shape: cyl}
 ```
 
 ### How It Works Step by Step
@@ -150,7 +146,7 @@ flowchart TB
     end
 
     subgraph DatabaseLayer ["Relational Database Infrastructure"]
-        SharedInstance[("Shared PostgreSQL Instance\n- Schema: \"order\"\n- Schema: catalog\n- Schema: channel\n- Schema: account")]
+        SharedInstance[("Shared PostgreSQL Instance")]
         PaymentInstance[("Standalone Payment DB Instance\n- Host: payment-db.internal\n- Schema: public")]
     end
 
@@ -286,8 +282,8 @@ grab:
   $$\sum (N \times O \times P) + C_{\text{admin}} + C_{\text{reserve}} \le \text{MaxDBConnections}$$
   Increasing pool size or pod replica counts without validating against the shared connection budget is prohibited.
 
-- **RULE-DB-06: Atomic Outbox Persistence**
-  Transactional outbox records MUST be inserted into the service's or domain's own `{schema}.outbox_record` table within the same database transaction as the business aggregate update. Cross-service or cross-schema outbox writes are prohibited.
+- **RULE-DB-06: Single Outbox Table per Service Group Schema**
+  Each service group schema MUST maintain exactly ONE outbox table (`{schema}.outbox_record`). All domain bounded contexts within that service group (e.g., `catalog`, `inventory`, `pricing` in schema `catalog`) MUST insert their integration events into this single shared outbox table within their local ACID database transaction. A single unified relay poller per service group claims and publishes these events.
 
 - **RULE-DB-07: Independent Migration Streams per Schema**
   Each domain service or group MUST maintain its own independent Flyway migration folder (`db/migration/{domain}`) and record history in its own `{schema}.flyway_schema_history` table.

@@ -38,7 +38,7 @@ In a shared monolithic database, a spike in traffic or an unindexed query in one
 | AC-4 | Each schema MUST execute its own isolated Flyway migration pipeline with a dedicated history table (e.g., `flyway_schema_history` inside its own schema). | Testcontainers PostgreSQL integration tests verifying independent migration execution. |
 | AC-5 | Foreign keys, joins, and database-level constraints across schemas MUST NOT exist; relationships across bounded contexts MUST be maintained via identifier references only. | Automated PostgreSQL schema linting script asserting zero cross-schema foreign keys in `information_schema`. |
 | AC-6 | Total budgeted database connections across all service replicas and rolling deployment overlaps MUST NOT exceed the maximum server connection limit minus operational reserves. | Configuration validation test enforcing max connection budget formula: $\sum (N_{\text{replicas}} \times 2 \times \text{poolSize}) \le \text{MaxDBConnections} - \text{Reserve}$. |
-| AC-7 | Every transactional outbox entry MUST be written to the service's own outbox table within the same local database transaction as the business aggregate state mutation. | Transaction rollback integration tests verifying that if aggregate persistence fails, the outbox record is also rolled back. |
+| AC-7 | Every transactional outbox entry MUST be written to the service group's single shared outbox table (`{schema}.outbox_record`) within the same local database transaction as the business aggregate state mutation. | Transaction rollback integration tests verifying that if aggregate persistence fails, the outbox record is also rolled back. |
 | AC-8 | Overriding a service's database URL or credentials MUST NOT require configuration changes in any other domain service. | Configuration isolation test spinning up an individual domain service targeting an override database URL. |
 
 ---
@@ -68,10 +68,10 @@ flowchart TD
     end
 
     subgraph DatabaseInstance ["PostgreSQL Shared Database Instance"]
-        SchemaCat[("Schema 'catalog'\nFlyway History\nOutbox Table\nDomain Tables")]
-        SchemaOrd[("Schema 'order'\nFlyway History\nOutbox Table\nDomain Tables")]
-        SchemaAcc[("Schema 'account'\nFlyway History\nOutbox Table\nDomain Tables")]
-        SchemaChan[("Schema 'channel'\nFlyway History\nOutbox Table\nChannel & Region Tables")]
+        SchemaCat[("Schema 'catalog'\nFlyway History\nSingle Group Outbox Table\nDomain Tables")]
+        SchemaOrd[("Schema 'order'\nFlyway History\nSingle Group Outbox Table\nDomain Tables")]
+        SchemaAcc[("Schema 'account'\nFlyway History\nSingle Group Outbox Table\nDomain Tables")]
+        SchemaChan[("Schema 'channel'\nFlyway History\nSingle Group Outbox Table\nChannel & Region Tables")]
         DiscTables[("Discovery Projection Tables\n(discovery_product, facts)\nPrimary Schema or Read-Replica")]
     end
 
@@ -90,6 +90,7 @@ flowchart TD
 | Decision | Choice | Rationale |
 |:---------|:-------|:----------|
 | **Database Architecture** | Schema-per-Service Group on Shared Database Instance | Provides logical isolation and zero-downtime migration readiness while minimizing initial database hosting costs. |
+| **Outbox Scope** | One Outbox Table per Service Group Schema | Allows all domain bounded contexts in a group to atomically commit events into `{schema}.outbox_record` within their local transaction, served by a single relay poller. |
 | **Discovery Connection Isolation** | Dedicated Separate Connection (`DiscoveryHikariPool`) | Prevents public storefront browsing and search spikes from exhausting connections needed for channel administration and key rotation. |
 | **Configuration Hierarchy** | Two-Tier Group Defaults with Per-Domain Overrides | Domain services share group schemas by default, but allow any domain to override its connection, schema, or physical instance. |
 | **Connection Pooling** | Independent HikariCP Pools per Service / Override | Prevents connection pool starvation; a traffic burst in catalog browsing cannot exhaust checkout database connections. |
