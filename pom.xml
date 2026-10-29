@@ -52,6 +52,7 @@
 <!--        <module>payment-domain</module>-->
 <!--        <module>payment-application</module>-->
 <!--        <module>payment-adapter-persistence</module>-->
+        <module>app</module>
         <module>store</module>
     </modules>
 
