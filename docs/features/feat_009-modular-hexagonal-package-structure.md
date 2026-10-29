@@ -93,5 +93,6 @@ com.grab.app.{group}
 ### Tech Specs (Technology Decisions & Rules)
 
 - [Domain Group Context Hexagonal Packaging Tech Spec](../spec/system/group-context-hexagonal-packaging-tech-spec.md)
+- [Workflow Core Hexagonal Packaging Tech Spec](../spec/system/workflow-hexagonal-packaging-tech-spec.md)
 - [Seller Platform BFF Hexagonal Packaging Tech Spec](../spec/system/seller-platform-hexagonal-packaging-tech-spec.md)
 - [Marketplace Platform BFF Hexagonal Packaging Tech Spec](../spec/system/marketplace-platform-hexagonal-packaging-tech-spec.md)
