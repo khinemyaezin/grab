@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "inventory_outbox_event", indexes = {
+@Table(name = "outbox_record", indexes = {
         @Index(name = "idx_inventory_outbox_status_available", columnList = "status, available_at"),
         @Index(name = "idx_inventory_outbox_claimed_at", columnList = "claimed_at"),
         @Index(name = "idx_inventory_outbox_aggregate", columnList = "aggregate_type, aggregate_id"),
