@@ -33,39 +33,43 @@ If catalog, inventory, and pricing each maintained disjoint, uncoordinated persi
 
 ### Core Concept
 
-The Catalog Service Group (`com.grab.app.catalog`) consolidates three bounded contexts—`catalog`, `inventory`, and `pricing`—under a single logical PostgreSQL schema named `'catalog'`. The entire service group shares a dedicated `HikariDataSource` connection pool (`CatalogHikariPool`) and a unified Flyway migration stream targeting `classpath:db/migration/catalog`.
+The Catalog Service Group (`com.grab.app.catalog`) operates its own dedicated PostgreSQL database instance named `catalog_db`. Within `catalog_db`, each bounded context owns a dedicated relational schema:
+- `catalog` domain $\rightarrow$ schema `'catalog'`
+- `inventory` domain $\rightarrow$ schema `'inventory'`
+- `pricing` domain $\rightarrow$ schema `'pricing'`
+
+The service group shares an optimized `HikariDataSource` connection pool (`CatalogHikariPool`, max 15) targeting `catalog_db`, while each domain executes independent Flyway migration streams into its dedicated schema.
 
 ```mermaid
-flowchart TD
-    subgraph CatalogServiceGroup ["Catalog Service Group (product-service)"]
-        CatalogBC["Catalog Domain Service"]
-        InventoryBC["Inventory Domain Service"]
-        PricingBC["Pricing Domain Service"]
-    end
+flowchart TB
+ subgraph s3["Connection Pool\n max:15"]
+        n5["Catalog\nDatasource"]
+  end
+ subgraph s4["Persistence Unit"]
+        n6["Catalog"]
+        n8["Pricing"]
+        n9["Inventory"]
+  end
+ subgraph s5["Domain Group"]
+        n11["Catalog"]
+        n12["Pricing"]
+        n13["Inventory"]
+  end
+    s3 --> n10["Database\n Instance"]
+    n11 -- "<span style=text-wrap-mode:>@Transaction</span>" --> n6
+    n12 -- "<span style=text-wrap-mode:>@Transaction</span>" --> n8
+    n13 -- @Transaction --> n9
+    s4 --> s3
 
-    subgraph PoolLayer ["Dedicated HikariCP Pool"]
-        CatPool["CatalogHikariPool (Max: 15 per pod)"]
-    end
-
-    subgraph SchemaLayer ["Shared PostgreSQL Instance: Schema 'catalog'"]
-        FlywayHistory[("catalog.flyway_schema_history")]
-        OutboxTable[("catalog.outbox_record")]
-        CatalogTables[("catalog.catalog_product\ncatalog.product_variant\ncatalog.product_category")]
-        InventoryTables[("catalog.inventory_level\ncatalog.inventory_reservation\ncatalog.inventory_location")]
-        PricingTables[("catalog.pricing_rule\ncatalog.price_list\ncatalog.price_tier")]
-    end
-
-    CatalogBC --> CatPool
-    InventoryBC --> CatPool
-    PricingBC --> CatPool
-
-    CatPool --> CatalogTables
-    CatPool --> InventoryTables
-    CatPool --> PricingTables
-    CatPool --> OutboxTable
-    CatPool --> FlywayHistory
+    n5@{ shape: rect}
+    n6@{ shape: rect}
+    n8@{ shape: proc}
+    n9@{ shape: rect}
+    n11@{ shape: rect}
+    n12@{ shape: proc}
+    n13@{ shape: rect}
+    n10@{ shape: cyl}
 ```
-
 ### How It Works Step by Step
 
 | Step | What Happens | Why |
@@ -88,38 +92,6 @@ flowchart TD
 
 ## 3. How We Use It
 
-### Where It Fits in Our System / Architecture & Layer Stacking
-
-```mermaid
-flowchart TB
-    subgraph UseCases ["Catalog Application Layer"]
-        CreateProduct["CreateProductUseCase"]
-        AdjustStock["AdjustInventoryUseCase"]
-        DefinePrice["SetPriceRuleUseCase"]
-    end
-
-    subgraph Adapters ["Persistence Adapter Layer"]
-        CatRepo["CatalogRepositoryAdapter"]
-        InvRepo["InventoryRepositoryAdapter"]
-        PriceRepo["PricingRepositoryAdapter"]
-    end
-
-    subgraph Infrastructure ["Catalog Persistence Configuration"]
-        DataSource["CatalogHikariDataSource (@CatalogPersistenceUnit)"]
-        TxManager["CatalogTransactionManager (@CatalogTransactional)"]
-    end
-
-    subgraph Database ["PostgreSQL Schema 'catalog'"]
-        CatSchema[("Schema: catalog\nExclusive Table Ownership\nZero Cross-Schema Joins")]
-    end
-
-    CreateProduct --> CatRepo --> DataSource
-    AdjustStock --> InvRepo --> DataSource
-    DefinePrice --> PriceRepo --> DataSource
-    DataSource --> CatSchema
-    TxManager --> DataSource
-```
-
 ### Component Responsibilities
 
 | Component | Role | What It Does |
@@ -130,38 +102,18 @@ flowchart TB
 | **`PricingRepositoryAdapter`** | Outbound Adapter | Persists regional price matrices and rule precedence configurations. |
 | **`CatalogOutboxProducer`** | Outbox Infrastructure | Writes domain events (`ProductCreated`, `InventoryReserved`) to `catalog.outbox_record`. |
 
-### Runtime Flow
-
-> A product creation flow atomically updates catalog tables and commits an outbox record within schema `'catalog'`.
-
-```mermaid
-sequenceDiagram
-    participant UseCase as CreateProductUseCase
-    participant TX as @CatalogTransactional
-    participant CatRepo as CatalogRepositoryAdapter
-    participant Outbox as CatalogOutboxProducer
-    participant DB as Schema 'catalog'
-
-    UseCase->>TX: Begin Local Transaction
-    TX->>CatRepo: save(productAggregate)
-    CatRepo->>DB: INSERT INTO catalog.catalog_product (...)
-    CatRepo->>DB: INSERT INTO catalog.product_variant (...)
-    TX->>Outbox: publish(ProductCreatedEvent)
-    Outbox->>DB: INSERT INTO catalog.outbox_record (...)
-    TX->>DB: COMMIT (Both operations atomic)
-    DB-->>TX: OK
-    TX-->>UseCase: Done (Product Created)
-```
-
 ### Configuration Specification
+
+#### 1. Group Database Configuration (Catalog DB Instance)
 
 ```yaml
 grab:
   catalog:
     datasource:
-      jdbc-url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:grab_commerce}?currentSchema=catalog
+      jdbc-url: jdbc:postgresql://${CATALOG_DB_HOST:localhost}:${CATALOG_DB_PORT:5432}/${CATALOG_DB_NAME:catalog_db}
       username: ${CATALOG_DB_USER:catalog_user}
       password: ${CATALOG_DB_PASSWORD:catalog_secret}
+      driver-class-name: org.postgresql.Driver
       hikari:
         maximum-pool-size: 15
         minimum-idle: 3
@@ -169,27 +121,69 @@ grab:
         idle-timeout: 600000
         max-lifetime: 1800000
         pool-name: CatalogHikariPool
-    flyway:
-      schemas: catalog
-      default-schema: catalog
-      table: flyway_schema_history
-      locations: classpath:db/migration/catalog
 ```
 
+#### 2. Domain Module Configurations (Schema per Domain on Catalog DB Instance)
+
+Existing domain module configuration keys are preserved, reference the parent group datasource, and target their dedicated schema:
+
+```yaml
+catalog:
+  datasource:
+    jdbc-url: ${grab.catalog.datasource.jdbc-url}?currentSchema=catalog
+    username: ${grab.catalog.datasource.username}
+    password: ${grab.catalog.datasource.password}
+    driver-class-name: ${grab.catalog.datasource.driver-class-name}
+    hikari:
+      pool-name: CatalogHikariPool
+  flyway:
+    schemas: catalog
+    default-schema: catalog
+    table: flyway_schema_history
+    locations: classpath:db/migration/catalog
+
+inventory:
+  datasource:
+    jdbc-url: ${grab.catalog.datasource.jdbc-url}?currentSchema=inventory
+    username: ${grab.catalog.datasource.username}
+    password: ${grab.catalog.datasource.password}
+    driver-class-name: ${grab.catalog.datasource.driver-class-name}
+    hikari:
+      pool-name: CatalogHikariPool
+  flyway:
+    schemas: inventory
+    default-schema: inventory
+    table: flyway_schema_history
+    locations: classpath:db/migration/inventory
+
+pricing:
+  datasource:
+    jdbc-url: ${grab.catalog.datasource.jdbc-url}?currentSchema=pricing
+    username: ${grab.catalog.datasource.username}
+    password: ${grab.catalog.datasource.password}
+    driver-class-name: ${grab.catalog.datasource.driver-class-name}
+    hikari:
+      pool-name: CatalogHikariPool
+  flyway:
+    schemas: pricing
+    default-schema: pricing
+    table: flyway_schema_history
+    locations: classpath:db/migration/pricing
+```
 ---
 
 ## 4. Implementation Rules
 
 > These are **non-negotiable contracts**. An implementation is compliant only when **all** rules are satisfied.
 
-- **RULE-CAT-DB-01: Shared Schema Encapsulation**
-  The `catalog`, `inventory`, and `pricing` bounded contexts MUST share schema `'catalog'`. They MUST NOT access tables in any other schema (such as `"order"` or `account`).
+- **RULE-CAT-DB-01: Schema per Domain Encapsulation**
+  Within database instance `catalog_db`, each bounded context MUST operate strictly within its assigned schema (`catalog`, `inventory`, `pricing`). Bounded contexts MUST NOT access tables in another domain's schema.
 
 - **RULE-CAT-DB-02: Zero Cross-Context Joins**
-  Even though `catalog_product` and `inventory_item` reside in the same schema `'catalog'`, cross-context SQL joins or JPA entity mappings between them are strictly prohibited. Relationships MUST be referenced via `Id` only.
+  Even though `catalog_product` and `inventory_item` reside in the same database instance `catalog_db`, cross-context SQL joins or JPA entity mappings between them are strictly prohibited. Relationships MUST be referenced via typed `Id` only.
 
-- **RULE-CAT-DB-03: Shared Pool Budgeting**
-  All three bounded contexts MUST share `CatalogHikariPool`. Total connections across replicas ($N \times O \times 15$) must stay within the budgeted allocation.
+- **RULE-CAT-DB-03: Dedicated Group Pool & Central Schema Qualification**
+  All catalog service group bounded contexts MUST connect directly to `catalog_db` via `CatalogHikariPool` (`maximum-pool-size: 15`). All JPA entities and queries MUST configure `hibernate.default_schema` (`catalog`, `inventory`, `pricing`) to route queries to their domain schema without hardcoding schemas in `@Table` annotations.
 
 - **RULE-CAT-DB-04: Atomic Local Outbox Commit**
-  All catalog, inventory, and pricing events MUST be written to `catalog.outbox_record` within the `@CatalogTransactional` boundary.
+  All domain events MUST be written to their respective domain schema outbox table (`catalog.outbox_record`, `inventory.outbox_record`, `pricing.outbox_record`) within their domain `@CatalogTransactional` boundary.

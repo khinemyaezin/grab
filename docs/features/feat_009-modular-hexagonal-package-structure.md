@@ -44,24 +44,30 @@ Without rigid package boundaries, monolithic applications inevitably degrade int
 
 ### How does this feature work?
 
-> The diagram below illustrates the hexagonal separation of domain services and the stateless composition of platform BFF layers.
+> The diagram and package layout below illustrate the hexagonal port-and-adapter architecture for domain group services (`com.grab.app.{group}`) and bounded contexts (`{domain}`), detailing how inbound/outbound ports and adapters interact with the CQRS bus, persistence, and external callers.
 
-```mermaid
-flowchart TD
-    subgraph PlatformBFF ["Platform BFF Layer (Stateless Assembly)"]
-        WebController["REST Controller"] --> BFFService["Platform Service"]
-        BFFService --> CapabilityPort["Domain Capability Outbound Port"]
-    end
+#### Hexagonal Package Directory Structure
 
-    subgraph DomainService ["Domain Service (Hexagonal Core)"]
-        CapabilityPort --> InboundPort["Inbound UseCase Port"]
-        InboundPort --> UseCaseService["UseCase Implementation Service"]
-        UseCaseService --> DomainCore["Domain Entities & Policies"]
-        UseCaseService --> OutboundPort["Outbound Repository Port"]
-        OutboundPort --> PersistenceAdapter["Intra-Domain Persistence Adapter"]
-    end
-
-    PersistenceAdapter --> Database[("Service Schema")]
+```text
+com.grab.app.{group}
+  ├── internal/
+  │   └── config/                       # Shared-database & CQRS-bus configuration
+  └── {domain}/
+      ├── port/                         # Public Inbound Ports
+      │   ├── message/                  # Inbound usecase / capability interfaces
+      │   └── event/                    # Intra integration event interfaces
+      └── internal/                     # Encapsulated implementation details
+          ├── config/                   # Domain-specific configuration
+          ├── adapter/
+          │   ├── inbound/              # Inbound Port Implementations (Ingress)
+          │   │   ├── message/          # Implements port.message & dispatches to CQRS bus
+          │   │   └── event/            # Integration event listener implementing port.event
+          │   └── outbound/             # Outbound Port Implementations (Egress)
+          │       ├── event/            # Integration event publisher (Transactional Outbox)
+          │       ├── message/          # Implements outbound intra-domain query interfaces
+          │       └── persistence/      # Repository adapter & JPA entity mappings
+          ├── command/                  # CQRS Command handlers & write models
+          └── query/                    # CQRS Query handlers & read projections
 ```
 
 ### Key Design Decisions
@@ -78,12 +84,14 @@ flowchart TD
 
 ### Domain Specs (Data Models & Business Rules)
 
-- None; this feature defines architectural package boundaries. Domain aggregates (e.g., Product, Cart, Order, Customer) are specified in their respective domain specifications under `grab/docs/spec/domain/`.
+- None
 
 ### Workflow Specs (Process Flows)
 
-- None; package structure is a static architectural constraint.
+- None
 
 ### Tech Specs (Technology Decisions & Rules)
 
-- [Hexagonal Modular Service Packaging Tech Spec](../spec/system/hexagonal-modular-service-packaging-tech-spec.md)
+- [Domain Group Context Hexagonal Packaging Tech Spec](../spec/system/group-context-hexagonal-packaging-tech-spec.md)
+- [Seller Platform BFF Hexagonal Packaging Tech Spec](../spec/system/seller-platform-hexagonal-packaging-tech-spec.md)
+- [Marketplace Platform BFF Hexagonal Packaging Tech Spec](../spec/system/marketplace-platform-hexagonal-packaging-tech-spec.md)

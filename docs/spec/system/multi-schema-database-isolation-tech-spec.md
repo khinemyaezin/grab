@@ -7,7 +7,8 @@
   - [Catalog Service Group Persistence](catalog-service-group-persistence-tech-spec.md) (`catalog`, `inventory`, `pricing` $\rightarrow$ schema `'catalog'`)
   - [Order Service Group Persistence](order-service-group-persistence-tech-spec.md) (`cart`, `order`, `payment` $\rightarrow$ schema `'"order"'`)
   - [Account Service Group Persistence](account-service-group-persistence-tech-spec.md) (`identity`, `merchant`, `customer` $\rightarrow$ schema `'account'`)
-  - [Channel Service Group Persistence](channel-service-group-persistence-tech-spec.md) (`saleschannel`, `region` $\rightarrow$ schema `'channel'`; `discovery` $\rightarrow$ separate connection)
+  - [Channel Service Group Persistence](channel-service-group-persistence-tech-spec.md) (`saleschannel`, `region` $\rightarrow$ schema `'channel'`)
+  - [Discovery Service Persistence](discovery-service-persistence-tech-spec.md) (`discovery` $\rightarrow$ dedicated separate connection & projection tables)
 
 ---
 
@@ -21,17 +22,17 @@ When all modules share an unpartitioned database schema and a single connection 
 
 | Option | Decision | Why |
 |:-------|:---------|:----|
-| **Multi-Schema with Per-Domain Configurable Overrides** | Adopted | Balances operational simplicity with microservice extraction readiness. By default, domain services within a service group share the group's schema on a shared database instance, while allowing any individual domain service (such as `discovery` in `channel`) to configure a dedicated connection pool or separate database instance. |
+| **Database Instance per Service Group with Schema per Domain** | Adopted | Complete physical and I/O isolation per functional group. Each service group operates its own database instance (`catalog_db`, `order_db`, `account_db`, `channel_db`), while each domain occupies its dedicated schema. Pods connect directly using bounded HikariCP connection pools, avoiding external proxy layers like PgBouncer for simplicity. |
 | Single Shared Schema & Shared Pool | Rejected | High blast radius: a slow query in one domain starves connection resources across all domains; cross-table foreign keys couple modules permanently. |
-| Mandatory Separate Physical Database per Domain | Deferred | Operational overkill for current scale; introduces premature network latency, multi-instance hosting costs, and distributed data management before business traffic demands it. |
+| Single Monolithic Database Instance for All Services | Rejected | Shared database instance means CPU, RAM, disk I/O, and storage are physically shared across all domains; catalog flash sales crash checkout databases. |
 
 ### Trade-offs
 
 | Benefits | Trade-offs |
 |:---------|:-----------|
-| Domain services within a group share a common schema by default, minimizing database instance and migration overhead. | Shared database instance means CPU, RAM, disk I/O, and storage are physically shared; noisy neighbors can impact overall I/O. |
-| Heavy read-projection domains (such as `discovery`) can operate on dedicated connection pools or read-replicas without starving administrative channel management. | Requires maintaining separate Flyway migration streams and managing two connection pools in the channel service group. |
-| A connection spike in catalog or channel browsing cannot starve the order checkout connection pool. | Cross-schema joins and database foreign keys are strictly prohibited; cross-context data integrity must be maintained at the application layer. |
+| Complete I/O and failure isolation across service groups; failure or load spikes in catalog browsing cannot impact checkout or payment. | Managing four PostgreSQL instances requires independent database maintenance and backups. |
+| Simple, direct connection architecture using battle-tested HikariCP; zero external proxy dependencies. | Application pod replica scaling must respect configured database connection ceilings. |
+| Clean domain boundaries with dedicated Flyway migration streams per schema; zero cross-schema foreign keys. | Cross-context data integrity must be maintained at the application layer using typed identifiers (`Id`) and transactional outbox events. |
 
 ---
 
@@ -39,45 +40,20 @@ When all modules share an unpartitioned database schema and a single connection 
 
 ### Core Concept
 
-The persistence architecture employs a **two-tier configuration and schema isolation model**:
-1. **Service Group Default Schema**: By default, domain services belonging to a service group share the group's schema on a shared PostgreSQL instance:
-   - `catalog` service group (`catalog`, `inventory`, `pricing`) shares schema `'catalog'`.
-   - `order` service group (`cart`, `order`, `payment`) shares schema `'"order"'` (quoted SQL identifier).
-   - `account` service group (`identity`, `merchant`, `customer`) shares schema `'account'`.
-   - `channel` service group: `saleschannel` and `region` share schema `'channel'`.
-2. **Dedicated Discovery Connection & Per-Domain Overrides**:
-   - The `discovery` domain service in the `channel` group operates on a **dedicated separate database connection** (`DiscoveryHikariPool`), isolating high-volume storefront search queries from administrative channel configuration and key management.
-   - Any individual domain service can override its configuration to bind to a custom pool, distinct schema, or dedicated physical database instance without code modification.
-
-```mermaid
-flowchart TB
- subgraph ServiceGroups["Domain Service Groups (Shared PostgreSQL Instance)"]
-        CatGroup["Catalog Group\n(catalog, inventory, pricing)"]
-        OrdGroup["Order Group\n(cart, order, payment)"]
-        AccGroup["Account Group\n(identity, merchant, customer)"]
-        ChanAdmin["Channel Admin\n(saleschannel, region)"]
-  end
- subgraph DedicatedConnections["Dedicated Domain Connection"]
-        DiscoverySvc["Discovery Domain Service\n(storefront browsing projection)"]
-  end
- subgraph SharedDB["Shared PostgreSQL Database Instance"]
-        CatSchema[("Schema: catalog\nShared Pool (max: 15)")]
-        OrdSchema@{ label: "Schema: \"order\"<br>Shared Pool (max: 20)" }
-        AccSchema[("Schema: account\nShared Pool (max: 10)")]
-        ChanSchema[("Schema: channel Pool (max: 10)")]
-  end
- subgraph DedicatedTarget["Discovery Projection Target (Primary or Read-Replica)"]
-        DiscTables[("Discovery Projection Tables\nDiscovery Dedicated Pool (max: 25)")]
-  end
-    CatGroup -- Default Group Pool --> CatSchema
-    OrdGroup -- Default Group Pool --> OrdSchema
-    AccGroup -- Default Group Pool --> AccSchema
-    ChanAdmin -- Channel Admin Pool --> ChanSchema
-    DiscoverySvc -- Dedicated Separate Connection --> DiscTables
-    ChanAdmin --> DiscoverySvc
-
-    OrdSchema@{ shape: cyl}
-```
+The persistence architecture enforces **Database Instance per Service Group** and **Schema per Domain**:
+1. **Database Instance per Service Group**: Rather than a single shared database instance, each service group operates its own autonomous PostgreSQL database instance:
+   - `catalog` service group operates database instance `catalog_db`.
+   - `order` service group operates database instance `order_db`.
+   - `account` service group operates database instance `account_db`.
+   - `channel` service group operates database instance `channel_db`.
+2. **Schema per Domain within Group Instance**:
+   - Inside `catalog_db`: schema `catalog`, schema `inventory`, schema `pricing`.
+   - Inside `order_db`: schema `cart`, schema `"order"` (quoted SQL identifier), schema `payment`.
+   - Inside `account_db`: schema `identity`, schema `merchant`, schema `customer`.
+   - Inside `channel_db`: schema `saleschannel`, schema `region`, schema `discovery`.
+3. **Dedicated Discovery Connection & Per-Domain Overwrites**:
+   - The `discovery` domain service in `channel_db` operates on a **dedicated separate connection pool** (`DiscoveryHikariPool`), isolating high-volume storefront search queries from administrative channel configuration, and is ready for read-replica routing.
+   - Any individual domain service can selectively overwrite its configuration to bind to a separate database instance (e.g. `payment` to a standalone PCI instance) without code changes.
 
 ### How It Works Step by Step
 
@@ -89,32 +65,29 @@ flowchart TB
 | 4 | Use cases execute aggregate queries and mutations through intra-domain repositories. | Enforces that queries and updates stay strictly within the domain's configured persistence unit. |
 | 5 | Domain events and outbox records are inserted into `{schema}.outbox_record` within the local transaction. | Guarantees atomic persistence of aggregate state and outbox events in the same physical database. |
 
-### Connection Pool Sizing & Saturation Budget Formula
+### Connection Pool Management & Direct HikariCP Pooling
 
-To prevent database-wide connection exhaustion on the shared database instance, total connections across all service groups, replicas, and rolling deployment overlaps must not exceed the PostgreSQL maximum connection limit:
+Each service group connects directly to its designated PostgreSQL database instance (`catalog_db`, `order_db`, `account_db`, `channel_db`) using an isolated, bounded **HikariCP connection pool**. This guarantees deterministic connection allocation, prevents catalog browsing bursts from starving checkout operations, and eliminates external proxy layers:
 
-$$\sum_{s \in \text{Services}} \left( N_s \times O_s \times P_s \right) + C_{\text{admin}} + C_{\text{reserve}} \le \text{MaxDBConnections}$$
+```
+[ Application Pod (HikariCP) ] 
+       │
+       ├─► CatalogHikariPool (max: 15)  ───────────────► [ catalog_db:5432 (PostgreSQL) ]
+       ├─► OrderHikariPool (max: 20)    ───────────────► [ order_db:5432 (PostgreSQL) ]
+       ├─► AccountHikariPool (max: 10)  ───────────────► [ account_db:5432 (PostgreSQL) ]
+       ├─► ChannelHikariPool (max: 10)  ──┐
+       └─► DiscoveryHikariPool (max: 25) ─┴────────────► [ channel_db:5432 (PostgreSQL) ]
+```
 
-Where:
-- $N_s$: Number of active service replicas/pods for service or domain $s$.
-- $O_s$: Rolling deployment overlap multiplier (standard is $2.0$, reflecting double capacity during blue/green or rolling updates).
-- $P_s$: Maximum pool size (`maximum-pool-size`) configured in HikariCP for service or domain $s$.
-- $C_{\text{admin}}$: Connections reserved for background workers, Flyway migrations, and monitoring agents (e.g., Datadog/Prometheus).
-- $C_{\text{reserve}}$: PostgreSQL system reserved connections (superuser connections and safety margin, minimum 10%).
-- $\text{MaxDBConnections}$: Maximum connection limit configured on the shared PostgreSQL instance (`max_connections`).
+#### Pool Allocation Matrix per Database Instance
 
-#### Example Budget Calculation (Max Connections = 300)
-
-| Service / Domain Pool | Replicas ($N$) | Overlap ($O$) | Max Pool ($P$) | Total Budgeted Connections | Target Database |
-|:----------------------|:---------------|:--------------|:---------------|:---------------------------|:----------------|
-| `order` (cart, order, payment) | 2 | 2 | 20 | 80 | Shared DB (`"order"`) |
-| `catalog` (catalog, inventory, pricing) | 2 | 2 | 15 | 60 | Shared DB (`catalog`) |
-| `account` (identity, merchant, customer) | 2 | 2 | 10 | 40 | Shared DB (`account`) |
-| `channel` (saleschannel, region) | 2 | 2 | 10 | 40 | Shared DB (`channel`) |
-| `discovery` (separate storefront connection) | 2 | 2 | 25 | *(0 against shared primary)* | Dedicated Read-Replica / Projection Target |
-| Admin / Flyway / Monitoring | — | — | — | 10 | Shared DB |
-| Operational Safety Reserve | — | — | — | 20 | Shared DB |
-| **Total Allocated to Shared Primary DB** | — | — | — | **250 $\le$ 300 (Compliant)** | Shared DB |
+| Service Group Database Instance | Target Database | HikariCP Pool Name | Maximum Pool Size (`maximum-pool-size`) | Minimum Idle (`minimum-idle`) | Target Schemas per Domain |
+|:--------------------------------|:----------------|:-------------------|:----------------------------------------|:------------------------------|:--------------------------|
+| **Catalog DB** | `catalog_db` | `CatalogHikariPool` | 15 | 3 | `catalog`, `inventory`, `pricing` |
+| **Order DB** | `order_db` | `OrderHikariPool` | 20 | 5 | `cart`, `"order"`, `payment` |
+| **Account DB** | `account_db` | `AccountHikariPool` | 10 | 2 | `identity`, `merchant`, `customer` |
+| **Channel DB** | `channel_db` | `ChannelHikariPool` | 10 | 2 | `saleschannel`, `region` |
+| **Channel DB (Search)** | `channel_db` | `DiscoveryHikariPool` | 25 | 5 | `discovery` (Read-Replica Ready) |
 
 ---
 
@@ -139,20 +112,22 @@ flowchart TB
     end
 
     subgraph PoolLayer ["HikariCP Connection Pool Layer"]
-        OrderPool["Order Group Pool (max: 20)"]
+        OrderPool["Order Hikari Pool (max: 20)"]
         PaymentPool["Payment Dedicated Pool (max: 15)"]
-        CatalogPool["Catalog Group Pool (max: 15)"]
-        ChannelPool["Channel Group Pool (max: 10)"]
+        CatalogPool["Catalog Hikari Pool (max: 15)"]
+        ChannelPool["Channel Hikari Pool (max: 10)"]
     end
 
-    subgraph DatabaseLayer ["Relational Database Infrastructure"]
-        SharedInstance[("Shared PostgreSQL Instance")]
-        PaymentInstance[("Standalone Payment DB Instance\n- Host: payment-db.internal\n- Schema: public")]
+    subgraph DatabaseLayer ["PostgreSQL Database Infrastructure"]
+        CatalogInstance[("Catalog DB Instance (catalog_db)\n- Schemas: catalog, inventory, pricing")]
+        OrderInstance[("Order DB Instance (order_db)\n- Schemas: cart, 'order', payment")]
+        ChannelInstance[("Channel DB Instance (channel_db)\n- Schemas: saleschannel, region, discovery")]
+        PaymentInstance[("Standalone Payment DB Instance (Overridden)\n- Host: payment-db.internal\n- Schema: payment")]
     end
 
-    OrderUseCase --> OrderAdapter --> OrderPool -->|"currentSchema=\"order\""| SharedInstance
-    CatalogUseCase --> CatalogAdapter --> CatalogPool -->|"currentSchema=catalog"| SharedInstance
-    ChannelUseCase --> ChannelAdapter --> ChannelPool -->|"currentSchema=channel"| SharedInstance
+    OrderUseCase --> OrderAdapter --> OrderPool --> OrderInstance
+    CatalogUseCase --> CatalogAdapter --> CatalogPool --> CatalogInstance
+    ChannelUseCase --> ChannelAdapter --> ChannelPool --> ChannelInstance
     PaymentUseCase --> PaymentAdapter --> PaymentPool -->|"Dedicated Connection"| PaymentInstance
 ```
 
@@ -160,104 +135,11 @@ flowchart TB
 
 | Component | Role | What It Does |
 |:----------|:-----|:-------------|
-| **Group Default Datasource** | Baseline Persistence Configuration | Provides shared connection pool, Flyway location, and default schema for all bounded contexts within a service group. |
+| **Group Default Datasource** | Baseline Persistence Configuration | Declares group database connection endpoint, default credentials, and HikariCP pool settings. |
 | **Domain Datasource Override** | Granular Connection Configuration | Allows an individual bounded context to declare custom JDBC URL, credentials, pool limits, or target database instance. |
 | **Flyway Migration Runner** | Schema DDL Migration Authority | Executes domain-specific SQL migrations (`db/migration/{domain}`) and maintains a discrete `flyway_schema_history` table in the target schema. |
-| **HikariCP Pool Manager** | Connection Budget Enforcer | Enforces maximum pool limits per persistence unit to prevent connection exhaustion. |
+| **HikariCP Local Pool** | In-JVM Concurrency Manager | Manages thread-to-connection handoff within the application pod (`maximum-pool-size: 10–20`). |
 | **Transactional Outbox Table** | Reliable Event Store | Persists integration events atomically within the local database transaction of the mutating domain service. |
-
-### Runtime Flow
-
-> Shows a local transaction commit with outbox event persistence on either the shared group schema or an overridden database instance.
-
-```mermaid
-sequenceDiagram
-    participant UseCase as Domain UseCase
-    participant TX as PlatformTransactionManager
-    participant Repo as Domain Repository Adapter
-    participant Outbox as Local Outbox Table
-    participant DB as Target Schema / DB Instance
-
-    UseCase->>TX: Begin Local Transaction (@{Module}Transactional)
-    TX->>Repo: Persist Aggregate State
-    Repo->>DB: INSERT / UPDATE entity in target schema
-    TX->>Outbox: Persist Domain Event
-    Outbox->>DB: INSERT INTO outbox_record
-    TX->>DB: COMMIT (Aggregate + Outbox atomic)
-    DB-->>TX: Transaction Committed
-    TX-->>UseCase: Operation Succeeded
-```
-
-### Configuration Hierarchy & Override Model
-
-Configuration resolves via a two-tier hierarchy: **Domain Service Override $\rightarrow$ Service Group Default $\rightarrow$ Global Shared Database**.
-
-#### 1. Group Default Configuration (Shared Database Instance)
-
-Domain services without explicit overrides inherit group defaults:
-
-```yaml
-grab:
-  order:
-    datasource:
-      jdbc-url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:grab_commerce}?currentSchema="order"
-      username: ${ORDER_DB_USER:order_user}
-      password: ${ORDER_DB_PASSWORD:order_secret}
-      hikari:
-        maximum-pool-size: 20
-        minimum-idle: 5
-        connection-timeout: 30000
-        pool-name: OrderHikariPool
-    flyway:
-      schemas: '"order"'
-      default-schema: '"order"'
-      table: flyway_schema_history
-      locations: classpath:db/migration/order
-
-  channel:
-    datasource:
-      jdbc-url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:grab_commerce}?currentSchema=channel
-      username: ${CHANNEL_DB_USER:channel_user}
-      password: ${CHANNEL_DB_PASSWORD:channel_secret}
-      hikari:
-        maximum-pool-size: 10
-        minimum-idle: 2
-        connection-timeout: 30000
-        pool-name: ChannelHikariPool
-    flyway:
-      schemas: channel
-      default-schema: channel
-      table: flyway_schema_history
-      locations: classpath:db/migration/channel
-```
-
-#### 2. Granular Per-Domain Override (Dedicated Connection / Instance)
-
-When an individual domain service (e.g., `payment`) requires an independent connection pool, schema, or separate database instance:
-
-```yaml
-grab:
-  order:
-    domains:
-      payment:
-        datasource:
-          # Overrides group host to target a dedicated physical database instance
-          jdbc-url: jdbc:postgresql://${PAYMENT_DB_HOST:payment-db.internal}:${PAYMENT_DB_PORT:5432}/${PAYMENT_DB_NAME:payment_standalone}
-          username: ${PAYMENT_DB_USER:payment_app}
-          password: ${PAYMENT_DB_PASSWORD:payment_secret}
-          hikari:
-            maximum-pool-size: 15
-            minimum-idle: 3
-            pool-name: PaymentDedicatedPool
-        flyway:
-          schemas: public
-          default-schema: public
-          table: flyway_schema_history
-          locations: classpath:db/migration/payment
-```
-
-> [!WARNING]
-> Configuring an override connection or redirecting to a separate database instance does **not** automatically migrate historical data. Physical extraction requires an independent schema migration, ETL data backfill, and cutover window.
 
 ---
 
@@ -277,13 +159,11 @@ grab:
 - **RULE-DB-04: Isolated Connection Pools per Persistence Unit**
   Each persistence unit MUST maintain its own dedicated `HikariDataSource`. Services or overridden domains MUST NOT share a connection pool under any circumstances.
 
-- **RULE-DB-05: Strict Connection Budget Compliance**
-  Every deployment configuration on the shared database instance MUST satisfy the Connection Budgeting Formula:
-  $$\sum (N \times O \times P) + C_{\text{admin}} + C_{\text{reserve}} \le \text{MaxDBConnections}$$
-  Increasing pool size or pod replica counts without validating against the shared connection budget is prohibited.
+- **RULE-DB-05: Dedicated Connection Pool per Persistence Unit**
+  Each persistence unit MUST maintain its own dedicated `HikariDataSource` with bounded pool sizes (`maximum-pool-size`) and timeouts directly connecting to its PostgreSQL database instance. Direct application connections to PostgreSQL are standard without intermediate proxies. All entities and queries MUST configure `hibernate.default_schema` for domain schema qualification.
 
-- **RULE-DB-06: Single Outbox Table per Service Group Schema**
-  Each service group schema MUST maintain exactly ONE outbox table (`{schema}.outbox_record`). All domain bounded contexts within that service group (e.g., `catalog`, `inventory`, `pricing` in schema `catalog`) MUST insert their integration events into this single shared outbox table within their local ACID database transaction. A single unified relay poller per service group claims and publishes these events.
+- **RULE-DB-06: One Outbox Table per Domain Schema**
+  Each domain schema MUST maintain its own outbox table (`{schema}.outbox_record`). All domain events MUST be inserted into this local outbox table within their domain transaction boundary (`@{Domain}Transactional`).
 
 - **RULE-DB-07: Independent Migration Streams per Schema**
   Each domain service or group MUST maintain its own independent Flyway migration folder (`db/migration/{domain}`) and record history in its own `{schema}.flyway_schema_history` table.

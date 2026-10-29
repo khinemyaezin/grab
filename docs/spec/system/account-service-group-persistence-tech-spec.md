@@ -33,38 +33,12 @@ If user identity, merchant governance, and customer management were intermingled
 
 ### Core Concept
 
-The Account Service Group (`com.grab.app.account`) groups `identity`, `merchant`, and `customer` bounded contexts under a single logical PostgreSQL schema named `'account'`. The service group operates a dedicated `AccountHikariPool` and runs an independent Flyway migration pipeline targeting `classpath:db/migration/account`.
+The Account Service Group (`com.grab.app.account`) operates its own dedicated PostgreSQL database instance named `account_db`. Within `account_db`, each bounded context owns a dedicated relational schema:
+- `identity` domain $\rightarrow$ schema `'identity'`
+- `merchant` domain $\rightarrow$ schema `'merchant'`
+- `customer` domain $\rightarrow$ schema `'customer'`
 
-```mermaid
-flowchart TD
-    subgraph AccountServiceGroup ["Account Service Group (account-service)"]
-        IdentityBC["Identity Domain Service"]
-        MerchantBC["Merchant Domain Service"]
-        CustomerBC["Customer Domain Service"]
-    end
-
-    subgraph PoolLayer ["Dedicated HikariCP Pool"]
-        AccPool["AccountHikariPool (Max: 10 per pod)"]
-    end
-
-    subgraph SchemaLayer ["Shared PostgreSQL Instance: Schema 'account'"]
-        FlywayHistory[("account.flyway_schema_history")]
-        OutboxTable[("account.outbox_record")]
-        IdentityTables[("account.user_credential\naccount.role_binding\naccount.auth_session")]
-        MerchantTables[("account.merchant_account\naccount.merchant_profile\naccount.merchant_setting")]
-        CustomerTables[("account.customer_account\naccount.customer_profile\naccount.customer_address")]
-    end
-
-    IdentityBC --> AccPool
-    MerchantBC --> AccPool
-    CustomerBC --> AccPool
-
-    AccPool --> IdentityTables
-    AccPool --> MerchantTables
-    AccPool --> CustomerTables
-    AccPool --> OutboxTable
-    AccPool --> FlywayHistory
-```
+The service group operates a dedicated `AccountHikariPool` (max 10) targeting `account_db`, while each domain executes independent Flyway migration streams into its dedicated schema.
 
 ### How It Works Step by Step
 
@@ -88,38 +62,6 @@ flowchart TD
 
 ## 3. How We Use It
 
-### Where It Fits in Our System / Architecture & Layer Stacking
-
-```mermaid
-flowchart TB
-    subgraph UseCases ["Account Application Layer"]
-        RegisterUser["RegisterUserUseCase"]
-        OnboardMerchant["OnboardMerchantUseCase"]
-        UpdateAddress["UpdateCustomerAddressUseCase"]
-    end
-
-    subgraph Adapters ["Persistence Adapter Layer"]
-        IdentRepo["IdentityRepositoryAdapter"]
-        MerchRepo["MerchantRepositoryAdapter"]
-        CustRepo["CustomerRepositoryAdapter"]
-    end
-
-    subgraph Infrastructure ["Account Persistence Configuration"]
-        DataSource["AccountHikariDataSource (@AccountPersistenceUnit)"]
-        TxManager["AccountTransactionManager (@AccountTransactional)"]
-    end
-
-    subgraph Database ["PostgreSQL Schema 'account'"]
-        AccSchema[("Schema: account\nZero Cross-Schema Joins\nExclusive Table Ownership")]
-    end
-
-    RegisterUser --> IdentRepo --> DataSource
-    OnboardMerchant --> MerchRepo --> DataSource
-    UpdateAddress --> CustRepo --> DataSource
-    DataSource --> AccSchema
-    TxManager --> DataSource
-```
-
 ### Component Responsibilities
 
 | Component | Role | What It Does |
@@ -130,38 +72,18 @@ flowchart TB
 | **`CustomerRepositoryAdapter`** | Outbound Adapter | Manages customer profile records and shipping addresses. |
 | **`AccountOutboxProducer`** | Outbox Infrastructure | Inserts account events (`UserRegistered`, `MerchantApproved`) into `account.outbox_record`. |
 
-### Runtime Flow
-
-> Merchant onboarding flow atomically creates a merchant account and commits an outbox record within schema `'account'`.
-
-```mermaid
-sequenceDiagram
-    participant UseCase as OnboardMerchantUseCase
-    participant TX as @AccountTransactional
-    participant MerchRepo as MerchantRepositoryAdapter
-    participant Outbox as AccountOutboxProducer
-    participant DB as Schema 'account'
-
-    UseCase->>TX: Begin Local Transaction
-    TX->>MerchRepo: save(merchantAggregate)
-    MerchRepo->>DB: INSERT INTO account.merchant_account (...)
-    MerchRepo->>DB: INSERT INTO account.merchant_profile (...)
-    TX->>Outbox: publish(MerchantOnboardedEvent)
-    Outbox->>DB: INSERT INTO account.outbox_record (...)
-    TX->>DB: COMMIT (Merchant + Outbox atomic)
-    DB-->>TX: OK
-    TX-->>UseCase: Done (Merchant Registered)
-```
-
 ### Configuration Specification
+
+#### 1. Group Database Configuration (Account DB Instance)
 
 ```yaml
 grab:
   account:
     datasource:
-      jdbc-url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:grab_commerce}?currentSchema=account
+      jdbc-url: jdbc:postgresql://${ACCOUNT_DB_HOST:localhost}:${ACCOUNT_DB_PORT:5432}/${ACCOUNT_DB_NAME:account_db}
       username: ${ACCOUNT_DB_USER:account_user}
       password: ${ACCOUNT_DB_PASSWORD:account_secret}
+      driver-class-name: org.postgresql.Driver
       hikari:
         maximum-pool-size: 10
         minimum-idle: 2
@@ -169,11 +91,54 @@ grab:
         idle-timeout: 600000
         max-lifetime: 1800000
         pool-name: AccountHikariPool
-    flyway:
-      schemas: account
-      default-schema: account
-      table: flyway_schema_history
-      locations: classpath:db/migration/account
+```
+
+#### 2. Domain Module Configurations (Schema per Domain on Account DB Instance)
+
+Existing domain module configuration keys are preserved, reference the parent group datasource, and target their dedicated schema:
+
+```yaml
+identity:
+  datasource:
+    jdbc-url: ${grab.account.datasource.jdbc-url}?currentSchema=identity
+    username: ${grab.account.datasource.username}
+    password: ${grab.account.datasource.password}
+    driver-class-name: ${grab.account.datasource.driver-class-name}
+    hikari:
+      pool-name: AccountHikariPool
+  flyway:
+    schemas: identity
+    default-schema: identity
+    table: flyway_schema_history
+    locations: classpath:db/migration/identity
+
+merchant:
+  datasource:
+    jdbc-url: ${grab.account.datasource.jdbc-url}?currentSchema=merchant
+    username: ${grab.account.datasource.username}
+    password: ${grab.account.datasource.password}
+    driver-class-name: ${grab.account.datasource.driver-class-name}
+    hikari:
+      pool-name: AccountHikariPool
+  flyway:
+    schemas: merchant
+    default-schema: merchant
+    table: flyway_schema_history
+    locations: classpath:db/migration/merchant
+
+customer:
+  datasource:
+    jdbc-url: ${grab.account.datasource.jdbc-url}?currentSchema=customer
+    username: ${grab.account.datasource.username}
+    password: ${grab.account.datasource.password}
+    driver-class-name: ${grab.account.datasource.driver-class-name}
+    hikari:
+      pool-name: AccountHikariPool
+  flyway:
+    schemas: customer
+    default-schema: customer
+    table: flyway_schema_history
+    locations: classpath:db/migration/customer
 ```
 
 ---
@@ -182,14 +147,14 @@ grab:
 
 > These are **non-negotiable contracts**. An implementation is compliant only when **all** rules are satisfied.
 
-- **RULE-ACC-DB-01: Shared Schema Encapsulation**
-  The `identity`, `merchant`, and `customer` bounded contexts MUST reside in schema `'account'`. They MUST NOT access tables in any other schema (such as `catalog` or `"order"`).
+- **RULE-ACC-DB-01: Schema per Domain Encapsulation**
+  Within database instance `account_db`, each bounded context MUST operate strictly within its assigned schema (`identity`, `merchant`, `customer`). Bounded contexts MUST NOT access tables in another domain's schema.
 
 - **RULE-ACC-DB-02: Zero Cross-Context Foreign Keys**
   Foreign key constraints between `user_credential` and `merchant_account` or `customer_account` are prohibited. References MUST be maintained using typed IDs (`UserId`, `MerchantId`, `CustomerId`).
 
-- **RULE-ACC-DB-03: Shared Pool Budgeting**
-  All three contexts MUST share `AccountHikariPool`. Total connections across replicas ($N \times O \times 10$) must remain within the budgeted allocation.
+- **RULE-ACC-DB-03: Dedicated Group Pool & Central Schema Qualification**
+  All account service group bounded contexts MUST connect directly to `account_db` via `AccountHikariPool` (`maximum-pool-size: 10`). All JPA entities and queries MUST configure `hibernate.default_schema` (`identity`, `merchant`, `customer`) to route queries to their domain schema without hardcoding schemas in `@Table` annotations.
 
 - **RULE-ACC-DB-04: Atomic Local Outbox Commit**
-  All identity, merchant, and customer events MUST be committed to `account.outbox_record` within the local `@AccountTransactional` boundary.
+  All domain events MUST be committed to their respective domain schema outbox table (`identity.outbox_record`, `merchant.outbox_record`, `customer.outbox_record`) within their domain `@AccountTransactional` boundary.
