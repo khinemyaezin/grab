@@ -33,7 +33,7 @@ If catalog, inventory, and pricing each maintained disjoint, uncoordinated persi
 
 ### Core Concept
 
-The Catalog Service Group (`com.grab.app.catalog`) operates its own dedicated PostgreSQL database instance named `catalog_db`. Within `catalog_db`, each bounded context owns a dedicated relational schema:
+The Catalog Service Group (`com.grab.app.merchandising`) operates its own dedicated PostgreSQL database instance named `catalog_db`. Within `catalog_db`, each bounded context owns a dedicated relational schema:
 - `catalog` domain $\rightarrow$ schema `'catalog'`
 - `inventory` domain $\rightarrow$ schema `'inventory'`
 - `pricing` domain $\rightarrow$ schema `'pricing'`

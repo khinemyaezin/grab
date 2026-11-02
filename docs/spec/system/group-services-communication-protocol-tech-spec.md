@@ -148,7 +148,7 @@ sequenceDiagram
 
 #### 1. Universal Domain Port Interface Contract Pattern
 ```java
-// Pure Java Port Interface (Located in com.grab.app.catalog.port.message)
+// Pure Java Port Interface (Located in com.grab.app.merchandising.port.message)
 public interface CatalogProductPort {
     ProductResult createProduct(ProductCreateMessage message);
     ProductResult updateProduct(String productId, ProductUpdateMessage message);
@@ -181,7 +181,7 @@ public record ProductResult(
 
 #### 2. Inbound Adapter Implementation Pattern
 ```java
-// Located in com.grab.app.catalog.internal.adapter.inbound.message
+// Located in com.grab.app.merchandising.internal.adapter.inbound.message
 @Component
 public class CatalogProductPortAdapter implements CatalogProductPort {
 

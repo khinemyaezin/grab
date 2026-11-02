@@ -33,7 +33,7 @@ If cart, order, and payment contexts competed for database connections against b
 
 ### Core Concept
 
-The Order Service Group (`com.grab.app.order`) operates its own dedicated PostgreSQL database instance named `order_db`. Within `order_db`, each bounded context owns a dedicated relational schema:
+The Order Service Group (`com.grab.app.checkout`) operates its own dedicated PostgreSQL database instance named `order_db`. Within `order_db`, each bounded context owns a dedicated relational schema:
 - `cart` domain $\rightarrow$ schema `'cart'`
 - `order` domain $\rightarrow$ schema `'"order"'` (quoted SQL identifier)
 - `payment` domain $\rightarrow$ schema `'payment'`

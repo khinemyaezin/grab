@@ -87,8 +87,8 @@ flowchart TD
     end
 
     subgraph CoreServices ["Core Services Boundary (In-Process)"]
-        CatPort["CatalogPort (com.grab.app.catalog.port.message)"]
-        OrdPort["OrderPort (com.grab.app.order.port.message)"]
+        CatPort["CatalogPort (com.grab.app.merchandising.port.message)"]
+        OrdPort["OrderPort (com.grab.app.checkout.port.message)"]
         WfPort["WorkflowPort (com.grab.app.workflow.port.message)"]
     end
 

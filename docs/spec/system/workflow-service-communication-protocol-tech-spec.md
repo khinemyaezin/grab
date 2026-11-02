@@ -99,8 +99,8 @@ flowchart TD
     end
 
     subgraph DomainPorts ["Domain Service Ports"]
-        CatPort["com.grab.app.catalog.port.message.CatalogProductPort"]
-        InvPort["com.grab.app.catalog.port.message.InventoryPort"]
+        CatPort["com.grab.app.merchandising.port.message.CatalogProductPort"]
+        InvPort["com.grab.app.merchandising.port.message.InventoryPort"]
     end
 
     WfCtrl --> WfOutAdapter

@@ -18,8 +18,8 @@ Without rigid package boundaries, monolithic applications inevitably degrade int
 
 | In Scope | Out of Scope |
 |:---------|:-------------|
-| Domain service grouping: `com.grab.app.catalog` (catalog, inventory, pricing) | Relational database schema isolation and connection pooling (covered in Feat 010) |
-| Domain service grouping: `com.grab.app.order` (cart, order, payment) | Runtime bus dispatching and CQRS pipeline mechanics (covered in Feat 011) |
+| Domain service grouping: `com.grab.app.merchandising` (catalog, inventory, pricing) | Relational database schema isolation and connection pooling (covered in Feat 010) |
+| Domain service grouping: `com.grab.app.checkout` (cart, order, payment) | Runtime bus dispatching and CQRS pipeline mechanics (covered in Feat 011) |
 | Domain service grouping: `com.grab.app.account` (identity, merchant, customer) | Business domain entity attributes and state lifecycles (defined in Domain Specs) |
 | Domain service grouping: `com.grab.app.channel` (saleschannel, region, discovery) | Physical Docker or Kubernetes deployment pipelines |
 | Platform BFF layers: `com.grab.app.platform.seller` and `marketplace` (stateless, no persistence) | Infrastructure hosting and cloud network topologies |
