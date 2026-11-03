@@ -10,22 +10,19 @@ import java.util.List;
  */
 public interface CatalogVariantDefinitionPort {
 
-    List<VariantTypeResult> listVariantTypes();
+    List<VariantTypeMessageResult> listVariantTypes(String name);
 
-    List<VariantOptionResult> listVariantOptions(Id variantTypeId);
+    List<VariantOptionMessageResult> listVariantOptions(String name, Id variantTypeId);
 
-    record VariantTypeResult(
-            Id id,
-            String name,
-            String code,
-            String description
+    record VariantTypeMessageResult(
+            String id,
+            String name
     ) {}
 
-    record VariantOptionResult(
-            Id id,
-            Id variantTypeId,
-            String value,
-            String label
+    record VariantOptionMessageResult(
+            String id,
+            String name,
+            String typeId,
+            String typeName
     ) {}
 }
-

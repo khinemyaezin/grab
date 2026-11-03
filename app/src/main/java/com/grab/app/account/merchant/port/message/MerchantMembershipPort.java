@@ -11,29 +11,35 @@ import java.util.List;
  */
 public interface MerchantMembershipPort {
 
-    MemberResult inviteMember(Id merchantId, InviteMemberMessage message);
+    MemberMessageResult inviteMember(InviteMemberMessage message);
 
-    void acceptInvitation(Id memberId, Id userId);
+    MemberMessageResult acceptInvitation(Id merchantId, Id memberId, Id actorUserId);
 
-    void updateMemberRole(Id memberId, String roleCode);
+    MemberMessageResult updateMemberRole(Id merchantId, Id memberId, Id actorId, String newRole);
 
-    void removeMember(Id memberId);
+    MemberMessageResult removeMember(Id merchantId, Id memberId, Id actorId);
 
-    List<MemberResult> listMembers(Id merchantId);
+    List<MemberMessageResult> listMembers(Id merchantId);
 
     record InviteMemberMessage(
-            String email,
-            String roleCode
+            Id merchantId,
+            Id actorId,
+            Id targetUserId,
+            String role,
+            Instant expiresAt
     ) {}
 
-    record MemberResult(
-            Id id,
-            Id merchantId,
-            Id userId,
-            String email,
-            String roleCode,
+    record MemberMessageResult(
+            String memberId,
+            String merchantId,
+            String userId,
+            String role,
             String status,
-            Instant joinedAt
+            String invitedBy,
+            Instant invitationExpiresAt,
+            Instant joinedAt,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
     ) {}
 }
-

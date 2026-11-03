@@ -13,67 +13,46 @@ import java.util.Optional;
  */
 public interface PriceListPort {
 
-    PriceListResult createPriceList(CreatePriceListMessage message);
+    PriceListMessageResult createPriceList(CreatePriceListMessage message);
 
-    PriceListResult updatePriceList(Id priceListId, UpdatePriceListMessage message);
+    Optional<PriceListMessageResult> findPriceListById(Id priceListId);
 
-    void deletePriceList(Id priceListId);
-
-    void updateRules(Id priceListId, List<PriceRuleMessage> rules);
-
-    void addPrices(Id priceListId, List<AddPriceEntryMessage> prices);
-
-    void deletePrice(Id priceListId, Id priceId);
-
-    Optional<PriceListResult> findPriceListById(Id priceListId);
-
-    List<PriceListResult> listPriceLists(Id merchantId);
-
-    List<String> listPricingAttributeKeys();
+    List<PriceListMessageResult> listPriceLists();
 
     record CreatePriceListMessage(
-            Id merchantId,
-            String name,
+            String title,
             String description,
-            String currencyCode,
-            String status,
-            Instant startsAt,
-            Instant endsAt,
-            List<PriceRuleMessage> rules
-    ) {}
-
-    record UpdatePriceListMessage(
-            String name,
-            String description,
-            String status,
+            String type,
             Instant startsAt,
             Instant endsAt
     ) {}
 
-    record PriceRuleMessage(
-            String attributeKey,
-            String operator,
-            String value
-    ) {}
-
-    record AddPriceEntryMessage(
-            Id variantId,
-            BigDecimal amount,
-            String currencyCode,
-            int minQuantity
-    ) {}
-
-    record PriceListResult(
-            Id id,
-            Id merchantId,
-            String name,
+    record PriceListMessageResult(
+            String id,
+            String title,
             String description,
-            String currencyCode,
             String status,
+            String type,
             Instant startsAt,
             Instant endsAt,
-            List<PriceRuleMessage> rules,
-            Instant createdAt
+            List<PriceListRuleMessageResult> rules,
+            List<PriceEntryMessageResult> prices
+    ) {}
+
+    record PriceListRuleMessageResult(
+            String id,
+            String attribute,
+            List<String> values
+    ) {}
+
+    record PriceEntryMessageResult(
+            String id,
+            String title,
+            String currencyCode,
+            BigDecimal amount,
+            Integer minQuantity,
+            Integer maxQuantity,
+            String priceSetId,
+            String priceListId
     ) {}
 }
-

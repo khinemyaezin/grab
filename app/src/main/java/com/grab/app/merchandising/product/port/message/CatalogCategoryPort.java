@@ -2,7 +2,6 @@ package com.grab.app.merchandising.product.port.message;
 
 import com.grab.framework.id.Id;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,53 +11,39 @@ import java.util.Optional;
  */
 public interface CatalogCategoryPort {
 
-    CategoryResult createCategory(CreateCategoryMessage message);
-
-    CategoryResult updateCategory(Id categoryId, UpdateCategoryMessage message);
+    CategoryMessageResult createCategory(CreateCategoryMessage message);
 
     void deleteCategory(Id categoryId);
 
-    Optional<CategoryResult> findCategoryById(Id categoryId);
+    Optional<CategoryMessageResult> findCategoryById(Id categoryId);
 
-    CategoryTreeResult getCategoryTree(Id rootCategoryId);
+    CategoryTreeNodeResult getCategoryTree(Id rootCategoryId);
 
-    Optional<CategoryResult> getParentCategory(Id categoryId);
+    List<CategoryMessageResult> getChildCategories(Id categoryId);
 
-    List<CategoryResult> getChildCategories(Id categoryId);
-
-    List<CategoryResult> getLeafCategories();
+    List<CategoryMessageResult> getLeafCategories(String name);
 
     record CreateCategoryMessage(
-            Id merchantId,
             String name,
-            String slug,
-            String description,
-            Id parentCategoryId,
-            int sortOrder
+            Id parentId,
+            Boolean active,
+            Boolean listingAllowed,
+            Boolean c2cAllowed
     ) {}
 
-    record UpdateCategoryMessage(
+    record CategoryMessageResult(
+            String id,
             String name,
-            String slug,
-            String description,
-            Id parentCategoryId,
-            int sortOrder
+            String parentId,
+            boolean active,
+            boolean listingAllowed,
+            boolean c2cAllowed
     ) {}
 
-    record CategoryResult(
-            Id id,
-            Id merchantId,
+    record CategoryTreeNodeResult(
+            String id,
             String name,
-            String slug,
-            String description,
-            Id parentCategoryId,
-            int sortOrder,
-            Instant createdAt
-    ) {}
-
-    record CategoryTreeResult(
-            CategoryResult root,
-            List<CategoryTreeResult> children
+            String parentId,
+            List<CategoryTreeNodeResult> children
     ) {}
 }
-

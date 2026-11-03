@@ -3,8 +3,8 @@ package com.grab.app.merchandising.pricing.port.message;
 import com.grab.framework.id.Id;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -13,92 +13,60 @@ import java.util.Optional;
  */
 public interface PriceSetPort {
 
-    PriceSetResult createPriceSet(CreatePriceSetMessage message);
+    PriceSetMessageResult createPriceSet();
 
-    void addPrices(Id priceSetId, List<PriceValueMessage> prices);
+    Optional<PriceSetMessageResult> findPriceSetById(Id priceSetId);
 
-    void updatePrice(Id priceSetId, Id priceId, UpdatePriceValueMessage message);
+    List<CalculatedPriceMessageResult> calculatePrices(CalculatePriceMessage message);
 
-    void deletePrice(Id priceSetId, Id priceId);
+    PricePreferenceMessageResult createPricePreference(CreatePricePreferenceMessage message);
 
-    void deletePriceSet(Id priceSetId);
-
-    Optional<PriceSetResult> findPriceSetById(Id priceSetId);
-
-    void linkVariantToPriceSet(Id variantId, Id priceSetId);
-
-    Optional<Id> findPriceSetIdForVariant(Id variantId);
-
-    CalculatedPriceResult calculatePrice(CalculatePriceMessage message);
-
-    // Preferences
-    PricePreferenceResult createPricePreference(CreatePricePreferenceMessage message);
-
-    Optional<PricePreferenceResult> findPricePreferenceById(Id preferenceId);
-
-    void deletePricePreference(Id preferenceId);
-
-    record CreatePriceSetMessage(
-            Id merchantId,
-            String name,
-            List<PriceValueMessage> initialPrices
-    ) {}
-
-    record PriceValueMessage(
-            BigDecimal amount,
-            String currencyCode,
-            Id regionId,
-            int minQuantity
-    ) {}
-
-    record UpdatePriceValueMessage(
-            BigDecimal amount,
-            int minQuantity
-    ) {}
+    Optional<PricePreferenceMessageResult> findPricePreferenceById(Id preferenceId);
 
     record CalculatePriceMessage(
-            Id priceSetId,
+            List<Id> priceSetIds,
             String currencyCode,
-            Id regionId,
-            int quantity
+            Integer quantity,
+            Map<String, String> attributes
     ) {}
 
-    record CalculatedPriceResult(
+    record CalculatedPriceMessageResult(
+            String id,
+            String currencyCode,
             BigDecimal calculatedAmount,
+            boolean calculatedPricePriceList,
+            boolean calculatedPriceTaxInclusive,
             BigDecimal originalAmount,
+            boolean originalPricePriceList,
+            boolean originalPriceTaxInclusive
+    ) {}
+
+    record PriceSetMessageResult(
+            String id,
+            List<PriceEntryMessageResult> prices
+    ) {}
+
+    record PriceEntryMessageResult(
+            String id,
+            String title,
             String currencyCode,
-            Id appliedPriceSetId
-    ) {}
-
-    record PriceSetResult(
-            Id id,
-            Id merchantId,
-            String name,
-            List<PriceEntryResult> prices,
-            Instant createdAt
-    ) {}
-
-    record PriceEntryResult(
-            Id id,
             BigDecimal amount,
-            String currencyCode,
-            Id regionId,
-            int minQuantity
+            Integer minQuantity,
+            Integer maxQuantity,
+            String priceSetId,
+            String priceListId
     ) {}
 
     record CreatePricePreferenceMessage(
-            Id merchantId,
-            String scopeKey,
-            String scopeId,
-            String rule
+            String attribute,
+            String value,
+            boolean taxInclusive
     ) {}
 
-    record PricePreferenceResult(
-            Id id,
-            Id merchantId,
-            String scopeKey,
-            String scopeId,
-            String rule
+    record PricePreferenceMessageResult(
+            String id,
+            String attribute,
+            String value,
+            boolean taxInclusive
     ) {}
 }
-

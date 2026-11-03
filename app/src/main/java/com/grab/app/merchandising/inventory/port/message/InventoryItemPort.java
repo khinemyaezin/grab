@@ -2,7 +2,7 @@ package com.grab.app.merchandising.inventory.port.message;
 
 import com.grab.framework.id.Id;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,149 +12,58 @@ import java.util.Optional;
  */
 public interface InventoryItemPort {
 
-    InventoryItemResult createInventoryItem(CreateInventoryItemMessage message);
+    ItemMessageResult createInventoryItem(CreateInventoryItemMessage message);
 
-    void receiveStock(Id itemId, ReceiveStockMessage message);
+    Optional<ItemMessageResult> findItemById(Id itemId);
 
-    ReservationResult reserveStock(Id itemId, ReserveStockMessage message);
-
-    void releaseReservation(Id itemId, Id reservationId);
-
-    void shipReservation(Id itemId, Id reservationId);
-
-    void adjustStock(Id itemId, AdjustStockMessage message);
-
-    void markDamaged(Id itemId, MarkDamagedMessage message);
-
-    void writeOffStock(Id itemId, WriteOffStockMessage message);
-
-    void returnToVendor(Id itemId, ReturnToVendorMessage message);
-
-    void transferStock(Id itemId, TransferStockMessage message);
-
-    void updateReorderConfig(Id itemId, UpdateReorderConfigMessage message);
-
-    void suspendItem(Id itemId);
-
-    void activateItem(Id itemId);
-
-    void discontinueItem(Id itemId);
-
-    Optional<InventoryItemResult> findItemById(Id itemId);
-
-    InventorySummaryResult getInventorySummary(Id merchantId);
-
-    List<InventoryItemResult> searchInventoryItems(InventorySearchCriteria criteria);
-
-    List<MovementResult> listMovements(Id itemId, int page, int size);
-
-    List<ReservationResult> listReservations(Id itemId, int page, int size);
+    Optional<MovementMessageResult> findLatestMovement(Id itemId);
 
     record CreateInventoryItemMessage(
-            Id merchantId,
-            Id variantId,
             String sku,
+            String variantId,
+            Id merchantId,
             Id locationId,
-            Id zoneId,
-            Id binId,
             int initialQuantity,
-            int safetyStock
+            Integer safetyStock,
+            Integer reorderPoint,
+            Integer reorderQuantity,
+            Integer maxStock,
+            Id createdBy,
+            String scopeKey,
+            String scopeId
     ) {}
 
-    record ReceiveStockMessage(
-            int quantity,
-            String batchNumber,
-            String reference
-    ) {}
-
-    record ReserveStockMessage(
-            int quantity,
-            Id orderId,
-            Instant expiresAt
-    ) {}
-
-    record AdjustStockMessage(
-            int adjustedQuantity,
-            String reason
-    ) {}
-
-    record MarkDamagedMessage(
-            int quantity,
-            String notes
-    ) {}
-
-    record WriteOffStockMessage(
-            int quantity,
-            String reason
-    ) {}
-
-    record ReturnToVendorMessage(
-            int quantity,
-            String vendorId,
-            String reason
-    ) {}
-
-    record TransferStockMessage(
-            int quantity,
-            Id sourceLocationId,
-            Id targetLocationId
-    ) {}
-
-    record UpdateReorderConfigMessage(
-            int reorderPoint,
-            int reorderQuantity
-    ) {}
-
-    record InventorySearchCriteria(
-            Id merchantId,
-            Id locationId,
-            String sku,
-            String status,
-            int page,
-            int size
-    ) {}
-
-    record InventoryItemResult(
+    record ItemMessageResult(
             Id id,
-            Id merchantId,
-            Id variantId,
             String sku,
+            String productName,
             Id locationId,
-            int onHandQuantity,
-            int reservedQuantity,
-            int availableQuantity,
+            String locationCode,
+            String locationName,
+            int onHand,
+            int reserved,
+            int inTransit,
+            int damaged,
+            int available,
+            String status,
             int safetyStock,
-            String status,
-            Instant updatedAt
+            int reorderPoint,
+            int reorderQuantity,
+            Integer maxStock
     ) {}
 
-    record ReservationResult(
-            Id reservationId,
-            Id itemId,
+    record MovementMessageResult(
+            Id id,
+            Id inventoryItemId,
+            String type,
             int quantity,
-            Id orderId,
-            String status,
-            Instant expiresAt,
-            Instant createdAt
-    ) {}
-
-    record MovementResult(
-            Id movementId,
-            Id itemId,
-            String movementType,
-            int quantityChange,
-            int resultantQuantity,
-            String reference,
-            Instant occurredAt
-    ) {}
-
-    record InventorySummaryResult(
-            Id merchantId,
-            int totalSkus,
-            int totalOnHand,
-            int totalReserved,
-            int totalAvailable,
-            int lowStockCount
+            int quantityBefore,
+            int quantityAfter,
+            int onHandBefore,
+            int onHandAfter,
+            int reservedBefore,
+            int reservedAfter,
+            String referenceId,
+            LocalDateTime createdAt
     ) {}
 }
-

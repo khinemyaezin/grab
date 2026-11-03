@@ -8,65 +8,65 @@ import java.util.Optional;
 
 /**
  * Universal Java Port Interface for Merchant Account lifecycle and Onboarding applications.
- * Unifies MerchantController, MerchantAdminController, and Retailer/C2C Application controllers.
+ * Replaces MerchantController, MerchantAdminController, and Retailer/C2C Application controllers.
  */
 public interface MerchantAccountPort {
 
-    MerchantResult submitApplication(SubmitMerchantApplicationMessage message);
+    MerchantMessageResult startApplication(StartMerchantApplicationMessage message);
 
-    void approveMerchant(Id merchantId);
+    MerchantMessageResult submitApplication(Id merchantId, Id applicantUserId);
 
-    void rejectMerchant(Id merchantId, String reason);
+    MerchantMessageResult approveMerchant(Id merchantId, Id actorId);
 
-    void requestChanges(Id merchantId, String comments);
+    MerchantMessageResult rejectMerchant(Id merchantId, Id actorId, String reason);
 
-    void suspendMerchant(Id merchantId, String reason);
+    MerchantMessageResult requestChanges(Id merchantId, Id actorId, String comments);
 
-    void reactivateMerchant(Id merchantId);
+    MerchantMessageResult suspendMerchant(Id merchantId, Id actorId, String reason);
 
-    void closeMerchant(Id merchantId);
+    MerchantMessageResult reactivateMerchant(Id merchantId, Id actorId);
 
-    void updateProfile(Id merchantId, UpdateMerchantProfileMessage message);
+    MerchantMessageResult closeMerchant(Id merchantId, Id actorId);
 
-    Optional<MerchantResult> findMerchantById(Id merchantId);
+    MerchantMessageResult updateProfile(UpdateMerchantProfileMessage message);
 
-    List<MerchantResult> listMerchants(MerchantSearchCriteria criteria);
+    Optional<MerchantMessageResult> findMerchantById(Id merchantId, Id actorId, boolean reviewerAccess, boolean scopedAccess);
 
-    record SubmitMerchantApplicationMessage(
-            Id ownerUserId,
-            String businessName,
+    List<MerchantMessageResult> listMyMerchants(Id applicantUserId);
+
+    List<MerchantMessageResult> listReviewQueue(String status);
+
+    record StartMerchantApplicationMessage(
+            Id applicantUserId,
             String businessType, // FIRST_PARTY, THIRD_PARTY, C2C
-            String taxNumber,
-            String contactEmail,
-            String contactPhone,
-            String countryCode
+            String displayName,
+            String primaryMarketCountryCode
     ) {}
 
     record UpdateMerchantProfileMessage(
-            String businessName,
+            Id merchantId,
+            Id applicantUserId,
+            String legalName,
+            String displayName,
+            String registrationCountryCode,
+            String registrationNumber,
             String contactEmail,
             String contactPhone,
-            String logoUrl
+            String addressLine1,
+            String addressLine2,
+            String addressCity,
+            String addressRegion,
+            String addressPostalCode,
+            String addressCountryCode
     ) {}
 
-    record MerchantSearchCriteria(
-            String status,
-            String businessType,
-            String query,
-            int page,
-            int size
-    ) {}
-
-    record MerchantResult(
-            Id id,
-            Id ownerUserId,
-            String businessName,
+    record MerchantMessageResult(
+            String merchantId,
             String businessType,
             String status,
-            String contactEmail,
-            String contactPhone,
-            String countryCode,
-            Instant createdAt
+            String legalName,
+            String displayName,
+            Instant createdAt,
+            Instant updatedAt
     ) {}
 }
-

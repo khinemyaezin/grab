@@ -2,8 +2,7 @@ package com.grab.app.account.identity.port.message;
 
 import com.grab.framework.id.Id;
 
-import java.time.Instant;
-import java.util.Optional;
+import java.util.Set;
 
 /**
  * Universal Java Port Interface for Identity Authentication and Token operations.
@@ -20,7 +19,7 @@ public interface AuthenticationPort {
     UserRegistrationResult registerUser(RegisterUserMessage message);
 
     record LoginMessage(
-            String username,
+            String email,
             String password
     ) {}
 
@@ -29,31 +28,29 @@ public interface AuthenticationPort {
     ) {}
 
     record LogoutMessage(
-            Id userId,
-            String token
+            String refreshToken
     ) {}
 
     record RegisterUserMessage(
-            String username,
             String email,
-            String rawPassword,
-            String fullName
+            String password
     ) {}
 
     record AuthTokensResult(
             String accessToken,
             String refreshToken,
-            String tokenType,
-            long expiresInSeconds,
-            Id userId
+            long expiresInMs,
+            String userId,
+            String email,
+            Set<String> roles,
+            String status,
+            boolean contextSelectionRequired
     ) {}
 
     record UserRegistrationResult(
-            Id userId,
-            String username,
+            String id,
             String email,
             String status,
-            Instant createdAt
+            String createdAt
     ) {}
 }
-

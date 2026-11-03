@@ -2,10 +2,7 @@ package com.grab.app.merchandising.product.port.message;
 
 import com.grab.framework.id.Id;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -16,170 +13,77 @@ public interface CatalogProductPort {
 
     ProductResult createProduct(CreateProductMessage message);
 
-    ProductResult updateProduct(Id productId, UpdateProductMessage message);
+    ProductResult updateProduct(Id merchantId, Id productId, UpdateProductMessage message);
 
-    void deleteProduct(Id productId);
+    void deleteProduct(Id merchantId, Id productId);
 
-    ProductResult updateProductStatus(Id productId, String status);
+    ProductResult updateProductStatus(Id merchantId, Id productId, String status);
 
-    void publishToChannels(Id productId, List<Id> salesChannelIds);
-
-    void unpublishFromChannels(Id productId, List<Id> salesChannelIds);
-
-    void suspendProduct(Id productId, String reason);
-
-    void restoreProduct(Id productId);
-
-    ProductResult replaceDescriptions(Id productId, List<ProductDescriptionMessage> descriptions);
-
-    ProductResult replaceMedia(Id productId, List<ProductMediaMessage> media);
-
-    Optional<ProductResult> findProductById(Id productId);
+    Optional<ProductResult> findProductById(Id merchantId, Id productId);
 
     Optional<ProductResult> findProductBySlug(String slug);
 
     List<ProductSummaryResult> searchProducts(ProductSearchCriteria criteria);
 
-    VariantResult createVariant(Id productId, CreateVariantMessage message);
-
-    VariantResult updateVariant(Id productId, Id variantId, UpdateVariantMessage message);
-
-    void deleteVariant(Id productId, Id variantId);
-
-    void restoreVariant(Id productId, Id variantId);
-
-    Optional<VariantResult> findVariantById(Id productId, Id variantId);
-
-    List<VariantResult> searchVariants(VariantSearchCriteria criteria);
-
-    VariationMatrixResult generateVariationMatrix(Id productId, VariationMatrixRequestMessage message);
-
-    VariantResult batchVariantImages(Id productId, Id variantId, List<VariantImageMessage> images);
-
-    // ==========================================
-    // Inbound Message Records
-    // ==========================================
+    Optional<VariantResult> findVariantById(Id merchantId, Id productId, Id variantId);
 
     record CreateProductMessage(
             Id merchantId,
-            String title,
+            String name,
+            Id categoryId,
+            String condition,
             String slug,
-            String description,
-            Id categoryId,
-            List<CreateVariantMessage> variants,
-            List<ProductMediaMessage> media,
-            Map<String, String> attributes
-    ) {}
-
-    record UpdateProductMessage(
-            String title,
-            String description,
-            Id categoryId,
-            Map<String, String> attributes
+            String status,
+            List<CreateVariantMessage> variants
     ) {}
 
     record CreateVariantMessage(
             String sku,
-            String title,
-            BigDecimal price,
-            String currencyCode,
-            boolean manageInventory,
-            Map<String, String> optionValues
+            boolean manageInventory
     ) {}
 
-    record UpdateVariantMessage(
-            String title,
-            BigDecimal price,
-            String currencyCode,
-            boolean manageInventory,
-            Map<String, String> optionValues
-    ) {}
-
-    record ProductDescriptionMessage(
-            String languageCode,
-            String description,
-            String bulletPoints
-    ) {}
-
-    record ProductMediaMessage(
-            String mediaType,
-            String url,
-            int sortOrder,
-            boolean primaryImage
-    ) {}
-
-    record VariantImageMessage(
-            String url,
-            int sortOrder,
-            boolean thumbnail
+    record UpdateProductMessage(
+            String name,
+            Id categoryId,
+            String condition,
+            String slug
     ) {}
 
     record ProductSearchCriteria(
             Id merchantId,
-            Id categoryId,
-            String status,
             String query,
+            String variantStatus,
+            Id categoryId,
+            String productStatus,
             int page,
             int size
     ) {}
-
-    record VariantSearchCriteria(
-            Id productId,
-            String sku,
-            String status,
-            int page,
-            int size
-    ) {}
-
-    record VariationMatrixRequestMessage(
-            List<Id> optionValueIds
-    ) {}
-
-    // ==========================================
-    // Outbound Result Records
-    // ==========================================
 
     record ProductResult(
-            Id id,
-            Id merchantId,
-            String title,
-            String slug,
-            String description,
-            Id categoryId,
+            String id,
+            String name,
+            String categoryId,
+            String categoryName,
+            String condition,
             String status,
-            List<VariantResult> variants,
-            List<ProductMediaMessage> media,
-            Instant createdAt,
-            Instant updatedAt
+            String slug,
+            List<VariantResult> variants
     ) {}
 
     record VariantResult(
-            Id variantId,
-            Id productId,
+            String id,
             String sku,
-            String title,
-            BigDecimal price,
-            String currencyCode,
             String status,
-            boolean manageInventory,
-            Map<String, String> optionValues,
-            List<VariantImageMessage> images
+            String matrixKey,
+            boolean manageInventory
     ) {}
 
     record ProductSummaryResult(
-            Id id,
-            Id merchantId,
-            String title,
-            String slug,
-            Id categoryId,
+            String productId,
+            String productName,
             String status,
-            int variantCount,
-            Instant createdAt
-    ) {}
-
-    record VariationMatrixResult(
-            Id productId,
-            List<VariantResult> generatedVariants
+            String slug,
+            String categoryName,
+            String categoryId
     ) {}
 }
-

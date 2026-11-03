@@ -11,38 +11,36 @@ import java.util.Set;
  */
 public interface RolePermissionPort {
 
-    RoleResult createRole(CreateRoleMessage message);
+    RoleItemResult createRole(CreateRoleMessage message);
 
     void grantAuthorityToRole(String roleCode, String authorityCode);
 
     void revokeAuthorityFromRole(String roleCode, String authorityCode);
 
-    List<RoleResult> listRoles();
+    List<RoleItemResult> listRoles(String name, int page, int size);
 
-    List<String> listRoleSuggestions();
-
-    List<AuthorityDefinitionResult> listAllAuthorities();
+    List<RoleSuggestionResult> searchRoles(String name);
 
     record CreateRoleMessage(
             String roleCode,
             String name,
             String description,
-            Set<String> initialAuthorities
+            Set<String> authorityCodes
     ) {}
 
-    record RoleResult(
-            Id id,
-            String roleCode,
+    record RoleItemResult(
+            String code,
             String name,
             String description,
+            String kind,
+            boolean active,
+            boolean assignable,
             Set<String> authorities
     ) {}
 
-    record AuthorityDefinitionResult(
-            String code,
+    record RoleSuggestionResult(
+            Long id,
             String name,
-            String category,
-            String description
+            String code
     ) {}
 }
-

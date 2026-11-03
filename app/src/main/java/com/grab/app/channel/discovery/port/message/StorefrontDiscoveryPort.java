@@ -2,7 +2,6 @@ package com.grab.app.channel.discovery.port.message;
 
 import com.grab.framework.id.Id;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,66 +12,58 @@ import java.util.Optional;
  */
 public interface StorefrontDiscoveryPort {
 
-    StorefrontSearchResult searchProducts(StorefrontSearchCriteria criteria);
+    List<StorefrontOfferMessageResult> searchProducts(StorefrontSearchCriteria criteria);
 
-    Optional<StorefrontProductDetailResult> findProductBySlug(String slug, ShoppingContext context);
+    Optional<StorefrontOfferMessageResult> findProductBySlug(String publishableKey, String countryCode, String locale, String slug);
 
-    ShoppingContext resolveShoppingContext(String rawPublishableKey, String countryOrRegionId);
-
-    record ShoppingContext(
-            Id salesChannelId,
-            Id regionId,
-            String currencyCode,
-            String countryCode
-    ) {}
+    ResolvedContextMessageResult resolveShoppingContext(String publishableKey, String countryCode, String locale);
 
     record StorefrontSearchCriteria(
-            ShoppingContext context,
+            String publishableKey,
+            String countryCode,
+            String locale,
+            String keyword,
             Id categoryId,
-            String query,
-            BigDecimal minPrice,
-            BigDecimal maxPrice,
-            Map<String, String> attributeFilters,
             int page,
             int size
     ) {}
 
-    record StorefrontSearchResult(
-            List<StorefrontProductSummaryResult> items,
-            long totalElements,
-            int totalPages,
-            int currentPage
-    ) {}
-
-    record StorefrontProductSummaryResult(
-            Id productId,
-            String title,
-            String slug,
-            String thumbnail,
-            BigDecimal price,
-            BigDecimal originalPrice,
+    record ResolvedContextMessageResult(
+            Id salesChannelId,
+            Id regionId,
+            String countryCode,
             String currencyCode,
-            boolean inStock
+            String locale,
+            boolean regionServed
     ) {}
 
-    record StorefrontProductDetailResult(
+    record StorefrontOfferMessageResult(
             Id productId,
+            Id merchantId,
+            Id categoryId,
             String title,
             String slug,
             String description,
-            List<String> mediaUrls,
-            List<StorefrontVariantDetailResult> variants
+            String thumbnail,
+            String productStatus,
+            boolean published,
+            boolean hasStock,
+            boolean buyable,
+            String minPrice,
+            String maxPrice,
+            List<VariantOfferMessageResult> variants
     ) {}
 
-    record StorefrontVariantDetailResult(
+    record VariantOfferMessageResult(
             Id variantId,
             String sku,
             String title,
-            BigDecimal price,
-            BigDecimal originalPrice,
-            String currencyCode,
+            String status,
+            Map<String, String> optionValues,
+            int availableQty,
             boolean inStock,
-            Map<String, String> optionValues
+            boolean buyable,
+            String amount,
+            String originalAmount
     ) {}
 }
-

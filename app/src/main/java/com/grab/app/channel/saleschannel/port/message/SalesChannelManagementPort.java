@@ -2,7 +2,6 @@ package com.grab.app.channel.saleschannel.port.message;
 
 import com.grab.framework.id.Id;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,38 +11,23 @@ import java.util.Optional;
  */
 public interface SalesChannelManagementPort {
 
-    SalesChannelResult createSalesChannel(CreateSalesChannelMessage message);
+    ProvisionResult provisionMerchantWebsiteChannel(Id merchantId, String countryCode);
 
-    SalesChannelResult updateSalesChannel(Id channelId, UpdateSalesChannelMessage message);
+    Optional<ChannelMessageResult> findChannelById(String salesChannelId, String merchantId);
 
-    void enableSalesChannel(Id channelId);
+    List<ChannelMessageResult> listChannels(String merchantId, int page, int size);
 
-    void disableSalesChannel(Id channelId);
-
-    Optional<SalesChannelResult> findChannelById(Id channelId);
-
-    List<SalesChannelResult> listChannels(Id merchantId);
-
-    record CreateSalesChannelMessage(
-            Id merchantId,
-            String name,
-            String description,
-            String channelType // WEBSITE, MARKETPLACE, MOBILE_APP
+    record ProvisionResult(
+            Id salesChannelId,
+            boolean created
     ) {}
 
-    record UpdateSalesChannelMessage(
+    record ChannelMessageResult(
+            String salesChannelId,
             String name,
-            String description
-    ) {}
-
-    record SalesChannelResult(
-            Id id,
-            Id merchantId,
-            String name,
-            String description,
-            String channelType,
-            String status,
-            Instant createdAt
+            String type,
+            String owner,
+            String merchantId,
+            String status
     ) {}
 }
-

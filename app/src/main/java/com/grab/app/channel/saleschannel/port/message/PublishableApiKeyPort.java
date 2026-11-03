@@ -3,7 +3,6 @@ package com.grab.app.channel.saleschannel.port.message;
 import com.grab.framework.id.Id;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -14,31 +13,27 @@ public interface PublishableApiKeyPort {
 
     PublishableKeyResult createPublishableKey(CreatePublishableKeyMessage message);
 
-    void revokePublishableKey(Id keyId);
-
-    List<PublishableKeyResult> listKeysForChannel(Id salesChannelId);
+    void revokePublishableKey(Id salesChannelId, Id keyId);
 
     Optional<KeyResolutionResult> resolveKey(String rawToken);
 
     record CreatePublishableKeyMessage(
             Id salesChannelId,
-            String title
+            String label
     ) {}
 
     record PublishableKeyResult(
-            Id id,
+            Id keyId,
             Id salesChannelId,
-            String title,
-            String token,
-            String status,
-            Instant createdAt,
-            Instant revokedAt
+            String label,
+            String rawToken,
+            String displayPrefix,
+            Instant createdAt
     ) {}
 
     record KeyResolutionResult(
-            Id keyId,
             Id salesChannelId,
+            boolean channelEnabled,
             boolean keyActive
     ) {}
 }
-

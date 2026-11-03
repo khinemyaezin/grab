@@ -18,10 +18,10 @@ public interface SalesChannelContextPort {
     List<Id> findRegionsForChannel(Id salesChannelId);
 
     record SalesChannelSliceResult(
-            Id salesChannelId,
+            String salesChannelId,
             String channelType,
             String status,
-            Id merchantId
+            String merchantId
     ) {
         public boolean enabled() {
             return "ENABLED".equalsIgnoreCase(status);
@@ -36,4 +36,3 @@ public interface SalesChannelContextPort {
         }
     }
 }
-

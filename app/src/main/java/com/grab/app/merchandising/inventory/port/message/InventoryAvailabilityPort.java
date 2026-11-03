@@ -2,8 +2,8 @@ package com.grab.app.merchandising.inventory.port.message;
 
 import com.grab.framework.id.Id;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -12,52 +12,59 @@ import java.util.Optional;
  */
 public interface InventoryAvailabilityPort {
 
-    boolean checkAvailability(Id variantId, int requestedQuantity);
+    Optional<DiscoveryStockFactResult> findDiscoveryFacts(Id merchantId, String sku, Id salesChannelId);
 
-    Optional<InventoryStockFactResult> findInventoryItemFacts(Id variantId);
+    AllocationMessageResult allocateStock(AllocateStockMessage message);
 
-    Map<Id, Integer> findStockLevels(List<Id> variantIds);
+    void deallocateStock(DeallocateStockMessage message);
 
-    AllocationResult allocate(AllocateStockMessage message);
-
-    void deallocate(DeallocateStockMessage message);
-
-    List<ReorderSuggestionResult> listReorderSuggestions(Id merchantId);
+    List<ReorderSuggestionMessageResult> listReorderSuggestions(Id merchantId, Id locationId, String sku);
 
     record AllocateStockMessage(
-            Id orderId,
-            Id variantId,
-            int quantity
+            String sku,
+            int quantity,
+            String orderId,
+            String orderLineId,
+            Id locationId,
+            LocalDateTime expiresAt,
+            Id createdBy,
+            String scopeKey,
+            String scopeId
     ) {}
 
     record DeallocateStockMessage(
-            Id orderId,
-            Id variantId,
-            int quantity
-    ) {}
-
-    record AllocationResult(
-            Id allocationId,
-            Id orderId,
-            Id variantId,
-            int quantity,
-            String status
-    ) {}
-
-    record InventoryStockFactResult(
-            Id variantId,
-            int onHand,
-            int available,
-            int reserved,
-            boolean inStock
-    ) {}
-
-    record ReorderSuggestionResult(
-            Id variantId,
             String sku,
-            int currentStock,
+            int quantity,
+            String orderId,
+            Id createdBy,
+            String scopeKey,
+            String scopeId
+    ) {}
+
+    record AllocationMessageResult(
+            String reservationId,
+            String orderId,
+            String sku,
+            Id locationId,
+            int quantity,
+            String status,
+            LocalDateTime expiresAt
+    ) {}
+
+    record DiscoveryStockFactResult(
+            int availableQty,
+            boolean allowBackorder
+    ) {}
+
+    record ReorderSuggestionMessageResult(
+            String inventoryItemId,
+            String sku,
+            String productName,
+            String productVariantId,
+            String locationId,
+            int currentAvailable,
             int reorderPoint,
-            int suggestedQuantity
+            int suggestedQuantity,
+            String priority
     ) {}
 }
-

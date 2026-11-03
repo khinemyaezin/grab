@@ -12,42 +12,42 @@ import java.util.Optional;
  */
 public interface MerchantStorefrontPort {
 
-    StorefrontResult createStorefront(CreateStorefrontMessage message);
+    StorefrontMessageResult createStorefront(CreateStorefrontMessage message);
 
-    StorefrontResult updateStorefront(Id storefrontId, UpdateStorefrontMessage message);
+    StorefrontMessageResult updateStorefront(Id storefrontId, Id merchantId, UpdateStorefrontMessage message);
 
-    void activateStorefront(Id storefrontId);
+    void activateStorefront(Id storefrontId, Id merchantId);
 
-    void suspendStorefront(Id storefrontId, String reason);
+    void suspendStorefront(Id storefrontId, Id merchantId, String reason);
 
-    void reactivateStorefront(Id storefrontId);
+    void reactivateStorefront(Id storefrontId, Id merchantId);
 
-    void closeStorefront(Id storefrontId);
+    void closeStorefront(Id storefrontId, Id merchantId);
 
-    Optional<StorefrontResult> findStorefrontById(Id storefrontId);
+    Optional<StorefrontMessageResult> findStorefrontById(Id storefrontId, Id merchantId);
 
-    List<StorefrontResult> listStorefrontsByMerchant(Id merchantId);
+    List<StorefrontMessageResult> listStorefrontsByMerchant(Id merchantId);
 
     record CreateStorefrontMessage(
             Id merchantId,
             String name,
-            String domainUrl,
-            Id defaultSalesChannelId
+            String slug
     ) {}
 
     record UpdateStorefrontMessage(
             String name,
-            String domainUrl
+            String slug
     ) {}
 
-    record StorefrontResult(
-            Id id,
-            Id merchantId,
+    record StorefrontMessageResult(
+            String storefrontId,
+            String merchantId,
             String name,
-            String domainUrl,
-            Id defaultSalesChannelId,
+            String slug,
             String status,
-            Instant createdAt
+            String lifecycleReason,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
     ) {}
 }
-

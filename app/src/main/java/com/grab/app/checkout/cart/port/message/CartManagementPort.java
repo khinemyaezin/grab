@@ -3,7 +3,6 @@ package com.grab.app.checkout.cart.port.message;
 import com.grab.framework.id.Id;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,51 +12,46 @@ import java.util.Optional;
  */
 public interface CartManagementPort {
 
-    CartResult getOrCreateCart(GetOrCreateCartMessage message);
+    CartMessageResult getCurrentCart(GetCurrentCartMessage message);
 
-    CartResult addOrUpdateLineItem(Id cartId, AddOrUpdateLineItemMessage message);
+    CartMessageResult addItem(AddItemMessage message);
 
-    CartResult removeLineItem(Id cartId, Id lineItemId);
-
-    void clearCart(Id cartId);
-
-    Optional<CartResult> findCartById(Id cartId);
-
-    record GetOrCreateCartMessage(
-            Id customerId,
-            String sessionId,
-            Id salesChannelId,
-            Id regionId,
-            String currencyCode
+    record GetCurrentCartMessage(
+            String guestToken,
+            String salesChannelId,
+            String regionId
     ) {}
 
-    record AddOrUpdateLineItemMessage(
-            Id variantId,
+    record AddItemMessage(
+            String guestToken,
+            String salesChannelId,
+            String regionId,
+            String currencyCode,
+            String variantId,
+            int quantity,
+            BigDecimal displayedAmount
+    ) {}
+
+    record CartMessageResult(
+            String cartId,
+            String guestToken,
+            String salesChannelId,
+            String channelType,
+            String regionId,
+            String currencyCode,
+            String status,
+            List<CartLineMessageResult> lines,
+            boolean priceAdjusted
+    ) {}
+
+    record CartLineMessageResult(
+            String lineId,
+            String variantId,
+            String productId,
+            String sellerId,
+            String title,
+            String sku,
+            BigDecimal unitPrice,
             int quantity
     ) {}
-
-    record CartResult(
-            Id id,
-            Id customerId,
-            String sessionId,
-            Id salesChannelId,
-            Id regionId,
-            String currencyCode,
-            List<LineItemResult> items,
-            BigDecimal subtotal,
-            BigDecimal estimatedTax,
-            BigDecimal total,
-            Instant updatedAt
-    ) {}
-
-    record LineItemResult(
-            Id id,
-            Id variantId,
-            String sku,
-            String title,
-            int quantity,
-            BigDecimal unitPrice,
-            BigDecimal lineTotal
-    ) {}
 }
-

@@ -2,7 +2,6 @@ package com.grab.app.merchandising.inventory.port.message;
 
 import com.grab.framework.id.Id;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,9 +11,7 @@ import java.util.Optional;
  */
 public interface InventoryFacilityPort {
 
-    LocationResult createLocation(CreateLocationMessage message);
-
-    LocationResult updateLocation(Id locationId, UpdateLocationMessage message);
+    FacilityLocationResult createLocation(CreateLocationMessage message);
 
     void activateLocation(Id locationId);
 
@@ -22,15 +19,9 @@ public interface InventoryFacilityPort {
 
     void deleteLocation(Id locationId);
 
-    Optional<LocationResult> findLocationById(Id locationId);
+    Optional<FacilityLocationResult> findLocationById(Id locationId);
 
-    Optional<LocationResult> findLocationByCode(String code);
-
-    List<LocationResult> searchLocations(String query, int page, int size);
-
-    ZoneResult createZone(Id locationId, CreateZoneMessage message);
-
-    ZoneResult updateZone(Id zoneId, UpdateZoneMessage message);
+    FacilityZoneResult createZone(Id locationId, CreateZoneMessage message);
 
     void activateZone(Id zoneId);
 
@@ -38,13 +29,9 @@ public interface InventoryFacilityPort {
 
     void deleteZone(Id zoneId);
 
-    Optional<ZoneResult> findZoneById(Id zoneId);
+    Optional<FacilityZoneResult> findZoneById(Id zoneId);
 
-    List<ZoneResult> listZonesByLocation(Id locationId);
-
-    BinResult createBin(Id zoneId, CreateBinMessage message);
-
-    BinResult updateBin(Id binId, UpdateBinMessage message);
+    FacilityBinResult createBin(Id zoneId, CreateBinMessage message);
 
     void activateBin(Id binId);
 
@@ -52,75 +39,64 @@ public interface InventoryFacilityPort {
 
     void deleteBin(Id binId);
 
-    Optional<BinResult> findBinById(Id binId);
-
-    List<BinResult> listBinsByZone(Id zoneId);
+    Optional<FacilityBinResult> findBinById(Id binId);
 
     record CreateLocationMessage(
-            Id merchantId,
+            String merchantId,
             String code,
             String name,
-            String addressLine1,
+            String type,
+            String line1,
+            String line2,
             String city,
-            String countryCode
-    ) {}
-
-    record UpdateLocationMessage(
-            String name,
-            String addressLine1,
-            String city
-    ) {}
-
-    record LocationResult(
-            Id id,
-            Id merchantId,
-            String code,
-            String name,
-            String status,
-            Instant createdAt
+            String state,
+            String postalCode,
+            String country,
+            Id createdBy
     ) {}
 
     record CreateZoneMessage(
             String code,
             String name,
-            String zoneType
-    ) {}
-
-    record UpdateZoneMessage(
-            String name,
-            String zoneType
-    ) {}
-
-    record ZoneResult(
-            Id id,
-            Id locationId,
-            String code,
-            String name,
-            String zoneType,
-            String status
+            String type,
+            String actorId,
+            String scopeKey,
+            String scopeId
     ) {}
 
     record CreateBinMessage(
             String code,
-            String aisle,
-            String shelf,
-            int maxCapacity
+            String name,
+            Integer maxCapacity,
+            String actorId,
+            String scopeKey,
+            String scopeId
     ) {}
 
-    record UpdateBinMessage(
-            String aisle,
-            String shelf,
-            int maxCapacity
+    record FacilityLocationResult(
+            Id id,
+            Id merchantId,
+            String code,
+            String name,
+            String type,
+            boolean active
     ) {}
 
-    record BinResult(
+    record FacilityZoneResult(
+            Id id,
+            Id locationId,
+            String code,
+            String name,
+            String type,
+            boolean active
+    ) {}
+
+    record FacilityBinResult(
             Id id,
             Id zoneId,
             String code,
-            String aisle,
-            String shelf,
-            int maxCapacity,
-            String status
+            String name,
+            Integer maxCapacity,
+            boolean active
     ) {}
 }
-
