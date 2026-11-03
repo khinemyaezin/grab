@@ -1,22 +1,33 @@
-# R4. Services
+# R4. Services & Inbound Adapters
 
-Load when creating or changing command/query services.
+Load when creating or changing BFF services, command/query services, or inbound port adapters.
+
+## Service Archetypes
+
+1. **BFF Orchestration Services (`app/{bff}/service/`)**:
+   - Compose multi-port calls across multiple domain groups for complex screen-level requirements.
+   - Inject domain Universal Java Port interfaces (`*Port`).
+   - Pure orchestration and presentation mapping; no direct database, repository, or CQRS bus access.
+2. **Inbound Port Adapters (`app/{group}/{domain}/internal/adapter/inbound/message/`)**:
+   - Thin message boundary implementing the domain's universal Java port (`*Port`).
+   - Inject group-scoped `CommandBus` / `QueryBus` and dedicated single-operation MapStruct mappers (`*PortMapper`).
+   - Map port messages via `mapper.toCommand(...)` / `mapper.toQuery(...)`, dispatch via bus, and return `mapper.toResponse(...)`.
+3. **Legacy CQRS Command & Query Services (`store/.../service/`)**:
+   - Dispatches via `CommandBus` or `QueryBus`.
 
 ## MUST
 
-- `@Service` + `@RequiredArgsConstructor`
-- Maintain strict separation between CommandService (writes) and QueryService (reads).
-- CommandService: inject only `CommandBus`, operation-specific request mappers (`XxxRequestMapper`), and identity utilities (e.g. `IdGenerator`). Flow: `mapper.toCommand(dto)` then `commandBus.dispatch(command)` then `mapper.toResponse(result)`. Returns `XxxResponse` or ID.
-- QueryService: inject only `QueryBus` and query mappers (`XxxRequestMapper`).
-  - Single: `mapper.toQuery(id)` then `queryBus.dispatch(query)` then `mapper.toResponse(result)`
-  - Paginated list: `mapper.toQuery(filters, pageable)` then `queryBus.dispatch(query)` then `resultPage.map(mapper::toResponse)`
+- `@Service` or `@Component` + `@RequiredArgsConstructor`.
+- Maintain strict CQRS separation between Command path (writes) and Query path (reads).
+- Write path: inject only group-scoped `CommandBus`, operation-specific request mappers (`toCommand`), and identity utilities (`IdGenerator`). Dispatches command, returns response or ID.
+- Read path: inject only group-scoped `QueryBus` and query mappers (`toQuery`). Dispatches query, returns response.
 
 ## MUST NOT
 
-- Mess with each other (no cross-calling between command and query services):
-  - `CommandService` MUST NOT inject, call, or invoke `QueryBus` or any `QueryService`.
-  - `CommandService` MUST NOT perform queries. If business logic needs aggregate data, the command handler/use case must load the aggregate via domain repository port, or required inputs must be provided in the request payload.
-  - `QueryService` MUST NOT inject, call, or invoke `CommandBus` or any `CommandService`.
-  - `QueryService` MUST NOT trigger state changes or side effects.
-- Inject or call ports, repositories, or adapters. Only handlers and use cases touch ports.
-- Contain business rules. Those belong in policies or aggregates.
+- Cross-call between Command and Query pipelines:
+  - Write services / adapters MUST NOT inject, call, or dispatch via `QueryBus` or any query service.
+  - Write services / adapters MUST NOT perform queries. If business logic needs aggregate data, the command handler/use case must load the aggregate via domain repository port, or required inputs must be provided in the request payload.
+  - Read services / adapters MUST NOT inject, call, or dispatch via `CommandBus` or any command service.
+  - Read services / adapters MUST NOT trigger state changes or side effects.
+- Inject or call persistence repositories, JPA repositories, or database adapters. Only handlers and use cases touch persistence ports.
+- Contain domain business rules. Those belong in domain aggregates or domain policies.

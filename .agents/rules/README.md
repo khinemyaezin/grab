@@ -10,9 +10,9 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 
 | Category | Path | Load when |
 |---|---|---|
-| Architecture | `architecture/` | Module layout, dependencies, layers, CQRS flow |
-| Inbound | `inbound/` | REST controllers, services, mappers, commands, queries, handlers, DTOs, HATEOAS |
-| Outbound | `outbound/` | Shared API query ports & adapters, persistence adapters, JPA, infrastructure |
+| Architecture | `architecture/` | Module layout, dependencies, layers, CQRS flow, group bus scoping |
+| Inbound | `inbound/` | REST controllers (Platform BFFs only), services, mappers, commands, queries, handlers, DTOs, HATEOAS |
+| Outbound | `outbound/` | Universal Java ports & adapters, persistence adapters, multi-schema JPA, infrastructure |
 | Domain | `domain/` | Aggregates, domain events, policies |
 | Platform | `platform/` | Errors, transactions, events, logging |
 | Conventions | `conventions/` | Naming, coding style |
@@ -47,21 +47,21 @@ Do not invent diagrams. Do not add pictures. Use the MUST / MUST NOT lists as th
 
 ## Before generating code
 
-Verify all of the following before producing or changing code.
+Verify all of the following before producing or changing code:
 
-1. Controller delegates writes to CommandService and reads to QueryService. No inline logic, no direct bus, port, or repository injection.
-2. MapStruct mapper abstract class exists per Command/Query operation, annotated with `@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)`.
+1. REST controllers reside strictly within Platform BFFs (`sellercentral`, `marketplace`) and delegate writes to `CommandService` / write ports and reads to `QueryService` / read ports. No inline logic, no direct bus, port, or repository injection. Domain services are strictly headless.
+2. MapStruct mapper abstract class exists per Command/Query operation, annotated with `@Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)`, with methods named strictly `toCommand(...)` / `toQuery(...)` and `toResponse(...)`.
 3. Command/Query records use `Id` for identifiers, not `String`.
-4. Handlers are `@Component` implementing `CommandHandler`/`QueryHandler` with the module transactional annotations.
-5. No business logic in controller, service, or mapper. Rules live in aggregates/policies.
-6. Controller returns `EntityModel<T>` or `PagedModel<EntityModel<T>>`.
-7. Model assemblers add HATEOAS links with correct rel naming (entity-level or per-operation).
+4. Handlers are `@Component` implementing `CommandHandler`/`QueryHandler` with group transactional annotations.
+5. No business logic in controller, service, adapter, or mapper. Rules live in aggregates/policies.
+6. Controller returns `ResponseEntity<EntityModel<T>>` or `ResponseEntity<PagedModel<EntityModel<T>>>`.
+7. Model assemblers add HATEOAS links with correct kebab-case rel naming in Platform BFFs.
 8. Every `PagedModel` exposes `list-{entities}` and `create-{entity}` when creation is available.
-9. DTOs are Java records in `dto/request/` and `dto/response/`.
+9. BFF DTOs are Java records in `dto/request/` and `dto/response/`. Port message DTOs are records nested inside the `*Port` interface.
 10. Errors follow the sealed interface pattern with `ErrorCategory` and i18n codes.
 11. Files live in the correct packages per module structure.
 12. Non-`self` rel names are inline string literals. No `LinkRelations` class.
-13. New bounded contexts have a Tier 2 root endpoint and are linked from `ApiRootController`.
+13. Platform BFFs host public API ingress routes (`/api/seller/...`, `/api/marketplace/...`), while domain services expose universal Java port interfaces.
 14. Controllers inject assemblers directly and call `.toModel()` inline.
 15. Logging in infra/app layers uses `Loggers.getLogger()`.
 16. Intermediate variables are extracted. No nested function invocations.
@@ -70,9 +70,9 @@ Verify all of the following before producing or changing code.
 19. Only handlers and use cases inject/use ports and repositories. Never services, controllers, mappers, assemblers, or policies.
 20. Write path: command handler/use case to domain write port `{Domain}Repository`. Query list/search to application query port `{Domain}QueryPort` (implemented by `{Domain}QueryAdapter`), not `JpaRepository`. Spring Data JPA repositories MUST NOT use native queries (`nativeQuery = true`).
 21. Paged search uses a specification class injected into the query adapter. Results are application view records (`{Domain}View`), not JPA entities.
-22. Cross-module integration events MUST be written under `store/src/main/java/com/grab/store/shared/events/{module}/` organized by module folder name. Consuming modules listen via `@EventListener`.
-23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks`. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding. No proxying owner list/search.
+22. Cross-module integration events MUST be published via schema-isolated transactional outbox. Consuming modules listen via `@EventListener`.
+23. Cross-module HATEOAS uses `{owner}::api` and `{Owner}ApiLinks` within Platform BFFs. Consumers do not import owner `internal/` controllers. Same rel names as the owning root. No URL hardcoding.
 24. `shared` remains `@ApplicationModule(type = OPEN)`.
-25. Strict CQRS isolation: CommandService and QueryService never mess with each other or cross-call. CommandService NEVER injects or invokes QueryBus or queries data. QueryService NEVER injects or invokes CommandBus or mutates state.
-26. Outbound API exposure via shared interface ports (instead of gRPC): provider public interface lives in `store/.../{domain}/port/` with DTOs declared inside the interface, provider adapter lives in `store/.../{domain}/internal/api/adapter/{port}Adapter` delegating only to `*UseCase` with transaction starting on the adapter method, and mapper lives in `store/.../{domain}/internal/api/adapter/mapper/{PortName}Mapper`. Consuming modules define an outbound port in `{consumer}-application/.../port/outbound/{TargetDomain}{Capability}Port` and implement it via an adapter in `store/.../{consumer}/internal/adapter/{TargetDomain}{Capability}Adapter`. Persistence adapters are strictly intra-domain.
-27. JPA repository and adapter tests MUST use Testcontainers with the module's target database container (e.g. PostgreSQL, MySQL via `JdbcDatabaseContainer` or `jdbc:tc:...`), avoiding mismatched in-memory databases. Architecture tests in ArchUnit MUST pass without violating layer boundaries, CQRS isolation, or native query prohibitions.
+25. Strict CQRS isolation: `CommandService` and `QueryService` (and write/read adapters) never mess with each other or cross-call. `CommandService` NEVER injects or invokes `QueryBus` or queries data. `QueryService` NEVER injects or invokes `CommandBus` or mutates state. Group buses are strictly scoped.
+26. Three-tier communication protocol: Tier 1 (Platform BFF REST ingress), Tier 2 (Universal Inbound Java Port Interfaces `port.message.*Port` with nested records and thin `*PortAdapter`s mapping to group CQRS buses), Tier 3 (Asynchronous Outbox Event Choreography). Persistence adapters are strictly intra-domain.
+27. Multi-schema database isolation (dedicated schema & HikariCP pool per service group, zero cross-schema joins/FKs). JPA repository and adapter tests MUST use Testcontainers with the target database container. Architecture tests in ArchUnit MUST pass without violating layer boundaries, CQRS bus scoping, headless domain rules, or native query prohibitions.
