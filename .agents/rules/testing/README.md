@@ -39,12 +39,12 @@ Testing in this repository mirrors the **Hexagonal / Clean Architecture + CQRS +
   - All repository tests MUST run against the module's target database engine via Testcontainers. Do not use mismatched in-memory databases (e.g. H2) that hide dialect differences.
   - Test Spring Data derived queries, JPQL `@Query`, Criteria Specifications, and entity-to-view mapping.
 
-### 4. Web & Assembly (`store`)
+### 4. Platform BFFs & Web Assembly (`app`, `store`)
 - **Type**: Slice Tests (`@WebMvcTest`) & Modulith Verification.
 - **Framework**: MockMvc + `@MockBean` + Spring Modulith `ApplicationModules`.
 - **Rules**:
-  - Controllers tested via `@WebMvcTest`: verify HTTP status codes, Bean Validation, and HATEOAS link creation.
-  - Modularity verification: `ApplicationModules.of(StoreApplication.class).verify()`.
+  - BFF controllers tested via `@WebMvcTest`: verify HTTP status codes, Bean Validation, security perimeter authorization, and HATEOAS link creation.
+  - Modularity verification: `ApplicationModules.of(AppApplication.class).verify()` and `ApplicationModules.of(StoreApplication.class).verify()`.
 
 ### 5. Architectural Invariants
 - **Type**: Automated Static Bytecode Architecture Tests.
