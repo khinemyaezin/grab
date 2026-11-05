@@ -1,0 +1,31 @@
+package com.grab.app.account.identity.internal.command.handler;
+
+import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.identity.application.model.write.RegisterSecurityManifestCommand;
+import com.identity.application.model.write.RegisterSecurityManifestResult;
+import com.identity.application.port.inbound.RegisterSecurityManifestUseCase;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+
+@Component
+public class RegisterSecurityManifestCommandHandler
+        implements CommandHandler<RegisterSecurityManifestCommand, RegisterSecurityManifestResult> {
+
+    private final RegisterSecurityManifestUseCase useCase;
+
+    public RegisterSecurityManifestCommandHandler(RegisterSecurityManifestUseCase useCase) {
+        this.useCase = useCase;
+    }
+
+    @Override
+    @IdentityTransactional(propagation = Propagation.REQUIRES_NEW)
+    public RegisterSecurityManifestResult handle(RegisterSecurityManifestCommand command) {
+        return useCase.execute(command);
+    }
+
+    @Override
+    public Class<RegisterSecurityManifestCommand> getCommandType() {
+        return RegisterSecurityManifestCommand.class;
+    }
+}

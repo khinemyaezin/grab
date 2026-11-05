@@ -1,0 +1,30 @@
+package com.grab.app.account.identity.internal.command.handler;
+
+import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.identity.application.model.write.AuthResult;
+import com.identity.application.model.write.SwitchAccessContextCommand;
+import com.identity.application.port.inbound.SwitchAccessContextUseCase;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SwitchAccessContextCommandHandler implements CommandHandler<SwitchAccessContextCommand, AuthResult> {
+
+    private final SwitchAccessContextUseCase switchAccessContextUseCase;
+
+    public SwitchAccessContextCommandHandler(SwitchAccessContextUseCase switchAccessContextUseCase) {
+        this.switchAccessContextUseCase = switchAccessContextUseCase;
+    }
+
+    @Override
+    @IdentityTransactional
+    public AuthResult handle(SwitchAccessContextCommand command) {
+        return switchAccessContextUseCase.execute(command);
+    }
+
+    @Override
+    public Class<SwitchAccessContextCommand> getCommandType() {
+        return SwitchAccessContextCommand.class;
+    }
+}
+

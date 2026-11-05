@@ -1,0 +1,30 @@
+package com.grab.app.account.identity.internal.command.handler;
+
+import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.identity.application.model.write.AccessInvitationResult;
+import com.identity.application.model.write.CancelAccessInvitationCommand;
+import com.identity.application.port.inbound.CancelAccessInvitationUseCase;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CancelAccessInvitationCommandHandler
+        implements CommandHandler<CancelAccessInvitationCommand, AccessInvitationResult> {
+
+    private final CancelAccessInvitationUseCase cancelAccessInvitationUseCase;
+
+    public CancelAccessInvitationCommandHandler(CancelAccessInvitationUseCase cancelAccessInvitationUseCase) {
+        this.cancelAccessInvitationUseCase = cancelAccessInvitationUseCase;
+    }
+
+    @Override
+    @IdentityTransactional
+    public AccessInvitationResult handle(CancelAccessInvitationCommand command) {
+        return cancelAccessInvitationUseCase.execute(command);
+    }
+
+    @Override
+    public Class<CancelAccessInvitationCommand> getCommandType() {
+        return CancelAccessInvitationCommand.class;
+    }
+}
