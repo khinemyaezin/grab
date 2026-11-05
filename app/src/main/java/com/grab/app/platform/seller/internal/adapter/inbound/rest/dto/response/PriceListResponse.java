@@ -1,0 +1,16 @@
+package com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response;
+
+import java.time.Instant;
+import java.util.List;
+
+public record PriceListResponse(
+        String id,
+        String title,
+        String description,
+        String status,
+        String type,
+        Instant startsAt,
+        Instant endsAt,
+        List<PriceListRuleResponse> rules,
+        List<PriceEntryResponse> prices
+) {}
