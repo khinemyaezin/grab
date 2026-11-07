@@ -8,21 +8,33 @@ import com.grab.app.platform.seller.port.outbound.SellerProductCatalogOutboundPo
 import com.grab.app.platform.seller.port.outbound.SellerProductCatalogOutboundPort.ProductOutboundResult;
 import com.grab.app.platform.seller.port.outbound.SellerProductCatalogOutboundPort.VariantOutboundResult;
 import com.grab.app.shared.config.CentralMapperConfig;
+import com.grab.framework.id.impl.CommonId;
 import com.grab.framework.mapper.IdMapper;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+
+import java.util.List;
 
 @Mapper(config = CentralMapperConfig.class, uses = IdMapper.class)
 public abstract class CreateSellerProductMapper {
 
-    @Mapping(target = "merchantId", source = "merchantId")
-    @Mapping(target = "name", source = "request.name")
-    @Mapping(target = "categoryId", source = "request.categoryId")
-    @Mapping(target = "condition", source = "request.condition")
-    @Mapping(target = "slug", source = "request.slug")
-    @Mapping(target = "status", source = "request.status")
-    @Mapping(target = "variants", source = "request.variants")
-    public abstract CreateSellerProductCommand toCommand(String merchantId, CreateProductRequest request);
+    public CreateSellerProductCommand toCommand(String merchantId, CreateProductRequest request) {
+        if (request == null) {
+            return null;
+        }
+        List<CreateVariantRecord> variants = request.resolveVariants() == null
+                ? List.of()
+                : request.resolveVariants().stream().map(this::toVariantRecord).toList();
+
+        return new CreateSellerProductCommand(
+                merchantId != null ? new CommonId(merchantId) : null,
+                request.resolveName(),
+                request.resolveCategoryId() != null ? new CommonId(request.resolveCategoryId()) : null,
+                request.resolveCondition(),
+                request.resolveSlug(),
+                request.resolveStatus(),
+                variants
+        );
+    }
 
     public abstract CreateVariantRecord toVariantRecord(CreateProductRequest.CreateVariantRequest request);
 
@@ -30,4 +42,3 @@ public abstract class CreateSellerProductMapper {
 
     public abstract VariantResponse toVariantResponse(VariantOutboundResult result);
 }
-

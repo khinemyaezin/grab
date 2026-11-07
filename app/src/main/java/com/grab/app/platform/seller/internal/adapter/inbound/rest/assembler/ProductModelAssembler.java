@@ -1,5 +1,6 @@
 package com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler;
 
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.SellerCategoryController;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.SellerProductController;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.ProductResponse;
 import org.springframework.hateoas.EntityModel;
@@ -22,12 +23,15 @@ public class ProductModelAssembler implements RepresentationModelAssembler<Produ
             model.add(linkTo(methodOn(SellerProductController.class).getProduct(response.id(), null)).withSelfRel());
             model.add(linkTo(methodOn(SellerProductController.class).updateProduct(response.id(), null, null)).withRel("update-product"));
             model.add(linkTo(methodOn(SellerProductController.class).deleteProduct(response.id(), null)).withRel("delete-product"));
-            model.add(linkTo(methodOn(SellerProductController.class).updateProductStatus(response.id(), null, null)).withRel("change-product-status"));
+            model.add(linkTo(methodOn(SellerProductController.class).updateProductStatus(response.id(), null, null)).withRel("update-product-status"));
         }
         if (response.slug() != null) {
             model.add(linkTo(methodOn(SellerProductController.class).getProductBySlug(response.slug())).withRel("get-product-by-slug"));
         }
-        model.add(linkTo(methodOn(SellerProductController.class).searchProducts(null, null, 0, 20)).withRel("list-products"));
+        if (response.categoryId() != null) {
+            model.add(linkTo(methodOn(SellerCategoryController.class).getCategory(response.categoryId())).withRel("get-category"));
+        }
+        model.add(linkTo(methodOn(SellerProductController.class).searchProducts(null, null, 0, 20)).withRel("search-products"));
         return model;
     }
 }

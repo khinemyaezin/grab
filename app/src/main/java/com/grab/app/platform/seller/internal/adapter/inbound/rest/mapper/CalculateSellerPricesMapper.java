@@ -6,12 +6,17 @@ import com.grab.app.platform.seller.internal.query.model.SellerPricingQueries.Ca
 import com.grab.app.platform.seller.port.outbound.SellerPricingOutboundPort.CalculatedPriceOutboundResult;
 import com.grab.app.shared.config.CentralMapperConfig;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import java.util.List;
 
 @Mapper(config = CentralMapperConfig.class)
 public abstract class CalculateSellerPricesMapper {
 
+    @Mapping(target = "priceSetIds", source = "priceSetIds")
+    @Mapping(target = "currencyCode", expression = "java(request.resolveCurrencyCode())")
+    @Mapping(target = "quantity", expression = "java(request.resolveQuantity())")
+    @Mapping(target = "attributes", expression = "java(request.resolveAttributes())")
     public abstract CalculateSellerPricesQuery toQuery(CalculatePriceRequest request);
 
     public abstract List<CalculatedPriceResponse> toResponse(List<CalculatedPriceOutboundResult> results);

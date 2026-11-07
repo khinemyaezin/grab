@@ -1,15 +1,14 @@
 package com.grab.app.platform.seller.internal.command.handler;
 
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.UpdateProductVariantResponse;
 import com.grab.app.platform.seller.internal.command.model.SellerWorkflowCommands.StartUpdateProductVariantWorkflowCommand;
 import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort;
-import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort.UpdateProductVariantRecord;
-import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort.WorkflowExecutionOutboundResult;
 import com.grab.framework.cqrs.command.CommandHandler;
 import org.springframework.stereotype.Component;
 
 @Component
 public class StartUpdateProductVariantWorkflowCommandHandler
-        implements CommandHandler<StartUpdateProductVariantWorkflowCommand, WorkflowExecutionOutboundResult> {
+        implements CommandHandler<StartUpdateProductVariantWorkflowCommand, UpdateProductVariantResponse> {
 
     private final SellerWorkflowOutboundPort outboundPort;
 
@@ -18,16 +17,8 @@ public class StartUpdateProductVariantWorkflowCommandHandler
     }
 
     @Override
-    public WorkflowExecutionOutboundResult handle(StartUpdateProductVariantWorkflowCommand command) {
-        UpdateProductVariantRecord record = new UpdateProductVariantRecord(
-                command.merchantId(),
-                command.title(),
-                command.price(),
-                command.currencyCode(),
-                command.stockDelta(),
-                command.optionValues()
-        );
-        return outboundPort.startUpdateProductVariant(command.productId(), command.variantId(), record);
+    public UpdateProductVariantResponse handle(StartUpdateProductVariantWorkflowCommand command) {
+        return outboundPort.startUpdateProductVariant(command.message());
     }
 
     @Override
@@ -35,4 +26,3 @@ public class StartUpdateProductVariantWorkflowCommandHandler
         return StartUpdateProductVariantWorkflowCommand.class;
     }
 }
-

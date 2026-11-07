@@ -20,7 +20,7 @@ public class CategoryModelAssembler implements RepresentationModelAssembler<Cate
         EntityModel<CategoryResponse> model = EntityModel.of(category);
         if (category.id() != null) {
             model.add(linkTo(methodOn(SellerCategoryController.class).getCategory(category.id())).withSelfRel());
-            model.add(linkTo(methodOn(SellerCategoryController.class).getChildren(category.id())).withRel("get-category-children"));
+            model.add(linkTo(methodOn(SellerCategoryController.class).getChildren(category.id())).withRel("list-category-children"));
             model.add(linkTo(methodOn(SellerCategoryController.class).deleteCategory(category.id())).withRel("delete-category"));
         }
         model.add(linkTo(methodOn(SellerCategoryController.class).getCategoryTree(null)).withRel("get-category-tree"));

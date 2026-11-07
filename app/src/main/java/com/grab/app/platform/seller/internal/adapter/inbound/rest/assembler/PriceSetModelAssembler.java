@@ -21,6 +21,7 @@ public class PriceSetModelAssembler implements RepresentationModelAssembler<Pric
         if (priceSet.id() != null) {
             model.add(linkTo(methodOn(SellerPriceSetController.class).getPriceSet(priceSet.id())).withSelfRel());
         }
+        model.add(linkTo(methodOn(SellerPriceSetController.class).calculatePrices(null)).withRel("calculate-prices"));
         return model;
     }
 }

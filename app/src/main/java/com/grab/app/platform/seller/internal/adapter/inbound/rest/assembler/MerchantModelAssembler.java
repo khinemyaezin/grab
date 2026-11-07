@@ -20,8 +20,23 @@ public class MerchantModelAssembler implements RepresentationModelAssembler<Merc
         EntityModel<MerchantResponse> model = EntityModel.of(merchant);
         if (merchant.merchantId() != null) {
             model.add(linkTo(methodOn(SellerMerchantController.class).getMerchant(merchant.merchantId(), null)).withSelfRel());
+            if (isEditableApplication(merchant.status())) {
+                model.add(linkTo(methodOn(SellerMerchantController.class)
+                        .updateProfile(merchant.merchantId(), null, null))
+                        .withRel("edit-merchant-application"));
+                model.add(linkTo(methodOn(SellerMerchantController.class)
+                        .submitApplication(merchant.merchantId(), null))
+                        .withRel("submit-merchant-application"));
+            }
         }
         model.add(linkTo(methodOn(SellerMerchantController.class).listMyMerchants(null)).withRel("list-my-merchants"));
         return model;
+    }
+
+    private boolean isEditableApplication(String status) {
+        if (status == null) {
+            return false;
+        }
+        return "DRAFT".equalsIgnoreCase(status) || "CHANGES_REQUESTED".equalsIgnoreCase(status);
     }
 }

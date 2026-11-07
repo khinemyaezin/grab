@@ -14,7 +14,7 @@ public abstract class UpdateSellerMerchantMemberRoleMapper {
     @Mapping(target = "merchantId", source = "merchantId")
     @Mapping(target = "memberId", source = "memberId")
     @Mapping(target = "actorId", source = "actorId")
-    @Mapping(target = "newRole", source = "request.newRole")
+    @Mapping(target = "newRole", expression = "java(request.resolveRole())")
     public abstract UpdateSellerMerchantMemberRoleCommand toCommand(String merchantId, String memberId, String actorId, UpdateMemberRoleRequest request);
 
     public abstract MerchantMemberResponse toResponse(MerchantMemberOutboundResult result);

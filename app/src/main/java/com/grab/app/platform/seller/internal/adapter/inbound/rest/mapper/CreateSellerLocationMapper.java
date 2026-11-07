@@ -16,14 +16,13 @@ public abstract class CreateSellerLocationMapper {
     @Mapping(target = "code", source = "request.code")
     @Mapping(target = "name", source = "request.name")
     @Mapping(target = "type", source = "request.type")
-    @Mapping(target = "line1", source = "request.line1")
-    @Mapping(target = "line2", source = "request.line2")
-    @Mapping(target = "city", source = "request.city")
-    @Mapping(target = "state", source = "request.state")
-    @Mapping(target = "postalCode", source = "request.postalCode")
-    @Mapping(target = "country", source = "request.country")
+    @Mapping(target = "line1", expression = "java(request.resolveLine1())")
+    @Mapping(target = "line2", expression = "java(request.resolveLine2())")
+    @Mapping(target = "city", expression = "java(request.resolveCity())")
+    @Mapping(target = "state", expression = "java(request.resolveState())")
+    @Mapping(target = "postalCode", expression = "java(request.resolvePostalCode())")
+    @Mapping(target = "country", expression = "java(request.resolveCountry())")
     public abstract CreateSellerLocationCommand toCommand(String merchantId, String actorId, CreateFacilityLocationRequest request);
 
     public abstract FacilityLocationResponse toResponse(FacilityLocationOutboundResult result);
 }
-

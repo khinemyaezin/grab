@@ -1,49 +1,26 @@
 package com.grab.app.platform.seller.internal.command.model;
 
-import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort.WorkflowExecutionOutboundResult;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.CreateSellableProductResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.UpdateProductVariantResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.UpdateSellableProductResponse;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.CreateSellableProductMessage;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.UpdateProductVariantMessage;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.UpdateSellableProductMessage;
 import com.grab.framework.cqrs.command.Command;
-import com.grab.framework.id.Id;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 
 public final class SellerWorkflowCommands {
 
     private SellerWorkflowCommands() {}
 
     public record StartCreateSellableProductWorkflowCommand(
-            Id merchantId,
-            String title,
-            String sku,
-            BigDecimal price,
-            String currencyCode,
-            int initialStock,
-            Id locationId,
-            List<Id> salesChannelIds,
-            Map<String, String> attributes
-    ) implements Command<WorkflowExecutionOutboundResult> {}
+            CreateSellableProductMessage message
+    ) implements Command<CreateSellableProductResponse> {}
 
     public record StartUpdateSellableProductWorkflowCommand(
-            Id productId,
-            Id merchantId,
-            String title,
-            String description,
-            Id categoryId,
-            List<Id> publishSalesChannelIds,
-            List<Id> unpublishSalesChannelIds,
-            Map<String, String> attributes
-    ) implements Command<WorkflowExecutionOutboundResult> {}
+            UpdateSellableProductMessage message
+    ) implements Command<UpdateSellableProductResponse> {}
 
     public record StartUpdateProductVariantWorkflowCommand(
-            Id productId,
-            Id variantId,
-            Id merchantId,
-            String title,
-            BigDecimal price,
-            String currencyCode,
-            int stockDelta,
-            Map<String, String> optionValues
-    ) implements Command<WorkflowExecutionOutboundResult> {}
+            UpdateProductVariantMessage message
+    ) implements Command<UpdateProductVariantResponse> {}
 }
-

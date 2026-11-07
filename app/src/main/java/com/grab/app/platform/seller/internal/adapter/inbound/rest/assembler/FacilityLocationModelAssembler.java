@@ -20,9 +20,9 @@ public class FacilityLocationModelAssembler implements RepresentationModelAssemb
         EntityModel<FacilityLocationResponse> model = EntityModel.of(location);
         if (location.id() != null) {
             model.add(linkTo(methodOn(SellerFacilityLocationController.class).getLocation(location.id())).withSelfRel());
-            model.add(linkTo(methodOn(SellerFacilityLocationController.class).activateLocation(location.id())).withRel("activate-facility-location"));
-            model.add(linkTo(methodOn(SellerFacilityLocationController.class).deactivateLocation(location.id())).withRel("deactivate-facility-location"));
-            model.add(linkTo(methodOn(SellerFacilityLocationController.class).deleteLocation(location.id())).withRel("delete-facility-location"));
+            model.add(linkTo(methodOn(SellerFacilityLocationController.class).activateLocation(location.id())).withRel("activate-location"));
+            model.add(linkTo(methodOn(SellerFacilityLocationController.class).deactivateLocation(location.id())).withRel("deactivate-location"));
+            model.add(linkTo(methodOn(SellerFacilityLocationController.class).deleteLocation(location.id())).withRel("delete-location"));
         }
         return model;
     }

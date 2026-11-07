@@ -20,9 +20,9 @@ public class FacilityZoneModelAssembler implements RepresentationModelAssembler<
         EntityModel<FacilityZoneResponse> model = EntityModel.of(zone);
         if (zone.id() != null) {
             model.add(linkTo(methodOn(SellerFacilityZoneController.class).getZone(zone.id())).withSelfRel());
-            model.add(linkTo(methodOn(SellerFacilityZoneController.class).activateZone(zone.id())).withRel("activate-facility-zone"));
-            model.add(linkTo(methodOn(SellerFacilityZoneController.class).deactivateZone(zone.id())).withRel("deactivate-facility-zone"));
-            model.add(linkTo(methodOn(SellerFacilityZoneController.class).deleteZone(zone.id())).withRel("delete-facility-zone"));
+            model.add(linkTo(methodOn(SellerFacilityZoneController.class).activateZone(zone.id())).withRel("activate-zone"));
+            model.add(linkTo(methodOn(SellerFacilityZoneController.class).deactivateZone(zone.id())).withRel("deactivate-zone"));
+            model.add(linkTo(methodOn(SellerFacilityZoneController.class).deleteZone(zone.id())).withRel("delete-zone"));
         }
         return model;
     }

@@ -20,9 +20,9 @@ public class FacilityBinModelAssembler implements RepresentationModelAssembler<F
         EntityModel<FacilityBinResponse> model = EntityModel.of(bin);
         if (bin.id() != null) {
             model.add(linkTo(methodOn(SellerFacilityBinController.class).getBin(bin.id())).withSelfRel());
-            model.add(linkTo(methodOn(SellerFacilityBinController.class).activateBin(bin.id())).withRel("activate-facility-bin"));
-            model.add(linkTo(methodOn(SellerFacilityBinController.class).deactivateBin(bin.id())).withRel("deactivate-facility-bin"));
-            model.add(linkTo(methodOn(SellerFacilityBinController.class).deleteBin(bin.id())).withRel("delete-facility-bin"));
+            model.add(linkTo(methodOn(SellerFacilityBinController.class).activateBin(bin.id())).withRel("activate-bin"));
+            model.add(linkTo(methodOn(SellerFacilityBinController.class).deactivateBin(bin.id())).withRel("deactivate-bin"));
+            model.add(linkTo(methodOn(SellerFacilityBinController.class).deleteBin(bin.id())).withRel("delete-bin"));
         }
         return model;
     }

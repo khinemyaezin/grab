@@ -20,6 +20,19 @@ public class MerchantMemberModelAssembler implements RepresentationModelAssemble
         EntityModel<MerchantMemberResponse> model = EntityModel.of(member);
         if (member.merchantId() != null) {
             model.add(linkTo(methodOn(SellerMerchantMemberController.class).listMembers(member.merchantId())).withRel("list-merchant-members"));
+            if ("INVITED".equalsIgnoreCase(member.status()) && member.memberId() != null) {
+                model.add(linkTo(methodOn(SellerMerchantMemberController.class)
+                        .acceptInvitation(member.merchantId(), member.memberId(), null))
+                        .withRel("accept-invitation"));
+            }
+            if ("ACTIVE".equalsIgnoreCase(member.status()) && member.memberId() != null) {
+                model.add(linkTo(methodOn(SellerMerchantMemberController.class)
+                        .updateRole(member.merchantId(), member.memberId(), null, null))
+                        .withRel("change-role"));
+                model.add(linkTo(methodOn(SellerMerchantMemberController.class)
+                        .removeMember(member.merchantId(), member.memberId(), null))
+                        .withRel("remove-member"));
+            }
         }
         return model;
     }

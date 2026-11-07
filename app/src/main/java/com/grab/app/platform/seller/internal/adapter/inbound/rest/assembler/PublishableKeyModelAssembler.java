@@ -19,7 +19,7 @@ public class PublishableKeyModelAssembler implements RepresentationModelAssemble
         }
         EntityModel<PublishableKeyResponse> model = EntityModel.of(key);
         if (key.salesChannelId() != null && key.keyId() != null) {
-            model.add(linkTo(methodOn(SellerPublishableKeyController.class).revokePublishableKey(key.salesChannelId(), key.keyId())).withRel("revoke-key"));
+            model.add(linkTo(methodOn(SellerPublishableKeyController.class).revokePublishableKey(key.salesChannelId(), key.keyId())).withRel("revoke-publishable-key"));
         }
         return model;
     }

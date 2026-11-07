@@ -1,5 +1,8 @@
 package com.grab.app.platform.seller.internal.adapter.outbound.message;
 
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.CreateSellableProductResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.UpdateProductVariantResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.UpdateSellableProductResponse;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetWorkflowStatusMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.ListRecentWorkflowsMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.StartCreateSellableProductWorkflowMessageMapper;
@@ -7,6 +10,12 @@ import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.Sta
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.StartUpdateSellableProductWorkflowMessageMapper;
 import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort;
 import com.grab.app.workflow.port.message.WorkflowExecutionPort;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.CreateSellableProductMessage;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.CreateSellableProductResult;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.UpdateProductVariantMessage;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.UpdateProductVariantResult;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.UpdateSellableProductMessage;
+import com.grab.app.workflow.port.message.WorkflowExecutionPort.UpdateSellableProductResult;
 import com.grab.app.workflow.port.message.WorkflowQueryPort;
 import com.grab.framework.id.Id;
 import org.springframework.stereotype.Component;
@@ -45,24 +54,39 @@ public class WorkflowExecutionMessageAdapter implements SellerWorkflowOutboundPo
     }
 
     @Override
-    public WorkflowExecutionOutboundResult startCreateSellableProduct(CreateSellableProductRecord record) {
-        WorkflowExecutionPort.CreateSellableProductWorkflowMessage message = startCreateMapper.toMessage(record);
-        WorkflowExecutionPort.WorkflowExecutionResult result = workflowExecutionPort.startCreateSellableProduct(message);
-        return startCreateMapper.toResult(result);
+    public CreateSellableProductResponse startCreateSellableProduct(CreateSellableProductMessage message) {
+        CreateSellableProductResult result = workflowExecutionPort.startCreateSellableProduct(message);
+        return startCreateMapper.toResponse(result);
     }
 
     @Override
-    public WorkflowExecutionOutboundResult startUpdateSellableProduct(Id productId, UpdateSellableProductRecord record) {
-        WorkflowExecutionPort.UpdateSellableProductWorkflowMessage message = startUpdateMapper.toMessage(record);
-        WorkflowExecutionPort.WorkflowExecutionResult result = workflowExecutionPort.startUpdateSellableProduct(productId, message);
-        return startUpdateMapper.toResult(result);
+    public CreateSellableProductResponse getCreateSellableProduct(Id workflowId) {
+        CreateSellableProductResult result = workflowExecutionPort.getCreateSellableProduct(workflowId);
+        return startCreateMapper.toResponse(result);
     }
 
     @Override
-    public WorkflowExecutionOutboundResult startUpdateProductVariant(Id productId, Id variantId, UpdateProductVariantRecord record) {
-        WorkflowExecutionPort.UpdateProductVariantWorkflowMessage message = startUpdateVariantMapper.toMessage(record);
-        WorkflowExecutionPort.WorkflowExecutionResult result = workflowExecutionPort.startUpdateProductVariant(productId, variantId, message);
-        return startUpdateVariantMapper.toResult(result);
+    public UpdateSellableProductResponse startUpdateSellableProduct(UpdateSellableProductMessage message) {
+        UpdateSellableProductResult result = workflowExecutionPort.startUpdateSellableProduct(message);
+        return startUpdateMapper.toResponse(result);
+    }
+
+    @Override
+    public UpdateSellableProductResponse getUpdateSellableProduct(Id workflowId) {
+        UpdateSellableProductResult result = workflowExecutionPort.getUpdateSellableProduct(workflowId);
+        return startUpdateMapper.toResponse(result);
+    }
+
+    @Override
+    public UpdateProductVariantResponse startUpdateProductVariant(UpdateProductVariantMessage message) {
+        UpdateProductVariantResult result = workflowExecutionPort.startUpdateProductVariant(message);
+        return startUpdateVariantMapper.toResponse(result);
+    }
+
+    @Override
+    public UpdateProductVariantResponse getUpdateProductVariant(Id workflowId) {
+        UpdateProductVariantResult result = workflowExecutionPort.getUpdateProductVariant(workflowId);
+        return startUpdateVariantMapper.toResponse(result);
     }
 
     @Override

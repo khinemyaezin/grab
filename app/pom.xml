@@ -94,6 +94,11 @@
             <artifactId>storage-adapter-s3</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>workflow-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>

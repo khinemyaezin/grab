@@ -19,8 +19,20 @@ public class StorefrontModelAssembler implements RepresentationModelAssembler<St
         }
         EntityModel<StorefrontResponse> model = EntityModel.of(storefront);
         if (storefront.merchantId() != null && storefront.storefrontId() != null) {
-            model.add(linkTo(methodOn(SellerStorefrontController.class).getStorefront(storefront.merchantId(), storefront.storefrontId())).withSelfRel());
-            model.add(linkTo(methodOn(SellerStorefrontController.class).listStorefronts(storefront.merchantId())).withRel("list-storefronts"));
+            String merchantId = storefront.merchantId();
+            String storefrontId = storefront.storefrontId();
+            model.add(linkTo(methodOn(SellerStorefrontController.class).getStorefront(merchantId, storefrontId)).withSelfRel());
+            model.add(linkTo(methodOn(SellerStorefrontController.class).listStorefronts(merchantId)).withRel("list-storefronts"));
+            model.add(linkTo(methodOn(SellerStorefrontController.class).createStorefront(merchantId, null)).withRel("create-storefront"));
+
+            String status = storefront.status();
+            if (!"CLOSED".equalsIgnoreCase(status)) {
+                model.add(linkTo(methodOn(SellerStorefrontController.class).updateStorefront(merchantId, storefrontId, null)).withRel("update-storefront"));
+                model.add(linkTo(methodOn(SellerStorefrontController.class).closeStorefront(merchantId, storefrontId)).withRel("close-storefront"));
+            }
+            if ("DRAFT".equalsIgnoreCase(status)) {
+                model.add(linkTo(methodOn(SellerStorefrontController.class).activateStorefront(merchantId, storefrontId)).withRel("activate-storefront"));
+            }
         }
         return model;
     }

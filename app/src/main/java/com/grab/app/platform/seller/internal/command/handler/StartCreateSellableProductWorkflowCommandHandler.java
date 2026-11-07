@@ -1,15 +1,14 @@
 package com.grab.app.platform.seller.internal.command.handler;
 
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.CreateSellableProductResponse;
 import com.grab.app.platform.seller.internal.command.model.SellerWorkflowCommands.StartCreateSellableProductWorkflowCommand;
 import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort;
-import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort.CreateSellableProductRecord;
-import com.grab.app.platform.seller.port.outbound.SellerWorkflowOutboundPort.WorkflowExecutionOutboundResult;
 import com.grab.framework.cqrs.command.CommandHandler;
 import org.springframework.stereotype.Component;
 
 @Component
 public class StartCreateSellableProductWorkflowCommandHandler
-        implements CommandHandler<StartCreateSellableProductWorkflowCommand, WorkflowExecutionOutboundResult> {
+        implements CommandHandler<StartCreateSellableProductWorkflowCommand, CreateSellableProductResponse> {
 
     private final SellerWorkflowOutboundPort outboundPort;
 
@@ -18,19 +17,8 @@ public class StartCreateSellableProductWorkflowCommandHandler
     }
 
     @Override
-    public WorkflowExecutionOutboundResult handle(StartCreateSellableProductWorkflowCommand command) {
-        CreateSellableProductRecord record = new CreateSellableProductRecord(
-                command.merchantId(),
-                command.title(),
-                command.sku(),
-                command.price(),
-                command.currencyCode(),
-                command.initialStock(),
-                command.locationId(),
-                command.salesChannelIds(),
-                command.attributes()
-        );
-        return outboundPort.startCreateSellableProduct(record);
+    public CreateSellableProductResponse handle(StartCreateSellableProductWorkflowCommand command) {
+        return outboundPort.startCreateSellableProduct(command.message());
     }
 
     @Override
@@ -38,4 +26,3 @@ public class StartCreateSellableProductWorkflowCommandHandler
         return StartCreateSellableProductWorkflowCommand.class;
     }
 }
-
