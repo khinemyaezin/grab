@@ -1,78 +1,59 @@
 package com.grab.app.workflow.internal.adapter.inbound.message;
 
-import com.grab.app.workflow.internal.adapter.inbound.message.mapper.CreateSellableProductWorkflowPortMapper;
-import com.grab.app.workflow.internal.adapter.inbound.message.mapper.UpdateProductVariantWorkflowPortMapper;
-import com.grab.app.workflow.internal.adapter.inbound.message.mapper.UpdateSellableProductWorkflowPortMapper;
+import com.grab.app.workflow.internal.command.model.StartCreateSellableProductWorkflowCommand;
+import com.grab.app.workflow.internal.command.model.StartUpdateProductVariantWorkflowCommand;
+import com.grab.app.workflow.internal.command.model.StartUpdateSellableProductWorkflowCommand;
+import com.grab.app.workflow.internal.query.model.GetCreateSellableProductWorkflowQuery;
+import com.grab.app.workflow.internal.query.model.GetUpdateProductVariantWorkflowQuery;
+import com.grab.app.workflow.internal.query.model.GetUpdateSellableProductWorkflowQuery;
 import com.grab.app.workflow.port.message.WorkflowExecutionPort;
 import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.id.Id;
-import com.grab.framework.id.IdGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
 
 @Component
 public class WorkflowExecutionPortAdapter implements WorkflowExecutionPort {
 
     private final CommandBus commandBus;
-    private final IdGenerator idGenerator;
-    private final CreateSellableProductWorkflowPortMapper createWorkflowMapper;
-    private final UpdateSellableProductWorkflowPortMapper updateProductWorkflowMapper;
-    private final UpdateProductVariantWorkflowPortMapper updateVariantWorkflowMapper;
+    private final QueryBus queryBus;
 
     public WorkflowExecutionPortAdapter(
             @Qualifier("workflowCommandBus") CommandBus commandBus,
-            IdGenerator idGenerator,
-            CreateSellableProductWorkflowPortMapper createWorkflowMapper,
-            UpdateSellableProductWorkflowPortMapper updateProductWorkflowMapper,
-            UpdateProductVariantWorkflowPortMapper updateVariantWorkflowMapper) {
+            @Qualifier("workflowQueryBus") QueryBus queryBus
+    ) {
         this.commandBus = commandBus;
-        this.idGenerator = idGenerator;
-        this.createWorkflowMapper = createWorkflowMapper;
-        this.updateProductWorkflowMapper = updateProductWorkflowMapper;
-        this.updateVariantWorkflowMapper = updateVariantWorkflowMapper;
+        this.queryBus = queryBus;
     }
 
     @Override
-    public WorkflowExecutionResult startCreateSellableProduct(CreateSellableProductWorkflowMessage message) {
-        Id workflowId = idGenerator.generateId();
-        return new WorkflowExecutionResult(
-                workflowId,
-                "create-sellable-product",
-                "STARTED",
-                null,
-                "STEP_CREATE_PRODUCT",
-                Instant.now(),
-                null
-        );
+    public CreateSellableProductResult startCreateSellableProduct(CreateSellableProductMessage message) {
+        return commandBus.dispatch(new StartCreateSellableProductWorkflowCommand(message));
     }
 
     @Override
-    public WorkflowExecutionResult startUpdateSellableProduct(Id productId, UpdateSellableProductWorkflowMessage message) {
-        Id workflowId = idGenerator.generateId();
-        return new WorkflowExecutionResult(
-                workflowId,
-                "update-sellable-product",
-                "STARTED",
-                productId,
-                "STEP_ASSERT_PRODUCT",
-                Instant.now(),
-                null
-        );
+    public CreateSellableProductResult getCreateSellableProduct(Id workflowId) {
+        return queryBus.dispatch(new GetCreateSellableProductWorkflowQuery(workflowId));
     }
 
     @Override
-    public WorkflowExecutionResult startUpdateProductVariant(Id productId, Id variantId, UpdateProductVariantWorkflowMessage message) {
-        Id workflowId = idGenerator.generateId();
-        return new WorkflowExecutionResult(
-                workflowId,
-                "update-product-variant",
-                "STARTED",
-                variantId,
-                "STEP_SYNC_VARIANT_PRICE",
-                Instant.now(),
-                null
-        );
+    public UpdateSellableProductResult startUpdateSellableProduct(UpdateSellableProductMessage message) {
+        return commandBus.dispatch(new StartUpdateSellableProductWorkflowCommand(message));
+    }
+
+    @Override
+    public UpdateSellableProductResult getUpdateSellableProduct(Id workflowId) {
+        return queryBus.dispatch(new GetUpdateSellableProductWorkflowQuery(workflowId));
+    }
+
+    @Override
+    public UpdateProductVariantResult startUpdateProductVariant(UpdateProductVariantMessage message) {
+        return commandBus.dispatch(new StartUpdateProductVariantWorkflowCommand(message));
+    }
+
+    @Override
+    public UpdateProductVariantResult getUpdateProductVariant(Id workflowId) {
+        return queryBus.dispatch(new GetUpdateProductVariantWorkflowQuery(workflowId));
     }
 }
