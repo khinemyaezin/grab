@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: grab-store-dev
+    container_name: grab-app-dev
     ports:
       - "${APP_PORT:-8080}:8080"
       - "${DEBUG_PORT:-5005}:5005"
@@ -14,6 +14,18 @@ services:
       - app-network
     environment:
       SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+      MERCHANDISING_DB_URL: "${MERCHANDISING_DB_URL:?MERCHANDISING_DB_URL is required}"
+      MERCHANDISING_DB_USERNAME: "${MERCHANDISING_DB_USERNAME:?MERCHANDISING_DB_USERNAME is required}"
+      MERCHANDISING_DB_PASSWORD: "${MERCHANDISING_DB_PASSWORD:?MERCHANDISING_DB_PASSWORD is required}"
+      CHECKOUT_DB_URL: "${CHECKOUT_DB_URL:?CHECKOUT_DB_URL is required}"
+      CHECKOUT_DB_USERNAME: "${CHECKOUT_DB_USERNAME:?CHECKOUT_DB_USERNAME is required}"
+      CHECKOUT_DB_PASSWORD: "${CHECKOUT_DB_PASSWORD:?CHECKOUT_DB_PASSWORD is required}"
+      ACCOUNT_DB_URL: "${ACCOUNT_DB_URL:?ACCOUNT_DB_URL is required}"
+      ACCOUNT_DB_USERNAME: "${ACCOUNT_DB_USERNAME:?ACCOUNT_DB_USERNAME is required}"
+      ACCOUNT_DB_PASSWORD: "${ACCOUNT_DB_PASSWORD:?ACCOUNT_DB_PASSWORD is required}"
+      CHANNEL_DB_URL: "${CHANNEL_DB_URL:?CHANNEL_DB_URL is required}"
+      CHANNEL_DB_USERNAME: "${CHANNEL_DB_USERNAME:?CHANNEL_DB_USERNAME is required}"
+      CHANNEL_DB_PASSWORD: "${CHANNEL_DB_PASSWORD:?CHANNEL_DB_PASSWORD is required}"
       CATALOG_DATASOURCE_URL: "${CATALOG_DATASOURCE_URL:?CATALOG_DATASOURCE_URL is required}"
       CATALOG_DATASOURCE_USERNAME: "${CATALOG_DATASOURCE_USERNAME:?CATALOG_DATASOURCE_USERNAME is required}"
       CATALOG_DATASOURCE_PASSWORD: "${CATALOG_DATASOURCE_PASSWORD:?CATALOG_DATASOURCE_PASSWORD is required}"
@@ -199,7 +211,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - app-network
+      app-network:
+        aliases:
+          - product-merchandising-db
+          - order-management-db
+          - identity-account-db
+          - channel-context-db
     restart: unless-stopped
 
   pgadmin:

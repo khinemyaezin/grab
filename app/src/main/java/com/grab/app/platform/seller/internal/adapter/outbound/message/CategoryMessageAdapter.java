@@ -1,6 +1,6 @@
 package com.grab.app.platform.seller.internal.adapter.outbound.message;
 
-import com.grab.app.merchandising.product.port.message.CatalogCategoryPort;
+import com.grab.app.merchandising.catalog.port.message.CatalogCategoryPort;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetCategoryChildrenMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetCategoryMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetCategoryTreeMessageMapper;

@@ -1,6 +1,6 @@
 package com.grab.app.platform.seller.internal.adapter.outbound.message.mapper;
 
-import com.grab.app.merchandising.product.port.message.CatalogProductPort;
+import com.grab.app.merchandising.catalog.port.message.CatalogProductPort;
 import com.grab.app.platform.seller.port.outbound.SellerProductCatalogOutboundPort.CreateProductRecord;
 import com.grab.app.platform.seller.port.outbound.SellerProductCatalogOutboundPort.CreateVariantRecord;
 import com.grab.app.platform.seller.port.outbound.SellerProductCatalogOutboundPort.ProductOutboundResult;

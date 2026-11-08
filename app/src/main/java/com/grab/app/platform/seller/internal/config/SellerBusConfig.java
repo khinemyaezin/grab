@@ -6,12 +6,9 @@ import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.cqrs.query.QueryHandler;
 import com.grab.framework.cqrs.query.impl.DefaultQueryBus;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.Collections;
-import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
 public class SellerBusConfig {
@@ -19,25 +16,16 @@ public class SellerBusConfig {
     private static final String GROUP_PACKAGE = "com.grab.app.platform.seller";
 
     @Bean(name = "sellerCommandBus")
-    public CommandBus sellerCommandBus(
-            @Autowired(required = false) List<CommandHandler<?, ?>> handlers) {
-        List<CommandHandler<?, ?>> groupHandlers = handlers == null
-                ? Collections.emptyList()
-                : handlers.stream()
+    public CommandBus sellerCommandBus(ObjectProvider<CommandHandler<?, ?>> handlersProvider) {
+        return new DefaultCommandBus(() -> handlersProvider.orderedStream()
                 .filter(h -> h.getClass().getPackageName().startsWith(GROUP_PACKAGE))
-                .toList();
-        return new DefaultCommandBus(groupHandlers);
+                .toList());
     }
 
     @Bean(name = "sellerQueryBus")
-    public QueryBus sellerQueryBus(
-            @Autowired(required = false) List<QueryHandler<?, ?>> handlers) {
-        List<QueryHandler<?, ?>> groupHandlers = handlers == null
-                ? Collections.emptyList()
-                : handlers.stream()
+    public QueryBus sellerQueryBus(ObjectProvider<QueryHandler<?, ?>> handlersProvider) {
+        return new DefaultQueryBus(() -> handlersProvider.orderedStream()
                 .filter(h -> h.getClass().getPackageName().startsWith(GROUP_PACKAGE))
-                .toList();
-        return new DefaultQueryBus(groupHandlers);
+                .toList());
     }
 }
-

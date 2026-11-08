@@ -20,6 +20,11 @@ import java.util.Map;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(name = "com.order.adapter.persistence.repository.jpa.OrderJpaRepository")
+@EnableJpaRepositories(
+        basePackages = "com.order.adapter.persistence.repository.jpa",
+        entityManagerFactoryRef = "orderEntityManagerFactory",
+        transactionManagerRef = "orderTransactionManager"
+)
 public class OrderModuleDataSourceConfig {
 
     @Bean(name = "orderFlyway", initMethod = "migrate")
@@ -73,14 +78,5 @@ public class OrderModuleDataSourceConfig {
             @Qualifier("orderEntityManagerFactory") EntityManagerFactory entityManagerFactory
     ) {
         return new JpaTransactionManager(entityManagerFactory);
-    }
-
-    @Configuration(proxyBeanMethods = false)
-    @EnableJpaRepositories(
-            basePackages = "com.order.adapter.persistence.repository.jpa",
-            entityManagerFactoryRef = "orderEntityManagerFactory",
-            transactionManagerRef = "orderTransactionManager"
-    )
-    static class OrderRepositories {
     }
 }

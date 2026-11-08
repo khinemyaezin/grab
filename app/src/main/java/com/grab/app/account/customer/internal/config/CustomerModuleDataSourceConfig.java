@@ -22,7 +22,6 @@ import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
-@Configuration(proxyBeanMethods = false)
 @ComponentScan(
         basePackages = "com.customer.adapter.persistence.mapper",
         includeFilters = @ComponentScan.Filter(
