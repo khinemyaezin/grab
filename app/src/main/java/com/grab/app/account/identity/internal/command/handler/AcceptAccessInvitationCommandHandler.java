@@ -1,6 +1,7 @@
 package com.grab.app.account.identity.internal.command.handler;
 
 import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.app.account.identity.internal.config.RequiresSecurityCatalog;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.identity.application.model.write.AcceptAccessInvitationCommand;
 import com.identity.application.model.write.AccessAssignmentResult;
@@ -18,6 +19,7 @@ public class AcceptAccessInvitationCommandHandler
     }
 
     @Override
+    @RequiresSecurityCatalog
     @IdentityTransactional
     public AccessAssignmentResult handle(AcceptAccessInvitationCommand command) {
         return acceptAccessInvitationUseCase.execute(command);

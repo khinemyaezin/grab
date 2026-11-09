@@ -1,6 +1,7 @@
 package com.grab.app.account.identity.internal.command.handler;
 
 import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.app.account.identity.internal.config.RequiresSecurityCatalog;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.identity.application.model.write.RegisterRoleDeclarationCommand;
 import com.identity.application.model.write.RegisterRoleDeclarationResult;
@@ -19,6 +20,7 @@ public class RegisterRoleDeclarationCommandHandler
     }
 
     @Override
+    @RequiresSecurityCatalog
     @IdentityTransactional(propagation = Propagation.REQUIRES_NEW)
     public RegisterRoleDeclarationResult handle(RegisterRoleDeclarationCommand command) {
         return useCase.execute(command);

@@ -1,6 +1,7 @@
 package com.grab.app.account.identity.internal.command.handler;
 
 import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.app.account.identity.internal.config.RequiresSecurityCatalog;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.identity.application.model.write.AccessInvitationResult;
 import com.identity.application.model.write.CancelAccessInvitationCommand;
@@ -18,6 +19,7 @@ public class CancelAccessInvitationCommandHandler
     }
 
     @Override
+    @RequiresSecurityCatalog
     @IdentityTransactional
     public AccessInvitationResult handle(CancelAccessInvitationCommand command) {
         return cancelAccessInvitationUseCase.execute(command);
