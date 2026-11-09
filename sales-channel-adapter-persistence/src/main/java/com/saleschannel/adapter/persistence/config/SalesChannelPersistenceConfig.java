@@ -27,11 +27,19 @@ import com.saleschannel.adapter.persistence.repository.ChannelRegionJpaRepositor
 import com.saleschannel.adapter.persistence.specification.SalesChannelQuerySpecification;
 import com.saleschannel.adapter.persistence.workflow.SalesChannelWorkflowStepRunner;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 import jakarta.persistence.EntityManager;
+import java.time.Duration;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import com.manifest.adapter.persistence.SecurityManifestEventFactory;
+import com.saleschannel.adapter.persistence.adapter.SalesChannelSecurityManifestPublicationAdapter;
+import com.saleschannel.adapter.persistence.adapter.SalesChannelSecurityManifestPublicationQueryAdapter;
+import com.saleschannel.adapter.persistence.entity.SalesChannelSecurityManifestPublicationEntity;
 
 @Configuration
 public class SalesChannelPersistenceConfig {
@@ -109,5 +117,25 @@ public class SalesChannelPersistenceConfig {
             @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new SalesChannelQueryAdapter(specification, executor);
+    }
+
+    @Bean("saleschannelSecurityManifestPublicationQueryPort")
+    public SecurityManifestPublicationQueryPort saleschannelSecurityManifestPublicationQueryPort(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(SalesChannelSecurityManifestPublicationEntity.class);
+        return new SalesChannelSecurityManifestPublicationQueryAdapter(entityManager);
+    }
+
+    @Bean("saleschannelSecurityManifestPublicationPort")
+    public SecurityManifestPublicationPort saleschannelSecurityManifestPublicationPort(
+            JpaContext context,
+            @Qualifier("salesChannelDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("saleschannelSecurityManifestEventFactory") SecurityManifestEventFactory eventFactory,
+            @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
+        return new SalesChannelSecurityManifestPublicationAdapter(
+                context,
+                outbox,
+                eventFactory,
+                Duration.ofMillis(intervalMs)
+        );
     }
 }

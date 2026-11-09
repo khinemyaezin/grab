@@ -11,7 +11,8 @@ import org.springframework.context.annotation.Import;
         CatalogPersistenceConfig.class,
         StorageInfraConfig.class,
         CatalogModuleDataSourceConfig.class,
-        CatalogModuleOutboxConfig.class
+        CatalogModuleOutboxConfig.class,
+        CatalogSecurityManifestPublicationConfig.class
 })
 public class CatalogConfig {
 }

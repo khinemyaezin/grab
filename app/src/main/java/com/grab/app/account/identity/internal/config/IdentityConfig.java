@@ -9,7 +9,8 @@ import org.springframework.context.annotation.Import;
         IdentityUseCaseConfig.class,
         IdentityPersistenceConfig.class,
         IdentityDataSourceConfig.class,
-        IdentityModuleOutboxConfig.class
+        IdentityModuleOutboxConfig.class,
+        IdentitySecurityManifestPublicationConfig.class
 })
 public class IdentityConfig {
 }

@@ -9,7 +9,8 @@ import org.springframework.context.annotation.Import;
         InventoryUseCaseConfig.class,
         InventoryPersistenceConfig.class,
         InventoryModuleDataSourceConfig.class,
-        InventoryModuleOutboxConfig.class
+        InventoryModuleOutboxConfig.class,
+        InventorySecurityManifestPublicationConfig.class
 })
 public class InventoryConfig {
 }

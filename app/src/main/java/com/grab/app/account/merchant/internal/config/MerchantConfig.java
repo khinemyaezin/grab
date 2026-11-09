@@ -9,7 +9,8 @@ import org.springframework.context.annotation.Import;
         MerchantUseCaseConfig.class,
         MerchantPersistenceConfig.class,
         MerchantModuleDataSourceConfig.class,
-        MerchantModuleOutboxConfig.class
+        MerchantModuleOutboxConfig.class,
+        MerchantSecurityManifestPublicationConfig.class
 })
 public class MerchantConfig {
 }

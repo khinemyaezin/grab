@@ -9,7 +9,8 @@ import org.springframework.context.annotation.Import;
         SalesChannelUseCaseConfig.class,
         SalesChannelPersistenceConfig.class,
         SalesChannelModuleDataSourceConfig.class,
-        SalesChannelModuleOutboxConfig.class
+        SalesChannelModuleOutboxConfig.class,
+        SalesChannelSecurityManifestPublicationConfig.class
 })
 public class SalesChannelConfig {
 }

@@ -41,14 +41,24 @@ import com.grab.framework.id.IdGenerator;
 import com.grab.framework.support.PersistenceExecutor;
 import com.catalog.adapter.persistence.mapper.impl.ProductJpaAssemblerImpl;
 import com.catalog.adapter.persistence.adapter.CatalogPersistenceExecutor;
+import com.manifest.adapter.persistence.SecurityManifestEventFactory;
 import com.nestedset.app.config.JpaNestedSetRepositoryConfiguration;
 import com.nestedset.app.service.TreeBuilder;
 import com.nestedset.app.service.TreeBuilderImpl;
+import com.catalog.adapter.persistence.adapter.CatalogSecurityManifestPublicationAdapter;
+import com.catalog.adapter.persistence.adapter.CatalogSecurityManifestPublicationQueryAdapter;
+import com.catalog.adapter.persistence.entity.CatalogSecurityManifestPublicationEntity;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.time.Duration;
 
 @Configuration
 public class CatalogPersistenceConfig {
@@ -272,7 +282,7 @@ public class CatalogPersistenceConfig {
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor,
             IdGenerator idGenerator
     ) {
-        return new com.catalog.adapter.persistence.adapter.CategoryHierarchyQueryAdapter(categoryNodeRepository, executor, idGenerator);
+        return new CategoryHierarchyQueryAdapter(categoryNodeRepository, executor, idGenerator);
     }
 
     @Bean
@@ -280,7 +290,7 @@ public class CatalogPersistenceConfig {
             CategoryNodeRepository categoryNodeRepository,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
-        return new com.catalog.adapter.persistence.adapter.CategoryHierarchyRepositoryAdapter(categoryNodeRepository, executor);
+        return new CategoryHierarchyRepositoryAdapter(categoryNodeRepository, executor);
     }
 
     @Bean
@@ -312,14 +322,14 @@ public class CatalogPersistenceConfig {
     public MerchantAvailabilityQueryPort merchantAvailabilityQueryPort(
             CatalogMerchantAvailabilityJpaRepository availabilityJpaRepository
     ) {
-        return new com.catalog.adapter.persistence.adapter.MerchantAvailabilityQueryAdapter(availabilityJpaRepository);
+        return new MerchantAvailabilityQueryAdapter(availabilityJpaRepository);
     }
 
     @Bean
     public MerchantAvailabilityRepository merchantAvailabilityRepository(
             CatalogMerchantAvailabilityJpaRepository availabilityJpaRepository
     ) {
-        return new com.catalog.adapter.persistence.adapter.MerchantAvailabilityRepositoryAdapter(availabilityJpaRepository);
+        return new MerchantAvailabilityRepositoryAdapter(availabilityJpaRepository);
     }
 
     @Bean
@@ -348,6 +358,26 @@ public class CatalogPersistenceConfig {
         return new PublishedProductChannelQueryAdapter(
                 productPublicationJpaRepository,
                 executor
+        );
+    }
+
+    @Bean("catalogSecurityManifestPublicationQueryPort")
+    public SecurityManifestPublicationQueryPort catalogSecurityManifestPublicationQueryPort(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(CatalogSecurityManifestPublicationEntity.class);
+        return new CatalogSecurityManifestPublicationQueryAdapter(entityManager);
+    }
+
+    @Bean("catalogSecurityManifestPublicationPort")
+    public SecurityManifestPublicationPort catalogSecurityManifestPublicationPort(
+            JpaContext context,
+            @Qualifier("catalogDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("catalogSecurityManifestEventFactory") SecurityManifestEventFactory eventFactory,
+            @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
+        return new CatalogSecurityManifestPublicationAdapter(
+                context,
+                outbox,
+                eventFactory,
+                Duration.ofMillis(intervalMs)
         );
     }
 }

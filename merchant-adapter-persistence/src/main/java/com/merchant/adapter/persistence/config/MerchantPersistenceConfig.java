@@ -34,7 +34,16 @@ import com.merchant.adapter.persistence.adapter.StorefrontQueryAdapter;
 import com.merchant.adapter.persistence.adapter.StorefrontRepositoryAdapter;
 import com.merchant.adapter.persistence.specification.jpa.StorefrontQuerySpecification;
 import com.merchant.adapter.persistence.repository.jpa.MerchantAccountJpaRepository;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import com.manifest.adapter.persistence.SecurityManifestEventFactory;
+import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationQueryAdapter;
+import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
+import jakarta.persistence.EntityManager;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
@@ -132,5 +141,25 @@ public class MerchantPersistenceConfig {
             MerchantMemberJpaRepository members,
             @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
         return new MerchantMemberQueryAdapter(members, executor);
+    }
+
+    @Bean("merchantSecurityManifestPublicationQueryPort")
+    public SecurityManifestPublicationQueryPort merchantSecurityManifestPublicationQueryPort(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(MerchantSecurityManifestPublicationEntity.class);
+        return new MerchantSecurityManifestPublicationQueryAdapter(entityManager);
+    }
+
+    @Bean("merchantSecurityManifestPublicationPort")
+    public SecurityManifestPublicationPort merchantSecurityManifestPublicationPort(
+            JpaContext context,
+            @Qualifier("merchantDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("merchantSecurityManifestEventFactory") SecurityManifestEventFactory eventFactory,
+            @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
+        return new MerchantSecurityManifestPublicationAdapter(
+                context,
+                outbox,
+                eventFactory,
+                Duration.ofMillis(intervalMs)
+        );
     }
 }

@@ -52,11 +52,17 @@ import com.identity.adapter.persistence.repository.jpa.*;
 import com.identity.adapter.persistence.security.BcryptPasswordHasher;
 import com.identity.domain.service.PasswordHasher;
 import jakarta.persistence.EntityManager;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaContext;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import com.manifest.adapter.persistence.SecurityManifestEventFactory;
+import com.identity.adapter.persistence.entity.IdentitySecurityManifestPublicationEntity;
 
 @Configuration
 @Import(IdentityDomainConfig.class)
@@ -278,6 +284,26 @@ public class IdentityPersistenceConfig {
             ScopeCatalogQueryPort scopes) {
         return new IdentityLookupQueryAdapter(
                 users, externalIdentities, entitlementMappings, accessAssignments, scopes
+        );
+    }
+
+    @Bean("identitySecurityManifestPublicationQueryPort")
+    public SecurityManifestPublicationQueryPort identitySecurityManifestPublicationQueryPort(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(IdentitySecurityManifestPublicationEntity.class);
+        return new IdentitySecurityManifestPublicationQueryAdapter(entityManager);
+    }
+
+    @Bean("identitySecurityManifestPublicationPort")
+    public SecurityManifestPublicationPort identitySecurityManifestPublicationPort(
+            JpaContext context,
+            @Qualifier("identityDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("identitySecurityManifestEventFactory") SecurityManifestEventFactory eventFactory,
+            @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
+        return new IdentitySecurityManifestPublicationAdapter(
+                context,
+                outbox,
+                eventFactory,
+                Duration.ofMillis(intervalMs)
         );
     }
 }
