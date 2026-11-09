@@ -552,3 +552,16 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
+
+logger:
+  backend: ${LOGGER_BACKEND:slf4j}
+  fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
+  file:
+    path: ${LOGGER_FILE_PATH:logs}
+    name: ${LOGGER_FILE_NAME:app.log}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    org.springframework.web: ${LOGGING_LEVEL_WEB:INFO}
+

@@ -62,6 +62,10 @@
             <artifactId>spring-retry</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
         </dependency>
@@ -82,6 +86,11 @@
         <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>framework</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>logger-slf4j</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
