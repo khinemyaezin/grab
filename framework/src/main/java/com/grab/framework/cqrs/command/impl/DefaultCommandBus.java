@@ -9,28 +9,50 @@ import com.grab.framework.exception.FrameworkException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class DefaultCommandBus implements CommandBus {
-    private final Map<Class<?>, CommandHandler<?, ?>> handlers = new HashMap<>();
+    private final Supplier<List<CommandHandler<?, ?>>> handlersSupplier;
+    private volatile Map<Class<?>, CommandHandler<?, ?>> handlers;
 
     public DefaultCommandBus(List<CommandHandler<?, ?>> commandHandlers) {
-        commandHandlers.forEach(handler -> {
-            Class<?> commandType = handler.getCommandType();
-            if (handlers.containsKey(commandType)) {
-                throw new IllegalStateException(
-                        "Duplicate handler for command type: " + commandType.getName());
+        this(() -> commandHandlers);
+    }
+
+    public DefaultCommandBus(Supplier<List<CommandHandler<?, ?>>> handlersSupplier) {
+        this.handlersSupplier = handlersSupplier != null ? handlersSupplier : List::of;
+    }
+
+    private Map<Class<?>, CommandHandler<?, ?>> getHandlers() {
+        Map<Class<?>, CommandHandler<?, ?>> result = handlers;
+        if (result == null) {
+            synchronized (this) {
+                result = handlers;
+                if (result == null) {
+                    result = new HashMap<>();
+                    List<CommandHandler<?, ?>> commandHandlers = handlersSupplier.get();
+                    if (commandHandlers != null) {
+                        for (CommandHandler<?, ?> handler : commandHandlers) {
+                            Class<?> commandType = handler.getCommandType();
+                            if (result.containsKey(commandType)) {
+                                throw new IllegalStateException(
+                                        "Duplicate handler for command type: " + commandType.getName());
+                            }
+                            result.put(commandType, handler);
+                        }
+                    }
+                    handlers = result;
+                }
             }
-            handlers.put(commandType, handler);
-//            log.info("Registered command handler: {} for command: {}",
-//                    handler.getClass().getSimpleName(), commandType.getSimpleName());
-        });
+        }
+        return result;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <R> R dispatch(Command<R> command) {
         CommandHandler<Command<R>, R> handler =
-                (CommandHandler<Command<R>, R>) handlers.get(command.getClass());
+                (CommandHandler<Command<R>, R>) getHandlers().get(command.getClass());
 
         if (handler == null) {
             throw new FrameworkException(
@@ -38,9 +60,6 @@ public class DefaultCommandBus implements CommandBus {
                     "No handler registered for command: " + command.getClass().getName()
             );
         }
-
-//        log.debug("Dispatching command: {} to handler: {}",
-//                command.getClass().getSimpleName(), handler.getClass().getSimpleName());
 
         return handler.handle(command);
     }

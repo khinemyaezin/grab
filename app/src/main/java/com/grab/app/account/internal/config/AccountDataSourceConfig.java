@@ -16,7 +16,7 @@ public class AccountDataSourceConfig {
         return new DataSourceProperties();
     }
 
-    @Bean("accountDataSource")
+    @Bean(name = {"accountDataSource"})
     @ConfigurationProperties("account.datasource.hikari")
     public HikariDataSource accountDataSource(
             @Qualifier("accountDataSourceProperties") DataSourceProperties properties) {

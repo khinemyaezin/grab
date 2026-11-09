@@ -46,12 +46,22 @@ import com.inventory.application.port.outbound.LocationQueryPort;
 import com.inventory.application.port.outbound.StockMovementQueryPort;
 import com.inventory.application.port.outbound.ZoneQueryPort;
 import com.inventory.adapter.persistence.workflow.InventoryWorkflowStepRunner;
+import com.inventory.adapter.persistence.adapter.InventorySecurityManifestEventFactory;
+import com.inventory.adapter.persistence.adapter.InventorySecurityManifestPublicationAdapter;
+import com.inventory.adapter.persistence.adapter.InventorySecurityManifestPublicationQueryAdapter;
+import com.inventory.adapter.persistence.entity.InventorySecurityManifestPublicationEntity;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.time.Duration;
 
 @Configuration
 public class InventoryPersistenceConfig {
@@ -303,5 +313,25 @@ public class InventoryPersistenceConfig {
     public StockMovementQueryPort stockMovementQueryPort(StockMovementJpaRepository jpaRepository,
                                                              @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor){
         return new StockMovementQueryAdapter(jpaRepository, executor);
+    }
+
+    @Bean("inventorySecurityManifestPublicationQueryPort")
+    public SecurityManifestPublicationQueryPort inventorySecurityManifestPublicationQueryPort(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(InventorySecurityManifestPublicationEntity.class);
+        return new InventorySecurityManifestPublicationQueryAdapter(entityManager);
+    }
+
+    @Bean("inventorySecurityManifestPublicationPort")
+    public SecurityManifestPublicationPort inventorySecurityManifestPublicationPort(
+            JpaContext context,
+            @Qualifier("inventoryDomainEventProducer") DomainEventProducer outbox,
+            InventorySecurityManifestEventFactory eventFactory,
+            @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
+        return new InventorySecurityManifestPublicationAdapter(
+                context,
+                outbox,
+                eventFactory,
+                Duration.ofMillis(intervalMs)
+        );
     }
 }

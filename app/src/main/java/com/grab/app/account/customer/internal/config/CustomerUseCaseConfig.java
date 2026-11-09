@@ -19,7 +19,6 @@ import com.grab.framework.id.IdGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration(proxyBeanMethods = false)
 public class CustomerUseCaseConfig {
 
     @Bean

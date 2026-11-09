@@ -21,7 +21,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
 
-@Configuration(proxyBeanMethods = false)
 public class CustomerModuleOutboxConfig {
 
     @Bean("customerOutboxEventSerializer")

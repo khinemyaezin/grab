@@ -43,7 +43,7 @@ public class IdentityDataSourceConfig {
     @Bean(name = "identityFlyway", initMethod = "migrate")
     @ConditionalOnProperty(prefix = "identity.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Flyway identityFlyway(
-            @Qualifier("identityDataSource") DataSource dataSource,
+            @Qualifier("accountDataSource") DataSource dataSource,
             @Value("${identity.flyway.default-schema:identity}") String schema,
             @Value("${identity.flyway.locations:classpath:db/migration/identity}") String locations,
             @Value("${identity.flyway.table:flyway_schema_history}") String table
@@ -62,7 +62,7 @@ public class IdentityDataSourceConfig {
     @Bean("identityEntityManagerFactory")
     @DependsOn("identityFlyway")
     public LocalContainerEntityManagerFactoryBean identityEntityManagerFactory(
-            @Qualifier("identityDataSource") DataSource dataSource,
+            @Qualifier("accountDataSource") DataSource dataSource,
             @Value("${identity.jpa.hibernate.dialect:org.hibernate.dialect.PostgreSQLDialect}") String dialect,
             @Value("${identity.jpa.hibernate.hbm2ddl.auto:update}") String hbm2ddlAuto,
             @Value("${identity.jpa.hibernate.default_schema:${identity.flyway.default-schema:identity}}") String defaultSchema
