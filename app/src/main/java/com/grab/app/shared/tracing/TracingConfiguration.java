@@ -1,0 +1,31 @@
+package com.grab.app.shared.tracing;
+
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.task.TaskDecorator;
+
+@Configuration(proxyBeanMethods = false)
+public class TracingConfiguration {
+
+    @Bean
+    public FilterRegistrationBean<TraceIdFilter> traceIdFilter() {
+        TraceIdFilter filter = new TraceIdFilter();
+        FilterRegistrationBean<TraceIdFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        registration.addUrlPatterns("/*");
+        return registration;
+    }
+
+    @Bean
+    public TaskDecorator mdcCopyingTaskDecorator() {
+        return new MdcCopyingTaskDecorator();
+    }
+
+    @Bean
+    public ScheduledTraceContextAspect scheduledTraceContextAspect() {
+        return new ScheduledTraceContextAspect();
+    }
+}
+
