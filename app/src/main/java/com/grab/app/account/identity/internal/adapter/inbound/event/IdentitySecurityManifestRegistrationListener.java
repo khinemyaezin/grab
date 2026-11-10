@@ -7,6 +7,7 @@ import com.grab.framework.security.SecurityManifestDeclaredIntegrationEvent;
 import com.identity.application.model.write.RegisterSecurityManifestCommand;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,6 +20,7 @@ public class IdentitySecurityManifestRegistrationListener {
         this.commandBus = commandBus;
     }
 
+    @Async
     @EventListener
     public void onSecurityManifestDeclared(SecurityManifestDeclaredIntegrationEvent event) {
         log.info("Registering complete security manifest moduleKey={} revision={} eventId={}",
