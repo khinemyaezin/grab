@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/seller/v1/inventory/allocations")
+@RequestMapping("/api/v1/inventory/allocations")
 public class SellerAllocationController implements SellerInventoryResource.Allocations {
 
     private final SellerInventoryCommandService commandService;

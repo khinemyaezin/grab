@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/seller/workflows")
+@RequestMapping("/api/v1/workflows")
 public class SellerSellableProductWorkflowController implements SellerWorkflowResource {
 
     private final SellerWorkflowCommandService commandService;

@@ -15,7 +15,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/seller/v1/pricing/preferences")
+@RequestMapping("/api/v1/pricing/preferences")
 public class SellerPricePreferenceController implements SellerPriceListResource.Preferences {
 
     private final SellerPricingCommandService commandService;

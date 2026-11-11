@@ -15,7 +15,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/seller/v1/facilities")
+@RequestMapping("/api/v1/facilities")
 public class SellerFacilityBinController implements SellerFacilityResource.Bins {
 
     private final SellerInventoryCommandService commandService;
@@ -38,7 +38,7 @@ public class SellerFacilityBinController implements SellerFacilityResource.Bins 
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
         FacilityBinResponse response = commandService.createBin(zoneId, actorId, request);
         URI uri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/seller/v1/facilities/bins/{id}")
+                .path("/api/v1/facilities/bins/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(uri).body(modelAssembler.toModel(response));
