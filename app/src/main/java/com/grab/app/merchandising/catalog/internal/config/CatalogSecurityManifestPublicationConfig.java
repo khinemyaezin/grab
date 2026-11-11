@@ -4,7 +4,7 @@ import com.catalog.application.port.inbound.GetCatalogSecurityManifestPublicatio
 import com.catalog.application.port.inbound.PublishCatalogSecurityManifestUseCase;
 import com.catalog.application.service.GetCatalogSecurityManifestPublicationStatusService;
 import com.catalog.application.service.PublishCatalogSecurityManifestService;
-import com.grab.app.merchandising.catalog.port.event.CatalogSecurityManifestDeclaredIntegrationEvent;
+import com.grab.app.shared.events.catalog.CatalogSecurityManifestDeclaredIntegrationEvent;
 import com.grab.framework.security.SecurityManifestPublicationPort;
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import com.manifest.adapter.persistence.SecurityManifestEventFactory;

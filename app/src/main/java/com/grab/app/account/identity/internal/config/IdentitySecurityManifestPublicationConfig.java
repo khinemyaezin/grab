@@ -1,6 +1,6 @@
 package com.grab.app.account.identity.internal.config;
 
-import com.grab.app.account.identity.port.event.IdentitySecurityManifestDeclaredIntegrationEvent;
+import com.grab.app.shared.events.identity.IdentitySecurityManifestDeclaredIntegrationEvent;
 import com.grab.framework.security.SecurityManifestPublicationPort;
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import com.identity.application.port.inbound.GetIdentitySecurityManifestPublicationStatusUseCase;

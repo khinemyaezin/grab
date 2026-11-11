@@ -36,7 +36,10 @@ import com.merchant.adapter.persistence.specification.jpa.StorefrontQuerySpecifi
 import com.merchant.adapter.persistence.repository.jpa.MerchantAccountJpaRepository;
 import com.grab.framework.security.SecurityManifestPublicationPort;
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import com.grab.framework.security.role.RoleDeclarationPublicationPort;
+import com.manifest.adapter.persistence.RoleDeclarationEventFactory;
 import com.manifest.adapter.persistence.SecurityManifestEventFactory;
+import com.merchant.adapter.persistence.adapter.MerchantRoleDeclarationPublicationAdapter;
 import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationAdapter;
 import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationQueryAdapter;
 import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
@@ -156,6 +159,20 @@ public class MerchantPersistenceConfig {
             @Qualifier("merchantSecurityManifestEventFactory") SecurityManifestEventFactory eventFactory,
             @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
         return new MerchantSecurityManifestPublicationAdapter(
+                context,
+                outbox,
+                eventFactory,
+                Duration.ofMillis(intervalMs)
+        );
+    }
+
+    @Bean("merchantRoleDeclarationPublicationPort")
+    public RoleDeclarationPublicationPort merchantRoleDeclarationPublicationPort(
+            JpaContext context,
+            @Qualifier("merchantDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("merchantRoleDeclarationEventFactory") RoleDeclarationEventFactory eventFactory,
+            @Value("${security.manifest.republish.fixed-delay-ms:300000}") long intervalMs) {
+        return new MerchantRoleDeclarationPublicationAdapter(
                 context,
                 outbox,
                 eventFactory,
