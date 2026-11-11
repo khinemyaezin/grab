@@ -15,7 +15,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/seller/v1/facilities")
+@RequestMapping("/api/v1/facilities")
 public class SellerFacilityZoneController implements SellerFacilityResource.Zones {
 
     private final SellerInventoryCommandService commandService;
@@ -38,7 +38,7 @@ public class SellerFacilityZoneController implements SellerFacilityResource.Zone
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
         FacilityZoneResponse response = commandService.createZone(locationId, actorId, request);
         URI uri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/seller/v1/facilities/zones/{id}")
+                .path("/api/v1/facilities/zones/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(uri).body(modelAssembler.toModel(response));

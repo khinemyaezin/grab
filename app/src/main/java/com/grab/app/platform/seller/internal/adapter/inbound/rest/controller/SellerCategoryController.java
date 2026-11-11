@@ -19,7 +19,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/seller/v1/categories")
+@RequestMapping("/api/v1/categories")
 public class SellerCategoryController implements SellerCategoryResource {
 
     private final SellerCategoryCommandService categoryCommandService;

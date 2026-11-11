@@ -18,7 +18,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/seller/v1/merchants/{merchantId}/members")
+@RequestMapping("/api/v1/merchants/{merchantId}/members")
 public class SellerMerchantMemberController implements SellerMerchantResource.Members {
 
     private final SellerMerchantCommandService commandService;

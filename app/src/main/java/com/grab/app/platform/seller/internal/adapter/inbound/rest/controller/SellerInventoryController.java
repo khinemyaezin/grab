@@ -16,7 +16,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/seller/v1/inventory/items")
+@RequestMapping("/api/v1/inventory/items")
 public class SellerInventoryController implements SellerInventoryResource {
 
     private final SellerInventoryCommandService commandService;

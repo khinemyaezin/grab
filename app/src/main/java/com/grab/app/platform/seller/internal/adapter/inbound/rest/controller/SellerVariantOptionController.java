@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/seller/v1/variant-options")
+@RequestMapping("/api/v1/variant-options")
 public class SellerVariantOptionController implements SellerProductResource.VariantOptions {
 
     private final SellerVariantDefinitionQueryService variantDefinitionQueryService;

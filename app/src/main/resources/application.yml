@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   mvc:
     async:
       request-timeout: 360000
@@ -7,6 +9,14 @@ spring:
       pool:
         size: 5
       thread-name-prefix: app-scheduled-
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
 
 logger:
   backend: ${LOGGER_BACKEND:slf4j}

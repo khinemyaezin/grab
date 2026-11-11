@@ -19,7 +19,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/seller/v1/sales-channels")
+@RequestMapping("/api/v1/sales-channels")
 public class SellerSalesChannelController implements SellerSalesChannelResource {
 
     private final SellerSalesChannelCommandService commandService;

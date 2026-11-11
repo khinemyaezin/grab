@@ -18,7 +18,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/seller/v1/merchants/{merchantId}/storefronts")
+@RequestMapping("/api/v1/merchants/{merchantId}/storefronts")
 public class SellerStorefrontController implements SellerMerchantResource.Storefronts {
 
     private final SellerMerchantCommandService commandService;

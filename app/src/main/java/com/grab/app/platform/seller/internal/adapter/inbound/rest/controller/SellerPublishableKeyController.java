@@ -16,7 +16,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/seller/v1/sales-channels")
+@RequestMapping("/api/v1/sales-channels")
 public class SellerPublishableKeyController implements SellerSalesChannelResource.PublishableKeys {
 
     private final SellerSalesChannelCommandService commandService;

@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Import;
 @Configuration(proxyBeanMethods = false)
 @Import({
         IdentityUseCaseConfig.class,
+        IdentityKeyConfig.class,
         IdentityPersistenceConfig.class,
         IdentityDataSourceConfig.class,
         IdentityModuleOutboxConfig.class,
