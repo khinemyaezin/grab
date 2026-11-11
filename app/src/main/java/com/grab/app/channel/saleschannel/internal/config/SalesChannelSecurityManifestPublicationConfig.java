@@ -1,6 +1,6 @@
 package com.grab.app.channel.saleschannel.internal.config;
 
-import com.grab.app.channel.saleschannel.port.event.SalesChannelSecurityManifestDeclaredIntegrationEvent;
+import com.grab.app.shared.events.saleschannel.SalesChannelSecurityManifestDeclaredIntegrationEvent;
 import com.grab.framework.security.SecurityManifestPublicationPort;
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import com.manifest.adapter.persistence.SecurityManifestEventFactory;

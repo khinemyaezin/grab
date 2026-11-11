@@ -1,6 +1,6 @@
 package com.grab.app.merchandising.inventory.internal.config;
 
-import com.grab.app.merchandising.inventory.port.event.InventorySecurityManifestDeclaredIntegrationEvent;
+import com.grab.app.shared.events.inventory.InventorySecurityManifestDeclaredIntegrationEvent;
 import com.grab.framework.security.SecurityManifestPublicationPort;
 import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import com.inventory.adapter.persistence.adapter.InventorySecurityManifestEventFactory;
