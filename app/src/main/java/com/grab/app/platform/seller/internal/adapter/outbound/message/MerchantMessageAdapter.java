@@ -5,6 +5,8 @@ import com.grab.app.account.merchant.port.message.MerchantMembershipPort;
 import com.grab.app.account.merchant.port.message.MerchantStorefrontPort;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.AcceptMerchantInvitationMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.CreateStorefrontMessageMapper;
+import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetC2CApplicationMessageMapper;
+import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetFirstPartyRetailerApplicationMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetMerchantMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.GetStorefrontMessageMapper;
 import com.grab.app.platform.seller.internal.adapter.outbound.message.mapper.InviteMerchantMemberMessageMapper;
@@ -45,6 +47,8 @@ public class MerchantMessageAdapter implements SellerMerchantOutboundPort {
     private final AcceptMerchantInvitationMessageMapper acceptInvitationMapper;
     private final UpdateMerchantMemberRoleMessageMapper updateRoleMapper;
     private final ListMerchantMembersMessageMapper listMembersMapper;
+    private final GetC2CApplicationMessageMapper getC2CApplicationMapper;
+    private final GetFirstPartyRetailerApplicationMessageMapper getFirstPartyRetailerApplicationMapper;
 
     public MerchantMessageAdapter(
             MerchantAccountPort accountPort,
@@ -63,7 +67,9 @@ public class MerchantMessageAdapter implements SellerMerchantOutboundPort {
             InviteMerchantMemberMessageMapper inviteMemberMapper,
             AcceptMerchantInvitationMessageMapper acceptInvitationMapper,
             UpdateMerchantMemberRoleMessageMapper updateRoleMapper,
-            ListMerchantMembersMessageMapper listMembersMapper
+            ListMerchantMembersMessageMapper listMembersMapper,
+            GetC2CApplicationMessageMapper getC2CApplicationMapper,
+            GetFirstPartyRetailerApplicationMessageMapper getFirstPartyRetailerApplicationMapper
     ) {
         this.accountPort = accountPort;
         this.storefrontPort = storefrontPort;
@@ -82,6 +88,8 @@ public class MerchantMessageAdapter implements SellerMerchantOutboundPort {
         this.acceptInvitationMapper = acceptInvitationMapper;
         this.updateRoleMapper = updateRoleMapper;
         this.listMembersMapper = listMembersMapper;
+        this.getC2CApplicationMapper = getC2CApplicationMapper;
+        this.getFirstPartyRetailerApplicationMapper = getFirstPartyRetailerApplicationMapper;
     }
 
     @Override
@@ -258,5 +266,19 @@ public class MerchantMessageAdapter implements SellerMerchantOutboundPort {
     public List<MerchantOutboundResult> listReviewQueue(String status) {
         List<MerchantAccountPort.MerchantMessageResult> results = accountPort.listReviewQueue(status);
         return results.stream().map(getMerchantMapper::toResult).toList();
+    }
+
+    @Override
+    public C2CApplicationOutboundResult getC2CApplication(String applicantUserId) {
+        Id userId = idGenerator.convertIdFrom(applicantUserId);
+        MerchantAccountPort.C2CApplicationResult result = accountPort.getC2CApplication(userId);
+        return getC2CApplicationMapper.toResult(result);
+    }
+
+    @Override
+    public FirstPartyRetailerApplicationOutboundResult getFirstPartyApplication(String applicantUserId) {
+        Id userId = idGenerator.convertIdFrom(applicantUserId);
+        MerchantAccountPort.FirstPartyApplicationResult result = accountPort.getFirstPartyApplication(userId);
+        return getFirstPartyRetailerApplicationMapper.toResult(result);
     }
 }

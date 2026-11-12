@@ -55,6 +55,10 @@ public interface SellerMerchantOutboundPort {
 
     List<MerchantOutboundResult> listReviewQueue(String status);
 
+    C2CApplicationOutboundResult getC2CApplication(String applicantUserId);
+
+    FirstPartyRetailerApplicationOutboundResult getFirstPartyApplication(String applicantUserId);
+
     record StartApplicationRecord(
             String actorId,
             String businessType,
@@ -141,5 +145,24 @@ public interface SellerMerchantOutboundPort {
             Instant createdAt,
             Instant updatedAt,
             long version
+    ) {}
+
+    record C2CApplicationOutboundResult(
+            String merchantId,
+            String applicantUserId,
+            String type,
+            String status,
+            boolean completedContactInfo,
+            boolean completedBasicInfo
+    ) {}
+
+    record FirstPartyRetailerApplicationOutboundResult(
+            String merchantId,
+            String applicantUserId,
+            String type,
+            String status,
+            boolean completedContactInfo,
+            boolean completedBasicInfo,
+            boolean completedBusinessRegistration
     ) {}
 }

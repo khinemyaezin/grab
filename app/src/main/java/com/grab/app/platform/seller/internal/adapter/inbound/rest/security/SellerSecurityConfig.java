@@ -66,7 +66,7 @@ public class SellerSecurityConfig {
                 entryPoint,
                 authCookieHelper
         );
-        SellerContextRequiredFilter contextRequiredFilter = new SellerContextRequiredFilter(objectMapper);
+        //SellerContextRequiredFilter contextRequiredFilter = new SellerContextRequiredFilter(objectMapper);
 
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -94,7 +94,7 @@ public class SellerSecurityConfig {
                     auth.anyRequest().authenticated();
                 })
                 .addFilterBefore(bearerFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(contextRequiredFilter, ProviderBearerAuthenticationFilter.class)
+                //.addFilterAfter(contextRequiredFilter, ProviderBearerAuthenticationFilter.class)
                 .build();
     }
 

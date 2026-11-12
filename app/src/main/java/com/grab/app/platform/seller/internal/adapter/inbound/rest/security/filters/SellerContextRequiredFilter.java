@@ -31,14 +31,14 @@ public class SellerContextRequiredFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof SellerSecurityPrincipal principal) {
+        if (auth != null && auth.isAuthenticated()
+                && auth.getPrincipal() instanceof SellerSecurityPrincipal principal) {
+
             if (principal.getAccessContext().isEmpty()) {
                 String path = request.getRequestURI();
-                if (!path.startsWith("/api/v1/identity")
-                        && !path.equals("/api/v1")
-                        && !path.equals("/api/v1/")
-                        && !path.equals("/")
-                        && !path.startsWith("/api/v1/merchants/apply")
+                if (!path.startsWith("/api/v1/identity/auth")
+                        && !path.startsWith("/api/v1/identity/session/contexts")
+                        && !path.startsWith("/api/v1")
                         && !path.startsWith("/swagger-ui")
                         && !path.startsWith("/v3/api-docs")) {
 

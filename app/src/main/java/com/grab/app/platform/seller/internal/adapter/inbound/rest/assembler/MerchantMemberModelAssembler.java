@@ -19,6 +19,7 @@ public class MerchantMemberModelAssembler implements RepresentationModelAssemble
         }
         EntityModel<MerchantMemberResponse> model = EntityModel.of(member);
         if (member.merchantId() != null) {
+            model.add(linkTo(methodOn(SellerMerchantMemberController.class).listMembers(member.merchantId())).withSelfRel());
             model.add(linkTo(methodOn(SellerMerchantMemberController.class).listMembers(member.merchantId())).withRel("list-merchant-members"));
             if ("INVITED".equalsIgnoreCase(member.status()) && member.memberId() != null) {
                 model.add(linkTo(methodOn(SellerMerchantMemberController.class)

@@ -1,5 +1,6 @@
 package com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler;
 
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.SellerMerchantApplicationController;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.SellerMerchantController;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.MerchantResponse;
 import org.springframework.hateoas.EntityModel;
@@ -24,7 +25,7 @@ public class MerchantModelAssembler implements RepresentationModelAssembler<Merc
                 model.add(linkTo(methodOn(SellerMerchantController.class)
                         .updateProfile(merchant.merchantId(), null, null))
                         .withRel("edit-merchant-application"));
-                model.add(linkTo(methodOn(SellerMerchantController.class)
+                model.add(linkTo(methodOn(SellerMerchantApplicationController.class)
                         .submitApplication(merchant.merchantId(), null))
                         .withRel("submit-merchant-application"));
             }
