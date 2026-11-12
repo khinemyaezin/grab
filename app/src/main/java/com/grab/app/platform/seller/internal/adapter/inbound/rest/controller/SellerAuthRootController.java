@@ -11,7 +11,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/v1/identity")
 public class SellerAuthRootController {
 
     @GetMapping(produces = MediaTypes.HAL_JSON_VALUE)
@@ -28,7 +28,11 @@ public class SellerAuthRootController {
         model.add(linkTo(methodOn(SellerAuthController.class).register(null))
                 .withRel("register"));
 
+        model.add(linkTo(methodOn(SellerSessionController.class).getProfile(null))
+                .withRel("get-profile"));
+        model.add(linkTo(methodOn(SellerSessionController.class).listContexts(null))
+                .withRel("list-access-contexts"));
+
         return ResponseEntity.ok(model);
     }
 }
-

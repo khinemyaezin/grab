@@ -205,4 +205,58 @@ public class MerchantMessageAdapter implements SellerMerchantOutboundPort {
         List<MerchantMembershipPort.MemberMessageResult> results = membershipPort.listMembers(merchantId);
         return listMembersMapper.toResultList(results);
     }
+
+    @Override
+    public MerchantOutboundResult approveMerchant(String merchantIdStr, String actorIdStr) {
+        Id merchantId = idGenerator.convertIdFrom(merchantIdStr);
+        Id actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? idGenerator.convertIdFrom(actorIdStr) : null;
+        MerchantAccountPort.MerchantMessageResult result = accountPort.approveMerchant(merchantId, actorId);
+        return getMerchantMapper.toResult(result);
+    }
+
+    @Override
+    public MerchantOutboundResult rejectMerchant(String merchantIdStr, String actorIdStr, String reason) {
+        Id merchantId = idGenerator.convertIdFrom(merchantIdStr);
+        Id actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? idGenerator.convertIdFrom(actorIdStr) : null;
+        MerchantAccountPort.MerchantMessageResult result = accountPort.rejectMerchant(merchantId, actorId, reason);
+        return getMerchantMapper.toResult(result);
+    }
+
+    @Override
+    public MerchantOutboundResult requestChanges(String merchantIdStr, String actorIdStr, String comments) {
+        Id merchantId = idGenerator.convertIdFrom(merchantIdStr);
+        Id actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? idGenerator.convertIdFrom(actorIdStr) : null;
+        MerchantAccountPort.MerchantMessageResult result = accountPort.requestChanges(merchantId, actorId, comments);
+        return getMerchantMapper.toResult(result);
+    }
+
+    @Override
+    public MerchantOutboundResult suspendMerchant(String merchantIdStr, String actorIdStr, String reason) {
+        Id merchantId = idGenerator.convertIdFrom(merchantIdStr);
+        Id actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? idGenerator.convertIdFrom(actorIdStr) : null;
+        MerchantAccountPort.MerchantMessageResult result = accountPort.suspendMerchant(merchantId, actorId, reason);
+        return getMerchantMapper.toResult(result);
+    }
+
+    @Override
+    public MerchantOutboundResult reactivateMerchant(String merchantIdStr, String actorIdStr) {
+        Id merchantId = idGenerator.convertIdFrom(merchantIdStr);
+        Id actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? idGenerator.convertIdFrom(actorIdStr) : null;
+        MerchantAccountPort.MerchantMessageResult result = accountPort.reactivateMerchant(merchantId, actorId);
+        return getMerchantMapper.toResult(result);
+    }
+
+    @Override
+    public MerchantOutboundResult closeMerchant(String merchantIdStr, String actorIdStr) {
+        Id merchantId = idGenerator.convertIdFrom(merchantIdStr);
+        Id actorId = (actorIdStr != null && !actorIdStr.isBlank()) ? idGenerator.convertIdFrom(actorIdStr) : null;
+        MerchantAccountPort.MerchantMessageResult result = accountPort.closeMerchant(merchantId, actorId);
+        return getMerchantMapper.toResult(result);
+    }
+
+    @Override
+    public List<MerchantOutboundResult> listReviewQueue(String status) {
+        List<MerchantAccountPort.MerchantMessageResult> results = accountPort.listReviewQueue(status);
+        return results.stream().map(getMerchantMapper::toResult).toList();
+    }
 }

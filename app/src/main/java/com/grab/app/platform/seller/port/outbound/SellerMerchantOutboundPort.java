@@ -41,6 +41,20 @@ public interface SellerMerchantOutboundPort {
 
     List<MerchantMemberOutboundResult> listMembers(String merchantId);
 
+    MerchantOutboundResult approveMerchant(String merchantId, String actorId);
+
+    MerchantOutboundResult rejectMerchant(String merchantId, String actorId, String reason);
+
+    MerchantOutboundResult requestChanges(String merchantId, String actorId, String comments);
+
+    MerchantOutboundResult suspendMerchant(String merchantId, String actorId, String reason);
+
+    MerchantOutboundResult reactivateMerchant(String merchantId, String actorId);
+
+    MerchantOutboundResult closeMerchant(String merchantId, String actorId);
+
+    List<MerchantOutboundResult> listReviewQueue(String status);
+
     record StartApplicationRecord(
             String actorId,
             String businessType,

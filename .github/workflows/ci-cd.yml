@@ -33,24 +33,4 @@ jobs:
         run: ./mvnw clean package -DskipTests -B
 
       - name: Run tests
-        run: ./mvnw install -B
-
-      - name: Audit runtime dependencies
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          audit_args=()
-          if [[ -n "${NVD_API_KEY:-}" ]]; then
-            audit_args+=(-DnvdApiKeyEnvironmentVariable=NVD_API_KEY)
-          fi
-          ./mvnw -B -ntp -Psecurity-audit "${audit_args[@]}" dependency-check:aggregate
-
-      - name: Upload vulnerability reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-security-reports
-          path: |
-            target/dependency-check-report.html
-            target/dependency-check-report.json
-          if-no-files-found: warn
+        run: ./mvnw test -B

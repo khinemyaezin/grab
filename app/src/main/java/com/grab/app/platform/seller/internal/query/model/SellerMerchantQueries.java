@@ -33,5 +33,9 @@ public final class SellerMerchantQueries {
     public record ListSellerMerchantMembersQuery(
             String merchantId
     ) implements Query<List<MerchantMemberOutboundResult>> {}
+
+    public record ListSellerMerchantReviewQueueQuery(
+            String status
+    ) implements Query<List<MerchantOutboundResult>> {}
 }
 

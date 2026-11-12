@@ -34,9 +34,10 @@ public class SellerContextRequiredFilter extends OncePerRequestFilter {
         if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof SellerSecurityPrincipal principal) {
             if (principal.getAccessContext().isEmpty()) {
                 String path = request.getRequestURI();
-                if (!path.startsWith("/api/v1/auth")
+                if (!path.startsWith("/api/v1/identity")
                         && !path.equals("/api/v1")
                         && !path.equals("/api/v1/")
+                        && !path.equals("/")
                         && !path.startsWith("/api/v1/merchants/apply")
                         && !path.startsWith("/swagger-ui")
                         && !path.startsWith("/v3/api-docs")) {
