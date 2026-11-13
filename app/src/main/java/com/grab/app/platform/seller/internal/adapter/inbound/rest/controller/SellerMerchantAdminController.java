@@ -40,8 +40,7 @@ public class SellerMerchantAdminController implements SellerMerchantResource.Adm
             @RequestParam(defaultValue = "PENDING_REVIEW") String status
     ) {
         List<MerchantResponse> responses = queryService.reviewQueue(status);
-        List<EntityModel<MerchantResponse>> models = responses.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.reviewQueueModel(responses, status));
     }
 
     @Override
@@ -53,7 +52,7 @@ public class SellerMerchantAdminController implements SellerMerchantResource.Adm
     ) {
         String actorId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = commandService.requestChanges(merchantId, actorId, request.reason());
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 
     @Override
@@ -64,7 +63,7 @@ public class SellerMerchantAdminController implements SellerMerchantResource.Adm
     ) {
         String actorId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = commandService.approve(merchantId, actorId);
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 
     @Override
@@ -76,7 +75,7 @@ public class SellerMerchantAdminController implements SellerMerchantResource.Adm
     ) {
         String actorId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = commandService.reject(merchantId, actorId, request.reason());
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 
     @Override
@@ -88,7 +87,7 @@ public class SellerMerchantAdminController implements SellerMerchantResource.Adm
     ) {
         String actorId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = commandService.suspend(merchantId, actorId, request.reason());
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 
     @Override
@@ -99,7 +98,7 @@ public class SellerMerchantAdminController implements SellerMerchantResource.Adm
     ) {
         String actorId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = commandService.reactivate(merchantId, actorId);
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 
     @Override
@@ -111,7 +110,7 @@ public class SellerMerchantAdminController implements SellerMerchantResource.Adm
     ) {
         String actorId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = commandService.close(merchantId, actorId);
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 }
 

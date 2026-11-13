@@ -41,7 +41,7 @@ public class SellerFacilityZoneController implements SellerFacilityResource.Zone
                 .path("/api/v1/facilities/zones/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return ResponseEntity.created(uri).body(modelAssembler.toModel(response));
+        return ResponseEntity.created(uri).body(modelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/zones/{zoneId}")

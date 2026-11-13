@@ -11,6 +11,7 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.S
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.SellerUserProfileResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerAuthCommandService;
 import com.grab.app.platform.seller.port.rest.SellerAuthResource;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpHeaders;
@@ -58,6 +59,7 @@ public class SellerAuthController implements SellerAuthResource {
 
     @Override
     @PostMapping("/refresh")
+    @Operation(description = "HAL relation refresh renews the seller session.")
     public ResponseEntity<EntityModel<SellerAuthResponse>> refresh(
             @CookieValue(name = "refreshToken", required = false) String refreshTokenCookie,
             @RequestBody(required = false) SellerRefreshTokenRequest request) {

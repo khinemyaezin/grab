@@ -35,15 +35,13 @@ public class SellerVariantOptionController implements SellerProductResource.Vari
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String typeId) {
         List<VariantOptionResponse> options = variantDefinitionQueryService.listOptions(name, typeId);
-        List<EntityModel<VariantOptionResponse>> models = options.stream().map(variantOptionModelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(variantOptionModelAssembler.listVariantOptionsModel(options, name, typeId));
     }
 
     @GetMapping("/types")
     public ResponseEntity<CollectionModel<EntityModel<VariantTypeResponse>>> listVariantTypes(
             @RequestParam(required = false) String name) {
         List<VariantTypeResponse> types = variantDefinitionQueryService.listTypes(name);
-        List<EntityModel<VariantTypeResponse>> models = types.stream().map(variantTypeModelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(variantTypeModelAssembler.listVariantTypesModel(types, name));
     }
 }

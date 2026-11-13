@@ -45,7 +45,7 @@ public class SellerCategoryController implements SellerCategoryResource {
                 .path("/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return ResponseEntity.created(location).body(categoryModelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(categoryModelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{categoryId}")
@@ -59,21 +59,19 @@ public class SellerCategoryController implements SellerCategoryResource {
     @GetMapping("/tree")
     public ResponseEntity<EntityModel<CategoryNodeResponse>> getCategoryTree(@RequestParam(required = false) String rootId) {
         CategoryNodeResponse tree = categoryQueryService.getCategoryTree(rootId);
-        return ResponseEntity.ok(categoryNodeModelAssembler.toModel(tree));
+        return ResponseEntity.ok(categoryNodeModelAssembler.toTreeModel(tree, rootId));
     }
 
     @GetMapping("/{categoryId}/children")
     public ResponseEntity<CollectionModel<EntityModel<CategoryResponse>>> getChildren(@PathVariable String categoryId) {
         List<CategoryResponse> children = categoryQueryService.getChildren(categoryId);
-        List<EntityModel<CategoryResponse>> models = children.stream().map(categoryModelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(categoryModelAssembler.getChildrenModel(children, categoryId));
     }
 
     @GetMapping("/leaf-nodes")
     public ResponseEntity<CollectionModel<EntityModel<CategoryResponse>>> getLeafNodes(@RequestParam(required = false) String name) {
         List<CategoryResponse> leaves = categoryQueryService.getLeafCategories(name);
-        List<EntityModel<CategoryResponse>> models = leaves.stream().map(categoryModelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(categoryModelAssembler.getLeafNodesModel(leaves, name));
     }
 
     @DeleteMapping("/{categoryId}")

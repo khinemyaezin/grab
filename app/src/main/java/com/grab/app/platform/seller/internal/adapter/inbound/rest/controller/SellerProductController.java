@@ -12,6 +12,7 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.V
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerProductCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerProductQueryService;
 import com.grab.app.platform.seller.port.rest.SellerProductResource;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -47,6 +47,7 @@ public class SellerProductController implements SellerProductResource {
     }
 
     @PostMapping
+    @Operation(description = "HAL relation create-product creates a product. Follow get-product in the result to retrieve it.")
     public ResponseEntity<EntityModel<ProductResponse>> createProduct(
             @Valid @RequestBody CreateProductRequest request,
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId) {
@@ -55,7 +56,7 @@ public class SellerProductController implements SellerProductResource {
                 .path("/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return ResponseEntity.created(location).body(productModelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(productModelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{productId}")
@@ -77,18 +78,14 @@ public class SellerProductController implements SellerProductResource {
     }
 
     @GetMapping
+    @Operation(description = "HAL discovery uses list-products for the default collection and search-products for filtered queries.")
     public ResponseEntity<PagedModel<EntityModel<ProductSummaryResponse>>> searchProducts(
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId,
             @RequestParam(required = false) String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Page<ProductSummaryResponse> productPage = productQueryService.searchProducts(merchantId, query, page, size);
-        List<EntityModel<ProductSummaryResponse>> items = productPage.getContent().stream()
-                .map(productSummaryModelAssembler::toModel)
-                .toList();
-        PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(size, page, productPage.getTotalElements());
-        PagedModel<EntityModel<ProductSummaryResponse>> pagedModel = PagedModel.of(items, metadata);
-        return ResponseEntity.ok(pagedModel);
+        return ResponseEntity.ok(productSummaryModelAssembler.toPageModel(productPage, query, page, size));
     }
 
     @PutMapping("/{productId}")
@@ -97,7 +94,7 @@ public class SellerProductController implements SellerProductResource {
             @Valid @RequestBody UpdateProductRequest request,
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId) {
         ProductResponse response = productCommandService.updateProduct(merchantId, productId, request);
-        return ResponseEntity.ok(productModelAssembler.toModel(response));
+        return ResponseEntity.ok(productModelAssembler.toCommandModel(response));
     }
 
     @DeleteMapping("/{productId}")
@@ -114,7 +111,7 @@ public class SellerProductController implements SellerProductResource {
             @Valid @RequestBody UpdateProductStatusRequest request,
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId) {
         ProductResponse response = productCommandService.updateProductStatus(merchantId, productId, request);
-        return ResponseEntity.ok(productModelAssembler.toModel(response));
+        return ResponseEntity.ok(productModelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{productId}/variants/{variantId}")

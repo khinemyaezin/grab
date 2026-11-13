@@ -47,17 +47,16 @@ public class SellerMerchantController implements SellerMerchantResource {
     public ResponseEntity<CollectionModel<EntityModel<MerchantResponse>>> listMyMerchants(
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
         List<MerchantResponse> results = queryService.listMyMerchants(actorId);
-        List<EntityModel<MerchantResponse>> models = results.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.listMyMerchantsModel(results));
     }
 
     @Override
-    @PutMapping("/{merchantId}/profile")
+    @PatchMapping("/{merchantId}/profile")
     public ResponseEntity<EntityModel<MerchantResponse>> updateProfile(
             @PathVariable String merchantId,
             @Valid @RequestBody UpdateMerchantProfileRequest request,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
         MerchantResponse response = commandService.updateProfile(merchantId, actorId, request);
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 }

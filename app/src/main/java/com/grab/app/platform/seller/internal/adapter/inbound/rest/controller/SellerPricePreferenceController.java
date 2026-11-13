@@ -38,7 +38,7 @@ public class SellerPricePreferenceController implements SellerPriceListResource.
                 .path("/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return ResponseEntity.created(location).body(modelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(modelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{preferenceId}")

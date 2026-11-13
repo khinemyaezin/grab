@@ -43,7 +43,7 @@ public class SellerStorefrontController implements SellerMerchantResource.Storef
                 .path("/{id}")
                 .buildAndExpand(response.storefrontId())
                 .toUri();
-        return ResponseEntity.created(location).body(modelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(modelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{storefrontId}")
@@ -59,8 +59,7 @@ public class SellerStorefrontController implements SellerMerchantResource.Storef
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<StorefrontResponse>>> listStorefronts(@PathVariable String merchantId) {
         List<StorefrontResponse> results = queryService.listStorefronts(merchantId);
-        List<EntityModel<StorefrontResponse>> models = results.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.listStorefrontsModel(results, merchantId));
     }
 
     @PutMapping("/{storefrontId}")
@@ -69,7 +68,7 @@ public class SellerStorefrontController implements SellerMerchantResource.Storef
             @PathVariable String storefrontId,
             @Valid @RequestBody UpdateStorefrontRequest request) {
         StorefrontResponse response = commandService.updateStorefront(merchantId, storefrontId, request);
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 
     @PatchMapping("/{storefrontId}/activate")

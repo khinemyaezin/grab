@@ -40,7 +40,7 @@ public class SellerPriceListController implements SellerPriceListResource {
                 .path("/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return ResponseEntity.created(location).body(modelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(modelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{priceListId}")
@@ -54,7 +54,6 @@ public class SellerPriceListController implements SellerPriceListResource {
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<PriceListResponse>>> listPriceLists() {
         List<PriceListResponse> results = queryService.listPriceLists();
-        List<EntityModel<PriceListResponse>> models = results.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.listPriceListsModel(results));
     }
 }

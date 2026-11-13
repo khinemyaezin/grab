@@ -14,6 +14,7 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.W
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerWorkflowCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerWorkflowQueryService;
 import com.grab.app.platform.seller.port.rest.SellerWorkflowResource;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -21,7 +22,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/workflows")
@@ -52,12 +52,13 @@ public class SellerSellableProductWorkflowController implements SellerWorkflowRe
 
     @PostMapping("/create-sellable-product")
     @Override
+    @Operation(description = "HAL relation create-sellable-product starts the workflow. Follow get-create-sellable-product to poll.")
     public ResponseEntity<EntityModel<CreateSellableProductResponse>> startCreateSellableProduct(
             @Valid @RequestBody CreateSellableProductRequest request,
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId
     ) {
         CreateSellableProductResponse response = commandService.startCreateSellableProduct(merchantId, request);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(createModelAssembler.toModel(response));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(createModelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/create-sellable-product/{workflowId}")
@@ -74,12 +75,13 @@ public class SellerSellableProductWorkflowController implements SellerWorkflowRe
 
     @PostMapping("/update-sellable-product")
     @Override
+    @Operation(description = "HAL relation update-sellable-product starts the workflow. Follow get-update-sellable-product to poll.")
     public ResponseEntity<EntityModel<UpdateSellableProductResponse>> startUpdateSellableProduct(
             @Valid @RequestBody UpdateSellableProductRequest request,
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId
     ) {
         UpdateSellableProductResponse response = commandService.startUpdateSellableProduct(merchantId, request);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(updateModelAssembler.toModel(response));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(updateModelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/update-sellable-product/{workflowId}")
@@ -96,12 +98,13 @@ public class SellerSellableProductWorkflowController implements SellerWorkflowRe
 
     @PostMapping("/update-product-variant")
     @Override
+    @Operation(description = "HAL relation update-product-variant starts the workflow. Follow get-update-product-variant to poll.")
     public ResponseEntity<EntityModel<UpdateProductVariantResponse>> startUpdateProductVariant(
             @Valid @RequestBody UpdateProductVariantRequest request,
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId
     ) {
         UpdateProductVariantResponse response = commandService.startUpdateProductVariant(merchantId, request);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(variantModelAssembler.toModel(response));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(variantModelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/update-product-variant/{workflowId}")
@@ -133,9 +136,6 @@ public class SellerSellableProductWorkflowController implements SellerWorkflowRe
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        List<EntityModel<WorkflowExecutionResponse>> list = queryService.listRecentWorkflows(page, size).stream()
-                .map(genericModelAssembler::toModel)
-                .toList();
-        return ResponseEntity.ok(CollectionModel.of(list));
+        return ResponseEntity.ok(genericModelAssembler.listRecentWorkflowsModel(queryService.listRecentWorkflows(page, size), page, size));
     }
 }

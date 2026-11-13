@@ -37,14 +37,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 class SellerOpenApiTest {
 
-    private static final String CONTROLLER_PACKAGE =
-            "com.grab.app.platform.seller.internal.adapter.inbound.rest.controller";
+    private static final String REST_PACKAGE =
+            "com.grab.app.platform.seller.internal.adapter.inbound.rest";
 
     @Test
     void documentsEverySellerControllerAndMappedOperation() throws Exception {
         ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(RestController.class));
-        Set<BeanDefinition> candidates = scanner.findCandidateComponents(CONTROLLER_PACKAGE);
+        Set<BeanDefinition> candidates = scanner.findCandidateComponents(REST_PACKAGE);
         Set<Class<?>> controllerTypes = new HashSet<>();
         Set<Class<?>> dependencies = new HashSet<>();
         WebApplicationContextRunner runner = new WebApplicationContextRunner()

@@ -78,7 +78,6 @@ public class SellerMerchantMemberController implements SellerMerchantResource.Me
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<MerchantMemberResponse>>> listMembers(@PathVariable String merchantId) {
         List<MerchantMemberResponse> results = queryService.listMembers(merchantId);
-        List<EntityModel<MerchantMemberResponse>> models = results.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.listMembersModel(results, merchantId));
     }
 }

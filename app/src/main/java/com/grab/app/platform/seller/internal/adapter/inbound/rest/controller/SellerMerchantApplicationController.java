@@ -68,7 +68,7 @@ public class SellerMerchantApplicationController implements SellerMerchantResour
                 .path("/{id}")
                 .buildAndExpand(response.merchantId())
                 .toUri();
-        return ResponseEntity.created(location).body(merchantModelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(merchantModelAssembler.toCommandModel(response));
     }
 
     @Override
@@ -78,7 +78,7 @@ public class SellerMerchantApplicationController implements SellerMerchantResour
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId
     ) {
         MerchantResponse response = merchantCommandService.submitApplication(applicationId, actorId);
-        return ResponseEntity.ok(merchantModelAssembler.toModel(response));
+        return ResponseEntity.ok(merchantModelAssembler.toCommandModel(response));
     }
 
     @Override
@@ -102,7 +102,7 @@ public class SellerMerchantApplicationController implements SellerMerchantResour
     ) {
         String applicantId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = c2CApplicationCommandService.startC2CApplication(applicantId, request);
-        EntityModel<MerchantResponse> model = merchantModelAssembler.toModel(response);
+        EntityModel<MerchantResponse> model = merchantModelAssembler.toCommandModel(response);
         return ResponseEntity.status(HttpStatus.CREATED).body(model);
     }
 
@@ -127,7 +127,7 @@ public class SellerMerchantApplicationController implements SellerMerchantResour
     ) {
         String applicantId = principal != null ? principal.getPlatformUserId() : null;
         MerchantResponse response = firstPartyCommandService.startFirstPartyApplication(applicantId, request);
-        EntityModel<MerchantResponse> model = merchantModelAssembler.toModel(response);
+        EntityModel<MerchantResponse> model = merchantModelAssembler.toCommandModel(response);
         return ResponseEntity.status(HttpStatus.CREATED).body(model);
     }
 }

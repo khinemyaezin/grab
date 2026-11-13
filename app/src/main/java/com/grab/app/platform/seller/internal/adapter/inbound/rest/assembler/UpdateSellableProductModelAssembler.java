@@ -1,13 +1,11 @@
 package com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler;
 
-import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.SellerSellableProductWorkflowController;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.UpdateSellableProductResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.hateoas.SellerWorkflowApiLinks;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
 public class UpdateSellableProductModelAssembler
@@ -15,18 +13,22 @@ public class UpdateSellableProductModelAssembler
 
     @Override
     public EntityModel<UpdateSellableProductResponse> toModel(UpdateSellableProductResponse response) {
+        return assemble(response, true);
+    }
+
+    public EntityModel<UpdateSellableProductResponse> toCommandModel(UpdateSellableProductResponse response) {
+        return assemble(response, false);
+    }
+
+    private EntityModel<UpdateSellableProductResponse> assemble(UpdateSellableProductResponse response, boolean canonicalRead) {
         if (response == null) {
             return null;
         }
-        return EntityModel.of(
-                response,
-                linkTo(methodOn(SellerSellableProductWorkflowController.class).getUpdateSellableProduct(response.workflowId()))
-                        .withSelfRel(),
-                linkTo(methodOn(SellerSellableProductWorkflowController.class).getUpdateSellableProduct(response.workflowId()))
-                        .withRel("get-update-sellable-product"),
-                linkTo(methodOn(SellerSellableProductWorkflowController.class).startUpdateSellableProduct(null, null))
-                        .withRel("update-sellable-product")
-        );
+        EntityModel<UpdateSellableProductResponse> model = EntityModel.of(response, SellerWorkflowApiLinks.startUpdateSellableProduct());
+        if (response.workflowId() != null) {
+            Link retrieval = SellerWorkflowApiLinks.getUpdateSellableProduct(response.workflowId());
+            model.add(canonicalRead ? retrieval.withSelfRel() : retrieval);
+        }
+        return model;
     }
 }
-

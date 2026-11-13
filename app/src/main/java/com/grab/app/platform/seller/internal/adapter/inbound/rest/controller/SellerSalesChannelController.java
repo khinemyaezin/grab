@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/sales-channels")
@@ -65,10 +64,7 @@ public class SellerSalesChannelController implements SellerSalesChannelResource 
             @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<EntityModel<SalesChannelResponse>> list = queryService.listChannels(merchantId, page, size).stream()
-                .map(modelAssembler::toModel)
-                .toList();
-        return ResponseEntity.ok(CollectionModel.of(list));
+        return ResponseEntity.ok(modelAssembler.listChannelsModel(queryService.listChannels(merchantId, page, size), page, size));
     }
 }
 

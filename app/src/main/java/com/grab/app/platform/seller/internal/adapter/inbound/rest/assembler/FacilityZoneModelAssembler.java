@@ -1,28 +1,35 @@
 package com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler;
 
-import com.grab.app.platform.seller.internal.adapter.inbound.rest.controller.SellerFacilityZoneController;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.FacilityZoneResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.hateoas.SellerFacilityApiLinks;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.stereotype.Component;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Component
 public class FacilityZoneModelAssembler implements RepresentationModelAssembler<FacilityZoneResponse, EntityModel<FacilityZoneResponse>> {
 
     @Override
     public EntityModel<FacilityZoneResponse> toModel(FacilityZoneResponse zone) {
+        return assemble(zone, true);
+    }
+
+    public EntityModel<FacilityZoneResponse> toCommandModel(FacilityZoneResponse zone) {
+        return assemble(zone, false);
+    }
+
+    private EntityModel<FacilityZoneResponse> assemble(FacilityZoneResponse zone, boolean canonicalRead) {
         if (zone == null) {
             return null;
         }
         EntityModel<FacilityZoneResponse> model = EntityModel.of(zone);
         if (zone.id() != null) {
-            model.add(linkTo(methodOn(SellerFacilityZoneController.class).getZone(zone.id())).withSelfRel());
-            model.add(linkTo(methodOn(SellerFacilityZoneController.class).activateZone(zone.id())).withRel("activate-zone"));
-            model.add(linkTo(methodOn(SellerFacilityZoneController.class).deactivateZone(zone.id())).withRel("deactivate-zone"));
-            model.add(linkTo(methodOn(SellerFacilityZoneController.class).deleteZone(zone.id())).withRel("delete-zone"));
+            Link retrieval = SellerFacilityApiLinks.getZone(zone.id());
+            model.add(canonicalRead ? retrieval.withSelfRel() : retrieval);
+            model.add(SellerFacilityApiLinks.activateZone(zone.id()));
+            model.add(SellerFacilityApiLinks.deactivateZone(zone.id()));
+            model.add(SellerFacilityApiLinks.deleteZone(zone.id()));
         }
         return model;
     }

@@ -41,7 +41,7 @@ public class SellerPriceSetController implements SellerPriceListResource.PriceSe
                 .path("/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return ResponseEntity.created(location).body(modelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(modelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{priceSetId}")

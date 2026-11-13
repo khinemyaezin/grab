@@ -31,7 +31,6 @@ public class SellerReorderSuggestionController implements SellerInventoryResourc
             @RequestParam(required = false) String locationId,
             @RequestParam(required = false) String sku) {
         List<ReorderSuggestionResponse> results = queryService.listReorderSuggestions(merchantId, locationId, sku);
-        List<EntityModel<ReorderSuggestionResponse>> models = results.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.listSuggestionsModel(results, locationId, sku));
     }
 }

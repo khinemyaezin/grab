@@ -6,6 +6,7 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.De
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.AllocationResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryCommandService;
 import com.grab.app.platform.seller.port.rest.SellerInventoryResource;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class SellerAllocationController implements SellerInventoryResource.Alloc
     }
 
     @PostMapping
+    @Operation(description = "HAL relation allocate-stock allocates stock.")
     public ResponseEntity<EntityModel<AllocationResponse>> allocateStock(
             @Valid @RequestBody AllocateStockRequest request,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
@@ -34,6 +36,7 @@ public class SellerAllocationController implements SellerInventoryResource.Alloc
     }
 
     @PostMapping("/deallocate")
+    @Operation(description = "HAL relation deallocate-stock releases stock.")
     public ResponseEntity<Void> deallocateStock(
             @Valid @RequestBody DeallocateStockRequest request,
             @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
