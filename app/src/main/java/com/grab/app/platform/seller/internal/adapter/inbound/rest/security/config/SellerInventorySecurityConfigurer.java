@@ -1,7 +1,6 @@
 package com.grab.app.platform.seller.internal.adapter.inbound.rest.security.config;
 
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.security.SellerModuleSecurityConfigurer;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.stereotype.Component;
@@ -11,7 +10,10 @@ public class SellerInventorySecurityConfigurer implements SellerModuleSecurityCo
 
     @Override
     public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
-        auth.requestMatchers(HttpMethod.GET, "/api/v1/inventory").permitAll();
+        auth.requestMatchers(
+                "/api/v1/inventory/**",
+                "/api/v1/facilities/**"
+        ).authenticated();
     }
 }
 

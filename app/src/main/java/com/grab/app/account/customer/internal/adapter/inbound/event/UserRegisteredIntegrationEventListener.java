@@ -8,6 +8,7 @@ import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -25,6 +26,7 @@ public class UserRegisteredIntegrationEventListener {
         this.idGenerator = idGenerator;
     }
 
+    @Async
     @EventListener
     public void onUserRegistered(UserRegisteredIntegrationEvent event) {
         log.info("Processing user registered event for userId={}", event.userId());
