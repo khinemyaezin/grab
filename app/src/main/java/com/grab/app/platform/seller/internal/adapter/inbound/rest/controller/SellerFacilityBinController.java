@@ -3,12 +3,15 @@ package com.grab.app.platform.seller.internal.adapter.inbound.rest.controller;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler.FacilityBinModelAssembler;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.CreateFacilityBinRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.FacilityBinResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryQueryService;
-import com.grab.app.platform.seller.port.rest.SellerFacilityResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -16,27 +19,19 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/facilities")
-public class SellerFacilityBinController implements SellerFacilityResource.Bins {
+@RequiredArgsConstructor
+public class SellerFacilityBinController {
 
     private final SellerInventoryCommandService commandService;
     private final SellerInventoryQueryService queryService;
     private final FacilityBinModelAssembler modelAssembler;
 
-    public SellerFacilityBinController(
-            SellerInventoryCommandService commandService,
-            SellerInventoryQueryService queryService,
-            FacilityBinModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
-
     @PostMapping("/zones/{zoneId}/bins")
     public ResponseEntity<EntityModel<FacilityBinResponse>> createBin(
             @PathVariable String zoneId,
             @Valid @RequestBody CreateFacilityBinRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        FacilityBinResponse response = commandService.createBin(zoneId, actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        FacilityBinResponse response = commandService.createBin(zoneId, principal.getPlatformUserId(), request);
         URI uri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/v1/facilities/bins/{id}")
                 .buildAndExpand(response.id())

@@ -6,10 +6,11 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.K
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.PublishableKeyResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerSalesChannelCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerSalesChannelQueryService;
-import com.grab.app.platform.seller.port.rest.SellerSalesChannelResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -17,20 +18,12 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/sales-channels")
-public class SellerPublishableKeyController implements SellerSalesChannelResource.PublishableKeys {
+@RequiredArgsConstructor
+public class SellerPublishableKeyController {
 
     private final SellerSalesChannelCommandService commandService;
     private final SellerSalesChannelQueryService queryService;
     private final PublishableKeyModelAssembler modelAssembler;
-
-    public SellerPublishableKeyController(
-            SellerSalesChannelCommandService commandService,
-            SellerSalesChannelQueryService queryService,
-            PublishableKeyModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
 
     @PostMapping("/{channelId}/publishable-keys")
     public ResponseEntity<EntityModel<PublishableKeyResponse>> createPublishableKey(
@@ -53,11 +46,9 @@ public class SellerPublishableKeyController implements SellerSalesChannelResourc
     }
 
     @GetMapping("/publishable-keys/resolve")
-    public ResponseEntity<KeyResolutionResponse> resolveKey(
-            @RequestParam String token) {
+    public ResponseEntity<KeyResolutionResponse> resolveKey(@RequestParam String token) {
         return queryService.resolveKey(token)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 }
-

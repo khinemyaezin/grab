@@ -22,7 +22,7 @@ public final class SellerInventoryApiLinks {
     }
 
     public static Link createItem() {
-        return linkTo(methodOn(SellerInventoryController.class).createItem(null, null, null))
+        return linkTo(methodOn(SellerInventoryController.class).createItem(null, null))
                 .withRel("create-inventory-item");
     }
 }

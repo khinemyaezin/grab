@@ -17,8 +17,10 @@ public class SellerAccessContextCommandService {
     }
 
     public SellerAuthResponse switchContext(String assignmentId, String currentRefreshToken, SellerSecurityPrincipal principal) {
-        String userId = principal != null ? principal.getPlatformUserId() : null;
-        return commandBus.dispatch(new SwitchAccessContextCommand(userId, assignmentId, currentRefreshToken));
+        return commandBus.dispatch(new SwitchAccessContextCommand(
+                principal.getPlatformUserId(),
+                assignmentId,
+                currentRefreshToken));
     }
 }
 

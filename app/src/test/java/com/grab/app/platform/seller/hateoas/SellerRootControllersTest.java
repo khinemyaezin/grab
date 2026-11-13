@@ -128,6 +128,11 @@ class SellerRootControllersTest {
 
                     mvc.perform(get(REGION_ROOT).accept(MediaTypes.HAL_JSON))
                             .andExpect(status().isUnauthorized());
+                    mvc.perform(get(REGION_ROOT)
+                                    .header("X-Actor-Id", "caller-supplied-actor")
+                                    .header("X-Merchant-Id", "caller-supplied-merchant")
+                                    .accept(MediaTypes.HAL_JSON))
+                            .andExpect(status().isUnauthorized());
 
                     Map<String, JsonNode> roots = new HashMap<>();
                     for (Map.Entry<String, String> resource : RESOURCE_ROOTS.entrySet()) {

@@ -12,10 +12,6 @@ public class SellerInventorySecurityConfigurer implements SellerModuleSecurityCo
     @Override
     public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
         auth.requestMatchers(HttpMethod.GET, "/api/v1/inventory").permitAll();
-        auth.requestMatchers(
-                "/api/v1/facilities/**",
-                "/api/v1/inventory/**"
-        ).authenticated();
     }
 }
 

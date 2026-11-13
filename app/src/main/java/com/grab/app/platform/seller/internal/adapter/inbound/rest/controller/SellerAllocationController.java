@@ -4,43 +4,38 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler.Allo
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.AllocateStockRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.DeallocateStockRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.AllocationResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryCommandService;
-import com.grab.app.platform.seller.port.rest.SellerInventoryResource;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/inventory/allocations")
-public class SellerAllocationController implements SellerInventoryResource.Allocations {
+@RequiredArgsConstructor
+public class SellerAllocationController {
 
     private final SellerInventoryCommandService commandService;
     private final AllocationModelAssembler modelAssembler;
 
-    public SellerAllocationController(
-            SellerInventoryCommandService commandService,
-            AllocationModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.modelAssembler = modelAssembler;
-    }
-
     @PostMapping
-    @Operation(description = "HAL relation allocate-stock allocates stock.")
     public ResponseEntity<EntityModel<AllocationResponse>> allocateStock(
             @Valid @RequestBody AllocateStockRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        AllocationResponse response = commandService.allocateStock(actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        AllocationResponse response = commandService.allocateStock(principal.getPlatformUserId(), request);
         return ResponseEntity.ok(modelAssembler.toModel(response));
     }
 
     @PostMapping("/deallocate")
-    @Operation(description = "HAL relation deallocate-stock releases stock.")
     public ResponseEntity<Void> deallocateStock(
             @Valid @RequestBody DeallocateStockRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        commandService.deallocateStock(actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        commandService.deallocateStock(principal.getPlatformUserId(), request);
         return ResponseEntity.noContent().build();
     }
 }

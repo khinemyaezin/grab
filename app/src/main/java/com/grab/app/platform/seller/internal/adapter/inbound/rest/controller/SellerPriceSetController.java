@@ -6,11 +6,12 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.C
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.PriceSetResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerPricingCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerPricingQueryService;
-import com.grab.app.platform.seller.port.rest.SellerPriceListResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -19,20 +20,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/pricing/price-sets")
-public class SellerPriceSetController implements SellerPriceListResource.PriceSets {
+@RequiredArgsConstructor
+public class SellerPriceSetController {
 
     private final SellerPricingCommandService commandService;
     private final SellerPricingQueryService queryService;
     private final PriceSetModelAssembler modelAssembler;
-
-    public SellerPriceSetController(
-            SellerPricingCommandService commandService,
-            SellerPricingQueryService queryService,
-            PriceSetModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
 
     @PostMapping
     public ResponseEntity<EntityModel<PriceSetResponse>> createPriceSet() {
@@ -53,7 +46,8 @@ public class SellerPriceSetController implements SellerPriceListResource.PriceSe
     }
 
     @PostMapping("/calculate")
-    public ResponseEntity<List<CalculatedPriceResponse>> calculatePrices(@Valid @RequestBody CalculatePriceRequest request) {
+    public ResponseEntity<List<CalculatedPriceResponse>> calculatePrices(
+            @Valid @RequestBody CalculatePriceRequest request) {
         List<CalculatedPriceResponse> results = queryService.calculatePrices(request);
         return ResponseEntity.ok(results);
     }

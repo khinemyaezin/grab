@@ -74,7 +74,7 @@ public final class SellerFacilityApiLinks {
     }
 
     public static Link createLocation() {
-        return linkTo(methodOn(SellerFacilityLocationController.class).createLocation(null, null, null))
+        return linkTo(methodOn(SellerFacilityLocationController.class).createLocation(null, null))
                 .withRel("create-location");
     }
 }

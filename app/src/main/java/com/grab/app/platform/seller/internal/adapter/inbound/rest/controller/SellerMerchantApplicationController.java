@@ -13,11 +13,12 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.Seller
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerFirstPartyRetailerApplicationCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerFirstPartyRetailerApplicationQueryService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerMerchantCommandService;
-import com.grab.app.platform.seller.port.rest.SellerMerchantResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -26,7 +27,8 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/merchants/applications")
-public class SellerMerchantApplicationController implements SellerMerchantResource.Applications {
+@RequiredArgsConstructor
+public class SellerMerchantApplicationController {
 
     private final SellerMerchantCommandService merchantCommandService;
     private final SellerC2CApplicationCommandService c2CApplicationCommandService;
@@ -37,33 +39,12 @@ public class SellerMerchantApplicationController implements SellerMerchantResour
     private final C2CApplicationAssembler c2CApplicationAssembler;
     private final FirstPartyRetailerApplicationAssembler firstPartyRetailerApplicationAssembler;
 
-    public SellerMerchantApplicationController(
-            SellerMerchantCommandService merchantCommandService,
-            SellerC2CApplicationCommandService c2CApplicationCommandService,
-            SellerC2CApplicationQueryService c2CApplicationQueryService,
-            SellerFirstPartyRetailerApplicationCommandService firstPartyCommandService,
-            SellerFirstPartyRetailerApplicationQueryService firstPartyQueryService,
-            MerchantModelAssembler merchantModelAssembler,
-            C2CApplicationAssembler c2CApplicationAssembler,
-            FirstPartyRetailerApplicationAssembler firstPartyRetailerApplicationAssembler
-    ) {
-        this.merchantCommandService = merchantCommandService;
-        this.c2CApplicationCommandService = c2CApplicationCommandService;
-        this.c2CApplicationQueryService = c2CApplicationQueryService;
-        this.firstPartyCommandService = firstPartyCommandService;
-        this.firstPartyQueryService = firstPartyQueryService;
-        this.merchantModelAssembler = merchantModelAssembler;
-        this.c2CApplicationAssembler = c2CApplicationAssembler;
-        this.firstPartyRetailerApplicationAssembler = firstPartyRetailerApplicationAssembler;
-    }
-
-    @Override
     @PostMapping
     public ResponseEntity<EntityModel<MerchantResponse>> startApplication(
             @Valid @RequestBody StartMerchantApplicationRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
-    ) {
-        MerchantResponse response = merchantCommandService.startApplication(actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        MerchantResponse response = merchantCommandService.startApplication(
+                principal.getPlatformUserId(), request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.merchantId())
@@ -71,64 +52,54 @@ public class SellerMerchantApplicationController implements SellerMerchantResour
         return ResponseEntity.created(location).body(merchantModelAssembler.toCommandModel(response));
     }
 
-    @Override
     @PutMapping("/{applicationId}/submit")
     public ResponseEntity<EntityModel<MerchantResponse>> submitApplication(
             @PathVariable String applicationId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId
-    ) {
-        MerchantResponse response = merchantCommandService.submitApplication(applicationId, actorId);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        MerchantResponse response = merchantCommandService.submitApplication(
+                applicationId, principal.getPlatformUserId());
         return ResponseEntity.ok(merchantModelAssembler.toCommandModel(response));
     }
 
-    @Override
     @GetMapping("/c2c")
     public ResponseEntity<EntityModel<GetC2CApplicationResponse>> getC2CApplication(
-            @AuthenticationPrincipal SellerSecurityPrincipal principal
-    ) {
-        String applicantId = principal != null ? principal.getPlatformUserId() : null;
-        GetC2CApplicationResponse response = c2CApplicationQueryService.getC2CApplication(applicantId);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        GetC2CApplicationResponse response = c2CApplicationQueryService
+                .getC2CApplication(principal.getPlatformUserId());
         if (response == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(c2CApplicationAssembler.toModel(response));
     }
 
-    @Override
     @PostMapping("/c2c")
     public ResponseEntity<EntityModel<MerchantResponse>> startC2CApplication(
             @Valid @RequestBody StartMerchantApplicationRequest request,
-            @AuthenticationPrincipal SellerSecurityPrincipal principal
-    ) {
-        String applicantId = principal != null ? principal.getPlatformUserId() : null;
-        MerchantResponse response = c2CApplicationCommandService.startC2CApplication(applicantId, request);
-        EntityModel<MerchantResponse> model = merchantModelAssembler.toCommandModel(response);
-        return ResponseEntity.status(HttpStatus.CREATED).body(model);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        MerchantResponse response = c2CApplicationCommandService.startC2CApplication(
+                principal.getPlatformUserId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(merchantModelAssembler.toCommandModel(response));
     }
 
-    @Override
     @GetMapping("/first-party")
     public ResponseEntity<EntityModel<GetFirstPartyRetailerApplicationResponse>> getFirstPartyApplication(
-            @AuthenticationPrincipal SellerSecurityPrincipal principal
-    ) {
-        String applicantId = principal != null ? principal.getPlatformUserId() : null;
-        GetFirstPartyRetailerApplicationResponse response = firstPartyQueryService.getFirstPartyApplication(applicantId);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        GetFirstPartyRetailerApplicationResponse response = firstPartyQueryService
+                .getFirstPartyApplication(principal.getPlatformUserId());
         if (response == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(firstPartyRetailerApplicationAssembler.toModel(response));
     }
 
-    @Override
     @PostMapping("/first-party")
     public ResponseEntity<EntityModel<MerchantResponse>> startFirstPartyApplication(
             @Valid @RequestBody StartMerchantApplicationRequest request,
-            @AuthenticationPrincipal SellerSecurityPrincipal principal
-    ) {
-        String applicantId = principal != null ? principal.getPlatformUserId() : null;
-        MerchantResponse response = firstPartyCommandService.startFirstPartyApplication(applicantId, request);
-        EntityModel<MerchantResponse> model = merchantModelAssembler.toCommandModel(response);
-        return ResponseEntity.status(HttpStatus.CREATED).body(model);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        MerchantResponse response = firstPartyCommandService.startFirstPartyApplication(
+                principal.getPlatformUserId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(merchantModelAssembler.toCommandModel(response));
     }
 }
-

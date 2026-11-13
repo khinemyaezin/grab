@@ -12,11 +12,6 @@ public class SellerCatalogSecurityConfigurer implements SellerModuleSecurityConf
     @Override
     public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
         auth.requestMatchers(HttpMethod.GET, "/api/v1/catalog").permitAll();
-        auth.requestMatchers(
-                "/api/v1/products/**",
-                "/api/v1/categories/**",
-                "/api/v1/variant-options/**"
-        ).authenticated();
     }
 }
 

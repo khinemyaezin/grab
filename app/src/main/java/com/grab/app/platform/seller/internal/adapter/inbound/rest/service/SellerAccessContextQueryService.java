@@ -19,8 +19,7 @@ public class SellerAccessContextQueryService {
     }
 
     public List<AccessContextResponse> listContexts(SellerSecurityPrincipal principal) {
-        String userId = principal != null ? principal.getPlatformUserId() : null;
-        return queryBus.dispatch(new ListAvailableAccessContextsQuery(userId));
+        return queryBus.dispatch(new ListAvailableAccessContextsQuery(principal.getPlatformUserId()));
     }
 }
 

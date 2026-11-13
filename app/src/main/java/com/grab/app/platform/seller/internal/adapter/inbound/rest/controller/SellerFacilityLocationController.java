@@ -3,12 +3,15 @@ package com.grab.app.platform.seller.internal.adapter.inbound.rest.controller;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler.FacilityLocationModelAssembler;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.CreateFacilityLocationRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.FacilityLocationResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryQueryService;
-import com.grab.app.platform.seller.port.rest.SellerFacilityResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -16,27 +19,21 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/facilities/locations")
-public class SellerFacilityLocationController implements SellerFacilityResource {
+@RequiredArgsConstructor
+public class SellerFacilityLocationController {
 
     private final SellerInventoryCommandService commandService;
     private final SellerInventoryQueryService queryService;
     private final FacilityLocationModelAssembler modelAssembler;
 
-    public SellerFacilityLocationController(
-            SellerInventoryCommandService commandService,
-            SellerInventoryQueryService queryService,
-            FacilityLocationModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
-
     @PostMapping
     public ResponseEntity<EntityModel<FacilityLocationResponse>> createLocation(
             @Valid @RequestBody CreateFacilityLocationRequest request,
-            @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        FacilityLocationResponse response = commandService.createLocation(merchantId, actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        FacilityLocationResponse response = commandService.createLocation(
+                principal.requiredScopeId(),
+                principal.getPlatformUserId(),
+                request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.id())

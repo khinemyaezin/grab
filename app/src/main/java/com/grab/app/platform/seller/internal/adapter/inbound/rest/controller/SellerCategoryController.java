@@ -7,11 +7,12 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.C
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.CategoryResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerCategoryCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerCategoryQueryService;
-import com.grab.app.platform.seller.port.rest.SellerCategoryResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -20,26 +21,17 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/categories")
-public class SellerCategoryController implements SellerCategoryResource {
+@RequiredArgsConstructor
+public class SellerCategoryController {
 
     private final SellerCategoryCommandService categoryCommandService;
     private final SellerCategoryQueryService categoryQueryService;
     private final CategoryModelAssembler categoryModelAssembler;
     private final CategoryNodeModelAssembler categoryNodeModelAssembler;
 
-    public SellerCategoryController(
-            SellerCategoryCommandService categoryCommandService,
-            SellerCategoryQueryService categoryQueryService,
-            CategoryModelAssembler categoryModelAssembler,
-            CategoryNodeModelAssembler categoryNodeModelAssembler) {
-        this.categoryCommandService = categoryCommandService;
-        this.categoryQueryService = categoryQueryService;
-        this.categoryModelAssembler = categoryModelAssembler;
-        this.categoryNodeModelAssembler = categoryNodeModelAssembler;
-    }
-
     @PostMapping
-    public ResponseEntity<EntityModel<CategoryResponse>> saveCategory(@Valid @RequestBody SaveCategoryRequest request) {
+    public ResponseEntity<EntityModel<CategoryResponse>> saveCategory(
+            @Valid @RequestBody SaveCategoryRequest request) {
         CategoryResponse response = categoryCommandService.saveCategory(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
@@ -57,19 +49,22 @@ public class SellerCategoryController implements SellerCategoryResource {
     }
 
     @GetMapping("/tree")
-    public ResponseEntity<EntityModel<CategoryNodeResponse>> getCategoryTree(@RequestParam(required = false) String rootId) {
+    public ResponseEntity<EntityModel<CategoryNodeResponse>> getCategoryTree(
+            @RequestParam(required = false) String rootId) {
         CategoryNodeResponse tree = categoryQueryService.getCategoryTree(rootId);
         return ResponseEntity.ok(categoryNodeModelAssembler.toTreeModel(tree, rootId));
     }
 
     @GetMapping("/{categoryId}/children")
-    public ResponseEntity<CollectionModel<EntityModel<CategoryResponse>>> getChildren(@PathVariable String categoryId) {
+    public ResponseEntity<CollectionModel<EntityModel<CategoryResponse>>> getChildren(
+            @PathVariable String categoryId) {
         List<CategoryResponse> children = categoryQueryService.getChildren(categoryId);
         return ResponseEntity.ok(categoryModelAssembler.getChildrenModel(children, categoryId));
     }
 
     @GetMapping("/leaf-nodes")
-    public ResponseEntity<CollectionModel<EntityModel<CategoryResponse>>> getLeafNodes(@RequestParam(required = false) String name) {
+    public ResponseEntity<CollectionModel<EntityModel<CategoryResponse>>> getLeafNodes(
+            @RequestParam(required = false) String name) {
         List<CategoryResponse> leaves = categoryQueryService.getLeafCategories(name);
         return ResponseEntity.ok(categoryModelAssembler.getLeafNodesModel(leaves, name));
     }

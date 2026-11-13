@@ -3,12 +3,15 @@ package com.grab.app.platform.seller.internal.adapter.inbound.rest.controller;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler.FacilityZoneModelAssembler;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.CreateFacilityZoneRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.FacilityZoneResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerInventoryQueryService;
-import com.grab.app.platform.seller.port.rest.SellerFacilityResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -16,27 +19,20 @@ import java.net.URI;
 
 @RestController
 @RequestMapping("/api/v1/facilities")
-public class SellerFacilityZoneController implements SellerFacilityResource.Zones {
+@RequiredArgsConstructor
+
+public class SellerFacilityZoneController {
 
     private final SellerInventoryCommandService commandService;
     private final SellerInventoryQueryService queryService;
     private final FacilityZoneModelAssembler modelAssembler;
 
-    public SellerFacilityZoneController(
-            SellerInventoryCommandService commandService,
-            SellerInventoryQueryService queryService,
-            FacilityZoneModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
-
     @PostMapping("/locations/{locationId}/zones")
     public ResponseEntity<EntityModel<FacilityZoneResponse>> createZone(
             @PathVariable String locationId,
             @Valid @RequestBody CreateFacilityZoneRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        FacilityZoneResponse response = commandService.createZone(locationId, actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        FacilityZoneResponse response = commandService.createZone(locationId, principal.getPlatformUserId(), request);
         URI uri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/v1/facilities/zones/{id}")
                 .buildAndExpand(response.id())

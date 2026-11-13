@@ -5,43 +5,38 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler.Sale
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.ProvisionWebsiteChannelRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.SalesChannelProvisionResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.SalesChannelResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerSalesChannelCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerSalesChannelQueryService;
-import com.grab.app.platform.seller.port.rest.SellerSalesChannelResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/sales-channels")
-public class SellerSalesChannelController implements SellerSalesChannelResource {
+@RequiredArgsConstructor
+public class SellerSalesChannelController {
 
     private final SellerSalesChannelCommandService commandService;
     private final SellerSalesChannelQueryService queryService;
     private final SalesChannelModelAssembler modelAssembler;
     private final SalesChannelProvisionModelAssembler provisionModelAssembler;
 
-    public SellerSalesChannelController(
-            SellerSalesChannelCommandService commandService,
-            SellerSalesChannelQueryService queryService,
-            SalesChannelModelAssembler modelAssembler,
-            SalesChannelProvisionModelAssembler provisionModelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-        this.provisionModelAssembler = provisionModelAssembler;
-    }
-
     @PostMapping("/merchant-website")
     public ResponseEntity<EntityModel<SalesChannelProvisionResponse>> provisionMerchantWebsiteChannel(
             @Valid @RequestBody ProvisionWebsiteChannelRequest request,
-            @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId) {
-        SalesChannelProvisionResponse response = commandService.provisionMerchantWebsiteChannel(merchantId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        SalesChannelProvisionResponse response = commandService.provisionMerchantWebsiteChannel(
+                principal.requiredScopeId(), request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.salesChannelId())
@@ -52,8 +47,8 @@ public class SellerSalesChannelController implements SellerSalesChannelResource 
     @GetMapping("/{salesChannelId}")
     public ResponseEntity<EntityModel<SalesChannelResponse>> getChannel(
             @PathVariable String salesChannelId,
-            @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId) {
-        return queryService.getChannelById(salesChannelId, merchantId)
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        return queryService.getChannelById(salesChannelId, principal.requiredScopeId())
                 .map(modelAssembler::toModel)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -61,10 +56,11 @@ public class SellerSalesChannelController implements SellerSalesChannelResource 
 
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<SalesChannelResponse>>> listChannels(
-            @RequestHeader(value = "X-Merchant-Id", required = false) String merchantId,
+            @AuthenticationPrincipal SellerSecurityPrincipal principal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(modelAssembler.listChannelsModel(queryService.listChannels(merchantId, page, size), page, size));
+        List<SalesChannelResponse> channels = queryService.listChannels(
+                principal.requiredScopeId(), page, size);
+        return ResponseEntity.ok(modelAssembler.listChannelsModel(channels, page, size));
     }
 }
-

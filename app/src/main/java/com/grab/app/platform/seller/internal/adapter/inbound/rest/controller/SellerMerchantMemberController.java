@@ -4,13 +4,16 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.assembler.Merc
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.InviteMemberRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.UpdateMemberRoleRequest;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.MerchantMemberResponse;
+import com.grab.app.platform.seller.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerMerchantCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerMerchantQueryService;
-import com.grab.app.platform.seller.port.rest.SellerMerchantResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -19,27 +22,20 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/merchants/{merchantId}/members")
-public class SellerMerchantMemberController implements SellerMerchantResource.Members {
+@RequiredArgsConstructor
+public class SellerMerchantMemberController {
 
     private final SellerMerchantCommandService commandService;
     private final SellerMerchantQueryService queryService;
     private final MerchantMemberModelAssembler modelAssembler;
 
-    public SellerMerchantMemberController(
-            SellerMerchantCommandService commandService,
-            SellerMerchantQueryService queryService,
-            MerchantMemberModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
-
     @PostMapping("/invite")
     public ResponseEntity<EntityModel<MerchantMemberResponse>> inviteMember(
             @PathVariable String merchantId,
             @Valid @RequestBody InviteMemberRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        MerchantMemberResponse response = commandService.inviteMember(merchantId, actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        MerchantMemberResponse response = commandService.inviteMember(
+                merchantId, principal.getPlatformUserId(), request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.memberId())
@@ -51,8 +47,9 @@ public class SellerMerchantMemberController implements SellerMerchantResource.Me
     public ResponseEntity<EntityModel<MerchantMemberResponse>> acceptInvitation(
             @PathVariable String merchantId,
             @PathVariable String memberId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        MerchantMemberResponse response = commandService.acceptInvitation(merchantId, memberId, actorId);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        MerchantMemberResponse response = commandService.acceptInvitation(
+                merchantId, memberId, principal.getPlatformUserId());
         return ResponseEntity.ok(modelAssembler.toModel(response));
     }
 
@@ -61,8 +58,9 @@ public class SellerMerchantMemberController implements SellerMerchantResource.Me
             @PathVariable String merchantId,
             @PathVariable String memberId,
             @Valid @RequestBody UpdateMemberRoleRequest request,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        MerchantMemberResponse response = commandService.updateMemberRole(merchantId, memberId, actorId, request);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        MerchantMemberResponse response = commandService.updateMemberRole(
+                merchantId, memberId, principal.getPlatformUserId(), request);
         return ResponseEntity.ok(modelAssembler.toModel(response));
     }
 
@@ -70,13 +68,14 @@ public class SellerMerchantMemberController implements SellerMerchantResource.Me
     public ResponseEntity<Void> removeMember(
             @PathVariable String merchantId,
             @PathVariable String memberId,
-            @RequestHeader(value = "X-Actor-Id", required = false) String actorId) {
-        commandService.removeMember(merchantId, memberId, actorId);
+            @AuthenticationPrincipal SellerSecurityPrincipal principal) {
+        commandService.removeMember(merchantId, memberId, principal.getPlatformUserId());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping
-    public ResponseEntity<CollectionModel<EntityModel<MerchantMemberResponse>>> listMembers(@PathVariable String merchantId) {
+    public ResponseEntity<CollectionModel<EntityModel<MerchantMemberResponse>>> listMembers(
+            @PathVariable String merchantId) {
         List<MerchantMemberResponse> results = queryService.listMembers(merchantId);
         return ResponseEntity.ok(modelAssembler.listMembersModel(results, merchantId));
     }
