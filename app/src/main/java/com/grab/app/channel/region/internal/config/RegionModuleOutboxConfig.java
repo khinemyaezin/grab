@@ -14,6 +14,8 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategies;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategy;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.region.adapter.persistence.outbox.RegionOutboxEvent;
 import com.region.adapter.persistence.outbox.RegionOutboxEventProcessor;
@@ -41,10 +43,12 @@ public class RegionModuleOutboxConfig {
     }
 
     @Bean("regionOutboxStore")
-    public OutboxStore<RegionOutboxEvent, Long> regionOutboxStore(JpaContext context) {
+    public OutboxStore<RegionOutboxEvent, Long> regionOutboxStore(JpaContext context, Environment environment) {
+        OutboxClaimStrategy claimStrategy = OutboxClaimStrategies.fromProperties(environment, "region.outbox");
         return new JpaOutboxStore<>(
                 context.getEntityManagerByManagedType(RegionOutboxEvent.class),
-                RegionOutboxEvent.class
+                RegionOutboxEvent.class,
+                claimStrategy
         );
     }
 
@@ -71,9 +75,11 @@ public class RegionModuleOutboxConfig {
     public SingletonJobExecutor regionSingletonJobExecutor(
             @Qualifier("channelDataSource") DataSource dataSource,
             @Value("${region.flyway.default-schema:region}") String schema,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            Environment environment
     ) {
-        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "region.scheduling", meterRegistry);
     }
 
     @Bean("regionOutboxEventProcessor")

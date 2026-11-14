@@ -91,9 +91,11 @@ public class WorkflowDataSourceConfig {
             @Qualifier("workflowsDataSource") DataSource dataSource,
             MeterRegistry meterRegistry
     ) {
-        return ShedLockSingletonJobExecutor.forSchema(
+        return ShedLockSingletonJobExecutor.fromProperties(
                 dataSource,
                 environment.getProperty("workflows.shedlock.schema", ""),
+                environment,
+                "workflows.scheduling",
                 meterRegistry
         );
     }

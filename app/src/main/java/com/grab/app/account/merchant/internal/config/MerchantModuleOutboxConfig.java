@@ -17,6 +17,8 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategies;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategy;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.merchant.adapter.persistence.outbox.MerchantOutboxEvent;
 import com.merchant.adapter.persistence.outbox.MerchantOutboxEventProcessor;
@@ -44,10 +46,12 @@ public class MerchantModuleOutboxConfig {
     }
 
     @Bean("merchantOutboxStore")
-    public OutboxStore<MerchantOutboxEvent, Long> merchantOutboxStore(JpaContext context) {
+    public OutboxStore<MerchantOutboxEvent, Long> merchantOutboxStore(JpaContext context, Environment environment) {
+        OutboxClaimStrategy claimStrategy = OutboxClaimStrategies.fromProperties(environment, "merchant.outbox");
         return new JpaOutboxStore<>(
                 context.getEntityManagerByManagedType(MerchantOutboxEvent.class),
-                MerchantOutboxEvent.class
+                MerchantOutboxEvent.class,
+                claimStrategy
         );
     }
 
@@ -74,9 +78,11 @@ public class MerchantModuleOutboxConfig {
     public SingletonJobExecutor merchantSingletonJobExecutor(
             @Qualifier("accountDataSource") DataSource dataSource,
             @Value("${merchant.flyway.default-schema:merchant}") String schema,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            Environment environment
     ) {
-        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "merchant.scheduling", meterRegistry);
     }
 
     @Bean("merchantOutboxEventProcessor")

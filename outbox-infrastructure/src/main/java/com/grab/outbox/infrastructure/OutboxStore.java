@@ -1,5 +1,6 @@
 package com.grab.outbox.infrastructure;
 
+import com.grab.framework.outbox.ClaimedOutboxEvent;
 import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.OutboxStatus;
 
@@ -13,25 +14,20 @@ public interface OutboxStore<T extends OutboxEntry<ID>, ID> {
     void saveAll(Collection<T> events);
 
     /**
-     * Locks claimable rows with {@code FOR UPDATE SKIP LOCKED}: rows locked by another replica are skipped,
-     * so competing pollers partition the backlog instead of queueing behind each other.
+     * Claims up to {@code request.limit()} claimable rows (marks them {@code PROCESSING} with a claim token) and
+     * returns only the rows this caller now owns. How competing workers are kept apart is the store's
+     * {@code OutboxClaimStrategy}: {@code SKIP LOCKED} row locks, a conditional update, etc.
      */
-    List<T> findBatchForProcessing(
-            Collection<OutboxStatus> retryableStatuses,
-            OutboxStatus processingStatus,
-            Instant availableAt,
-            Instant staleBefore,
-            int batchSize
-    );
+    List<ClaimedOutboxEvent<ID>> claimBatch(OutboxClaimRequest request);
 
     Optional<T> findById(ID id);
 
     /**
-     * Non-blocking claim used by the hot path. Empty when the row is missing or locked by another worker.
+     * Hot-path claim of a single row. Empty when the row is missing, not yet available, not in
+     * {@code NEW}/{@code FAILED}, or already claimed by another worker. Never blocks on another worker's claim
+     * for longer than that worker's claim transaction.
      */
-    default Optional<T> findByIdForUpdateSkipLocked(ID id) {
-        return findById(id);
-    }
+    Optional<ClaimedOutboxEvent<ID>> claimOne(ID id, Instant now);
 
     /**
      * Re-reads the row's current state under a blocking row lock. Used for status transitions after dispatch
@@ -50,4 +46,18 @@ public interface OutboxStore<T extends OutboxEntry<ID>, ID> {
      * @return the number of deleted rows
      */
     int deletePublishedOlderThan(Instant cutoff, int limit);
+
+    /**
+     * Rows not yet published or dead-lettered, with the oldest {@code occurredAt} among them.
+     */
+    default OutboxBacklog backlog(Collection<OutboxStatus> pendingStatuses) {
+        return OutboxBacklog.EMPTY;
+    }
+
+    /**
+     * Locks up to {@code limit} {@code DEAD} rows with {@code fromId <= id <= toId}, ordered by id.
+     */
+    default List<T> findDeadForReplay(ID fromId, ID toId, int limit) {
+        return List.of();
+    }
 }

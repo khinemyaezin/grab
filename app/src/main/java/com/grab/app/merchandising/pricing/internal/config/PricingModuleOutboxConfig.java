@@ -17,6 +17,8 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategies;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategy;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.pricing.adapter.persistence.outbox.PricingOutboxEvent;
 import com.pricing.adapter.persistence.outbox.PricingOutboxEventProcessor;
@@ -44,10 +46,12 @@ public class PricingModuleOutboxConfig {
     }
 
     @Bean("pricingOutboxStore")
-    public OutboxStore<PricingOutboxEvent, Long> pricingOutboxStore(JpaContext context) {
+    public OutboxStore<PricingOutboxEvent, Long> pricingOutboxStore(JpaContext context, Environment environment) {
+        OutboxClaimStrategy claimStrategy = OutboxClaimStrategies.fromProperties(environment, "pricing.outbox");
         return new JpaOutboxStore<>(
                 context.getEntityManagerByManagedType(PricingOutboxEvent.class),
-                PricingOutboxEvent.class
+                PricingOutboxEvent.class,
+                claimStrategy
         );
     }
 
@@ -74,9 +78,11 @@ public class PricingModuleOutboxConfig {
     public SingletonJobExecutor pricingSingletonJobExecutor(
             @Qualifier("catalogDataSource") DataSource dataSource,
             @Value("${pricing.flyway.default-schema:pricing}") String schema,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            Environment environment
     ) {
-        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "pricing.scheduling", meterRegistry);
     }
 
     @Bean("pricingOutboxEventProcessor")

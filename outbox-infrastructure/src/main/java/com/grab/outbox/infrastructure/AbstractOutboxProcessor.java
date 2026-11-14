@@ -3,6 +3,7 @@ package com.grab.outbox.infrastructure;
 import com.grab.framework.domain.Event;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
+import com.grab.framework.logger.slf4j.LogContext;
 import com.grab.framework.logger.slf4j.TraceContext;
 import com.grab.framework.outbox.ClaimedOutboxEvent;
 import com.grab.framework.outbox.OutboxDeliveryContext;
@@ -36,7 +37,8 @@ import java.util.UUID;
  * At-least-once outbox delivery for one module.
  *
  * <ul>
- *   <li>Claims use {@code SKIP LOCKED}, so replicas compete for rows instead of serialising on them.</li>
+ *   <li>Claims go through the store's configured {@code OutboxClaimStrategy} (e.g. {@code SKIP LOCKED} or a
+ *       conditional update), so replicas compete for rows instead of serialising on them.</li>
  *   <li>Every status transition after dispatch re-reads the row under a lock and only applies if this worker
  *       still owns the claim token; a claim lost to another replica is discarded and reported.</li>
  *   <li>Failures back off exponentially with jitter. After {@code maxAttempts}, or immediately for poison
@@ -49,6 +51,8 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> imp
     private static final Logger log = Loggers.getLogger(AbstractOutboxProcessor.class);
     private static final int MAX_ERROR_LENGTH = 2000;
     private static final List<OutboxStatus> RETRYABLE_STATUSES = List.of(OutboxStatus.NEW, OutboxStatus.FAILED);
+    private static final List<OutboxStatus> PENDING_STATUSES =
+            List.of(OutboxStatus.NEW, OutboxStatus.FAILED, OutboxStatus.PROCESSING);
 
     private final String module;
     private final OutboxStore<T, ID> outboxStore;
@@ -58,6 +62,7 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> imp
     private final TransactionTemplate publishTransactionTemplate;
     private final TransactionTemplate outcomeTransactionTemplate;
     private final TransactionTemplate cleanupTransactionTemplate;
+    private final TransactionTemplate readTransactionTemplate;
     private final OutboxProcessorSettings settings;
     private final OutboxRetryPolicy retryPolicy;
     private final OutboxRelay<ID> relay;
@@ -113,6 +118,8 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> imp
         this.publishTransactionTemplate = requiresNew(transactionManager);
         this.outcomeTransactionTemplate = requiresNew(transactionManager);
         this.cleanupTransactionTemplate = requiresNew(transactionManager);
+        this.readTransactionTemplate = requiresNew(transactionManager);
+        this.readTransactionTemplate.setReadOnly(true);
         if (this.relay.isActive()) {
             this.relay.setHandler(this::handleQueuedWork);
             this.relay.start();
@@ -168,8 +175,42 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> imp
         }
     }
 
-    protected final String module() {
+    public String module() {
         return module;
+    }
+
+    /**
+     * Undelivered rows for the {@code outbox.pending} / {@code outbox.oldest_pending_age_seconds} gauges.
+     */
+    public OutboxBacklog backlog() {
+        OutboxBacklog backlog = readTransactionTemplate.execute(status -> outboxStore.backlog(PENDING_STATUSES));
+        return backlog == null ? OutboxBacklog.EMPTY : backlog;
+    }
+
+    public long hotQueueDropped() {
+        return relay.hotQueueDropped();
+    }
+
+    /**
+     * Operator replay: moves up to {@code limit} {@code DEAD} rows with {@code fromId <= id <= toId} back to
+     * {@code NEW}. The poller then delivers them like fresh events (consumers dedupe through their inbox).
+     *
+     * @return the number of requeued rows
+     */
+    public int replayDead(ID fromId, ID toId, int limit) {
+        Objects.requireNonNull(fromId, "fromId");
+        Objects.requireNonNull(toId, "toId");
+        Integer replayed = cleanupTransactionTemplate.execute(status -> {
+            List<T> dead = outboxStore.findDeadForReplay(fromId, toId, limit);
+            Instant now = clock.instant();
+            for (T event : dead) {
+                event.requeue(now);
+            }
+            return dead.size();
+        });
+        int count = replayed == null ? 0 : replayed;
+        log.warn("Operator replay requeued {} dead {} outbox row(s) in id range [{}, {}]", count, module, fromId, toId);
+        return count;
     }
 
     private void deletePublishedInBatches() {
@@ -206,18 +247,8 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> imp
         List<ClaimedOutboxEvent<ID>> claimedEvents = claimTransactionTemplate.execute(status -> {
             Instant now = clock.instant();
             Instant staleBefore = now.minus(settings.claimTimeout());
-
-            List<T> events = outboxStore.findBatchForProcessing(
-                    RETRYABLE_STATUSES,
-                    OutboxStatus.PROCESSING,
-                    now,
-                    staleBefore,
-                    limit
-            );
-
-            return events.stream()
-                    .map(event -> claim(event, now))
-                    .toList();
+            OutboxClaimRequest request = new OutboxClaimRequest(RETRYABLE_STATUSES, now, staleBefore, limit);
+            return outboxStore.claimBatch(request);
         });
 
         return claimedEvents == null ? List.of() : claimedEvents;
@@ -226,27 +257,9 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> imp
     private Optional<ClaimedOutboxEvent<ID>> claimById(ID id) {
         ClaimedOutboxEvent<ID> claimed = claimTransactionTemplate.execute(status -> {
             Instant now = clock.instant();
-            return outboxStore.findByIdForUpdateSkipLocked(id)
-                    .filter(event -> isHotClaimable(event, now))
-                    .map(event -> claim(event, now))
-                    .orElse(null);
+            return outboxStore.claimOne(id, now).orElse(null);
         });
         return Optional.ofNullable(claimed);
-    }
-
-    private ClaimedOutboxEvent<ID> claim(T event, Instant now) {
-        String claimToken = UUID.randomUUID().toString();
-        event.markProcessing(now, claimToken);
-        return new ClaimedOutboxEvent<>(event.getId(), claimToken);
-    }
-
-    private boolean isHotClaimable(T event, Instant now) {
-        Instant availableAt = event.getAvailableAt();
-        if (availableAt != null && availableAt.isAfter(now)) {
-            return false;
-        }
-        OutboxStatus status = event.getStatus();
-        return status == OutboxStatus.NEW || status == OutboxStatus.FAILED;
     }
 
     private void publishEvent(ClaimedOutboxEvent<ID> claimedEvent) {
@@ -291,7 +304,9 @@ public abstract class AbstractOutboxProcessor<T extends OutboxEntry<ID>, ID> imp
         String headerTraceId = OutboxEventHeaders.extractTraceId(event.getHeaders());
         String traceId = headerTraceId == null || headerTraceId.isBlank() ? TraceContext.generate() : headerTraceId;
         UUID eventId = event.getEventId();
-        TraceContext.run(traceId, () -> OutboxDeliveryContext.run(eventId, () -> dispatcher.dispatch(payload)));
+        String eventIdValue = eventId == null ? null : eventId.toString();
+        Runnable delivery = () -> OutboxDeliveryContext.run(eventId, () -> dispatcher.dispatch(payload));
+        TraceContext.run(traceId, () -> LogContext.run(LogContext.EVENT_ID, eventIdValue, delivery));
     }
 
     private void recordFailure(ClaimedOutboxEvent<ID> claimedEvent, RuntimeException exception, boolean poison) {

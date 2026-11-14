@@ -55,6 +55,28 @@ class SchedulingArchitectureTest {
     }
 
     @Test
+    void onlyClaimStrategiesImplementOutboxRowLocking() {
+        noClasses()
+                .that().resideInAPackage("com.grab.outbox.infrastructure..")
+                .and().resideOutsideOfPackage("com.grab.outbox.infrastructure.claim..")
+                .and().doNotHaveFullyQualifiedName("com.grab.outbox.infrastructure.jpa.JpaOutboxStore")
+                .should().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.LockModeType")
+                .because("outbox claim locking is database-specific and must stay behind OutboxClaimStrategy "
+                        + "(configured per module with <module>.outbox.claim-strategy)")
+                .check(classes);
+    }
+
+    @Test
+    void nothingOutsideTheFactoryInstantiatesConcreteClaimStrategies() {
+        noClasses()
+                .that().resideOutsideOfPackage("com.grab.outbox.infrastructure.claim..")
+                .should().dependOnClassesThat().haveFullyQualifiedName(
+                        "com.grab.outbox.infrastructure.claim.ConditionalUpdateClaimStrategy")
+                .because("claim strategies are selected by configuration through OutboxClaimStrategies")
+                .check(classes);
+    }
+
+    @Test
     void eventListenersAreNotAsync() {
         methods()
                 .that().areAnnotatedWith(EventListener.class)

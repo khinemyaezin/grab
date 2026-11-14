@@ -18,6 +18,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class DualQueueOutboxRelay<ID> implements OutboxRelay<ID> {
 
@@ -33,6 +34,7 @@ public final class DualQueueOutboxRelay<ID> implements OutboxRelay<ID> {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private final AtomicInteger pollTick = new AtomicInteger();
+    private final AtomicLong hotDropped = new AtomicLong();
     private final List<Thread> workers = new ArrayList<>();
 
     private volatile OutboxWorkHandler<ID> handler;
@@ -59,9 +61,15 @@ public final class DualQueueOutboxRelay<ID> implements OutboxRelay<ID> {
         }
         boolean offered = hotQueue.offer(QueuedOutboxWork.hot(id));
         if (!offered) {
+            hotDropped.incrementAndGet();
             log.warn("Hot queue full for {} outbox; dropping id={}. Poller will recover", name, id);
         }
         return offered;
+    }
+
+    @Override
+    public long hotQueueDropped() {
+        return hotDropped.get();
     }
 
     @Override

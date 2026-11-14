@@ -1,5 +1,7 @@
 package com.inventory.adapter.persistence.outbox;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import com.grab.framework.outbox.ClaimedOutboxEvent;
 import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -79,13 +81,10 @@ class InventoryOutboxEventProcessorTest {
         Event payload = new StockReceivedEvent(id("inventory-1"), "SKU-1", 10, id("location-1"), LocalDateTime.now());
         InventoryOutboxEvent outboxEvent = pendingEvent(1L, "event-type", "payload");
 
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(Instant.class),
-                any(Instant.class),
-                eq(10)
-        )).thenReturn(List.of(outboxEvent));
+        when(outboxStore.claimBatch(argThat(request -> request != null
+                && request.limit() == 10
+                && request.retryableStatuses().equals(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)))))
+                .thenAnswer(invocation -> claimAll(List.of(outboxEvent)));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
         when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
@@ -105,13 +104,10 @@ class InventoryOutboxEventProcessorTest {
         Event payload = new StockReceivedEvent(id("inventory-1"), "SKU-1", 10, id("location-1"), LocalDateTime.now());
         InventoryOutboxEvent outboxEvent = pendingEvent(1L, "event-type", "payload");
 
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(Instant.class),
-                any(Instant.class),
-                eq(10)
-        )).thenReturn(List.of(outboxEvent));
+        when(outboxStore.claimBatch(argThat(request -> request != null
+                && request.limit() == 10
+                && request.retryableStatuses().equals(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)))))
+                .thenAnswer(invocation -> claimAll(List.of(outboxEvent)));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
         when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
@@ -132,13 +128,10 @@ class InventoryOutboxEventProcessorTest {
         InventoryOutboxEvent reclaimedEvent = pendingEvent(1L, "event-type", "payload");
         reclaimedEvent.markProcessing(Instant.now(), "different-claim-token");
 
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(Instant.class),
-                any(Instant.class),
-                eq(10)
-        )).thenReturn(List.of(pendingEvent));
+        when(outboxStore.claimBatch(argThat(request -> request != null
+                && request.limit() == 10
+                && request.retryableStatuses().equals(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)))))
+                .thenAnswer(invocation -> claimAll(List.of(pendingEvent)));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(reclaimedEvent));
 
         processor.processAvailableEventsOnSchedule();
@@ -207,5 +200,15 @@ class InventoryOutboxEventProcessorTest {
         @Override
         public void rollback(TransactionStatus status) {
         }
+    }
+
+    private static List<ClaimedOutboxEvent<Long>> claimAll(List<InventoryOutboxEvent> events) {
+        return events.stream()
+                .map(event -> {
+                    String claimToken = "claim-" + event.getId();
+                    event.markProcessing(Instant.now(), claimToken);
+                    return new ClaimedOutboxEvent<>(event.getId(), claimToken);
+                })
+                .toList();
     }
 }

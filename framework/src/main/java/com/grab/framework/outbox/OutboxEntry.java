@@ -36,6 +36,13 @@ public interface OutboxEntry<ID> {
 
     void releaseClaim(Instant now);
 
+    /**
+     * Operator replay of a dead-lettered row: back to {@code NEW} with a fresh attempt budget.
+     */
+    default void requeue(Instant now) {
+        throw new UnsupportedOperationException("requeue is not supported by " + getClass().getName());
+    }
+
     default boolean isClaimedBy(String claimToken) {
         return getStatus() == OutboxStatus.PROCESSING
                 && claimToken != null

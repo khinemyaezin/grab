@@ -14,6 +14,8 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategies;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategy;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.identity.adapter.persistence.outbox.IdentityOutboxEvent;
 import com.identity.adapter.persistence.outbox.IdentityOutboxEventProcessor;
@@ -41,10 +43,12 @@ public class IdentityModuleOutboxConfig {
     }
 
     @Bean("identityOutboxStore")
-    public OutboxStore<IdentityOutboxEvent, Long> identityOutboxStore(JpaContext context) {
+    public OutboxStore<IdentityOutboxEvent, Long> identityOutboxStore(JpaContext context, Environment environment) {
+        OutboxClaimStrategy claimStrategy = OutboxClaimStrategies.fromProperties(environment, "identity.outbox");
         return new JpaOutboxStore<>(
                 context.getEntityManagerByManagedType(IdentityOutboxEvent.class),
-                IdentityOutboxEvent.class
+                IdentityOutboxEvent.class,
+                claimStrategy
         );
     }
 
@@ -71,9 +75,11 @@ public class IdentityModuleOutboxConfig {
     public SingletonJobExecutor identitySingletonJobExecutor(
             @Qualifier("accountDataSource") DataSource dataSource,
             @Value("${identity.flyway.default-schema:identity}") String schema,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            Environment environment
     ) {
-        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "identity.scheduling", meterRegistry);
     }
 
     @Bean("identityOutboxEventProcessor")

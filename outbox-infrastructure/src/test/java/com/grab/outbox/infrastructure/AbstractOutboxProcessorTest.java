@@ -202,13 +202,13 @@ class AbstractOutboxProcessorTest {
     }
 
     @Test
-    void hotQueue_claimsWithSkipLockedAndPublishes() throws Exception {
+    void hotQueue_claimsOneAndPublishes() throws Exception {
         DualQueueOutboxRelay<Long> hotRelay = new DualQueueOutboxRelay<>("test", 1, 8, 8, Duration.ofSeconds(1));
         TestProcessor hotProcessor = processor(hotRelay, SingletonJobExecutor.local(), 3);
         try {
             StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
             Event payload = givenRow(outboxEvent);
-            when(outboxStore.findByIdForUpdateSkipLocked(1L)).thenReturn(Optional.of(outboxEvent));
+            when(outboxStore.claimOne(eq(1L), any(Instant.class))).thenAnswer(invocation -> Optional.of(claim(outboxEvent)));
             CountDownLatch dispatched = new CountDownLatch(1);
             doAnswer(invocation -> {
                 dispatched.countDown();
@@ -230,8 +230,7 @@ class AbstractOutboxProcessorTest {
         try {
             StubOutboxEvent outboxEvent = new StubOutboxEvent(2L, "{}");
             Event payload = givenRow(outboxEvent);
-            when(outboxStore.findBatchForProcessing(any(), any(), any(), any(), anyInt()))
-                    .thenReturn(List.of(outboxEvent));
+            when(outboxStore.claimBatch(any())).thenAnswer(invocation -> List.of(claim(outboxEvent)));
             CountDownLatch dispatched = new CountDownLatch(1);
             doAnswer(invocation -> {
                 dispatched.countDown();
@@ -292,14 +291,20 @@ class AbstractOutboxProcessorTest {
 
     private Event givenClaimable(StubOutboxEvent outboxEvent) {
         Event payload = givenRow(outboxEvent);
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                eq(NOW),
-                eq(NOW.minus(Duration.ofMinutes(2))),
-                eq(10)
-        )).thenReturn(List.of(outboxEvent));
+        OutboxClaimRequest expected = new OutboxClaimRequest(
+                List.of(OutboxStatus.NEW, OutboxStatus.FAILED),
+                NOW,
+                NOW.minus(Duration.ofMinutes(2)),
+                10
+        );
+        when(outboxStore.claimBatch(expected)).thenAnswer(invocation -> List.of(claim(outboxEvent)));
         return payload;
+    }
+
+    private static ClaimedOutboxEvent<Long> claim(StubOutboxEvent outboxEvent) {
+        String claimToken = "claim-" + outboxEvent.getId();
+        outboxEvent.markProcessing(NOW, claimToken);
+        return new ClaimedOutboxEvent<>(outboxEvent.getId(), claimToken);
     }
 
     private Event givenRow(StubOutboxEvent outboxEvent) {

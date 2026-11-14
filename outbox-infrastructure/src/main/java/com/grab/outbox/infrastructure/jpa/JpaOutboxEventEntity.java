@@ -142,6 +142,19 @@ public abstract class JpaOutboxEventEntity implements OutboxEntry<Long> {
     }
 
     @Override
+    public void requeue(Instant now) {
+        if (status != OutboxStatus.DEAD) {
+            throw new IllegalStateException("Only DEAD outbox rows can be requeued; id=" + id + " status=" + status);
+        }
+        status = OutboxStatus.NEW;
+        availableAt = now;
+        attemptCount = 0;
+        claimedAt = null;
+        claimToken = null;
+        setLastError(null);
+    }
+
+    @Override
     public Long getId() {
         return id;
     }

@@ -17,6 +17,8 @@ import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxRelay;
 import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategies;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategy;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEvent;
 import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEventProcessor;
@@ -44,10 +46,12 @@ public class SalesChannelModuleOutboxConfig {
     }
 
     @Bean("salesChannelOutboxStore")
-    public OutboxStore<SalesChannelOutboxEvent, Long> salesChannelOutboxStore(JpaContext context) {
+    public OutboxStore<SalesChannelOutboxEvent, Long> salesChannelOutboxStore(JpaContext context, Environment environment) {
+        OutboxClaimStrategy claimStrategy = OutboxClaimStrategies.fromProperties(environment, "saleschannel.outbox");
         return new JpaOutboxStore<>(
                 context.getEntityManagerByManagedType(SalesChannelOutboxEvent.class),
-                SalesChannelOutboxEvent.class
+                SalesChannelOutboxEvent.class,
+                claimStrategy
         );
     }
 
@@ -74,9 +78,11 @@ public class SalesChannelModuleOutboxConfig {
     public SingletonJobExecutor salesChannelSingletonJobExecutor(
             @Qualifier("channelDataSource") DataSource dataSource,
             @Value("${saleschannel.flyway.default-schema:saleschannel}") String schema,
-            MeterRegistry meterRegistry
+            MeterRegistry meterRegistry,
+            Environment environment
     ) {
-        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "saleschannel.scheduling", meterRegistry);
     }
 
     @Bean("salesChannelOutboxEventProcessor")

@@ -1,5 +1,6 @@
 package com.catalog.adapter.persistence.outbox;
 
+import com.grab.framework.outbox.ClaimedOutboxEvent;
 import com.catalog.domain.event.ProductUpdatedEvent;
 import com.grab.framework.domain.Event;
 import com.grab.framework.id.Id;
@@ -79,13 +80,10 @@ class CatalogOutboxEventProcessorTest {
         Event payload = new ProductUpdatedEvent(id("product-1"), "Name", id("category-1"));
         CatalogOutboxEvent outboxEvent = pendingEvent(1L, "event-type", "payload");
 
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(Instant.class),
-                any(Instant.class),
-                eq(10)
-        )).thenReturn(List.of(outboxEvent));
+        when(outboxStore.claimBatch(argThat(request -> request != null
+                && request.limit() == 10
+                && request.retryableStatuses().equals(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)))))
+                .thenAnswer(invocation -> claimAll(List.of(outboxEvent)));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
         when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
@@ -105,13 +103,10 @@ class CatalogOutboxEventProcessorTest {
         Event payload = new ProductUpdatedEvent(id("product-1"), "Name", id("category-1"));
         CatalogOutboxEvent outboxEvent = pendingEvent(1L, "event-type", "payload");
 
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(Instant.class),
-                any(Instant.class),
-                eq(10)
-        )).thenReturn(List.of(outboxEvent));
+        when(outboxStore.claimBatch(argThat(request -> request != null
+                && request.limit() == 10
+                && request.retryableStatuses().equals(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)))))
+                .thenAnswer(invocation -> claimAll(List.of(outboxEvent)));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
         when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
@@ -132,13 +127,10 @@ class CatalogOutboxEventProcessorTest {
         CatalogOutboxEvent reclaimedEvent = pendingEvent(1L, "event-type", "payload");
         reclaimedEvent.markProcessing(Instant.now(), "different-claim-token");
 
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(Instant.class),
-                any(Instant.class),
-                eq(10)
-        )).thenReturn(List.of(pendingEvent));
+        when(outboxStore.claimBatch(argThat(request -> request != null
+                && request.limit() == 10
+                && request.retryableStatuses().equals(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)))))
+                .thenAnswer(invocation -> claimAll(List.of(pendingEvent)));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(reclaimedEvent));
 
         processor.processAvailableEventsOnSchedule();
@@ -166,13 +158,10 @@ class CatalogOutboxEventProcessorTest {
                 "{\"contentType\":\"application/json\"}"
         );
 
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(Instant.class),
-                any(Instant.class),
-                eq(10)
-        )).thenReturn(List.of(plainEvent, jsonEvent));
+        when(outboxStore.claimBatch(argThat(request -> request != null
+                && request.limit() == 10
+                && request.retryableStatuses().equals(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)))))
+                .thenAnswer(invocation -> claimAll(List.of(plainEvent, jsonEvent)));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(plainEvent));
         when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(plainEvent));
         when(outboxStore.findById(2L)).thenReturn(Optional.of(jsonEvent));
@@ -257,5 +246,15 @@ class CatalogOutboxEventProcessorTest {
         @Override
         public void rollback(TransactionStatus status) {
         }
+    }
+
+    private static List<ClaimedOutboxEvent<Long>> claimAll(List<CatalogOutboxEvent> events) {
+        return events.stream()
+                .map(event -> {
+                    String claimToken = "claim-" + event.getId();
+                    event.markProcessing(Instant.now(), claimToken);
+                    return new ClaimedOutboxEvent<>(event.getId(), claimToken);
+                })
+                .toList();
     }
 }

@@ -70,4 +70,11 @@ public interface OutboxRelay<ID> {
         public void stop() {
         }
     }
+
+    /**
+     * Hot-queue offers rejected because the queue was full (the poller recovers those rows).
+     */
+    default long hotQueueDropped() {
+        return 0L;
+    }
 }

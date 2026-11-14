@@ -16,6 +16,8 @@ import com.grab.framework.workflow.impl.EventDrivenWorkflowEngine;
 import com.grab.framework.workflow.support.WorkflowPayloadCodec;
 import com.grab.outbox.infrastructure.OutboxRelays;
 import com.grab.outbox.infrastructure.OutboxStore;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategies;
+import com.grab.outbox.infrastructure.claim.OutboxClaimStrategy;
 import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
 import com.grab.workflow.infrastructure.mapper.WorkflowInstanceMapper;
 import com.grab.workflow.infrastructure.outbox.WorkflowOutboxEvent;
@@ -66,10 +68,12 @@ public class WorkflowInfraConfig {
     }
 
     @Bean("workflowOutboxStore")
-    public OutboxStore<WorkflowOutboxEvent, Long> workflowOutboxStore(JpaContext context) {
+    public OutboxStore<WorkflowOutboxEvent, Long> workflowOutboxStore(JpaContext context, Environment environment) {
+        OutboxClaimStrategy claimStrategy = OutboxClaimStrategies.fromProperties(environment, "workflows.outbox");
         return new JpaOutboxStore<>(
                 context.getEntityManagerByManagedType(WorkflowOutboxEvent.class),
-                WorkflowOutboxEvent.class
+                WorkflowOutboxEvent.class,
+                claimStrategy
         );
     }
 

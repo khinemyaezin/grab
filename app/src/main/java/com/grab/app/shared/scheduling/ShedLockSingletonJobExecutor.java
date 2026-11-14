@@ -11,6 +11,7 @@ import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.core.LockingTaskExecutor;
 import net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateLockProvider;
+import org.springframework.core.env.PropertyResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
@@ -19,8 +20,10 @@ import java.time.Instant;
 /**
  * Cluster-wide singleton execution backed by a ShedLock table in the owning module's schema.
  *
- * <p>Uses the JDBC table provider with database time (not advisory locks), so it works behind PgBouncer
- * transaction pooling and is immune to clock skew between pods. ShedLock issues its own SQL through
+ * <p>The lock provider is chosen per module by configuration ({@link LockProviderType}). The default JDBC table
+ * provider uses database time (not advisory locks), so it works behind PgBouncer transaction pooling, is immune to
+ * clock skew between pods, and runs on every database ShedLock supports (PostgreSQL, MySQL, MariaDB, Oracle,
+ * SQL Server, DB2, H2, HSQLDB). ShedLock issues its own SQL through
  * {@link JdbcTemplate}; it is infrastructure, not a Spring Data repository.</p>
  */
 public final class ShedLockSingletonJobExecutor implements SingletonJobExecutor {
@@ -36,18 +39,71 @@ public final class ShedLockSingletonJobExecutor implements SingletonJobExecutor 
     }
 
     /**
+     * JDBC provider with database time on the module's {@code <schema>.shedlock} table (the default setup).
+     *
      * @param schema module schema that owns the {@code shedlock} table (created by that module's Flyway);
      *               blank means the connection's default search path
      */
     public static ShedLockSingletonJobExecutor forSchema(DataSource dataSource, String schema, MeterRegistry meterRegistry) {
-        JdbcTemplateLockProvider lockProvider = new JdbcTemplateLockProvider(
-                JdbcTemplateLockProvider.Configuration.builder()
-                        .withJdbcTemplate(new JdbcTemplate(dataSource))
-                        .withTableName(schema == null || schema.isBlank() ? "shedlock" : schema + ".shedlock")
-                        .usingDbTime()
-                        .build()
-        );
+        LockProviderSettings settings = new LockProviderSettings(LockProviderType.JDBC, defaultTable(schema));
+        return from(settings, dataSource, meterRegistry);
+    }
+
+    /**
+     * Reads the module's lock provider configuration, e.g. {@code fromProperties(ds, "catalog", env, "catalog.scheduling", registry)}:
+     * <pre>
+     * catalog:
+     *   scheduling:
+     *     lock-provider: jdbc            # jdbc (default) | jdbc-app-time
+     *     lock-table: catalog.shedlock   # optional; defaults to &lt;schema&gt;.shedlock
+     * </pre>
+     */
+    public static ShedLockSingletonJobExecutor fromProperties(
+            DataSource dataSource,
+            String schema,
+            PropertyResolver properties,
+            String prefix,
+            MeterRegistry meterRegistry
+    ) {
+        String typeKey = prefix + ".lock-provider";
+        String typeValue = properties.getProperty(typeKey, LockProviderType.JDBC.configValue());
+        LockProviderType type;
+        try {
+            type = LockProviderType.parse(typeValue);
+        } catch (IllegalArgumentException invalid) {
+            throw new IllegalArgumentException(typeKey + ": " + invalid.getMessage(), invalid);
+        }
+        String table = properties.getProperty(prefix + ".lock-table", defaultTable(schema));
+        LockProviderSettings settings = new LockProviderSettings(type, table);
+        return from(settings, dataSource, meterRegistry);
+    }
+
+    public static ShedLockSingletonJobExecutor from(
+            LockProviderSettings settings,
+            DataSource dataSource,
+            MeterRegistry meterRegistry
+    ) {
+        LockProvider lockProvider = switch (settings.type()) {
+            case JDBC -> jdbcLockProvider(dataSource, settings.table(), true);
+            case JDBC_APP_TIME -> jdbcLockProvider(dataSource, settings.table(), false);
+        };
+        log.info("scheduler.locking lockProvider={} lockTable={}", settings.type().configValue(), settings.table());
         return new ShedLockSingletonJobExecutor(lockProvider, meterRegistry);
+    }
+
+    private static LockProvider jdbcLockProvider(DataSource dataSource, String table, boolean useDbTime) {
+        JdbcTemplateLockProvider.Configuration.Builder builder = JdbcTemplateLockProvider.Configuration.builder()
+                .withJdbcTemplate(new JdbcTemplate(dataSource))
+                .withTableName(table);
+        if (useDbTime) {
+            builder.usingDbTime();
+        }
+        JdbcTemplateLockProvider.Configuration configuration = builder.build();
+        return new JdbcTemplateLockProvider(configuration);
+    }
+
+    private static String defaultTable(String schema) {
+        return schema == null || schema.isBlank() ? "shedlock" : schema + ".shedlock";
     }
 
     @Override
