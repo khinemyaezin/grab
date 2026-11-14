@@ -6,16 +6,12 @@ spring:
       request-timeout: 360000
   task:
     scheduling:
-      # >= number of class A (competing worker) jobs + 4 so cleanup/sweep cannot starve outbox pollers.
       pool:
-        size: ${SCHEDULER_POOL_SIZE:14}
+        size: ${SCHEDULER_POOL_SIZE:4}
       thread-name-prefix: app-scheduled-
       shutdown:
         await-termination: true
         await-termination-period: 30s
-
-# Boot-time tasks (scheduling class C). Keep gate-readiness=false for the first rollout, watch the "bootstrap"
-# health details / logs, then enable it so a replica stays out of rotation until its required tasks succeed.
 bootstrap:
   gate-readiness: ${BOOTSTRAP_GATE_READINESS:false}
   max-attempts: ${BOOTSTRAP_MAX_ATTEMPTS:5}

@@ -1,9 +1,9 @@
 package com.grab.app.workflow.internal.service;
 
-import com.grab.framework.scheduling.ClusterSingletonJob;
 import com.grab.framework.scheduling.SingletonJob;
 import com.grab.framework.scheduling.SingletonJobExecutor;
 import com.grab.framework.workflow.WorkflowEngine;
+import com.grab.scheduling.infrastructure.ClusterSingletonJob;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

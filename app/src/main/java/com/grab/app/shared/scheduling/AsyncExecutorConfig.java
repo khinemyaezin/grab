@@ -12,10 +12,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
-/**
- * Bounded executor for the remaining {@code @Async} methods. Boot's default queue is unbounded;
- * here a full queue falls back to {@link ThreadPoolExecutor.CallerRunsPolicy} (back-pressure, never drop).
- */
 @Configuration
 public class AsyncExecutorConfig implements AsyncConfigurer {
 

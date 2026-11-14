@@ -2,9 +2,9 @@ package com.grab.app.account.merchant.internal.adapter.inbound.lifecycle;
 
 import com.grab.app.shared.events.identity.IdentitySecurityCatalogActivatedIntegrationEvent;
 import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.framework.scheduling.ClusterSingletonJob;
 import com.grab.framework.scheduling.SingletonJob;
 import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.scheduling.infrastructure.ClusterSingletonJob;
 import com.merchant.application.model.write.PublishMerchantRoleDeclarationCommand;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;

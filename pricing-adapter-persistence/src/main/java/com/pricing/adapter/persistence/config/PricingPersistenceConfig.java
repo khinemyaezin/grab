@@ -1,28 +1,11 @@
 package com.pricing.adapter.persistence.config;
 
-import com.grab.framework.inbox.ProcessedEventRepository;
-import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
-import com.pricing.adapter.persistence.outbox.PricingProcessedEvent;
-import jakarta.persistence.EntityManager;
-import org.springframework.data.jpa.repository.JpaContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.inbox.ProcessedEventRepository;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.support.PersistenceExecutor;
-import com.pricing.domain.port.outbound.PriceListRepository;
-import com.pricing.domain.port.outbound.PricePreferenceRepository;
-import com.pricing.domain.port.outbound.PriceSetRepository;
-import com.pricing.adapter.persistence.mapper.jpa.VariantPriceSetLinkJpaAssembler;
-import com.pricing.adapter.persistence.mapper.jpa.impl.PricingJpaAssembler;
-import com.pricing.adapter.persistence.mapper.jpa.impl.VariantPriceSetLinkJpaAssemblerImpl;
-import com.pricing.adapter.persistence.repository.jpa.PriceJpaRepository;
-import com.pricing.adapter.persistence.repository.jpa.PriceListJpaRepository;
-import com.pricing.adapter.persistence.repository.jpa.PricePreferenceJpaRepository;
-import com.pricing.application.port.outbound.PriceQueryPort;
-import com.pricing.adapter.persistence.repository.jpa.PriceSetJpaRepository;
-import com.pricing.adapter.persistence.repository.jpa.VariantPriceSetLinkJpaRepository;
-import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
-import com.pricing.domain.port.outbound.VariantPriceSetLinkRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
 import com.pricing.adapter.persistence.adapter.PriceListRepositoryAdapter;
 import com.pricing.adapter.persistence.adapter.PricePreferenceRepositoryAdapter;
 import com.pricing.adapter.persistence.adapter.PriceQueryAdapter;
@@ -30,20 +13,45 @@ import com.pricing.adapter.persistence.adapter.PriceSetRepositoryAdapter;
 import com.pricing.adapter.persistence.adapter.PricingPersistenceExecutor;
 import com.pricing.adapter.persistence.adapter.VariantPriceSetLinkQueryAdapter;
 import com.pricing.adapter.persistence.adapter.VariantPriceSetLinkRepositoryAdapter;
+import com.pricing.adapter.persistence.mapper.jpa.VariantPriceSetLinkJpaAssembler;
+import com.pricing.adapter.persistence.mapper.jpa.impl.PricingJpaAssembler;
+import com.pricing.adapter.persistence.mapper.jpa.impl.VariantPriceSetLinkJpaAssemblerImpl;
+import com.pricing.adapter.persistence.outbox.PricingProcessedEvent;
+import com.pricing.adapter.persistence.repository.jpa.PriceJpaRepository;
+import com.pricing.adapter.persistence.repository.jpa.PriceListJpaRepository;
+import com.pricing.adapter.persistence.repository.jpa.PricePreferenceJpaRepository;
+import com.pricing.adapter.persistence.repository.jpa.PriceSetJpaRepository;
+import com.pricing.adapter.persistence.repository.jpa.VariantPriceSetLinkJpaRepository;
 import com.pricing.adapter.persistence.workflow.PricingWorkflowStepRunner;
+import com.pricing.application.port.outbound.PriceQueryPort;
+import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
+import com.pricing.domain.port.outbound.PriceListRepository;
+import com.pricing.domain.port.outbound.PricePreferenceRepository;
+import com.pricing.domain.port.outbound.PriceSetRepository;
+import com.pricing.domain.port.outbound.VariantPriceSetLinkRepository;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.util.function.UnaryOperator;
 
 @Configuration
 public class PricingPersistenceConfig {
 
     @Bean("pricingProcessedEventRepository")
-    public ProcessedEventRepository pricingProcessedEventRepository(JpaContext context) {
+    public ProcessedEventRepository pricingProcessedEventRepository(
+            JpaContext context,
+            @Qualifier("pricingInboxDecorator") ObjectProvider<UnaryOperator<ProcessedEventRepository>> decorator
+    ) {
         EntityManager entityManager = context.getEntityManagerByManagedType(PricingProcessedEvent.class);
-        return new JpaProcessedEventRepository<>(entityManager, PricingProcessedEvent.class, PricingProcessedEvent::of);
+        ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, PricingProcessedEvent.class, PricingProcessedEvent::of);
+        UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
+        return observe.apply(repository);
     }
 
     @Bean

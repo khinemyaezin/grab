@@ -1,58 +1,61 @@
 package com.merchant.adapter.persistence.config;
 
-import com.grab.framework.inbox.ProcessedEventRepository;
-import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
-import com.merchant.adapter.persistence.outbox.MerchantProcessedEvent;
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.inbox.ProcessedEventRepository;
 import com.grab.framework.mapper.IdMapper;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import com.grab.framework.security.role.RoleDeclarationPublicationPort;
 import com.grab.framework.support.PersistenceExecutor;
-import com.merchant.domain.port.outbound.MerchantAccountRepository;
-import com.merchant.domain.port.outbound.MerchantMemberRepository;
-import com.merchant.domain.port.outbound.StorefrontChannelBrandRepository;
-import com.merchant.domain.port.outbound.StorefrontRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.manifest.adapter.persistence.RoleDeclarationEventFactory;
+import com.manifest.adapter.persistence.SecurityManifestEventFactory;
+import com.merchant.adapter.persistence.adapter.MerchantAccountQueryAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantAccountRepositoryAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantMemberQueryAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantMemberRepositoryAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantPersistenceExecutor;
+import com.merchant.adapter.persistence.adapter.MerchantRoleDeclarationPublicationAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationAdapter;
+import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationQueryAdapter;
+import com.merchant.adapter.persistence.adapter.StorefrontChannelBrandRepositoryAdapter;
+import com.merchant.adapter.persistence.adapter.StorefrontQueryAdapter;
+import com.merchant.adapter.persistence.adapter.StorefrontRepositoryAdapter;
+import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
 import com.merchant.adapter.persistence.entity.StorefrontEntity;
-import com.merchant.adapter.persistence.mapper.jpa.impl.MerchantAccountJpaAssembler;
-import com.merchant.adapter.persistence.mapper.jpa.impl.MerchantMemberJpaAssembler;
-import com.merchant.adapter.persistence.mapper.jpa.impl.StorefrontJpaAssembler;
 import com.merchant.adapter.persistence.mapper.jpa.MerchantAccountEntityMapper;
 import com.merchant.adapter.persistence.mapper.jpa.MerchantMemberEntityMapper;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontChannelBrandEntityMapper;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontChannelBrandJpaAssembler;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontChannelBrandMapper;
 import com.merchant.adapter.persistence.mapper.jpa.StorefrontEntityMapper;
+import com.merchant.adapter.persistence.mapper.jpa.impl.MerchantAccountJpaAssembler;
+import com.merchant.adapter.persistence.mapper.jpa.impl.MerchantMemberJpaAssembler;
 import com.merchant.adapter.persistence.mapper.jpa.impl.StorefrontChannelBrandJpaAssemblerImpl;
+import com.merchant.adapter.persistence.mapper.jpa.impl.StorefrontJpaAssembler;
+import com.merchant.adapter.persistence.outbox.MerchantProcessedEvent;
+import com.merchant.adapter.persistence.repository.jpa.MerchantAccountJpaRepository;
 import com.merchant.adapter.persistence.repository.jpa.MerchantMemberJpaRepository;
 import com.merchant.adapter.persistence.repository.jpa.StorefrontChannelBrandJpaRepository;
 import com.merchant.adapter.persistence.repository.jpa.StorefrontJpaRepository;
+import com.merchant.adapter.persistence.specification.jpa.StorefrontQuerySpecification;
 import com.merchant.application.port.outbound.MerchantAccountQueryPort;
 import com.merchant.application.port.outbound.MerchantMemberQueryPort;
 import com.merchant.application.port.outbound.StorefrontQueryPort;
-import com.merchant.adapter.persistence.adapter.MerchantAccountQueryAdapter;
-import com.merchant.adapter.persistence.adapter.MerchantAccountRepositoryAdapter;
-import com.merchant.adapter.persistence.adapter.MerchantMemberQueryAdapter;
-import com.merchant.adapter.persistence.adapter.MerchantMemberRepositoryAdapter;
-import com.merchant.adapter.persistence.adapter.MerchantPersistenceExecutor;
-import com.merchant.adapter.persistence.adapter.StorefrontChannelBrandRepositoryAdapter;
-import com.merchant.adapter.persistence.adapter.StorefrontQueryAdapter;
-import com.merchant.adapter.persistence.adapter.StorefrontRepositoryAdapter;
-import com.merchant.adapter.persistence.specification.jpa.StorefrontQuerySpecification;
-import com.merchant.adapter.persistence.repository.jpa.MerchantAccountJpaRepository;
-import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.framework.security.SecurityManifestPublicationQueryPort;
-import com.grab.framework.security.role.RoleDeclarationPublicationPort;
-import com.manifest.adapter.persistence.RoleDeclarationEventFactory;
-import com.manifest.adapter.persistence.SecurityManifestEventFactory;
-import com.merchant.adapter.persistence.adapter.MerchantRoleDeclarationPublicationAdapter;
-import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationAdapter;
-import com.merchant.adapter.persistence.adapter.MerchantSecurityManifestPublicationQueryAdapter;
-import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
+import com.merchant.domain.port.outbound.MerchantAccountRepository;
+import com.merchant.domain.port.outbound.MerchantMemberRepository;
+import com.merchant.domain.port.outbound.StorefrontChannelBrandRepository;
+import com.merchant.domain.port.outbound.StorefrontRepository;
 import jakarta.persistence.EntityManager;
-import java.time.Duration;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
+
+import java.time.Duration;
+import java.util.function.UnaryOperator;
 
 @Configuration
 public class MerchantPersistenceConfig {
@@ -184,8 +187,13 @@ public class MerchantPersistenceConfig {
     }
 
     @Bean("merchantProcessedEventRepository")
-    public ProcessedEventRepository merchantProcessedEventRepository(JpaContext context) {
+    public ProcessedEventRepository merchantProcessedEventRepository(
+            JpaContext context,
+            @Qualifier("merchantInboxDecorator") ObjectProvider<UnaryOperator<ProcessedEventRepository>> decorator
+    ) {
         EntityManager entityManager = context.getEntityManagerByManagedType(MerchantProcessedEvent.class);
-        return new JpaProcessedEventRepository<>(entityManager, MerchantProcessedEvent.class, MerchantProcessedEvent::of);
+        ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, MerchantProcessedEvent.class, MerchantProcessedEvent::of);
+        UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
+        return observe.apply(repository);
     }
 }

@@ -1,8 +1,8 @@
 package com.grab.app.architecture;
 
-import com.grab.framework.scheduling.ClusterSingletonJob;
-import com.grab.framework.scheduling.CompetingWorkerJob;
 import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.scheduling.infrastructure.ClusterSingletonJob;
+import com.grab.scheduling.infrastructure.CompetingWorkerJob;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -16,11 +16,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.ObjectInputStream;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -55,23 +57,38 @@ class SchedulingArchitectureTest {
     }
 
     @Test
-    void onlyClaimStrategiesImplementOutboxRowLocking() {
-        noClasses()
-                .that().resideInAPackage("com.grab.outbox.infrastructure..")
-                .and().resideOutsideOfPackage("com.grab.outbox.infrastructure.claim..")
-                .and().doNotHaveFullyQualifiedName("com.grab.outbox.infrastructure.jpa.JpaOutboxStore")
-                .should().dependOnClassesThat().haveFullyQualifiedName("jakarta.persistence.LockModeType")
-                .because("outbox claim locking is database-specific and must stay behind OutboxClaimStrategy "
-                        + "(configured per module with <module>.outbox.claim-strategy)")
+    void onlyModuleSchedulerSchedulesJobsProgrammatically() {
+        classes().that().doNotHaveFullyQualifiedName("com.grab.scheduling.infrastructure.ModuleJobScheduler")
+                .should(new ArchCondition<>("avoid calls to TaskScheduler.schedule*") {
+                    @Override
+                    public void check(JavaClass type, ConditionEvents events) {
+                        type.getMethodCallsFromSelf().stream()
+                                .filter(call -> call.getTarget().getName().startsWith("schedule"))
+                                .filter(call -> call.getTargetOwner().isAssignableTo(TaskScheduler.class))
+                                .forEach(call -> events.add(SimpleConditionEvent.violated(type, call.getDescription())));
+                    }
+                }).check(classes);
+    }
+
+    @Test
+    void modulesDoNotUseSharedOutboxOrLockingInfrastructure() {
+        noClasses().that().resideOutsideOfPackage("com.grab.app.shared..")
+                .should().dependOnClassesThat()
+                .resideInAnyPackage("com.grab.app.shared.outbox..", "com.grab.app.shared.scheduling..")
+                .check(classes);
+        noClasses().that().resideInAPackage("com.grab.scheduling.infrastructure..")
+                .should().dependOnClassesThat().resideInAnyPackage("com.grab.app..", "com.grab.store..",
+                        "com.grab.workflow..", "com.catalog..", "com.inventory..", "com.cart..", "com.customer..",
+                        "com.identity..", "com.merchant..", "com.pricing..", "com.region..", "com.saleschannel..")
                 .check(classes);
     }
 
     @Test
     void nothingOutsideTheFactoryInstantiatesConcreteClaimStrategies() {
         noClasses()
-                .that().resideOutsideOfPackage("com.grab.outbox.infrastructure.claim..")
+                .that().resideOutsideOfPackage("com.grab.outbox.infrastructure.adapter.out.jpa.claim..")
                 .should().dependOnClassesThat().haveFullyQualifiedName(
-                        "com.grab.outbox.infrastructure.claim.ConditionalUpdateClaimStrategy")
+                        "com.grab.outbox.infrastructure.adapter.out.jpa.claim.ConditionalUpdateClaimStrategy")
                 .because("claim strategies are selected by configuration through OutboxClaimStrategies")
                 .check(classes);
     }

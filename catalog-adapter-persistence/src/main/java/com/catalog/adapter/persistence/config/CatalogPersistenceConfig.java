@@ -1,59 +1,60 @@
 package com.catalog.adapter.persistence.config;
 
-import com.grab.framework.inbox.ProcessedEventRepository;
-import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
-import com.catalog.adapter.persistence.outbox.CatalogProcessedEvent;
-import com.catalog.domain.port.outbound.CategoryRepository;
-import com.catalog.domain.port.outbound.VariantTypeRepository;
-import com.catalog.application.port.outbound.CategoryHierarchyQueryPort;
-import com.catalog.domain.port.outbound.CategoryHierarchyRepository;
-import com.catalog.application.port.outbound.CategoryQueryPort;
-import com.catalog.application.port.outbound.MerchantAvailabilityQueryPort;
-import com.catalog.domain.port.outbound.MerchantAvailabilityRepository;
-import com.catalog.application.port.outbound.ProductAuditQueryPort;
-import com.catalog.application.port.outbound.ProductQueryPort;
-import com.catalog.application.port.outbound.ProductVariantQueryPort;
-import com.catalog.application.port.outbound.VariantOptionQueryPort;
-import com.catalog.application.port.outbound.BuyabilityQueryPort;
-import com.catalog.application.port.outbound.PublishedProductChannelQueryPort;
-import com.catalog.application.port.outbound.VariantTypeQueryPort;
+import com.catalog.adapter.persistence.adapter.*;
+import com.catalog.adapter.persistence.adapter.CatalogPersistenceExecutor;
+import com.catalog.adapter.persistence.adapter.CatalogSecurityManifestPublicationAdapter;
+import com.catalog.adapter.persistence.adapter.CatalogSecurityManifestPublicationQueryAdapter;
+import com.catalog.adapter.persistence.adapter.VariantOptionQueryAdapter;
 import com.catalog.adapter.persistence.category.CategoryNodeInserter;
 import com.catalog.adapter.persistence.category.CategoryNodeRemover;
 import com.catalog.adapter.persistence.category.CategoryNodeRetriever;
 import com.catalog.adapter.persistence.category.impl.CategoryNodeInserterImpl;
 import com.catalog.adapter.persistence.category.impl.CategoryNodeRemoverImpl;
 import com.catalog.adapter.persistence.category.impl.CategoryNodeRetrieverImpl;
+import com.catalog.adapter.persistence.entity.CatalogSecurityManifestPublicationEntity;
 import com.catalog.adapter.persistence.entity.CategoryEntity;
+import com.catalog.adapter.persistence.entity.ProductEntity;
 import com.catalog.adapter.persistence.factory.CategoryComponentFactory;
 import com.catalog.adapter.persistence.mapper.*;
-import com.catalog.domain.port.outbound.ProductPublicationRepository;
-import com.catalog.domain.port.outbound.ProductRepository;
-import com.catalog.adapter.persistence.entity.ProductEntity;
 import com.catalog.adapter.persistence.mapper.impl.CategoryJpaAssemblerImpl;
+import com.catalog.adapter.persistence.mapper.impl.ProductJpaAssemblerImpl;
 import com.catalog.adapter.persistence.mapper.impl.ProductPublicationJpaAssemblerImpl;
 import com.catalog.adapter.persistence.mapper.impl.VariantTypeJpaAssemblerImpl;
+import com.catalog.adapter.persistence.outbox.CatalogProcessedEvent;
 import com.catalog.adapter.persistence.repository.*;
 import com.catalog.adapter.persistence.repository.impl.*;
-import com.catalog.adapter.persistence.adapter.*;
-import com.catalog.adapter.persistence.adapter.VariantOptionQueryAdapter;
 import com.catalog.adapter.persistence.specification.ProductSearchSpecification;
 import com.catalog.adapter.persistence.specification.ProductVariantSearchSpecification;
 import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
+import com.catalog.application.port.outbound.BuyabilityQueryPort;
+import com.catalog.application.port.outbound.CategoryHierarchyQueryPort;
+import com.catalog.application.port.outbound.CategoryQueryPort;
+import com.catalog.application.port.outbound.MerchantAvailabilityQueryPort;
+import com.catalog.application.port.outbound.ProductAuditQueryPort;
+import com.catalog.application.port.outbound.ProductQueryPort;
+import com.catalog.application.port.outbound.ProductVariantQueryPort;
+import com.catalog.application.port.outbound.PublishedProductChannelQueryPort;
+import com.catalog.application.port.outbound.VariantOptionQueryPort;
+import com.catalog.application.port.outbound.VariantTypeQueryPort;
+import com.catalog.domain.port.outbound.CategoryHierarchyRepository;
+import com.catalog.domain.port.outbound.CategoryRepository;
+import com.catalog.domain.port.outbound.MerchantAvailabilityRepository;
+import com.catalog.domain.port.outbound.ProductPublicationRepository;
+import com.catalog.domain.port.outbound.ProductRepository;
+import com.catalog.domain.port.outbound.VariantTypeRepository;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import com.grab.framework.support.PersistenceExecutor;
-import com.catalog.adapter.persistence.mapper.impl.ProductJpaAssemblerImpl;
-import com.catalog.adapter.persistence.adapter.CatalogPersistenceExecutor;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
 import com.manifest.adapter.persistence.SecurityManifestEventFactory;
 import com.nestedset.app.config.JpaNestedSetRepositoryConfiguration;
 import com.nestedset.app.service.TreeBuilder;
 import com.nestedset.app.service.TreeBuilderImpl;
-import com.catalog.adapter.persistence.adapter.CatalogSecurityManifestPublicationAdapter;
-import com.catalog.adapter.persistence.adapter.CatalogSecurityManifestPublicationQueryAdapter;
-import com.catalog.adapter.persistence.entity.CatalogSecurityManifestPublicationEntity;
-import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -62,6 +63,7 @@ import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
+import java.util.function.UnaryOperator;
 
 @Configuration
 public class CatalogPersistenceConfig {
@@ -72,9 +74,14 @@ public class CatalogPersistenceConfig {
     }
 
     @Bean("catalogProcessedEventRepository")
-    public ProcessedEventRepository catalogProcessedEventRepository(JpaContext context) {
+    public ProcessedEventRepository catalogProcessedEventRepository(
+            JpaContext context,
+            @Qualifier("catalogInboxDecorator") ObjectProvider<UnaryOperator<ProcessedEventRepository>> decorator
+    ) {
         EntityManager entityManager = context.getEntityManagerByManagedType(CatalogProcessedEvent.class);
-        return new JpaProcessedEventRepository<>(entityManager, CatalogProcessedEvent.class, CatalogProcessedEvent::of);
+        ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, CatalogProcessedEvent.class, CatalogProcessedEvent::of);
+        UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
+        return observe.apply(repository);
     }
 
     @Bean

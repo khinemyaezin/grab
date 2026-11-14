@@ -4,6 +4,7 @@ import com.grab.framework.bootstrap.BootstrapTask;
 import com.grab.framework.bootstrap.BootstrapTaskException;
 import com.grab.framework.scheduling.SingletonJob;
 import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.scheduling.infrastructure.LocalSingletonJobExecutor;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -31,7 +32,7 @@ class BootstrapRunnerTest {
 
     @Test
     void successfulTask_isSatisfiedAndUnblocksReadiness() {
-        FakeTask task = new FakeTask("a", true, SingletonJobExecutor.local());
+        FakeTask task = new FakeTask("a", true, new LocalSingletonJobExecutor());
 
         BootstrapRunner runner = runner(task);
         assertTrue(runner.isReadinessBlocked());
@@ -45,7 +46,7 @@ class BootstrapRunnerTest {
 
     @Test
     void transientFailure_isRetriedWithExponentialBackoff() {
-        FakeTask task = new FakeTask("a", true, SingletonJobExecutor.local());
+        FakeTask task = new FakeTask("a", true, new LocalSingletonJobExecutor());
         task.failuresBeforeSuccess = 2;
 
         BootstrapRunner runner = runner(task);
@@ -58,7 +59,7 @@ class BootstrapRunnerTest {
 
     @Test
     void exhaustedRetries_failRequiredTaskAndKeepReadinessBlocked() {
-        FakeTask task = new FakeTask("a", true, SingletonJobExecutor.local());
+        FakeTask task = new FakeTask("a", true, new LocalSingletonJobExecutor());
         task.failuresBeforeSuccess = Integer.MAX_VALUE;
 
         BootstrapRunner runner = runner(task);
@@ -71,7 +72,7 @@ class BootstrapRunnerTest {
 
     @Test
     void permanentFailure_isNotRetried() {
-        FakeTask task = new FakeTask("a", true, SingletonJobExecutor.local());
+        FakeTask task = new FakeTask("a", true, new LocalSingletonJobExecutor());
         task.permanent = true;
 
         BootstrapRunner runner = runner(task);
@@ -85,9 +86,9 @@ class BootstrapRunnerTest {
 
     @Test
     void optionalTaskFailure_doesNotBlockReadiness_andLaterTasksStillRun() {
-        FakeTask optional = new FakeTask("optional", false, SingletonJobExecutor.local());
+        FakeTask optional = new FakeTask("optional", false, new LocalSingletonJobExecutor());
         optional.permanent = true;
-        FakeTask required = new FakeTask("required", true, SingletonJobExecutor.local());
+        FakeTask required = new FakeTask("required", true, new LocalSingletonJobExecutor());
 
         BootstrapRunner runner = runner(optional, required);
         runner.runAll();
@@ -134,7 +135,7 @@ class BootstrapRunnerTest {
 
     @Test
     void satisfiedTask_skipsExecution() {
-        FakeTask task = new FakeTask("a", true, SingletonJobExecutor.local());
+        FakeTask task = new FakeTask("a", true, new LocalSingletonJobExecutor());
         task.satisfied = true;
 
         BootstrapRunner runner = runner(task);

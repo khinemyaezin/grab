@@ -1,16 +1,9 @@
 package com.catalog.adapter.persistence.outbox.claim;
 
-import com.grab.outbox.infrastructure.claim.ConditionalUpdateClaimStrategy;
-import com.grab.outbox.infrastructure.claim.OutboxClaimStrategy;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import com.grab.outbox.infrastructure.adapter.out.jpa.claim.ConditionalUpdateClaimStrategy;
+import com.grab.outbox.infrastructure.adapter.out.jpa.claim.OutboxClaimStrategy;
 
-class ConditionalUpdateClaimPostgresTest extends OutboxClaimStrategyContract {
-
-    @DynamicPropertySource
-    static void database(DynamicPropertyRegistry registry) {
-        PostgresDatabase.register(registry);
-    }
+class ConditionalUpdateClaimPostgresTest extends PostgresOutboxContract {
 
     @Override
     protected OutboxClaimStrategy strategy() {

@@ -8,6 +8,7 @@ import com.grab.framework.scheduling.SingletonJob;
 import com.grab.framework.scheduling.SingletonJobExecutor;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -43,6 +44,7 @@ public class BootstrapRunner implements DisposableBean {
     private volatile Thread worker;
     private volatile boolean finished;
 
+    @Autowired
     public BootstrapRunner(ObjectProvider<BootstrapTask> tasks, BootstrapProperties properties) {
         this(tasks.orderedStream().toList(), properties, Clock.systemUTC(), Thread::sleep);
     }

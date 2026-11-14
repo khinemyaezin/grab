@@ -2,9 +2,9 @@ package com.grab.app.merchandising.catalog.internal.adapter.inbound.lifecycle;
 
 import com.catalog.application.model.write.PublishCatalogSecurityManifestCommand;
 import com.grab.framework.cqrs.command.CommandBus;
-import com.grab.framework.scheduling.ClusterSingletonJob;
 import com.grab.framework.scheduling.SingletonJob;
 import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.scheduling.infrastructure.ClusterSingletonJob;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

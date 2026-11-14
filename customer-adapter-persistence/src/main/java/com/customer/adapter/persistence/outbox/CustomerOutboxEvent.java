@@ -1,7 +1,7 @@
 package com.customer.adapter.persistence.outbox;
 
 import com.grab.framework.outbox.SerializedEvent;
-import com.grab.outbox.infrastructure.jpa.JpaOutboxEventEntity;
+import com.grab.outbox.infrastructure.adapter.out.jpa.JpaOutboxEventEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;

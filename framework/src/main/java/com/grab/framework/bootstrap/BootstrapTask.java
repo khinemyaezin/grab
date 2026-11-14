@@ -47,6 +47,9 @@ public interface BootstrapTask {
      * Lock executor backed by the owning module's schema. Defaults to an unlocked executor.
      */
     default SingletonJobExecutor singletonJobExecutor() {
-        return SingletonJobExecutor.local();
+        return (job, task) -> {
+            task.run();
+            return true;
+        };
     }
 }

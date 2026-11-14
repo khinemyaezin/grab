@@ -77,8 +77,9 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.javacrumbs.shedlock</groupId>
-            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>scheduling-infrastructure</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.retry</groupId>

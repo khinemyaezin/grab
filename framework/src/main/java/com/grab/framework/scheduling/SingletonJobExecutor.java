@@ -11,14 +11,4 @@ public interface SingletonJobExecutor {
      * @return {@code true} when the task ran on this replica, {@code false} when another replica holds the lock
      */
     boolean execute(SingletonJob job, Runnable task);
-
-    /**
-     * Unlocked executor for single-replica deployments and tests.
-     */
-    static SingletonJobExecutor local() {
-        return (job, task) -> {
-            task.run();
-            return true;
-        };
-    }
 }
