@@ -26,18 +26,15 @@ public class JsonOutboxEventSerializer implements OutboxEventSerializer {
     private static final int EVENT_VERSION = 1;
     private static final String CONTENT_TYPE_KEY = "contentType";
     private static final String JSON_CONTENT_TYPE = "application/json";
-    private static final String LEGACY_HEADERS = "{}";
 
     private final ObjectMapper objectMapper;
-    private final OutboxEventSerializer legacySerializer;
 
     public JsonOutboxEventSerializer() {
-        this(defaultObjectMapper(), new JavaSerializationOutboxEventSerializer());
+        this(defaultObjectMapper());
     }
 
-    public JsonOutboxEventSerializer(ObjectMapper objectMapper, OutboxEventSerializer legacySerializer) {
+    public JsonOutboxEventSerializer(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-        this.legacySerializer = legacySerializer;
     }
 
     @Override
@@ -57,20 +54,21 @@ public class JsonOutboxEventSerializer implements OutboxEventSerializer {
     @Override
     public Event deserialize(SerializedEvent serializedEvent) {
         if (!isJsonPayload(serializedEvent.headers())) {
-            return legacySerializer.deserialize(serializedEvent);
+            throw new OutboxPoisonEventException(
+                    "Unsupported outbox payload encoding for " + serializedEvent.eventType() + "; only JSON is accepted");
         }
 
         try {
             Class<?> eventClass = Class.forName(serializedEvent.eventType());
             if (!Event.class.isAssignableFrom(eventClass)) {
-                throw new IllegalStateException("Outbox payload is not an Event: " + serializedEvent.eventType());
+                throw new OutboxPoisonEventException("Outbox payload is not an Event: " + serializedEvent.eventType());
             }
 
             return objectMapper.readValue(serializedEvent.payload(), eventClass.asSubclass(Event.class));
         } catch (ClassNotFoundException exception) {
-            throw new IllegalStateException("Outbox event class not found " + serializedEvent.eventType(), exception);
+            throw new OutboxPoisonEventException("Outbox event class not found " + serializedEvent.eventType(), exception);
         } catch (IOException exception) {
-            throw new IllegalStateException("Failed to deserialize outbox event " + serializedEvent.eventType(), exception);
+            throw new OutboxPoisonEventException("Failed to deserialize outbox event " + serializedEvent.eventType(), exception);
         }
     }
 
@@ -81,7 +79,7 @@ public class JsonOutboxEventSerializer implements OutboxEventSerializer {
     }
 
     private boolean isJsonPayload(String headers) {
-        if (headers == null || headers.isBlank() || LEGACY_HEADERS.equals(headers.trim())) {
+        if (headers == null || headers.isBlank()) {
             return false;
         }
 

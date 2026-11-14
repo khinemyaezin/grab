@@ -1,5 +1,15 @@
 package com.grab.app.channel.saleschannel.internal.config;
 
+import java.time.Duration;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -19,7 +29,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class SalesChannelModuleOutboxConfig {
@@ -61,29 +70,48 @@ public class SalesChannelModuleOutboxConfig {
         return new SalesChannelOutboxEventProducer(store, serializer, relay);
     }
 
+    @Bean("salesChannelSingletonJobExecutor")
+    public SingletonJobExecutor salesChannelSingletonJobExecutor(
+            @Qualifier("channelDataSource") DataSource dataSource,
+            @Value("${saleschannel.flyway.default-schema:saleschannel}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("salesChannelOutboxEventProcessor")
     public SalesChannelOutboxEventProcessor salesChannelOutboxEventProcessor(
-            @Qualifier("salesChannelOutboxStore") OutboxStore<SalesChannelOutboxEvent, Long> store,
+            @Qualifier("salesChannelOutboxStore") OutboxStore<SalesChannelOutboxEvent, Long> outboxStore,
             @Qualifier("salesChannelOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("salesChannelOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${saleschannel.outbox.batch-size:20}") int batchSize,
-            @Value("${saleschannel.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${saleschannel.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${saleschannel.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("salesChannelOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("salesChannelOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("salesChannelSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new SalesChannelOutboxEventProcessor(
-                store,
+                outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "saleschannel.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
-}
 
+    @Bean("salesChannelProcessedEventRetention")
+    public ProcessedEventRetention salesChannelProcessedEventRetention(
+            @Qualifier("salesChannelProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("salesChannelSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            @Value("${saleschannel.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${saleschannel.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "saleschannel", processedEvents, transactionManager, singletonJobExecutor, retention, batchSize);
+    }
+}

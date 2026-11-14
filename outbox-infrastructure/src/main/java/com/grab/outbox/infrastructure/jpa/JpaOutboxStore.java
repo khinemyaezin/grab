@@ -7,12 +7,19 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStore<T, ID> {
+
+    static final String LOCK_TIMEOUT_HINT = "jakarta.persistence.lock.timeout";
+    /**
+     * Hibernate's {@code LockOptions.SKIP_LOCKED}; rendered as {@code FOR UPDATE SKIP LOCKED} on PostgreSQL.
+     */
+    static final int SKIP_LOCKED = -2;
 
     private final EntityManager entityManager;
     private final Class<T> entityType;
@@ -38,8 +45,8 @@ public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStor
     public List<T> findBatchForProcessing(
             Collection<OutboxStatus> retryableStatuses,
             OutboxStatus processingStatus,
-            LocalDateTime availableAt,
-            LocalDateTime staleBefore,
+            Instant availableAt,
+            Instant staleBefore,
             int batchSize
     ) {
         String jpql = """
@@ -48,7 +55,7 @@ public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStor
                 where
                     (event.status in :retryableStatuses and event.availableAt <= :availableAt)
                     or (event.status = :processingStatus and event.claimedAt <= :staleBefore)
-                order by event.occurredAt asc
+                order by event.id asc
                 """.formatted(entityName);
 
         TypedQuery<T> query = entityManager.createQuery(jpql, entityType);
@@ -57,6 +64,7 @@ public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStor
         query.setParameter("availableAt", availableAt);
         query.setParameter("staleBefore", staleBefore);
         query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
+        query.setHint(LOCK_TIMEOUT_HINT, SKIP_LOCKED);
         query.setMaxResults(batchSize);
         return query.getResultList();
     }
@@ -67,8 +75,20 @@ public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStor
     }
 
     @Override
+    public Optional<T> findByIdForUpdateSkipLocked(ID id) {
+        Map<String, Object> hints = Map.of(LOCK_TIMEOUT_HINT, SKIP_LOCKED);
+        return Optional.ofNullable(entityManager.find(entityType, id, LockModeType.PESSIMISTIC_WRITE, hints));
+    }
+
+    @Override
     public Optional<T> findByIdForUpdate(ID id) {
-        return Optional.ofNullable(entityManager.find(entityType, id, LockModeType.PESSIMISTIC_WRITE));
+        T managed = entityManager.find(entityType, id);
+        if (managed == null) {
+            return Optional.empty();
+        }
+        // refresh (not find) so a row already in the persistence context is re-read under the lock
+        entityManager.refresh(managed, LockModeType.PESSIMISTIC_WRITE);
+        return Optional.of(managed);
     }
 
     @Override
@@ -77,17 +97,27 @@ public class JpaOutboxStore<T extends OutboxEntry<ID>, ID> implements OutboxStor
     }
 
     @Override
-    public void deletePublishedOlderThan(LocalDateTime cutoff) {
-        String jpql = """
-                delete
+    public int deletePublishedOlderThan(Instant cutoff, int limit) {
+        String selectJpql = """
+                select event.id
                 from %s event
                 where event.status = :status
                   and event.publishedAt < :cutoff
+                order by event.id asc
                 """.formatted(entityName);
 
-        entityManager.createQuery(jpql)
+        List<?> ids = entityManager.createQuery(selectJpql)
                 .setParameter("status", OutboxStatus.PUBLISHED)
                 .setParameter("cutoff", cutoff)
+                .setMaxResults(Math.max(1, limit))
+                .getResultList();
+        if (ids.isEmpty()) {
+            return 0;
+        }
+
+        String deleteJpql = "delete from %s event where event.id in :ids".formatted(entityName);
+        return entityManager.createQuery(deleteJpql)
+                .setParameter("ids", ids)
                 .executeUpdate();
     }
 }

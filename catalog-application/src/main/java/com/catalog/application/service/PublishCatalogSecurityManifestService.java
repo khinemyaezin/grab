@@ -1,5 +1,6 @@
 package com.catalog.application.service;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.security.SecurityManifestPublicationPort;
@@ -16,8 +17,9 @@ public class PublishCatalogSecurityManifestService implements PublishCatalogSecu
     }
 
     @Override
-    public void execute(PublishCatalogSecurityManifestCommand command) {
+    public PublicationResult execute(PublishCatalogSecurityManifestCommand command) {
         var result = publication.enqueue(CatalogSecurityManifest.CURRENT);
         log.info("Security manifest publication module: catalog, outcome: {}", result);
+        return result;
     }
 }

@@ -1,5 +1,6 @@
 package com.grab.app.channel.saleschannel.internal.command.handler;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.app.channel.saleschannel.internal.config.SalesChannelTransactional;
 import com.grab.app.shared.security.SecurityManifestPublicationRetryable;
 import com.grab.framework.cqrs.command.CommandHandler;
@@ -10,7 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class PublishSalesChannelSecurityManifestCommandHandler
-        implements CommandHandler<PublishSalesChannelSecurityManifestCommand, Void> {
+        implements CommandHandler<PublishSalesChannelSecurityManifestCommand, PublicationResult> {
 
     private final PublishSalesChannelSecurityManifestUseCase useCase;
 
@@ -21,9 +22,8 @@ public class PublishSalesChannelSecurityManifestCommandHandler
     @Override
     @SecurityManifestPublicationRetryable
     @SalesChannelTransactional(propagation = Propagation.REQUIRES_NEW)
-    public Void handle(PublishSalesChannelSecurityManifestCommand command) {
-        useCase.execute(command);
-        return null;
+    public PublicationResult handle(PublishSalesChannelSecurityManifestCommand command) {
+        return useCase.execute(command);
     }
 
     @Override

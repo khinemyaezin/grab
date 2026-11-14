@@ -7,6 +7,10 @@ import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
 import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.outbox.SerializedEvent;
+import com.grab.framework.outbox.OutboxRelay;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
 import com.grab.outbox.infrastructure.OutboxStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,9 +18,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,10 +57,20 @@ class CatalogOutboxEventProcessorTest {
                 serializer,
                 dispatcher,
                 new NoOpTransactionManager(),
-                10,
-                Duration.ofSeconds(30),
-                Duration.ofMinutes(2),
-                Duration.ofDays(7)
+                new OutboxProcessorSettings(
+                        10,
+                        Duration.ofSeconds(30),
+                        Duration.ofMinutes(15),
+                        10,
+                        Duration.ofMinutes(2),
+                        Duration.ofDays(7),
+                        5000,
+                        Duration.ofMinutes(10),
+                        Duration.ofMinutes(4)
+                ),
+                OutboxRelay.noop(),
+                OutboxObserver.noop(),
+                SingletonJobExecutor.local()
         );
     }
 
@@ -66,11 +82,12 @@ class CatalogOutboxEventProcessorTest {
         when(outboxStore.findBatchForProcessing(
                 eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
                 eq(OutboxStatus.PROCESSING),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class),
+                any(Instant.class),
+                any(Instant.class),
                 eq(10)
         )).thenReturn(List.of(outboxEvent));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
+        when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
 
         processor.processAvailableEventsOnSchedule();
@@ -91,11 +108,12 @@ class CatalogOutboxEventProcessorTest {
         when(outboxStore.findBatchForProcessing(
                 eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
                 eq(OutboxStatus.PROCESSING),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class),
+                any(Instant.class),
+                any(Instant.class),
                 eq(10)
         )).thenReturn(List.of(outboxEvent));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
+        when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
         when(serializer.deserialize(new SerializedEvent("event-type", "payload", 1, "{}"))).thenReturn(payload);
         doThrow(new IllegalStateException("dispatcher failed")).when(dispatcher).dispatch(payload);
 
@@ -112,13 +130,13 @@ class CatalogOutboxEventProcessorTest {
     void processAvailableEvents_whenClaimTokenChanges_skipsDispatch() {
         CatalogOutboxEvent pendingEvent = pendingEvent(1L, "event-type", "payload");
         CatalogOutboxEvent reclaimedEvent = pendingEvent(1L, "event-type", "payload");
-        reclaimedEvent.markProcessing(LocalDateTime.now(), "different-claim-token");
+        reclaimedEvent.markProcessing(Instant.now(), "different-claim-token");
 
         when(outboxStore.findBatchForProcessing(
                 eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
                 eq(OutboxStatus.PROCESSING),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class),
+                any(Instant.class),
+                any(Instant.class),
                 eq(10)
         )).thenReturn(List.of(pendingEvent));
         when(outboxStore.findById(1L)).thenReturn(Optional.of(reclaimedEvent));
@@ -133,14 +151,14 @@ class CatalogOutboxEventProcessorTest {
     void cleanupPublishedEvents_deletesExpiredRows() {
         processor.cleanupPublishedEventsOnSchedule();
 
-        verify(outboxStore).deletePublishedOlderThan(any(LocalDateTime.class));
+        verify(outboxStore).deletePublishedOlderThan(any(Instant.class), eq(5000));
     }
 
     @Test
-    void processAvailableEvents_supportsLegacyAndJsonRowsInSameBatch() {
-        Event legacyPayload = new ProductUpdatedEvent(id("product-1"), "Legacy name", id("category-1"));
+    void processAvailableEvents_dispatchesEveryRowInMixedBatch() {
+        Event plainPayload = new ProductUpdatedEvent(id("product-1"), "Legacy name", id("category-1"));
         Event jsonPayload = new ProductUpdatedEvent(id("product-1"), "Json name", id("category-2"));
-        CatalogOutboxEvent legacyEvent = pendingEvent(1L, "event-type-legacy", "legacy-payload", "{}");
+        CatalogOutboxEvent plainEvent = pendingEvent(1L, "event-type-legacy", "legacy-payload", "{}");
         CatalogOutboxEvent jsonEvent = pendingEvent(
                 2L,
                 "event-type-json",
@@ -151,19 +169,21 @@ class CatalogOutboxEventProcessorTest {
         when(outboxStore.findBatchForProcessing(
                 eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
                 eq(OutboxStatus.PROCESSING),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class),
+                any(Instant.class),
+                any(Instant.class),
                 eq(10)
-        )).thenReturn(List.of(legacyEvent, jsonEvent));
-        when(outboxStore.findById(1L)).thenReturn(Optional.of(legacyEvent));
+        )).thenReturn(List.of(plainEvent, jsonEvent));
+        when(outboxStore.findById(1L)).thenReturn(Optional.of(plainEvent));
+        when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(plainEvent));
         when(outboxStore.findById(2L)).thenReturn(Optional.of(jsonEvent));
+        when(outboxStore.findByIdForUpdate(2L)).thenReturn(Optional.of(jsonEvent));
         when(serializer.deserialize(argThat(serialized ->
                 serialized != null
                         && serialized.eventType().equals("event-type-legacy")
                         && serialized.payload().equals("legacy-payload")
                         && serialized.eventVersion() == 1
                         && serialized.headers().equals("{}")
-        ))).thenReturn(legacyPayload);
+        ))).thenReturn(plainPayload);
         when(serializer.deserialize(argThat(serialized ->
                 serialized != null
                         && serialized.eventType().equals("event-type-json")
@@ -174,9 +194,9 @@ class CatalogOutboxEventProcessorTest {
 
         processor.processAvailableEventsOnSchedule();
 
-        verify(dispatcher).dispatch(legacyPayload);
+        verify(dispatcher).dispatch(plainPayload);
         verify(dispatcher).dispatch(jsonPayload);
-        assertEquals(OutboxStatus.PUBLISHED, legacyEvent.getStatus());
+        assertEquals(OutboxStatus.PUBLISHED, plainEvent.getStatus());
         assertEquals(OutboxStatus.PUBLISHED, jsonEvent.getStatus());
     }
 
@@ -186,12 +206,13 @@ class CatalogOutboxEventProcessorTest {
 
     private static CatalogOutboxEvent pendingEvent(Long id, String eventType, String payload, String headers) {
         CatalogOutboxEvent outboxEvent = CatalogOutboxEvent.pending(
+                UUID.randomUUID(),
                 "Product",
                 "product-1",
                 new SerializedEvent(eventType, payload, 1, headers),
-                LocalDateTime.now().minusMinutes(1)
+                Instant.now().minusSeconds(60)
         );
-        outboxEvent.setId(id);
+        ReflectionTestUtils.setField(outboxEvent, "id", id);
         return outboxEvent;
     }
 

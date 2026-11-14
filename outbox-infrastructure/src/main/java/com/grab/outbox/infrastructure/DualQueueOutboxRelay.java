@@ -129,6 +129,16 @@ public final class DualQueueOutboxRelay<ID> implements OutboxRelay<ID> {
         workers.clear();
     }
 
+    @Override
+    public List<ClaimedOutboxEvent<ID>> drainCold() {
+        List<QueuedOutboxWork<ID>> pending = new ArrayList<>();
+        coldQueue.drainTo(pending);
+        hotQueue.clear();
+        return pending.stream()
+                .map(work -> new ClaimedOutboxEvent<>(work.id(), work.claimToken()))
+                .toList();
+    }
+
     private void runWorker() {
         while (running.get() && !Thread.currentThread().isInterrupted()) {
             try {

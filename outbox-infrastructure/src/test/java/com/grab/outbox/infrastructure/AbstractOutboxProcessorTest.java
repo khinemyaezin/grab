@@ -2,12 +2,16 @@ package com.grab.outbox.infrastructure;
 
 import com.grab.framework.domain.Event;
 import com.grab.framework.logger.slf4j.TraceContext;
-import com.grab.framework.outbox.OutboxEntry;
+import com.grab.framework.outbox.ClaimedOutboxEvent;
+import com.grab.framework.outbox.OutboxDeliveryContext;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventSerializer;
+import com.grab.framework.outbox.OutboxPoisonEventException;
 import com.grab.framework.outbox.OutboxRelay;
+import com.grab.framework.outbox.OutboxRetryPolicy;
 import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.outbox.SerializedEvent;
+import com.grab.framework.scheduling.SingletonJobExecutor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,30 +20,41 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
+import java.time.Clock;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AbstractOutboxProcessorTest {
 
+    private static final Instant NOW = Instant.parse("2026-11-13T10:00:00Z");
+
     private OutboxStore<StubOutboxEvent, Long> outboxStore;
     private OutboxEventSerializer serializer;
     private OutboxEventDispatcher dispatcher;
+    private RecordingObserver observer;
     private TestProcessor processor;
 
     @BeforeEach
@@ -47,44 +62,25 @@ class AbstractOutboxProcessorTest {
         outboxStore = mock(OutboxStore.class);
         serializer = mock(OutboxEventSerializer.class);
         dispatcher = mock(OutboxEventDispatcher.class);
-        processor = new TestProcessor(
-                outboxStore,
-                serializer,
-                dispatcher,
-                new NoOpTransactionManager(),
-                10,
-                Duration.ofSeconds(30),
-                Duration.ofMinutes(2),
-                Duration.ofDays(7)
-        );
+        observer = new RecordingObserver();
+        processor = processor(OutboxRelay.noop(), SingletonJobExecutor.local(), 3);
     }
 
     @AfterEach
-    void clearMdc() {
+    void tearDown() {
         TraceContext.clear();
         processor.destroy();
     }
 
     @Test
     void processAvailableEvents_restoresTraceIdFromHeadersDuringDispatch() {
-        Event payload = new DummyEvent();
         StubOutboxEvent outboxEvent = new StubOutboxEvent(
                 1L,
                 "{\"contentType\":\"application/json\",\"traceId\":\"outbox-trace\"}"
         );
+        Event payload = givenClaimable(outboxEvent);
         AtomicReference<String> observed = new AtomicReference<>();
-
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class),
-                eq(10)
-        )).thenReturn(List.of(outboxEvent));
-        when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
-        when(serializer.deserialize(new SerializedEvent("type", "payload", 1, outboxEvent.getHeaders())))
-                .thenReturn(payload);
-        org.mockito.Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             observed.set(TraceContext.current());
             return null;
         }).when(dispatcher).dispatch(payload);
@@ -94,26 +90,16 @@ class AbstractOutboxProcessorTest {
         verify(dispatcher).dispatch(payload);
         assertEquals("outbox-trace", observed.get());
         assertEquals(OutboxStatus.PUBLISHED, outboxEvent.getStatus());
+        assertEquals(1, observer.published.get());
         assertNull(TraceContext.current());
     }
 
     @Test
     void processAvailableEvents_generatesTraceIdWhenHeadersLackOne() {
-        Event payload = new DummyEvent();
         StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
+        Event payload = givenClaimable(outboxEvent);
         AtomicReference<String> observed = new AtomicReference<>();
-
-        when(outboxStore.findBatchForProcessing(
-                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                eq(OutboxStatus.PROCESSING),
-                any(LocalDateTime.class),
-                any(LocalDateTime.class),
-                eq(10)
-        )).thenReturn(List.of(outboxEvent));
-        when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
-        when(serializer.deserialize(new SerializedEvent("type", "payload", 1, "{}")))
-                .thenReturn(payload);
-        org.mockito.Mockito.doAnswer(invocation -> {
+        doAnswer(invocation -> {
             observed.set(TraceContext.current());
             return null;
         }).when(dispatcher).dispatch(payload);
@@ -126,28 +112,105 @@ class AbstractOutboxProcessorTest {
     }
 
     @Test
-    void hotQueue_claimsByIdAndPublishes() throws Exception {
+    void dispatch_exposesEventIdToListeners() {
+        StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
+        Event payload = givenClaimable(outboxEvent);
+        AtomicReference<UUID> observed = new AtomicReference<>();
+        doAnswer(invocation -> {
+            observed.set(OutboxDeliveryContext.currentEventId().orElse(null));
+            return null;
+        }).when(dispatcher).dispatch(payload);
+
+        processor.process();
+
+        assertEquals(outboxEvent.getEventId(), observed.get());
+        assertTrue(OutboxDeliveryContext.currentEventId().isEmpty());
+    }
+
+    @Test
+    void listenerFailure_marksFailedWithExponentialBackoff() {
+        StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}").withAttempts(1);
+        Event payload = givenClaimable(outboxEvent);
+        doThrow(new IllegalStateException("listener down")).when(dispatcher).dispatch(payload);
+
+        processor.process();
+
+        // attempt 2 of 3 -> base 30s * 2^(2-1) = 60s (jitter disabled in this test)
+        assertEquals(OutboxStatus.FAILED, outboxEvent.getStatus());
+        assertEquals(NOW.plusSeconds(60), outboxEvent.getAvailableAt());
+        assertEquals("listener down", outboxEvent.lastError());
+        assertNull(outboxEvent.getClaimToken());
+        assertEquals(1, observer.failed.get());
+    }
+
+    @Test
+    void listenerFailure_onLastAttempt_deadLetters() {
+        StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}").withAttempts(2);
+        Event payload = givenClaimable(outboxEvent);
+        doThrow(new IllegalStateException("still down")).when(dispatcher).dispatch(payload);
+
+        processor.process();
+
+        assertEquals(3, outboxEvent.getAttemptCount());
+        assertEquals(OutboxStatus.DEAD, outboxEvent.getStatus());
+        assertEquals(1, observer.dead.get());
+    }
+
+    @Test
+    void poisonPayload_deadLettersImmediately() {
+        StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
+        givenClaimable(outboxEvent);
+        when(serializer.deserialize(any(SerializedEvent.class)))
+                .thenThrow(new OutboxPoisonEventException("unknown type"));
+
+        processor.process();
+
+        assertEquals(1, outboxEvent.getAttemptCount());
+        assertEquals(OutboxStatus.DEAD, outboxEvent.getStatus());
+        verify(dispatcher, never()).dispatch(any());
+    }
+
+    @Test
+    void claimLostDuringDispatch_doesNotOverwriteNewOwnersState() {
+        StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
+        Event payload = givenClaimable(outboxEvent);
+        StubOutboxEvent reclaimedByOtherPod = new StubOutboxEvent(1L, "{}");
+        reclaimedByOtherPod.markProcessing(NOW, "other-pod-token");
+        when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(reclaimedByOtherPod));
+
+        processor.process();
+
+        verify(dispatcher).dispatch(payload);
+        assertEquals(OutboxStatus.PROCESSING, reclaimedByOtherPod.getStatus());
+        assertEquals("other-pod-token", reclaimedByOtherPod.getClaimToken());
+        assertEquals(1, observer.claimLost.get());
+        assertEquals(0, observer.published.get());
+    }
+
+    @Test
+    void claimLostBeforeDispatch_skipsDispatch() {
+        StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
+        givenClaimable(outboxEvent);
+        StubOutboxEvent reclaimed = new StubOutboxEvent(1L, "{}");
+        reclaimed.markProcessing(NOW, "other");
+        when(outboxStore.findById(1L)).thenReturn(Optional.of(reclaimed));
+
+        processor.process();
+
+        verify(dispatcher, never()).dispatch(any());
+        assertEquals(1, observer.claimLost.get());
+    }
+
+    @Test
+    void hotQueue_claimsWithSkipLockedAndPublishes() throws Exception {
         DualQueueOutboxRelay<Long> hotRelay = new DualQueueOutboxRelay<>("test", 1, 8, 8, Duration.ofSeconds(1));
-        TestProcessor hotProcessor = new TestProcessor(
-                outboxStore,
-                serializer,
-                dispatcher,
-                new NoOpTransactionManager(),
-                10,
-                Duration.ofSeconds(30),
-                Duration.ofMinutes(2),
-                Duration.ofDays(7),
-                hotRelay
-        );
+        TestProcessor hotProcessor = processor(hotRelay, SingletonJobExecutor.local(), 3);
         try {
-            Event payload = new DummyEvent();
             StubOutboxEvent outboxEvent = new StubOutboxEvent(1L, "{}");
+            Event payload = givenRow(outboxEvent);
+            when(outboxStore.findByIdForUpdateSkipLocked(1L)).thenReturn(Optional.of(outboxEvent));
             CountDownLatch dispatched = new CountDownLatch(1);
-            when(outboxStore.findByIdForUpdate(1L)).thenReturn(Optional.of(outboxEvent));
-            when(outboxStore.findById(1L)).thenReturn(Optional.of(outboxEvent));
-            when(serializer.deserialize(new SerializedEvent("type", "payload", 1, "{}")))
-                    .thenReturn(payload);
-            org.mockito.Mockito.doAnswer(invocation -> {
+            doAnswer(invocation -> {
                 dispatched.countDown();
                 return null;
             }).when(dispatcher).dispatch(payload);
@@ -163,32 +226,14 @@ class AbstractOutboxProcessorTest {
     @Test
     void processAvailableEvents_withRelay_enqueuesColdAndPublishes() throws Exception {
         DualQueueOutboxRelay<Long> coldRelay = new DualQueueOutboxRelay<>("test-cold", 1, 8, 8, Duration.ofSeconds(1));
-        TestProcessor coldProcessor = new TestProcessor(
-                outboxStore,
-                serializer,
-                dispatcher,
-                new NoOpTransactionManager(),
-                10,
-                Duration.ofSeconds(30),
-                Duration.ofMinutes(2),
-                Duration.ofDays(7),
-                coldRelay
-        );
+        TestProcessor coldProcessor = processor(coldRelay, SingletonJobExecutor.local(), 3);
         try {
-            Event payload = new DummyEvent();
             StubOutboxEvent outboxEvent = new StubOutboxEvent(2L, "{}");
+            Event payload = givenRow(outboxEvent);
+            when(outboxStore.findBatchForProcessing(any(), any(), any(), any(), anyInt()))
+                    .thenReturn(List.of(outboxEvent));
             CountDownLatch dispatched = new CountDownLatch(1);
-            when(outboxStore.findBatchForProcessing(
-                    eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
-                    eq(OutboxStatus.PROCESSING),
-                    any(LocalDateTime.class),
-                    any(LocalDateTime.class),
-                    eq(8)
-            )).thenReturn(List.of(outboxEvent));
-            when(outboxStore.findById(2L)).thenReturn(Optional.of(outboxEvent));
-            when(serializer.deserialize(new SerializedEvent("type", "payload", 1, "{}")))
-                    .thenReturn(payload);
-            org.mockito.Mockito.doAnswer(invocation -> {
+            doAnswer(invocation -> {
                 dispatched.countDown();
                 return null;
             }).when(dispatcher).dispatch(payload);
@@ -201,36 +246,111 @@ class AbstractOutboxProcessorTest {
         }
     }
 
+    @Test
+    void destroy_releasesUndispatchedColdClaims() {
+        StubOutboxEvent outboxEvent = new StubOutboxEvent(5L, "{}");
+        outboxEvent.markProcessing(NOW, "token-5");
+        when(outboxStore.findByIdForUpdate(5L)).thenReturn(Optional.of(outboxEvent));
+        OutboxRelay<Long> relay = new StoppedRelay(List.of(new ClaimedOutboxEvent<>(5L, "token-5")));
+        TestProcessor stopping = processor(relay, SingletonJobExecutor.local(), 3);
+
+        stopping.destroy();
+
+        assertEquals(OutboxStatus.FAILED, outboxEvent.getStatus());
+        assertEquals(NOW, outboxEvent.getAvailableAt());
+        assertEquals(0, outboxEvent.getAttemptCount());
+        assertEquals(1, observer.released.get());
+    }
+
+    @Test
+    void cleanup_deletesInBatchesUntilExhausted() {
+        when(outboxStore.deletePublishedOlderThan(any(Instant.class), anyInt())).thenReturn(2, 2, 1);
+        TestProcessor batching = new TestProcessor(outboxStore, serializer, dispatcher,
+                settings(3, 2), OutboxRelay.noop(), observer, SingletonJobExecutor.local());
+
+        batching.cleanup();
+
+        verify(outboxStore, org.mockito.Mockito.times(3))
+                .deletePublishedOlderThan(eq(NOW.minus(Duration.ofDays(7))), eq(2));
+        assertEquals(5, observer.cleaned.get());
+    }
+
+    @Test
+    void cleanup_skippedWhenAnotherReplicaHoldsTheLock() {
+        AtomicReference<String> lockName = new AtomicReference<>();
+        SingletonJobExecutor lockedElsewhere = (job, task) -> {
+            lockName.set(job.name());
+            return false;
+        };
+        TestProcessor locked = processor(OutboxRelay.noop(), lockedElsewhere, 3);
+
+        locked.cleanup();
+
+        assertEquals("test.outbox.cleanup", lockName.get());
+        verify(outboxStore, never()).deletePublishedOlderThan(any(), anyInt());
+    }
+
+    private Event givenClaimable(StubOutboxEvent outboxEvent) {
+        Event payload = givenRow(outboxEvent);
+        when(outboxStore.findBatchForProcessing(
+                eq(List.of(OutboxStatus.NEW, OutboxStatus.FAILED)),
+                eq(OutboxStatus.PROCESSING),
+                eq(NOW),
+                eq(NOW.minus(Duration.ofMinutes(2))),
+                eq(10)
+        )).thenReturn(List.of(outboxEvent));
+        return payload;
+    }
+
+    private Event givenRow(StubOutboxEvent outboxEvent) {
+        Event payload = new DummyEvent();
+        when(outboxStore.findById(outboxEvent.getId())).thenReturn(Optional.of(outboxEvent));
+        when(outboxStore.findByIdForUpdate(outboxEvent.getId())).thenReturn(Optional.of(outboxEvent));
+        when(serializer.deserialize(new SerializedEvent("type", "payload", 1, outboxEvent.getHeaders())))
+                .thenReturn(payload);
+        return payload;
+    }
+
+    private TestProcessor processor(OutboxRelay<Long> relay, SingletonJobExecutor executor, int maxAttempts) {
+        return new TestProcessor(outboxStore, serializer, dispatcher, settings(maxAttempts, 5000), relay, observer, executor);
+    }
+
+    private static OutboxProcessorSettings settings(int maxAttempts, int cleanupBatchSize) {
+        return new OutboxProcessorSettings(
+                10,
+                Duration.ofSeconds(30),
+                Duration.ofMinutes(15),
+                maxAttempts,
+                Duration.ofMinutes(2),
+                Duration.ofDays(7),
+                cleanupBatchSize,
+                Duration.ofMinutes(10),
+                Duration.ofMinutes(4)
+        );
+    }
+
     private static final class TestProcessor extends AbstractOutboxProcessor<StubOutboxEvent, Long> {
         private TestProcessor(
                 OutboxStore<StubOutboxEvent, Long> outboxStore,
                 OutboxEventSerializer serializer,
                 OutboxEventDispatcher dispatcher,
-                PlatformTransactionManager transactionManager,
-                int batchSize,
-                Duration retryDelay,
-                Duration claimTimeout,
-                Duration retention
+                OutboxProcessorSettings settings,
+                OutboxRelay<Long> relay,
+                OutboxObserver observer,
+                SingletonJobExecutor executor
         ) {
-            super(outboxStore, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention);
-        }
-
-        private TestProcessor(
-                OutboxStore<StubOutboxEvent, Long> outboxStore,
-                OutboxEventSerializer serializer,
-                OutboxEventDispatcher dispatcher,
-                PlatformTransactionManager transactionManager,
-                int batchSize,
-                Duration retryDelay,
-                Duration claimTimeout,
-                Duration retention,
-                OutboxRelay<Long> relay
-        ) {
-            super(outboxStore, serializer, dispatcher, transactionManager, batchSize, retryDelay, claimTimeout, retention, relay);
+            super("test", outboxStore, serializer, dispatcher, new NoOpTransactionManager(), settings, relay, observer,
+                    executor,
+                    new OutboxRetryPolicy(settings.retryDelay(), settings.maxBackoff(), settings.maxAttempts(), 0d, () -> 0.5d),
+                    Clock.fixed(NOW, ZoneOffset.UTC));
         }
 
         void process() {
             processAvailableEvents();
+        }
+
+        void cleanup() {
+            cleanupPublishedEvents();
         }
     }
 
@@ -245,71 +365,87 @@ class AbstractOutboxProcessorTest {
     private record DummyEvent() implements Event {
     }
 
-    static final class StubOutboxEvent implements OutboxEntry<Long> {
-        private final Long id;
-        private final String headers;
-        private OutboxStatus status = OutboxStatus.NEW;
-        private String claimToken;
+    private static final class RecordingObserver implements OutboxObserver {
+        final AtomicInteger published = new AtomicInteger();
+        final AtomicInteger failed = new AtomicInteger();
+        final AtomicInteger dead = new AtomicInteger();
+        final AtomicInteger claimLost = new AtomicInteger();
+        final AtomicInteger released = new AtomicInteger();
+        final AtomicInteger cleaned = new AtomicInteger();
 
-        StubOutboxEvent(Long id, String headers) {
-            this.id = id;
-            this.headers = headers;
+        @Override
+        public void published(String module, String eventType, Duration deliveryLag) {
+            published.incrementAndGet();
         }
 
         @Override
-        public Long getId() {
-            return id;
+        public void failed(String module, String eventType, int attempt) {
+            failed.incrementAndGet();
         }
 
         @Override
-        public String getEventType() {
-            return "type";
+        public void dead(String module, String eventType) {
+            dead.incrementAndGet();
         }
 
         @Override
-        public String getPayload() {
-            return "payload";
+        public void claimLost(String module) {
+            claimLost.incrementAndGet();
         }
 
         @Override
-        public int getEventVersion() {
-            return 1;
+        public void claimsReleased(String module, int count) {
+            released.addAndGet(count);
         }
 
         @Override
-        public String getHeaders() {
-            return headers;
+        public void cleanedUp(String module, int deleted) {
+            cleaned.addAndGet(deleted);
+        }
+    }
+
+    private static final class StoppedRelay implements OutboxRelay<Long> {
+        private final List<ClaimedOutboxEvent<Long>> pending;
+
+        private StoppedRelay(List<ClaimedOutboxEvent<Long>> pending) {
+            this.pending = pending;
         }
 
         @Override
-        public OutboxStatus getStatus() {
-            return status;
+        public boolean enqueueHot(Long id) {
+            return false;
         }
 
         @Override
-        public String getClaimToken() {
-            return claimToken;
+        public boolean enqueueCold(ClaimedOutboxEvent<Long> claimed) {
+            return false;
         }
 
         @Override
-        public LocalDateTime getAvailableAt() {
-            return LocalDateTime.now().minusSeconds(1);
+        public int coldQueueRemainingCapacity() {
+            return 0;
         }
 
         @Override
-        public void markProcessing(LocalDateTime now, String claimToken) {
-            this.status = OutboxStatus.PROCESSING;
-            this.claimToken = claimToken;
+        public boolean isActive() {
+            return false;
         }
 
         @Override
-        public void markPublished(LocalDateTime now) {
-            this.status = OutboxStatus.PUBLISHED;
+        public void setHandler(com.grab.framework.outbox.OutboxWorkHandler<Long> handler) {
         }
 
         @Override
-        public void markFailed(LocalDateTime now, String error, Duration retryDelay) {
-            this.status = OutboxStatus.FAILED;
+        public void start() {
+        }
+
+        @Override
+        public void stop() {
+        }
+
+        @Override
+        public List<ClaimedOutboxEvent<Long>> drainCold() {
+            return pending;
         }
     }
 

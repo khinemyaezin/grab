@@ -1,5 +1,8 @@
 package com.saleschannel.adapter.persistence.config;
 
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.saleschannel.adapter.persistence.outbox.SalesChannelProcessedEvent;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.id.IdGenerator;
@@ -72,12 +75,19 @@ public class SalesChannelPersistenceConfig {
         return new SalesChannelPersistenceExecutor();
     }
 
+    @Bean("salesChannelProcessedEventRepository")
+    public ProcessedEventRepository salesChannelProcessedEventRepository(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(SalesChannelProcessedEvent.class);
+        return new JpaProcessedEventRepository<>(entityManager, SalesChannelProcessedEvent.class, SalesChannelProcessedEvent::of);
+    }
+
     @Bean
     public SalesChannelWorkflowStepRunner salesChannelWorkflowSignalEmitter(
             @Qualifier("salesChannelDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager
+            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("salesChannelProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
-        return new SalesChannelWorkflowStepRunner(producer, transactionManager);
+        return new SalesChannelWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
     @Bean

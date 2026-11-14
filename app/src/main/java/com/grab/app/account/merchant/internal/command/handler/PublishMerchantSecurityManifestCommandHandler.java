@@ -1,5 +1,6 @@
 package com.grab.app.account.merchant.internal.command.handler;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.app.account.merchant.internal.config.MerchantTransactional;
 import com.grab.app.shared.security.SecurityManifestPublicationRetryable;
 import com.grab.framework.cqrs.command.CommandHandler;
@@ -10,7 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class PublishMerchantSecurityManifestCommandHandler
-        implements CommandHandler<PublishMerchantSecurityManifestCommand, Void> {
+        implements CommandHandler<PublishMerchantSecurityManifestCommand, PublicationResult> {
 
     private final PublishMerchantSecurityManifestUseCase useCase;
 
@@ -21,9 +22,8 @@ public class PublishMerchantSecurityManifestCommandHandler
     @Override
     @SecurityManifestPublicationRetryable
     @MerchantTransactional(propagation = Propagation.REQUIRES_NEW)
-    public Void handle(PublishMerchantSecurityManifestCommand command) {
-        useCase.execute(command);
-        return null;
+    public PublicationResult handle(PublishMerchantSecurityManifestCommand command) {
+        return useCase.execute(command);
     }
 
     @Override

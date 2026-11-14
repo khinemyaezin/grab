@@ -1,5 +1,10 @@
 package com.grab.workflow.infrastructure.config;
 
+import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.ObjectProvider;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.IdGenerator;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
@@ -30,7 +35,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 import java.util.List;
 
 @Configuration
@@ -94,22 +98,20 @@ public class WorkflowInfraConfig {
             @Qualifier("workflowOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("workflowOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("workflowsTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${workflows.outbox.batch-size:20}") int batchSize,
-            @Value("${workflows.outbox.retry-delay-ms:30000}") long retryDelayMs,
-            @Value("${workflows.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${workflows.outbox.retention-ms:604800000}") long retentionMs,
-            @Qualifier("workflowOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("workflowOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("workflowsSingletonJobExecutor") ObjectProvider<SingletonJobExecutor> singletonJobExecutor,
+            ObjectProvider<OutboxObserver> outboxObserver,
+            Environment environment
     ) {
         return new WorkflowOutboxEventProcessor(
                 outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelayMs),
-                Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "workflows.outbox"),
+                relay,
+                outboxObserver.getIfAvailable(OutboxObserver::noop),
+                singletonJobExecutor.getIfAvailable(SingletonJobExecutor::local)
         );
     }
 

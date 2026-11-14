@@ -95,6 +95,7 @@
         <log4j-bom.version>2.25.5</log4j-bom.version>
         <dependency-check.version>13.0.0</dependency-check.version>
         <archunit.version>1.3.0</archunit.version>
+        <shedlock.version>5.16.0</shedlock.version>
     </properties>
 
     <dependencyManagement>
@@ -119,6 +120,11 @@
                 <version>${log4j-bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.javacrumbs.shedlock</groupId>
+                <artifactId>shedlock-provider-jdbc-template</artifactId>
+                <version>${shedlock.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>

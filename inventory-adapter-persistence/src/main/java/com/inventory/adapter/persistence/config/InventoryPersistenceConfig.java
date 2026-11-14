@@ -1,5 +1,8 @@
 package com.inventory.adapter.persistence.config;
 
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.inventory.adapter.persistence.outbox.InventoryProcessedEvent;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.support.PersistenceExecutor;
 import com.inventory.adapter.persistence.mapper.jpa.*;
@@ -75,12 +78,19 @@ public class InventoryPersistenceConfig {
         return new ProductVariantProjectionRepositoryAdapter(repository, mapper, executor);
     }
 
+    @Bean("inventoryProcessedEventRepository")
+    public ProcessedEventRepository inventoryProcessedEventRepository(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(InventoryProcessedEvent.class);
+        return new JpaProcessedEventRepository<>(entityManager, InventoryProcessedEvent.class, InventoryProcessedEvent::of);
+    }
+
     @Bean
     public InventoryWorkflowStepRunner inventoryWorkflowSignalEmitter(
             @Qualifier("inventoryDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager
+            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("inventoryProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
-        return new InventoryWorkflowStepRunner(producer, transactionManager);
+        return new InventoryWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
 

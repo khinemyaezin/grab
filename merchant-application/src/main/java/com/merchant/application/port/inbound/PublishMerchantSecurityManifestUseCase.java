@@ -1,7 +1,8 @@
 package com.merchant.application.port.inbound;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.merchant.application.model.write.PublishMerchantSecurityManifestCommand;
 
 public interface PublishMerchantSecurityManifestUseCase {
-    void execute(PublishMerchantSecurityManifestCommand command);
+    PublicationResult execute(PublishMerchantSecurityManifestCommand command);
 }

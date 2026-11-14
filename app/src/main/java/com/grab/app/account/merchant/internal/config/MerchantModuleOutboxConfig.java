@@ -1,5 +1,15 @@
 package com.grab.app.account.merchant.internal.config;
 
+import java.time.Duration;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -19,7 +29,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class MerchantModuleOutboxConfig {
@@ -61,29 +70,48 @@ public class MerchantModuleOutboxConfig {
         return new MerchantOutboxEventProducer(store, serializer, relay);
     }
 
+    @Bean("merchantSingletonJobExecutor")
+    public SingletonJobExecutor merchantSingletonJobExecutor(
+            @Qualifier("accountDataSource") DataSource dataSource,
+            @Value("${merchant.flyway.default-schema:merchant}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("merchantOutboxEventProcessor")
     public MerchantOutboxEventProcessor merchantOutboxEventProcessor(
-            @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store,
+            @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> outboxStore,
             @Qualifier("merchantOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("merchantOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${merchant.outbox.batch-size:20}") int batchSize,
-            @Value("${merchant.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${merchant.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${merchant.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("merchantOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("merchantOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("merchantSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new MerchantOutboxEventProcessor(
-                store,
+                outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "merchant.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
-}
 
+    @Bean("merchantProcessedEventRetention")
+    public ProcessedEventRetention merchantProcessedEventRetention(
+            @Qualifier("merchantProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("merchantSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            @Value("${merchant.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${merchant.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "merchant", processedEvents, transactionManager, singletonJobExecutor, retention, batchSize);
+    }
+}

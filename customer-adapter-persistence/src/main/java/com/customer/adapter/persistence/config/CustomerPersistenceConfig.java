@@ -1,5 +1,10 @@
 package com.customer.adapter.persistence.config;
 
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.customer.adapter.persistence.outbox.CustomerProcessedEvent;
+import jakarta.persistence.EntityManager;
+import org.springframework.data.jpa.repository.JpaContext;
 import com.customer.adapter.persistence.adapter.CustomerPersistenceExecutor;
 import com.customer.adapter.persistence.adapter.CustomerQueryAdapter;
 import com.customer.adapter.persistence.adapter.CustomerRepositoryAdapter;
@@ -46,11 +51,18 @@ public class CustomerPersistenceConfig {
         return new CustomerQueryAdapter(customers, executor);
     }
 
+    @Bean("customerProcessedEventRepository")
+    public ProcessedEventRepository customerProcessedEventRepository(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(CustomerProcessedEvent.class);
+        return new JpaProcessedEventRepository<>(entityManager, CustomerProcessedEvent.class, CustomerProcessedEvent::of);
+    }
+
     @Bean
     public com.customer.adapter.persistence.workflow.CustomerWorkflowStepRunner customerWorkflowSignalEmitter(
             @Qualifier("customerDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("customerTransactionManager") PlatformTransactionManager transactionManager
+            @Qualifier("customerTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("customerProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
-        return new com.customer.adapter.persistence.workflow.CustomerWorkflowStepRunner(producer, transactionManager);
+        return new com.customer.adapter.persistence.workflow.CustomerWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 }

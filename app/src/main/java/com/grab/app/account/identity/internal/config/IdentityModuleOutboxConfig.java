@@ -1,5 +1,12 @@
 package com.grab.app.account.identity.internal.config;
 
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -19,7 +26,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class IdentityModuleOutboxConfig {
@@ -61,28 +67,35 @@ public class IdentityModuleOutboxConfig {
         return new IdentityOutboxEventProducer(outboxStore, serializer, relay);
     }
 
+    @Bean("identitySingletonJobExecutor")
+    public SingletonJobExecutor identitySingletonJobExecutor(
+            @Qualifier("accountDataSource") DataSource dataSource,
+            @Value("${identity.flyway.default-schema:identity}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("identityOutboxEventProcessor")
     public IdentityOutboxEventProcessor identityOutboxEventProcessor(
             @Qualifier("identityOutboxStore") OutboxStore<IdentityOutboxEvent, Long> outboxStore,
             @Qualifier("identityOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("identityOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("identityTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${identity.outbox.batch-size:20}") int batchSize,
-            @Value("${identity.outbox.retry-delay-ms:30000}") long retryDelayMs,
-            @Value("${identity.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${identity.outbox.retention-ms:604800000}") long retentionMs,
-            @Qualifier("identityOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("identityOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("identitySingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new IdentityOutboxEventProcessor(
                 outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelayMs),
-                Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "identity.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
 }

@@ -301,7 +301,7 @@ pricing:
 
 storefrontquery:
   rebuild:
-    on-startup: ${STOREFRONTQUERY_REBUILD_ON_STARTUP:false}
+    # Rebuilds run as a one-shot job (JOBS_DISCOVERY_REBUILD_ENABLED=true), never on startup.
     batch-size: ${STOREFRONTQUERY_REBUILD_BATCH_SIZE:100}
   datasource:
     url: ${STOREFRONTQUERY_DATASOURCE_URL:jdbc:postgresql://localhost:5432/channel_context}

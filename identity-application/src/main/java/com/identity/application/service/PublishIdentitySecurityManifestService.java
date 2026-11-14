@@ -1,5 +1,6 @@
 package com.identity.application.service;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.security.SecurityManifestPublicationPort;
@@ -16,8 +17,9 @@ public class PublishIdentitySecurityManifestService implements PublishIdentitySe
     }
 
     @Override
-    public void execute(PublishIdentitySecurityManifestCommand command) {
+    public PublicationResult execute(PublishIdentitySecurityManifestCommand command) {
         var result = publication.enqueue(IdentitySecurityManifest.CURRENT);
         log.info("Security manifest publication module: identity, outcome: {}", result);
+        return result;
     }
 }

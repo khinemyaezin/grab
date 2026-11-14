@@ -1,0 +1,30 @@
+# Production overrides. Schema and reference data come from Flyway migrations; demo seeds are dev-only.
+bootstrap:
+  gate-readiness: ${BOOTSTRAP_GATE_READINESS:false}  # flip to true after the first observed rollout
+
+app:
+  seed:
+    enabled: false
+catalog:
+  seed:
+    enabled: false
+inventory:
+  seed:
+    enabled: false
+identity:
+  seed:
+    enabled: false
+saleschannel:
+  seed:
+    enabled: false
+region:
+  seed:
+    enabled: false
+workflows:
+  seed:
+    enabled: false
+
+jobs:
+  discovery-rebuild:
+    # Run the rebuild as a Kubernetes Job with JOBS_DISCOVERY_REBUILD_ENABLED=true, never on regular pods.
+    enabled: ${JOBS_DISCOVERY_REBUILD_ENABLED:false}

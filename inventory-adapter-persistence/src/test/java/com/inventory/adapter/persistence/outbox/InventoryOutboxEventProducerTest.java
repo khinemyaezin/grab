@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.mock;
@@ -55,7 +56,9 @@ class InventoryOutboxEventProducerTest {
         assertEquals("inventory-1", outboxEvents.getFirst().getAggregateId());
         assertEquals("event-1", outboxEvents.getFirst().getEventType());
         assertEquals(1, outboxEvents.getFirst().getEventVersion());
-        assertEquals("{}", outboxEvents.getFirst().getHeaders());
+        assertEquals(outboxEvents.getFirst().getEventId(),
+                com.grab.framework.outbox.OutboxEventHeaders.extractEventId(outboxEvents.getFirst().getHeaders()));
+        assertNotEquals(outboxEvents.getFirst().getEventId(), outboxEvents.get(1).getEventId());
         assertEquals("payload-1", outboxEvents.getFirst().getPayload());
         assertNotNull(outboxEvents.getFirst().getOccurredAt());
         assertNotNull(outboxEvents.getFirst().getAvailableAt());

@@ -1,5 +1,6 @@
 package com.saleschannel.application.service;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.security.SecurityManifestPublicationPort;
@@ -16,8 +17,9 @@ public class PublishSalesChannelSecurityManifestService implements PublishSalesC
     }
 
     @Override
-    public void execute(PublishSalesChannelSecurityManifestCommand command) {
+    public PublicationResult execute(PublishSalesChannelSecurityManifestCommand command) {
         var result = publication.enqueue(SalesChannelSecurityManifest.CURRENT);
         log.info("Security manifest publication module: saleschannel, outcome: {}", result);
+        return result;
     }
 }

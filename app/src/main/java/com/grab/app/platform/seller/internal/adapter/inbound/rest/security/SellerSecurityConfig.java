@@ -91,6 +91,14 @@ public class SellerSecurityConfig {
                             "/v3/api-docs"
                     ).permitAll();
 
+                    // Kubernetes probes; details are hidden from anonymous callers (show-details: when-authorized).
+                    auth.requestMatchers(
+                            HttpMethod.GET,
+                            "/actuator/health",
+                            "/actuator/health/liveness",
+                            "/actuator/health/readiness"
+                    ).permitAll();
+
                     auth.anyRequest().authenticated();
                 })
                 .addFilterBefore(bearerFilter, UsernamePasswordAuthenticationFilter.class)

@@ -1,5 +1,7 @@
 package com.grab.framework.outbox;
 
+import java.util.List;
+
 public interface OutboxRelay<ID> {
 
     boolean enqueueHot(ID id);
@@ -15,6 +17,15 @@ public interface OutboxRelay<ID> {
     void start();
 
     void stop();
+
+    /**
+     * Removes and returns claimed cold work that was queued but never handed to a worker. Called after
+     * {@link #stop()} so the processor can release those claims instead of leaving them PROCESSING until
+     * the claim timeout expires.
+     */
+    default List<ClaimedOutboxEvent<ID>> drainCold() {
+        return List.of();
+    }
 
     @SuppressWarnings("unchecked")
     static <ID> OutboxRelay<ID> noop() {

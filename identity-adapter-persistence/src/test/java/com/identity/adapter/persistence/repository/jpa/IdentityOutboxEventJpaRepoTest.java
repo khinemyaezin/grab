@@ -1,14 +1,16 @@
 package com.identity.adapter.persistence.repository.jpa;
 
-import com.grab.framework.outbox.OutboxStatus;
+import com.grab.framework.outbox.SerializedEvent;
 import com.identity.adapter.persistence.outbox.IdentityOutboxEvent;
 import com.identity.adapter.persistence.repository.jpa.config.RepositoryTestConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,40 +23,13 @@ public class IdentityOutboxEventJpaRepoTest extends RepositoryTestConfig {
     void setUp() {
         outboxEventJpaRepo.deleteAll();
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
-        IdentityOutboxEvent event1 = new IdentityOutboxEvent();
-        event1.setAggregateType("User");
-        event1.setAggregateId("user-1");
-        event1.setEventType("UserCreated");
-        event1.setEventVersion(1);
-        event1.setHeaders("{}");
-        event1.setPayload("{\"uuid\":\"user-1\"}");
-        event1.setStatus(OutboxStatus.NEW);
-        event1.setOccurredAt(now.minusMinutes(10));
-        event1.setAvailableAt(now.minusMinutes(10));
-
-        IdentityOutboxEvent event2 = new IdentityOutboxEvent();
-        event2.setAggregateType("User");
-        event2.setAggregateId("user-1");
-        event2.setEventType("UserUpdated");
-        event2.setEventVersion(1);
-        event2.setHeaders("{}");
-        event2.setPayload("{\"uuid\":\"user-1\",\"status\":\"ACTIVE\"}");
-        event2.setStatus(OutboxStatus.PUBLISHED);
-        event2.setOccurredAt(now.minusMinutes(5));
-        event2.setAvailableAt(now.minusMinutes(5));
-
-        IdentityOutboxEvent event3 = new IdentityOutboxEvent();
-        event3.setAggregateType("Role");
-        event3.setAggregateId("role-1");
-        event3.setEventType("RoleCreated");
-        event3.setEventVersion(1);
-        event3.setHeaders("{}");
-        event3.setPayload("{\"uuid\":\"role-1\"}");
-        event3.setStatus(OutboxStatus.NEW);
-        event3.setOccurredAt(now.minusMinutes(3));
-        event3.setAvailableAt(now.minusMinutes(3));
+        IdentityOutboxEvent event1 = row("User", "user-1", "UserCreated", "{\"uuid\":\"user-1\"}", now.minus(10, ChronoUnit.MINUTES));
+        IdentityOutboxEvent event2 = row("User", "user-1", "UserUpdated", "{\"uuid\":\"user-1\",\"status\":\"ACTIVE\"}", now.minus(5, ChronoUnit.MINUTES));
+        event2.markProcessing(now, "claim");
+        event2.markPublished(now);
+        IdentityOutboxEvent event3 = row("Role", "role-1", "RoleCreated", "{\"uuid\":\"role-1\"}", now.minus(3, ChronoUnit.MINUTES));
 
         outboxEventJpaRepo.saveAll(List.of(event1, event2, event3));
     }
@@ -100,5 +75,15 @@ public class IdentityOutboxEventJpaRepoTest extends RepositoryTestConfig {
         List<IdentityOutboxEvent> result = outboxEventJpaRepo.findAll();
 
         assertThat(result).hasSize(3);
+    }
+
+    private static IdentityOutboxEvent row(String aggregateType, String aggregateId, String eventType, String payload, Instant occurredAt) {
+        return IdentityOutboxEvent.pending(
+                UUID.randomUUID(),
+                aggregateType,
+                aggregateId,
+                new SerializedEvent(eventType, payload, 1, "{}"),
+                occurredAt
+        );
     }
 }

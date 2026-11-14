@@ -1,5 +1,15 @@
 package com.grab.app.merchandising.inventory.internal.config;
 
+import java.time.Duration;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -19,7 +29,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class InventoryModuleOutboxConfig {
@@ -61,29 +70,48 @@ public class InventoryModuleOutboxConfig {
         return new InventoryOutboxEventProducer(outboxStore, serializer, relay);
     }
 
+    @Bean("inventorySingletonJobExecutor")
+    public SingletonJobExecutor inventorySingletonJobExecutor(
+            @Qualifier("catalogDataSource") DataSource dataSource,
+            @Value("${inventory.flyway.default-schema:inventory}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("inventoryOutboxEventProcessor")
     public InventoryOutboxEventProcessor inventoryOutboxEventProcessor(
             @Qualifier("inventoryOutboxStore") OutboxStore<InventoryOutboxEvent, Long> outboxStore,
             @Qualifier("inventoryOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("inventoryOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${inventory.outbox.batch-size:20}") int batchSize,
-            @Value("${inventory.outbox.retry-delay-ms:30000}") long retryDelayMs,
-            @Value("${inventory.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${inventory.outbox.retention-ms:604800000}") long retentionMs,
-            @Qualifier("inventoryOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("inventoryOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("inventorySingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new InventoryOutboxEventProcessor(
                 outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelayMs),
-                Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "inventory.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
-}
 
+    @Bean("inventoryProcessedEventRetention")
+    public ProcessedEventRetention inventoryProcessedEventRetention(
+            @Qualifier("inventoryProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("inventorySingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            @Value("${inventory.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${inventory.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "inventory", processedEvents, transactionManager, singletonJobExecutor, retention, batchSize);
+    }
+}

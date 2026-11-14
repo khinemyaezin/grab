@@ -8,7 +8,6 @@ import com.grab.framework.security.role.RoleDeclarationDeclaredIntegrationEvent;
 import com.identity.application.model.write.RegisterRoleDeclarationCommand;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -25,7 +24,6 @@ public class IdentityRoleDeclarationRegistrationListener {
         this.commandBus = commandBus;
     }
 
-    @Async
     @EventListener
     public void onRoleDeclarationDeclared(RoleDeclarationDeclaredIntegrationEvent event) {
         String expectedOwner = ALLOWED_OWNERS.get(event.getClass());

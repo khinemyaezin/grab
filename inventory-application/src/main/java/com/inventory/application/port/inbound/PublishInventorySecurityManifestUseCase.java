@@ -1,7 +1,8 @@
 package com.inventory.application.port.inbound;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.inventory.application.model.write.PublishInventorySecurityManifestCommand;
 
 public interface PublishInventorySecurityManifestUseCase {
-    void execute(PublishInventorySecurityManifestCommand command);
+    PublicationResult execute(PublishInventorySecurityManifestCommand command);
 }

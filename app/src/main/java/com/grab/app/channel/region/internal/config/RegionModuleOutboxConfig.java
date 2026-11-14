@@ -1,5 +1,12 @@
 package com.grab.app.channel.region.internal.config;
 
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -19,7 +26,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class RegionModuleOutboxConfig {
@@ -61,28 +67,35 @@ public class RegionModuleOutboxConfig {
         return new RegionOutboxEventProducer(store, serializer, relay);
     }
 
+    @Bean("regionSingletonJobExecutor")
+    public SingletonJobExecutor regionSingletonJobExecutor(
+            @Qualifier("channelDataSource") DataSource dataSource,
+            @Value("${region.flyway.default-schema:region}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("regionOutboxEventProcessor")
     public RegionOutboxEventProcessor regionOutboxEventProcessor(
-            @Qualifier("regionOutboxStore") OutboxStore<RegionOutboxEvent, Long> store,
+            @Qualifier("regionOutboxStore") OutboxStore<RegionOutboxEvent, Long> outboxStore,
             @Qualifier("regionOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("regionOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("regionTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${region.outbox.batch-size:20}") int batchSize,
-            @Value("${region.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${region.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${region.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("regionOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("regionOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("regionSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new RegionOutboxEventProcessor(
-                store,
+                outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "region.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
 }

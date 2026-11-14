@@ -1,5 +1,8 @@
 package com.merchant.adapter.persistence.config;
 
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.merchant.adapter.persistence.outbox.MerchantProcessedEvent;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.support.PersistenceExecutor;
@@ -178,5 +181,11 @@ public class MerchantPersistenceConfig {
                 eventFactory,
                 Duration.ofMillis(intervalMs)
         );
+    }
+
+    @Bean("merchantProcessedEventRepository")
+    public ProcessedEventRepository merchantProcessedEventRepository(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(MerchantProcessedEvent.class);
+        return new JpaProcessedEventRepository<>(entityManager, MerchantProcessedEvent.class, MerchantProcessedEvent::of);
     }
 }

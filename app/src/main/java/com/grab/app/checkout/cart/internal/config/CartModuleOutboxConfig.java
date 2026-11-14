@@ -1,5 +1,12 @@
 package com.grab.app.checkout.cart.internal.config;
 
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.cart.adapter.persistence.outbox.CartOutboxEvent;
 import com.cart.adapter.persistence.outbox.CartOutboxEventProcessor;
 import com.cart.adapter.persistence.outbox.CartOutboxEventProducer;
@@ -19,7 +26,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class CartModuleOutboxConfig {
@@ -61,28 +67,35 @@ public class CartModuleOutboxConfig {
         return new CartOutboxEventProducer(store, serializer, relay);
     }
 
+    @Bean("cartSingletonJobExecutor")
+    public SingletonJobExecutor cartSingletonJobExecutor(
+            @Qualifier("orderDataSource") DataSource dataSource,
+            @Value("${cart.flyway.default-schema:cart}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("cartOutboxEventProcessor")
     public CartOutboxEventProcessor cartOutboxEventProcessor(
-            @Qualifier("cartOutboxStore") OutboxStore<CartOutboxEvent, Long> store,
+            @Qualifier("cartOutboxStore") OutboxStore<CartOutboxEvent, Long> outboxStore,
             @Qualifier("cartOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("cartOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("cartTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${cart.outbox.batch-size:20}") int batchSize,
-            @Value("${cart.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${cart.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${cart.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("cartOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("cartOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("cartSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new CartOutboxEventProcessor(
-                store,
+                outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "cart.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
 }

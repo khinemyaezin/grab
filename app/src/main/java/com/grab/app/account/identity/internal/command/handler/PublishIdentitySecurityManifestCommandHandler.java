@@ -1,5 +1,6 @@
 package com.grab.app.account.identity.internal.command.handler;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.app.account.identity.internal.config.IdentityTransactional;
 import com.grab.app.shared.security.SecurityManifestPublicationRetryable;
 import com.grab.framework.cqrs.command.CommandHandler;
@@ -10,7 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class PublishIdentitySecurityManifestCommandHandler
-        implements CommandHandler<PublishIdentitySecurityManifestCommand, Void> {
+        implements CommandHandler<PublishIdentitySecurityManifestCommand, PublicationResult> {
 
     private final PublishIdentitySecurityManifestUseCase useCase;
 
@@ -21,9 +22,8 @@ public class PublishIdentitySecurityManifestCommandHandler
     @Override
     @SecurityManifestPublicationRetryable
     @IdentityTransactional(propagation = Propagation.REQUIRES_NEW)
-    public Void handle(PublishIdentitySecurityManifestCommand command) {
-        useCase.execute(command);
-        return null;
+    public PublicationResult handle(PublishIdentitySecurityManifestCommand command) {
+        return useCase.execute(command);
     }
 
     @Override

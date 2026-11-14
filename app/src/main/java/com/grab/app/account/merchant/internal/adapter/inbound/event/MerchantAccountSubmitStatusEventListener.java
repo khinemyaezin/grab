@@ -1,5 +1,7 @@
 package com.grab.app.account.merchant.internal.adapter.inbound.event;
 
+import java.util.UUID;
+import com.grab.framework.outbox.OutboxDeliveryContext;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
@@ -59,11 +61,13 @@ public class MerchantAccountSubmitStatusEventListener {
     private void autoApproveMerchant(String applicantUserIdValue, String merchantIdValue) {
         Id applicantUserId = idGenerator.convertIdFrom(applicantUserIdValue);
         Id merchantId = idGenerator.convertIdFrom(merchantIdValue);
+        UUID sourceEventId = OutboxDeliveryContext.currentEventId().orElse(null);
         ChangeMerchantLifecycleCommand command = new ChangeMerchantLifecycleCommand(
                 merchantId,
                 applicantUserId,
                 ChangeMerchantLifecycleCommand.Action.APPROVE,
-                null
+                null,
+                sourceEventId
         );
         commandBus.dispatch(command);
     }

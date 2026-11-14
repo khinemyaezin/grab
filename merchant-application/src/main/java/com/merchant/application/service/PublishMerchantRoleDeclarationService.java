@@ -1,5 +1,6 @@
 package com.merchant.application.service;
 
+import com.grab.framework.security.role.RoleDeclarationPublicationPort.PublicationResult;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.security.role.RoleDeclarationPublicationPort;
@@ -16,10 +17,11 @@ public class PublishMerchantRoleDeclarationService implements PublishMerchantRol
     }
 
     @Override
-    public void execute(PublishMerchantRoleDeclarationCommand command) {
-        RoleDeclarationPublicationPort.PublicationResult result =
+    public PublicationResult execute(PublishMerchantRoleDeclarationCommand command) {
+        PublicationResult result =
                 publication.enqueue(MerchantAdminAccessProfile.DECLARATION);
         log.info("Role declaration publication roleCode={} outcome={}",
                 MerchantAdminAccessProfile.ADMIN_ROLE_CODE, result);
+        return result;
     }
 }

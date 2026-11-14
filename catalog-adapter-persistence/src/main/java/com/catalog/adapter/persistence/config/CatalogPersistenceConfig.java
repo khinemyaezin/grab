@@ -1,5 +1,8 @@
 package com.catalog.adapter.persistence.config;
 
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.catalog.adapter.persistence.outbox.CatalogProcessedEvent;
 import com.catalog.domain.port.outbound.CategoryRepository;
 import com.catalog.domain.port.outbound.VariantTypeRepository;
 import com.catalog.application.port.outbound.CategoryHierarchyQueryPort;
@@ -68,12 +71,19 @@ public class CatalogPersistenceConfig {
         return new CatalogPersistenceExecutor();
     }
 
+    @Bean("catalogProcessedEventRepository")
+    public ProcessedEventRepository catalogProcessedEventRepository(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(CatalogProcessedEvent.class);
+        return new JpaProcessedEventRepository<>(entityManager, CatalogProcessedEvent.class, CatalogProcessedEvent::of);
+    }
+
     @Bean
     public CatalogWorkflowStepRunner catalogWorkflowSignalEmitter(
             @Qualifier("catalogDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager
+            @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("catalogProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
-        return new CatalogWorkflowStepRunner(producer, transactionManager);
+        return new CatalogWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
     @Bean

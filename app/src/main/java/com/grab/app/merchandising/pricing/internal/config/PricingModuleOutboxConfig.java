@@ -1,5 +1,15 @@
 package com.grab.app.merchandising.pricing.internal.config;
 
+import java.time.Duration;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.outbox.OutboxEventDispatcher;
@@ -19,7 +29,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class PricingModuleOutboxConfig {
@@ -61,29 +70,48 @@ public class PricingModuleOutboxConfig {
         return new PricingOutboxEventProducer(store, serializer, relay);
     }
 
+    @Bean("pricingSingletonJobExecutor")
+    public SingletonJobExecutor pricingSingletonJobExecutor(
+            @Qualifier("catalogDataSource") DataSource dataSource,
+            @Value("${pricing.flyway.default-schema:pricing}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("pricingOutboxEventProcessor")
     public PricingOutboxEventProcessor pricingOutboxEventProcessor(
-            @Qualifier("pricingOutboxStore") OutboxStore<PricingOutboxEvent, Long> store,
+            @Qualifier("pricingOutboxStore") OutboxStore<PricingOutboxEvent, Long> outboxStore,
             @Qualifier("pricingOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("pricingOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("pricingTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${pricing.outbox.batch-size:20}") int batchSize,
-            @Value("${pricing.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${pricing.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${pricing.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("pricingOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("pricingOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("pricingSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new PricingOutboxEventProcessor(
-                store,
+                outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "pricing.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
-}
 
+    @Bean("pricingProcessedEventRetention")
+    public ProcessedEventRetention pricingProcessedEventRetention(
+            @Qualifier("pricingProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("pricingTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("pricingSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            @Value("${pricing.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${pricing.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "pricing", processedEvents, transactionManager, singletonJobExecutor, retention, batchSize);
+    }
+}

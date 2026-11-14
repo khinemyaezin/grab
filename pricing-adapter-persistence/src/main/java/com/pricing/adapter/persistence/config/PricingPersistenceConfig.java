@@ -1,5 +1,10 @@
 package com.pricing.adapter.persistence.config;
 
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.pricing.adapter.persistence.outbox.PricingProcessedEvent;
+import jakarta.persistence.EntityManager;
+import org.springframework.data.jpa.repository.JpaContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.mapper.IdMapper;
@@ -35,12 +40,19 @@ import org.springframework.transaction.PlatformTransactionManager;
 @Configuration
 public class PricingPersistenceConfig {
 
+    @Bean("pricingProcessedEventRepository")
+    public ProcessedEventRepository pricingProcessedEventRepository(JpaContext context) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(PricingProcessedEvent.class);
+        return new JpaProcessedEventRepository<>(entityManager, PricingProcessedEvent.class, PricingProcessedEvent::of);
+    }
+
     @Bean
     public PricingWorkflowStepRunner pricingWorkflowSignalEmitter(
             @Qualifier("pricingDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("pricingTransactionManager") PlatformTransactionManager transactionManager
+            @Qualifier("pricingTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("pricingProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
-        return new PricingWorkflowStepRunner(producer, transactionManager);
+        return new PricingWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
     @Bean("pricingPersistenceExecutor")

@@ -1,38 +1,22 @@
 package com.catalog.adapter.persistence.workflow;
 
-import com.grab.framework.domain.Event;
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.workflow.WorkflowStepRunner;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.workflow.TransactionalWorkflowStepRunner;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
+public class CatalogWorkflowStepRunner extends TransactionalWorkflowStepRunner {
 
-public class CatalogWorkflowStepRunner extends WorkflowStepRunner {
-    private final TransactionTemplate stepTransaction;
-    private final TransactionTemplate signalTransaction;
+    public static final String MODULE = "catalog";
 
     public CatalogWorkflowStepRunner(DomainEventProducer domainEventProducer,
-                                     PlatformTransactionManager transactionManager) {
-        super("workflow", domainEventProducer);
-        this.stepTransaction = new TransactionTemplate(transactionManager);
-        this.signalTransaction = new TransactionTemplate(transactionManager);
-        this.signalTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+                              PlatformTransactionManager transactionManager) {
+        this(domainEventProducer, transactionManager, null);
     }
 
-    @Override
-    public void runStep(
-            String workflowId,
-            Supplier<List<Event>> work,
-            Function<RuntimeException, List<Event>> onFailure
-    ) {
-        try {
-            stepTransaction.executeWithoutResult(status -> produce(workflowId, work.get()));
-        } catch (RuntimeException exception) {
-            signalTransaction.executeWithoutResult(status -> produce(workflowId, onFailure.apply(exception)));
-        }
+    public CatalogWorkflowStepRunner(DomainEventProducer domainEventProducer,
+                              PlatformTransactionManager transactionManager,
+                              ProcessedEventRepository processedEvents) {
+        super(MODULE, domainEventProducer, transactionManager, processedEvents);
     }
 }

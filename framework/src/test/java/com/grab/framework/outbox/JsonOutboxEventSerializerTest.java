@@ -56,13 +56,10 @@ class JsonOutboxEventSerializerTest {
     }
 
     @Test
-    void deserialize_readsLegacyJavaPayloadWhenHeadersAreLegacy() {
-        TestEvent event = new TestEvent(new CommonId("event-2"), "legacy", LocalDateTime.of(2026, 3, 5, 18, 10));
-        SerializedEvent legacySerialized = new JavaSerializationOutboxEventSerializer().serialize(event);
+    void deserialize_nonJsonHeaders_isPoison() {
+        SerializedEvent legacy = new SerializedEvent(TestEvent.class.getName(), "rO0AB", 1, "{}");
 
-        Event deserialized = serializer.deserialize(legacySerialized);
-
-        assertEquals(event, deserialized);
+        assertThrows(OutboxPoisonEventException.class, () -> serializer.deserialize(legacy));
     }
 
     @Test

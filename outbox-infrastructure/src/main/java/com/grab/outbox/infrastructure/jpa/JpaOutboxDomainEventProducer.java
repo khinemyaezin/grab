@@ -14,9 +14,11 @@ import com.grab.outbox.infrastructure.OutboxRowFactory;
 import com.grab.outbox.infrastructure.OutboxStore;
 import com.grab.outbox.infrastructure.SpringOutboxCommitHook;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class JpaOutboxDomainEventProducer<T extends OutboxEntry<ID>, ID> implements DomainEventProducer {
 
@@ -26,6 +28,7 @@ public class JpaOutboxDomainEventProducer<T extends OutboxEntry<ID>, ID> impleme
     private final OutboxEventSerializer serializer;
     private final OutboxRowFactory<T> rowFactory;
     private final OutboxRelay<ID> relay;
+    private final Clock clock;
 
     public JpaOutboxDomainEventProducer(
             OutboxStore<T, ID> outboxStore,
@@ -41,10 +44,21 @@ public class JpaOutboxDomainEventProducer<T extends OutboxEntry<ID>, ID> impleme
             OutboxRowFactory<T> rowFactory,
             OutboxRelay<ID> relay
     ) {
+        this(outboxStore, serializer, rowFactory, relay, Clock.systemUTC());
+    }
+
+    public JpaOutboxDomainEventProducer(
+            OutboxStore<T, ID> outboxStore,
+            OutboxEventSerializer serializer,
+            OutboxRowFactory<T> rowFactory,
+            OutboxRelay<ID> relay,
+            Clock clock
+    ) {
         this.outboxStore = outboxStore;
         this.serializer = serializer;
         this.rowFactory = rowFactory;
         this.relay = relay == null ? OutboxRelay.noop() : relay;
+        this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
     @Override
@@ -53,16 +67,22 @@ public class JpaOutboxDomainEventProducer<T extends OutboxEntry<ID>, ID> impleme
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = clock.instant();
         List<T> outboxEvents = events.stream()
-                .map(event -> rowFactory.create(aggregateType, aggregateId, stampTraceId(serializer.serialize(event)), now))
+                .map(event -> toRow(aggregateType, aggregateId, event, now))
                 .toList();
         outboxStore.saveAll(outboxEvents);
         outboxStore.flush();
         enqueueHotAfterCommit(outboxEvents, now);
     }
 
-    private void enqueueHotAfterCommit(List<T> outboxEvents, LocalDateTime now) {
+    private T toRow(String aggregateType, String aggregateId, Event event, Instant now) {
+        UUID eventId = UUID.randomUUID();
+        SerializedEvent serialized = stampHeaders(serializer.serialize(event), eventId);
+        return rowFactory.create(eventId, aggregateType, aggregateId, serialized, now);
+    }
+
+    private void enqueueHotAfterCommit(List<T> outboxEvents, Instant now) {
         if (!relay.isActive()) {
             return;
         }
@@ -71,7 +91,7 @@ public class JpaOutboxDomainEventProducer<T extends OutboxEntry<ID>, ID> impleme
             if (event.getId() == null) {
                 continue;
             }
-            LocalDateTime availableAt = event.getAvailableAt();
+            Instant availableAt = event.getAvailableAt();
             if (availableAt != null && availableAt.isAfter(now)) {
                 continue;
             }
@@ -91,16 +111,17 @@ public class JpaOutboxDomainEventProducer<T extends OutboxEntry<ID>, ID> impleme
         });
     }
 
-    private static SerializedEvent stampTraceId(SerializedEvent serialized) {
+    private static SerializedEvent stampHeaders(SerializedEvent serialized, UUID eventId) {
+        String headers = OutboxEventHeaders.mergeEventId(serialized.headers(), eventId);
         String traceId = TraceContext.current();
-        if (traceId == null || traceId.isBlank()) {
-            return serialized;
+        if (traceId != null && !traceId.isBlank()) {
+            headers = OutboxEventHeaders.mergeTraceId(headers, traceId);
         }
         return new SerializedEvent(
                 serialized.eventType(),
                 serialized.payload(),
                 serialized.eventVersion(),
-                OutboxEventHeaders.mergeTraceId(serialized.headers(), traceId)
+                headers
         );
     }
 }

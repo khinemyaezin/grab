@@ -1,5 +1,15 @@
 package com.grab.app.merchandising.catalog.internal.config;
 
+import java.time.Duration;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import javax.sql.DataSource;
+import org.springframework.core.env.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import com.grab.outbox.infrastructure.OutboxProcessorSettings;
+import com.grab.outbox.infrastructure.OutboxObserver;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.app.shared.scheduling.ShedLockSingletonJobExecutor;
 import com.catalog.adapter.persistence.outbox.CatalogOutboxEvent;
 import com.catalog.adapter.persistence.outbox.CatalogOutboxEventProcessor;
 import com.catalog.adapter.persistence.outbox.CatalogOutboxEventProducer;
@@ -19,7 +29,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 public class CatalogModuleOutboxConfig {
@@ -61,29 +70,48 @@ public class CatalogModuleOutboxConfig {
         return new CatalogOutboxEventProducer(outboxStore, serializer, relay);
     }
 
+    @Bean("catalogSingletonJobExecutor")
+    public SingletonJobExecutor catalogSingletonJobExecutor(
+            @Qualifier("catalogDataSource") DataSource dataSource,
+            @Value("${catalog.flyway.default-schema:catalog}") String schema,
+            MeterRegistry meterRegistry
+    ) {
+        return ShedLockSingletonJobExecutor.forSchema(dataSource, schema, meterRegistry);
+    }
+
     @Bean("catalogOutboxEventProcessor")
     public CatalogOutboxEventProcessor catalogOutboxEventProcessor(
             @Qualifier("catalogOutboxStore") OutboxStore<CatalogOutboxEvent, Long> outboxStore,
             @Qualifier("catalogOutboxEventSerializer") OutboxEventSerializer serializer,
             @Qualifier("catalogOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
             @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${catalog.outbox.batch-size:20}") int batchSize,
-            @Value("${catalog.outbox.retry-delay-ms:30000}") long retryDelayMs,
-            @Value("${catalog.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${catalog.outbox.retention-ms:604800000}") long retentionMs,
-            @Qualifier("catalogOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("catalogOutboxRelay") OutboxRelay<Long> relay,
+            @Qualifier("catalogSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            OutboxObserver outboxObserver,
+            Environment environment
     ) {
         return new CatalogOutboxEventProcessor(
                 outboxStore,
                 serializer,
                 dispatcher,
                 transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelayMs),
-                Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs),
-                relay
+                OutboxProcessorSettings.fromProperties(environment, "catalog.outbox"),
+                relay,
+                outboxObserver,
+                singletonJobExecutor
         );
     }
-}
 
+    @Bean("catalogProcessedEventRetention")
+    public ProcessedEventRetention catalogProcessedEventRetention(
+            @Qualifier("catalogProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("catalogSingletonJobExecutor") SingletonJobExecutor singletonJobExecutor,
+            @Value("${catalog.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${catalog.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "catalog", processedEvents, transactionManager, singletonJobExecutor, retention, batchSize);
+    }
+}

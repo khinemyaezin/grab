@@ -1,5 +1,6 @@
 package com.grab.app.merchandising.inventory.internal.command.handler;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.app.merchandising.inventory.internal.config.InventoryTransactional;
 import com.grab.app.shared.security.SecurityManifestPublicationRetryable;
 import com.grab.framework.cqrs.command.CommandHandler;
@@ -10,7 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class PublishInventorySecurityManifestCommandHandler
-        implements CommandHandler<PublishInventorySecurityManifestCommand, Void> {
+        implements CommandHandler<PublishInventorySecurityManifestCommand, PublicationResult> {
 
     private final PublishInventorySecurityManifestUseCase useCase;
 
@@ -21,9 +22,8 @@ public class PublishInventorySecurityManifestCommandHandler
     @Override
     @SecurityManifestPublicationRetryable
     @InventoryTransactional(propagation = Propagation.REQUIRES_NEW)
-    public Void handle(PublishInventorySecurityManifestCommand command) {
-        useCase.execute(command);
-        return null;
+    public PublicationResult handle(PublishInventorySecurityManifestCommand command) {
+        return useCase.execute(command);
     }
 
     @Override
