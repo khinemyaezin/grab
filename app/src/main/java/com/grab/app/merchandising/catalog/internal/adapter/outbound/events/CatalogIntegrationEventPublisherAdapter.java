@@ -22,8 +22,9 @@ import com.grab.app.shared.events.catalog.ProductVariantAddedIntegrationEvent;
 import com.grab.app.shared.events.catalog.ProductVariantDeletedIntegrationEvent;
 import com.grab.app.shared.events.catalog.ProductVariantRestoredIntegrationEvent;
 import com.grab.app.shared.events.catalog.ProductVariantUpdatedIntegrationEvent;
+import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -34,16 +35,18 @@ import java.util.List;
 public class CatalogIntegrationEventPublisherAdapter implements CatalogIntegrationEventPublisher {
     private static final int EVENT_VERSION = 1;
 
-    private final ApplicationEventPublisher events;
+    private final DomainEventProducer outbox;
 
-    public CatalogIntegrationEventPublisherAdapter(ApplicationEventPublisher events) {
-        this.events = events;
+    public CatalogIntegrationEventPublisherAdapter(
+            @Qualifier("catalogDomainEventProducer") DomainEventProducer outbox
+    ) {
+        this.outbox = outbox;
     }
 
     @Override
     @EventListener
     public void publishProductVariantAdded(ProductVariantAddedEvent event) {
-        events.publishEvent(new ProductVariantAddedIntegrationEvent(
+        var integrationEvent = new ProductVariantAddedIntegrationEvent(
                 valueOf(event.productId()),
                 valueOf(event.variantId()),
                 event.sku(),
@@ -51,53 +54,58 @@ public class CatalogIntegrationEventPublisherAdapter implements CatalogIntegrati
                 event.manageInventory(),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(event.productId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishProductVariantChanged(ProductVariantChangeEvent event) {
-        events.publishEvent(new ProductVariantUpdatedIntegrationEvent(
+        var integrationEvent = new ProductVariantUpdatedIntegrationEvent(
                 valueOf(event.productId()),
                 valueOf(event.variantId()),
                 event.sku(),
                 event.manageInventory(),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(event.productId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishProductVariantDeleted(ProductVariantDeletedEvent event) {
-        events.publishEvent(new ProductVariantDeletedIntegrationEvent(
+        var integrationEvent = new ProductVariantDeletedIntegrationEvent(
                 valueOf(event.productId()),
                 valueOf(event.variantId()),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(event.productId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishProductVariantRestored(ProductVariantRestoredEvent event) {
-        events.publishEvent(new ProductVariantRestoredIntegrationEvent(
+        var integrationEvent = new ProductVariantRestoredIntegrationEvent(
                 valueOf(event.productId()),
                 valueOf(event.variantId()),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(event.productId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishProductUpdated(ProductUpdatedEvent event) {
-        events.publishEvent(new ProductPresentationChangedIntegrationEvent(
+        var integrationEvent = new ProductPresentationChangedIntegrationEvent(
                 valueOf(event.productId()),
                 event.newName(),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(event.productId()), List.of(integrationEvent));
     }
 
     @Override
@@ -121,48 +129,52 @@ public class CatalogIntegrationEventPublisherAdapter implements CatalogIntegrati
     @Override
     @EventListener
     public void publishProductDeleted(ProductDeletedEvent event) {
-        events.publishEvent(new ProductDeletedIntegrationEvent(
+        var integrationEvent = new ProductDeletedIntegrationEvent(
                 valueOf(event.productId()),
                 event.variantIds() == null
                         ? List.of()
                         : event.variantIds().stream().map(CatalogIntegrationEventPublisherAdapter::valueOf).toList(),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(event.productId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishProductPublishedToChannel(ProductPublishedToChannelEvent event) {
-        events.publishEvent(new ProductPublishedToChannelIntegrationEvent(
+        var integrationEvent = new ProductPublishedToChannelIntegrationEvent(
                 valueOf(event.variantId()),
                 valueOf(event.salesChannelId()),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("ProductVariant", valueOf(event.variantId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishProductUnpublishedFromChannel(ProductUnpublishedFromChannelEvent event) {
-        events.publishEvent(new ProductUnpublishedFromChannelIntegrationEvent(
+        var integrationEvent = new ProductUnpublishedFromChannelIntegrationEvent(
                 valueOf(event.variantId()),
                 valueOf(event.salesChannelId()),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("ProductVariant", valueOf(event.variantId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishProductStatusChanged(ProductStatusChangedEvent event) {
-        events.publishEvent(new ProductStatusChangedIntegrationEvent(
+        var integrationEvent = new ProductStatusChangedIntegrationEvent(
                 valueOf(event.productId()),
                 event.oldStatus(),
                 event.newStatus(),
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(event.productId()), List.of(integrationEvent));
     }
 
     private static String valueOf(Id id) {
@@ -170,11 +182,12 @@ public class CatalogIntegrationEventPublisherAdapter implements CatalogIntegrati
     }
 
     private void publishProductPresentationChanged(Id productId) {
-        events.publishEvent(new ProductPresentationChangedIntegrationEvent(
+        var integrationEvent = new ProductPresentationChangedIntegrationEvent(
                 valueOf(productId),
                 null,
                 Instant.now(),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("Product", valueOf(productId), List.of(integrationEvent));
     }
 }

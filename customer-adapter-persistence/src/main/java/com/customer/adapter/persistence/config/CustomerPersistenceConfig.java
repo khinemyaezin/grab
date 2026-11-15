@@ -40,7 +40,7 @@ public class CustomerPersistenceConfig {
     CustomerRepository customerRepository(
             CustomerJpaRepository customers,
             CustomerJpaAssembler assembler,
-            @Qualifier("customerDomainEventProducer") DomainEventProducer events,
+            @Qualifier("customerInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("customerPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new CustomerRepositoryAdapter(customers, assembler, events, executor);

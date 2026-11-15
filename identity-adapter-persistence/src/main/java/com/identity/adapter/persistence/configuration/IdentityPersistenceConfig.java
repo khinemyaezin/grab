@@ -74,7 +74,7 @@ public class IdentityPersistenceConfig {
     public UserRepository userRepository(
             UserJpaRepository jpaRepository,
             UserJpaAssembler mapper,
-            @Qualifier("identityDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("identityInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
         return new UserRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }
@@ -83,7 +83,7 @@ public class IdentityPersistenceConfig {
     public RoleRepository roleRepository(
             RoleJpaRepository jpaRepository,
             RoleJpaAssembler mapper,
-            @Qualifier("identityDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("identityInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
         return new RoleRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }
@@ -193,7 +193,7 @@ public class IdentityPersistenceConfig {
             ScopeManifestJpaRepository scopes,
             AuthorityJpaRepository authorities,
             IdGenerator ids,
-            @Qualifier("identityDomainEventProducer") DomainEventProducer outbox,
+            @Qualifier("identityInProcessDomainEventPublisher") DomainEventProducer outbox,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
         SecurityCatalogJpaAssembler assembler = new SecurityCatalogJpaAssembler(ids);
         return new SecurityCatalogRepositoryAdapter(states, modules, scopes, authorities, assembler, outbox, executor);
@@ -228,7 +228,7 @@ public class IdentityPersistenceConfig {
     public AccessAssignmentRepository accessAssignmentRepository(
             AccessAssignmentJpaRepository assignments,
             AccessAssignmentJpaAssembler assembler,
-            @Qualifier("identityDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("identityInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new AccessAssignmentRepositoryAdapter(assignments, assembler, domainEventProducer, executor);
@@ -238,7 +238,7 @@ public class IdentityPersistenceConfig {
     public AccessInvitationRepository accessInvitationRepository(
             AccessInvitationJpaRepository invitations,
             AccessInvitationJpaAssembler assembler,
-            @Qualifier("identityDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("identityInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new AccessInvitationRepositoryAdapter(invitations, assembler, domainEventProducer, executor);

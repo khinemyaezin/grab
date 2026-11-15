@@ -53,7 +53,7 @@ public class SalesChannelPersistenceConfig {
     PublishableKeyRepository publishableKeyRepository(
             PublishableKeyJpaRepository keys,
             PublishableKeyEntityMapper mapper,
-            @Qualifier("salesChannelDomainEventProducer") DomainEventProducer events,
+            @Qualifier("salesChannelInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new PublishableKeyRepositoryAdapter(keys, mapper, events, executor);
@@ -107,7 +107,7 @@ public class SalesChannelPersistenceConfig {
     SalesChannelRepository salesChannelRepository(
             SalesChannelJpaRepository salesChannels,
             SalesChannelJpaAssembler assembler,
-            @Qualifier("salesChannelDomainEventProducer") DomainEventProducer events,
+            @Qualifier("salesChannelInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new SalesChannelRepositoryAdapter(salesChannels, assembler, events, executor);

@@ -8,6 +8,7 @@ import com.grab.app.shared.events.inventory.StockAdjustedIntegrationEvent;
 import com.grab.app.shared.events.inventory.StockReceivedIntegrationEvent;
 import com.grab.app.shared.events.inventory.StockReservedIntegrationEvent;
 import com.grab.app.shared.events.inventory.StockShippedIntegrationEvent;
+import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.id.Id;
 import com.inventory.application.port.outbound.InventoryIntegrationEventPublisher;
 import com.inventory.domain.event.InventoryItemStatusChangedEvent;
@@ -20,54 +21,59 @@ import com.inventory.domain.event.StockAdjustedEvent;
 import com.inventory.domain.event.StockReceivedEvent;
 import com.inventory.domain.event.StockReservedEvent;
 import com.inventory.domain.event.StockShippedEvent;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 
 @Component
 public class InventoryIntegrationEventPublisherAdapter implements InventoryIntegrationEventPublisher {
     private static final int EVENT_VERSION = 1;
 
-    private final ApplicationEventPublisher events;
+    private final DomainEventProducer outbox;
 
-    public InventoryIntegrationEventPublisherAdapter(ApplicationEventPublisher events) {
-        this.events = events;
+    public InventoryIntegrationEventPublisherAdapter(
+            @Qualifier("inventoryDomainEventProducer") DomainEventProducer outbox
+    ) {
+        this.outbox = outbox;
     }
 
     @Override
     @EventListener
     public void publishStockReceived(StockReceivedEvent event) {
-        events.publishEvent(new StockReceivedIntegrationEvent(
+        var integrationEvent = new StockReceivedIntegrationEvent(
                 valueOf(event.inventoryItemId()),
                 event.sku(),
                 event.quantity(),
                 valueOf(event.locationId()),
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("InventoryItem", event.sku(), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishStockReserved(StockReservedEvent event) {
-        events.publishEvent(new StockReservedIntegrationEvent(
+        var integrationEvent = new StockReservedIntegrationEvent(
                 valueOf(event.inventoryItemId()),
                 event.sku(),
                 event.quantity(),
                 event.orderId(),
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("InventoryItem", event.sku(), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishStockAdjusted(StockAdjustedEvent event) {
-        events.publishEvent(new StockAdjustedIntegrationEvent(
+        var integrationEvent = new StockAdjustedIntegrationEvent(
                 valueOf(event.inventoryItemId()),
                 event.sku(),
                 event.previousQuantity(),
@@ -75,53 +81,58 @@ public class InventoryIntegrationEventPublisherAdapter implements InventoryInteg
                 event.reason() == null ? null : event.reason().name(),
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("InventoryItem", event.sku(), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishStockShipped(StockShippedEvent event) {
-        events.publishEvent(new StockShippedIntegrationEvent(
+        var integrationEvent = new StockShippedIntegrationEvent(
                 valueOf(event.inventoryItemId()),
                 event.sku(),
                 event.quantity(),
                 event.orderId(),
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("InventoryItem", event.sku(), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishLocationLinked(LocationLinkedToChannelEvent event) {
-        events.publishEvent(new LocationLinkedToChannelIntegrationEvent(
+        var integrationEvent = new LocationLinkedToChannelIntegrationEvent(
                 valueOf(event.locationId()),
                 valueOf(event.salesChannelId()),
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("InventoryLocation", valueOf(event.locationId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishLocationUnlinked(LocationUnlinkedFromChannelEvent event) {
-        events.publishEvent(new LocationUnlinkedFromChannelIntegrationEvent(
+        var integrationEvent = new LocationUnlinkedFromChannelIntegrationEvent(
                 valueOf(event.locationId()),
                 valueOf(event.salesChannelId()),
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("InventoryLocation", valueOf(event.locationId()), List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishInventoryStatusChanged(InventoryItemStatusChangedEvent event) {
-        events.publishEvent(new InventoryStatusChangedIntegrationEvent(
+        var integrationEvent = new InventoryStatusChangedIntegrationEvent(
                 event.sku(),
                 event.status() == null ? null : event.status().name(),
                 toInstant(event.occurredAt()),
                 EVENT_VERSION
-        ));
+        );
+        outbox.produce("InventoryItem", event.sku(), List.of(integrationEvent));
     }
 
     @Override
@@ -149,7 +160,7 @@ public class InventoryIntegrationEventPublisherAdapter implements InventoryInteg
                 toInstant(occurredAt),
                 EVENT_VERSION
         );
-        events.publishEvent(event);
+        outbox.produce("InventoryLocation", valueOf(locationId), List.of(event));
     }
 
     private static String valueOf(Id id) {

@@ -184,7 +184,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public InventoryRepository inventoryRepository(InventoryItemJpaRepository jpaRepository,
                                                    InventoryJpaAssembler mapper,
-                                                   @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                                   @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                                    @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new InventoryRepositoryAdapter(
                 jpaRepository,
@@ -204,7 +204,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public LocationRepository locationRepository(LocationJpaRepository jpaRepository,
                                                  LocationJpaAssembler mapper,
-                                                 @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                                 @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                                  @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new LocationRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }
@@ -214,7 +214,7 @@ public class InventoryPersistenceConfig {
             ChannelFulfillmentRouteJpaRepository jpaRepository,
             LocationJpaRepository locationJpaRepository,
             ChannelFulfillmentRouteJpaAssembler mapper,
-            @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new ChannelFulfillmentRouteRepositoryAdapter(
@@ -229,7 +229,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public ZoneRepository zoneRepository(ZoneJpaRepository jpaRepository,
                                          ZoneJpaAssembler mapper,
-                                         @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                         @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                          @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new ZoneRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }
@@ -237,7 +237,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public BinRepository binRepository(BinJpaRepository jpaRepository,
                                        BinJpaAssembler mapper,
-                                       @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                       @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                        @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new BinRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }

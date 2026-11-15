@@ -2,23 +2,27 @@ package com.grab.app.account.identity.internal.adapter.outbound.events;
 
 import com.grab.app.shared.events.identity.IdentitySecurityCatalogActivatedIntegrationEvent;
 import com.grab.app.shared.events.identity.UserRegisteredIntegrationEvent;
+import com.grab.framework.event.DomainEventProducer;
 import com.identity.application.port.outbound.IdentityIntegrationEventPublisher;
 import com.identity.domain.event.SecurityCatalogActivatedEvent;
 import com.identity.domain.event.UserRegisteredEvent;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 
 @Component
 public class IdentityIntegrationEventPublisherAdapter implements IdentityIntegrationEventPublisher {
     private static final int EVENT_VERSION = 1;
 
-    private final ApplicationEventPublisher events;
+    private final DomainEventProducer outbox;
 
-    public IdentityIntegrationEventPublisherAdapter(ApplicationEventPublisher events) {
-        this.events = events;
+    public IdentityIntegrationEventPublisherAdapter(
+            @Qualifier("identityDomainEventProducer") DomainEventProducer outbox
+    ) {
+        this.outbox = outbox;
     }
 
     @Override
@@ -31,17 +35,18 @@ public class IdentityIntegrationEventPublisherAdapter implements IdentityIntegra
                 Instant.now(),
                 EVENT_VERSION
         );
-        events.publishEvent(integrationEvent);
+        outbox.produce("UserAccount", userId, List.of(integrationEvent));
     }
 
     @Override
     @EventListener
     public void publishSecurityCatalogActivated(SecurityCatalogActivatedEvent event) {
-        events.publishEvent(new IdentitySecurityCatalogActivatedIntegrationEvent(
+        var integrationEvent = new IdentitySecurityCatalogActivatedIntegrationEvent(
                 event.catalogRevision(),
                 event.moduleKey(),
                 event.securityRevision(),
                 event.contentDigest()
-        ));
+        );
+        outbox.produce("SecurityCatalog", event.moduleKey(), List.of(integrationEvent));
     }
 }

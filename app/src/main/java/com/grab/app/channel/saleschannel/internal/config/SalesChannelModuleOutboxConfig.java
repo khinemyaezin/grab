@@ -71,6 +71,17 @@ public class SalesChannelModuleOutboxConfig {
         return outbox.producer();
     }
 
+    @Bean("salesChannelInProcessDomainEventPublisher")
+    public DomainEventProducer salesChannelInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
+    ) {
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
     @Bean("salesChannelInboxDecorator")
     public UnaryOperator<ProcessedEventRepository> salesChannelInboxDecorator(ObjectProvider<MeterRegistry> meters) {
         return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);

@@ -72,7 +72,7 @@ public class MerchantPersistenceConfig {
     MerchantAccountRepository merchantRepository(
             MerchantAccountJpaRepository merchants,
             MerchantAccountJpaAssembler assembler,
-            @Qualifier("merchantDomainEventProducer") DomainEventProducer events,
+            @Qualifier("merchantInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
         return new MerchantAccountRepositoryAdapter(merchants, assembler, events, executor);
     }
@@ -86,7 +86,7 @@ public class MerchantPersistenceConfig {
     StorefrontRepository storefrontRepository(
             StorefrontJpaRepository storefronts,
             StorefrontJpaAssembler assembler,
-            @Qualifier("merchantDomainEventProducer") DomainEventProducer events,
+            @Qualifier("merchantInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
         return new StorefrontRepositoryAdapter(storefronts, assembler, events, executor);
     }
@@ -104,7 +104,7 @@ public class MerchantPersistenceConfig {
             StorefrontChannelBrandJpaRepository brands,
             StorefrontJpaRepository storefronts,
             StorefrontChannelBrandJpaAssembler assembler,
-            @Qualifier("merchantDomainEventProducer") DomainEventProducer events,
+            @Qualifier("merchantInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new StorefrontChannelBrandRepositoryAdapter(brands, storefronts, assembler, events, executor);
@@ -140,7 +140,7 @@ public class MerchantPersistenceConfig {
     MerchantMemberRepository merchantMemberRepository(
             MerchantMemberJpaRepository members,
             MerchantMemberJpaAssembler assembler,
-            @Qualifier("merchantDomainEventProducer") DomainEventProducer events,
+            @Qualifier("merchantInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("merchantPersistenceExecutor") PersistenceExecutor executor) {
         return new MerchantMemberRepositoryAdapter(members, assembler, events, executor);
     }

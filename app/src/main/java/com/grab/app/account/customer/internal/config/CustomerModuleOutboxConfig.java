@@ -71,6 +71,17 @@ public class CustomerModuleOutboxConfig {
         return outbox.producer();
     }
 
+    @Bean("customerInProcessDomainEventPublisher")
+    public DomainEventProducer customerInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
+    ) {
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
     @Bean("customerInboxDecorator")
     public UnaryOperator<ProcessedEventRepository> customerInboxDecorator(ObjectProvider<MeterRegistry> meters) {
         return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);

@@ -72,6 +72,17 @@ public class IdentityModuleOutboxConfig {
         return outbox.producer();
     }
 
+    @Bean("identityInProcessDomainEventPublisher")
+    public DomainEventProducer identityInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
+    ) {
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
     @Bean("identityJobScheduler")
     public ModuleJobScheduler identityJobScheduler(
             @Qualifier("identityOutboxModule") OutboxModule<IdentityOutboxEvent> outbox,

@@ -71,6 +71,17 @@ public class CatalogModuleOutboxConfig {
         return outbox.producer();
     }
 
+    @Bean("catalogInProcessDomainEventPublisher")
+    public DomainEventProducer catalogInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
+    ) {
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
     @Bean("catalogInboxDecorator")
     public UnaryOperator<ProcessedEventRepository> catalogInboxDecorator(ObjectProvider<MeterRegistry> meters) {
         return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);

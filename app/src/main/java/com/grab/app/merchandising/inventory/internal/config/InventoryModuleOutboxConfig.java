@@ -71,6 +71,17 @@ public class InventoryModuleOutboxConfig {
         return outbox.producer();
     }
 
+    @Bean("inventoryInProcessDomainEventPublisher")
+    public DomainEventProducer inventoryInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
+    ) {
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
     @Bean("inventoryInboxDecorator")
     public UnaryOperator<ProcessedEventRepository> inventoryInboxDecorator(ObjectProvider<MeterRegistry> meters) {
         return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);

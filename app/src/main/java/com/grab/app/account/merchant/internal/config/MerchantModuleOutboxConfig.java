@@ -71,6 +71,17 @@ public class MerchantModuleOutboxConfig {
         return outbox.producer();
     }
 
+    @Bean("merchantInProcessDomainEventPublisher")
+    public DomainEventProducer merchantInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
+    ) {
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
     @Bean("merchantInboxDecorator")
     public UnaryOperator<ProcessedEventRepository> merchantInboxDecorator(ObjectProvider<MeterRegistry> meters) {
         return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);

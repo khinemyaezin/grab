@@ -108,7 +108,7 @@ public class CatalogPersistenceConfig {
     public ProductRepository productRepository(
             ProductJpaAssembler jpaAssembler,
             ProductJpaRepo productJpaRepo,
-            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new ProductRepositoryAdapter(
                 jpaAssembler, productJpaRepo, domainEventProducer, executor
@@ -132,7 +132,7 @@ public class CatalogPersistenceConfig {
             ProductVariantJpaRepo productVariantJpaRepo,
             ProductJpaRepo productJpaRepo,
             ProductPublicationJpaAssembler mapper,
-            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new ProductPublicationRepositoryAdapter(
@@ -154,7 +154,7 @@ public class CatalogPersistenceConfig {
     public VariantTypeRepository variantTypeRepository(
             VariantTypeJpaAssembler variantTypeJpaAssembler,
             VariantTypeJpaRepo variantTypeJpaRepo,
-            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new VariantTypeRepositoryAdapter(
@@ -283,7 +283,7 @@ public class CatalogPersistenceConfig {
             CategoryNodeRepository categoryNodeRepository,
             CategoryJpaRepo categoryJpaRepository,
             CategoryJpaAssembler categoryJpaAssembler,
-            @Qualifier("catalogDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("catalogInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("catalogPersistenceExecutor") PersistenceExecutor executor) {
         return new CategoryRepositoryAdapter(
                 categoryNodeRepository,
