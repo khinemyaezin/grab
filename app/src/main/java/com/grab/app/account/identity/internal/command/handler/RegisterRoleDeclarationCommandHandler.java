@@ -7,7 +7,6 @@ import com.identity.application.model.write.RegisterRoleDeclarationCommand;
 import com.identity.application.model.write.RegisterRoleDeclarationResult;
 import com.identity.application.port.inbound.RegisterRoleDeclarationUseCase;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class RegisterRoleDeclarationCommandHandler
@@ -21,7 +20,7 @@ public class RegisterRoleDeclarationCommandHandler
 
     @Override
     @RequiresSecurityCatalog
-    @IdentityTransactional(propagation = Propagation.REQUIRES_NEW)
+    @IdentityTransactional
     public RegisterRoleDeclarationResult handle(RegisterRoleDeclarationCommand command) {
         return useCase.execute(command);
     }

@@ -1,75 +1,42 @@
 package com.grab.app.account.merchant.internal.adapter.inbound.event;
 
-import java.util.UUID;
-import com.grab.framework.outbox.OutboxDeliveryContext;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.grab.framework.logger.Logger;
-import com.grab.framework.logger.Loggers;
-import com.merchant.application.model.write.ChangeMerchantLifecycleCommand;
-import com.merchant.domain.aggregate.MerchantAccount;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.AbstractIntegrationEventListener;
+import com.merchant.application.model.write.AutoApproveMerchantApplicationCommand;
 import com.merchant.domain.event.MerchantApplicationSubmittedEvent;
-import com.merchant.domain.policy.MerchantApprovalPolicy;
-import com.merchant.domain.port.outbound.MerchantAccountRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Component
-public class MerchantAccountSubmitStatusEventListener {
-    private static final Logger log = Loggers.getLogger(MerchantAccountSubmitStatusEventListener.class);
+public class MerchantAccountSubmitStatusEventListener extends AbstractIntegrationEventListener {
 
     private final CommandBus commandBus;
     private final IdGenerator idGenerator;
-    private final MerchantAccountRepository merchantAccountRepository;
-    private final MerchantApprovalPolicy approvalPolicy;
 
     public MerchantAccountSubmitStatusEventListener(
             @Qualifier("accountCommandBus") CommandBus commandBus,
             IdGenerator idGenerator,
-            MerchantAccountRepository merchantAccountRepository,
-            MerchantApprovalPolicy approvalPolicy
+            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("merchantProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
+        super(transactionManager, processedEvents);
         this.commandBus = commandBus;
         this.idGenerator = idGenerator;
-        this.merchantAccountRepository = merchantAccountRepository;
-        this.approvalPolicy = approvalPolicy;
     }
 
     @EventListener
     public void handleMerchantApplicationSubmitted(MerchantApplicationSubmittedEvent event) {
-        Id merchantId = idGenerator.convertIdFrom(event.merchantId());
-        MerchantAccount merchant = merchantAccountRepository.findById(merchantId).orElse(null);
-
-        if (merchant != null && approvalPolicy.canAutoApprove(merchant)) {
-            log.info(
-                    "Auto-approving merchant application for merchantId={} and applicantUserId={}",
-                    event.merchantId(),
-                    event.applicantUserId()
-            );
-            autoApproveMerchant(event.applicantUserId(), event.merchantId());
-        } else {
-            log.info(
-                    "Merchant application requires manual approval for merchantId={} and applicantUserId={}",
-                    event.merchantId(),
-                    event.applicantUserId()
-            );
-        }
-    }
-
-    private void autoApproveMerchant(String applicantUserIdValue, String merchantIdValue) {
-        Id applicantUserId = idGenerator.convertIdFrom(applicantUserIdValue);
-        Id merchantId = idGenerator.convertIdFrom(merchantIdValue);
-        UUID sourceEventId = OutboxDeliveryContext.currentEventId().orElse(null);
-        ChangeMerchantLifecycleCommand command = new ChangeMerchantLifecycleCommand(
-                merchantId,
-                applicantUserId,
-                ChangeMerchantLifecycleCommand.Action.APPROVE,
-                null,
-                sourceEventId
-        );
-        commandBus.dispatch(command);
+        processDelivery("merchant.ChangeMerchantLifecycle", () -> {
+            Id merchantId = idGenerator.convertIdFrom(event.merchantId());
+            Id applicantUserId = idGenerator.convertIdFrom(event.applicantUserId());
+            AutoApproveMerchantApplicationCommand command =
+                    new AutoApproveMerchantApplicationCommand(merchantId, applicantUserId);
+            commandBus.dispatch(command);
+        });
     }
 }
-

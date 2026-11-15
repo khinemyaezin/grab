@@ -34,15 +34,6 @@ public final class JpaOutboxDomainEventProducer<T extends OutboxEntry<ID>, ID> i
             String module,
             OutboxWriter<T> outboxStore,
             OutboxEventSerializer serializer,
-            OutboxRowFactory<T> rowFactory
-    ) {
-        this(module, outboxStore, serializer, rowFactory, OutboxRelay.noop());
-    }
-
-    public JpaOutboxDomainEventProducer(
-            String module,
-            OutboxWriter<T> outboxStore,
-            OutboxEventSerializer serializer,
             OutboxRowFactory<T> rowFactory,
             OutboxRelay<ID> relay
     ) {

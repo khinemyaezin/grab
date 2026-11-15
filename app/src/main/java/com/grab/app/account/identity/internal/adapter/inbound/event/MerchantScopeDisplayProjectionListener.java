@@ -7,50 +7,64 @@ import com.grab.app.shared.events.merchant.StorefrontRenamedIntegrationEvent;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.AbstractIntegrationEventListener;
 import com.identity.application.model.write.UpdateScopeDisplayCommand;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Component
-public class MerchantScopeDisplayProjectionListener {
+public class MerchantScopeDisplayProjectionListener extends AbstractIntegrationEventListener {
     private final CommandBus commandBus;
     private final IdGenerator ids;
 
     public MerchantScopeDisplayProjectionListener(
             @Qualifier("accountCommandBus") CommandBus commandBus,
-            IdGenerator ids
+            IdGenerator ids,
+            @Qualifier("identityTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("identityProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
+        super(transactionManager, processedEvents);
         this.commandBus = commandBus;
         this.ids = ids;
     }
 
     @EventListener
     public void onMerchantApplicationStarted(MerchantApplicationStartedIntegrationEvent event) {
-        String merchantId = event.merchantId();
-        String name = event.merchantName();
-        updateDisplay(merchantId, name);
+        processDelivery("identity.project-merchant-scope-display", () -> {
+            String merchantId = event.merchantId();
+            String name = event.merchantName();
+            updateDisplay(merchantId, name);
+        });
     }
 
     @EventListener
     public void onMerchantProfileUpdated(MerchantProfileUpdatedIntegrationEvent event) {
-        String merchantId = event.merchantId();
-        String name = event.merchantName();
-        updateDisplay(merchantId, name);
+        processDelivery("identity.project-merchant-scope-display", () -> {
+            String merchantId = event.merchantId();
+            String name = event.merchantName();
+            updateDisplay(merchantId, name);
+        });
     }
 
     @EventListener
     public void onStorefrontCreated(StorefrontCreatedIntegrationEvent event) {
-        String storefrontId = event.storefrontId();
-        String name = event.name();
-        updateDisplay(storefrontId, name);
+        processDelivery("identity.project-merchant-scope-display", () -> {
+            String storefrontId = event.storefrontId();
+            String name = event.name();
+            updateDisplay(storefrontId, name);
+        });
     }
 
     @EventListener
     public void onStorefrontRenamed(StorefrontRenamedIntegrationEvent event) {
-        String storefrontId = event.storefrontId();
-        String name = event.name();
-        updateDisplay(storefrontId, name);
+        processDelivery("identity.project-merchant-scope-display", () -> {
+            String storefrontId = event.storefrontId();
+            String name = event.name();
+            updateDisplay(storefrontId, name);
+        });
     }
 
     private void updateDisplay(String scopeIdValue, String name) {

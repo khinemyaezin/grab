@@ -7,7 +7,6 @@ import com.grab.framework.cqrs.command.CommandHandler;
 import com.merchant.application.model.write.PublishMerchantRoleDeclarationCommand;
 import com.merchant.application.port.inbound.PublishMerchantRoleDeclarationUseCase;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class PublishMerchantRoleDeclarationCommandHandler
@@ -21,7 +20,7 @@ public class PublishMerchantRoleDeclarationCommandHandler
 
     @Override
     @SecurityManifestPublicationRetryable
-    @MerchantTransactional(propagation = Propagation.REQUIRES_NEW)
+    @MerchantTransactional
     public PublicationResult handle(PublishMerchantRoleDeclarationCommand command) {
         return useCase.execute(command);
     }

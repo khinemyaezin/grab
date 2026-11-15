@@ -4,42 +4,56 @@ import com.grab.app.shared.events.merchant.MerchantClosedIntegrationEvent;
 import com.grab.app.shared.events.merchant.MerchantSuspendedIntegrationEvent;
 import com.grab.app.shared.events.merchant.StorefrontStatusChangedIntegrationEvent;
 import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.AbstractIntegrationEventListener;
 import com.identity.application.model.write.RevokeSessionsByScopeCommand;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @Component
-public class MerchantSessionRevocationEventListener {
+public class MerchantSessionRevocationEventListener extends AbstractIntegrationEventListener {
     public static final String MERCHANT_ACCOUNT_SCOPE = "merchant";
     public static final String MERCHANT_STOREFRONT_SCOPE = "storefront";
 
     private final CommandBus commandBus;
 
-    public MerchantSessionRevocationEventListener(@Qualifier("accountCommandBus") CommandBus commandBus) {
+    public MerchantSessionRevocationEventListener(
+            @Qualifier("accountCommandBus") CommandBus commandBus,
+            @Qualifier("identityTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("identityProcessedEventRepository") ProcessedEventRepository processedEvents
+    ) {
+        super(transactionManager, processedEvents);
         this.commandBus = commandBus;
     }
 
     @EventListener
     public void onMerchantSuspended(MerchantSuspendedIntegrationEvent event) {
-        revokeMerchantAccount(event.merchantId());
+        processDelivery("identity.revoke-merchant-account-sessions", () -> {
+            revokeMerchantAccount(event.merchantId());
+        });
     }
 
     @EventListener
     public void onMerchantClosed(MerchantClosedIntegrationEvent event) {
-        revokeMerchantAccount(event.merchantId());
+        processDelivery("identity.revoke-merchant-account-sessions", () -> {
+            revokeMerchantAccount(event.merchantId());
+        });
     }
 
     @EventListener
     public void onStorefrontStatusChanged(StorefrontStatusChangedIntegrationEvent event) {
-        if (!"SUSPENDED".equals(event.status()) && !"CLOSED".equals(event.status())) {
-            return;
-        }
-        var command = new RevokeSessionsByScopeCommand(
-                MERCHANT_STOREFRONT_SCOPE,
-                event.storefrontId()
-        );
-        commandBus.dispatch(command);
+        processDelivery("identity.revoke-storefront-sessions", () -> {
+            if (!"SUSPENDED".equals(event.status()) && !"CLOSED".equals(event.status())) {
+                return;
+            }
+            var command = new RevokeSessionsByScopeCommand(
+                    MERCHANT_STOREFRONT_SCOPE,
+                    event.storefrontId()
+            );
+            commandBus.dispatch(command);
+        });
     }
 
     private void revokeMerchantAccount(String merchantId) {

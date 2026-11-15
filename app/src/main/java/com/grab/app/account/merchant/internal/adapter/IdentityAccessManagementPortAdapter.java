@@ -1,5 +1,6 @@
 package com.grab.app.account.merchant.internal.adapter;
 
+import com.grab.app.account.merchant.internal.config.MerchantTransactional;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
@@ -8,6 +9,7 @@ import com.identity.application.model.write.RevokeSessionsByScopeCommand;
 import com.merchant.application.port.outbound.IdentityAccessManagementPort;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.Set;
 
@@ -26,6 +28,7 @@ public class IdentityAccessManagementPortAdapter implements IdentityAccessManage
     }
 
     @Override
+    @MerchantTransactional(propagation = Propagation.NOT_SUPPORTED)
     public void replaceAccess(ReplaceAccessRequest request) {
         Id userId = idGenerator.convertIdFrom(request.userId());
         ReplaceAccessCommand command = new ReplaceAccessCommand(

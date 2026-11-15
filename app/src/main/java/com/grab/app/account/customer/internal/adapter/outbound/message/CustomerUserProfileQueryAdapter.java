@@ -1,9 +1,11 @@
-package com.grab.app.account.customer.internal.adapter;
+package com.grab.app.account.customer.internal.adapter.outbound.message;
 
 import com.customer.application.port.outbound.UserProfileQueryPort;
+import com.grab.app.account.customer.internal.config.CustomerTransactional;
 import com.grab.app.account.identity.port.message.IdentityAdminPort;
 import com.grab.framework.id.Id;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +19,7 @@ public class CustomerUserProfileQueryAdapter implements UserProfileQueryPort {
         this.identityAdminPort = identityAdminPort;
     }
 
+    @CustomerTransactional(propagation = Propagation.NOT_SUPPORTED)
     @Override
     public UserProfileResponse getUserProfile(Id userId) {
         if (userId == null) {
