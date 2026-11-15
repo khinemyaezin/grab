@@ -95,22 +95,20 @@ public final class OutboxDeliveryEngine<T extends OutboxEntry<ID>, ID> implement
 
     @Override
     public void deliverClaimed(ClaimedOutboxEvent<ID> claim) {
+        Optional<T> row = transactions.readOnly(() ->
+                outboxStore.findById(claim.id())
+                        .filter(event -> event.isClaimedBy(claim.claimToken()))
+        );
+        if (row.isEmpty()) {
+            outcomes.reportClaimLost(claim, "before dispatch");
+            return;
+        }
         try {
-            transactions.inNewTransaction(() -> {
-                Optional<T> row = outboxStore.findById(claim.id())
-                        .filter(event -> event.isClaimedBy(claim.claimToken()));
-                if (row.isEmpty()) {
-                    outcomes.reportClaimLost(claim, "before dispatch");
-                    return null;
-                }
-                dispatch(row.get());
-                if (!outcomes.markPublished(claim)) {
-                    throw new ClaimLostAfterDispatch();
-                }
-                return null;
-            });
-        } catch (ClaimLostAfterDispatch exception) {
-            outcomes.reportClaimLost(claim, "after dispatch");
+            dispatch(row.get());
+            boolean published = transactions.inNewTransaction(() -> outcomes.markPublished(claim));
+            if (!published) {
+                outcomes.reportClaimLost(claim, "after dispatch");
+            }
         } catch (OutboxPoisonEventException exception) {
             outcomes.recordFailure(claim, exception, true);
         } catch (RuntimeException exception) {
@@ -139,11 +137,10 @@ public final class OutboxDeliveryEngine<T extends OutboxEntry<ID>, ID> implement
     }
 
     private Optional<ClaimedOutboxEvent<ID>> claimById(ID id) {
-        ClaimedOutboxEvent<ID> claimed = transactions.inNewTransaction(() -> {
+        return transactions.inNewTransaction(() -> {
             Instant now = clock.instant();
-            return outboxStore.claimOne(id, now).orElse(null);
+            return outboxStore.claimOne(id, now);
         });
-        return Optional.ofNullable(claimed);
     }
 
     private void dispatch(T event) {
@@ -159,8 +156,5 @@ public final class OutboxDeliveryEngine<T extends OutboxEntry<ID>, ID> implement
         String eventIdValue = eventId == null ? null : eventId.toString();
         Runnable delivery = () -> OutboxDeliveryContext.run(eventId, () -> dispatcher.dispatch(payload));
         TraceContext.run(traceId, () -> LogContext.run(LogContext.EVENT_ID, eventIdValue, delivery));
-    }
-
-    private static final class ClaimLostAfterDispatch extends RuntimeException {
     }
 }

@@ -14,9 +14,6 @@ import java.util.Map;
 
 @Component
 public class IdentityRoleDeclarationRegistrationListener {
-    private static final Map<Class<?>, String> ALLOWED_OWNERS = Map.of(
-            MerchantRoleDeclarationDeclaredIntegrationEvent.class, "merchant"
-    );
     private static final Logger log = Loggers.getLogger(IdentityRoleDeclarationRegistrationListener.class);
     private final CommandBus commandBus;
 
@@ -26,10 +23,6 @@ public class IdentityRoleDeclarationRegistrationListener {
 
     @EventListener
     public void onRoleDeclarationDeclared(RoleDeclarationDeclaredIntegrationEvent event) {
-        String expectedOwner = ALLOWED_OWNERS.get(event.getClass());
-        if (expectedOwner == null || !event.owner().equals(expectedOwner)) {
-            throw new IllegalArgumentException("role declaration producer is not authorized for owner " + event.owner());
-        }
         log.info("Registering complete role declaration owner={} roleCode={} revision={} eventId={}",
                 event.owner(), event.roleCode(), event.declarationRevision(), event.eventId());
         commandBus.dispatch(new RegisterRoleDeclarationCommand(
