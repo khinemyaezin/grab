@@ -17,7 +17,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.time.Instant;
 
 @Component
-public class MerchantApprovalAccessGrantListener extends AbstractIntegrationEventListener {
+public class MerchantApprovalAccessGrantListener {
     private static final Logger log = Loggers.getLogger(MerchantApprovalAccessGrantListener.class);
 
     private final CommandBus commandBus;
@@ -25,33 +25,28 @@ public class MerchantApprovalAccessGrantListener extends AbstractIntegrationEven
 
     public MerchantApprovalAccessGrantListener(
             @Qualifier("accountCommandBus") CommandBus commandBus,
-            IdGenerator idGenerator,
-            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
-            @Qualifier("merchantProcessedEventRepository") ProcessedEventRepository processedEvents
+            IdGenerator idGenerator
     ) {
-        super(transactionManager, processedEvents);
         this.commandBus = commandBus;
         this.idGenerator = idGenerator;
     }
 
     @EventListener
     public void onMerchantApproved(MerchantApprovedEvent event) {
-        processDelivery("merchant.provision-merchant-admin", () -> {
-            Id merchantId = idGenerator.convertIdFrom(event.merchantId());
-            Id applicantUserId = idGenerator.convertIdFrom(event.applicantUserId());
-            Instant occurredAt = event.occurredAt() != null ? event.occurredAt() : Instant.now();
+        Id merchantId = idGenerator.convertIdFrom(event.merchantId());
+        Id applicantUserId = idGenerator.convertIdFrom(event.applicantUserId());
+        Instant occurredAt = event.occurredAt() != null ? event.occurredAt() : Instant.now();
 
-            log.info("Provisioning initial merchant admin for merchant {} and applicant {}",
-                    merchantId.getValue(), applicantUserId.getValue());
+        log.info("Provisioning initial merchant admin for merchant {} and applicant {}",
+                merchantId.getValue(), applicantUserId.getValue());
 
-            ProvisionMerchantAdminCommand command = new ProvisionMerchantAdminCommand(
-                    merchantId,
-                    applicantUserId,
-                    occurredAt
-            );
+        ProvisionMerchantAdminCommand command = new ProvisionMerchantAdminCommand(
+                merchantId,
+                applicantUserId,
+                occurredAt
+        );
 
-            commandBus.dispatch(command);
-        });
+        commandBus.dispatch(command);
     }
 }
 

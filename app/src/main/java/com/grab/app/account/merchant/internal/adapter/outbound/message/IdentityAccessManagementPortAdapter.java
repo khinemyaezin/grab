@@ -1,4 +1,4 @@
-package com.grab.app.account.merchant.internal.adapter;
+package com.grab.app.account.merchant.internal.adapter.outbound.message;
 
 import com.grab.app.account.merchant.internal.config.MerchantTransactional;
 import com.grab.framework.cqrs.command.CommandBus;
@@ -43,6 +43,7 @@ public class IdentityAccessManagementPortAdapter implements IdentityAccessManage
     }
 
     @Override
+    @MerchantTransactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeAccess(RevokeAccessRequest request) {
         Id userId = idGenerator.convertIdFrom(request.userId());
         ReplaceAccessCommand command = new ReplaceAccessCommand(
@@ -57,6 +58,7 @@ public class IdentityAccessManagementPortAdapter implements IdentityAccessManage
     }
 
     @Override
+    @MerchantTransactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeSessionsByScope(String scopeKey, String scopeId) {
         RevokeSessionsByScopeCommand command = new RevokeSessionsByScopeCommand(scopeKey, scopeId);
         accountCommandBus.dispatch(command);

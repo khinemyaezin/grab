@@ -52,7 +52,7 @@ public class SellerMerchantApplicationController {
         return ResponseEntity.created(location).body(merchantModelAssembler.toCommandModel(response));
     }
 
-    @PutMapping("/{applicationId}/submit")
+    @PostMapping("/{applicationId}/submit")
     public ResponseEntity<EntityModel<MerchantResponse>> submitApplication(
             @PathVariable String applicationId,
             @AuthenticationPrincipal SellerSecurityPrincipal principal) {

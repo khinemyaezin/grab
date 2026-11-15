@@ -1,8 +1,10 @@
-package com.grab.app.account.merchant.internal.adapter;
+package com.grab.app.account.merchant.internal.adapter.outbound.message;
 
+import com.grab.app.account.merchant.internal.config.MerchantTransactional;
 import com.grab.app.channel.region.port.message.RegionPort;
 import com.merchant.application.port.outbound.PrimaryMarketRegionPort;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 
 @Component("merchantPrimaryMarketRegionAdapter")
 public class PrimaryMarketRegionAdapter implements PrimaryMarketRegionPort {
@@ -14,6 +16,7 @@ public class PrimaryMarketRegionAdapter implements PrimaryMarketRegionPort {
     }
 
     @Override
+    @MerchantTransactional(propagation = Propagation.NOT_SUPPORTED)
     public boolean hasActiveRegion(String countryCode) {
         if (countryCode == null) {
             return false;
