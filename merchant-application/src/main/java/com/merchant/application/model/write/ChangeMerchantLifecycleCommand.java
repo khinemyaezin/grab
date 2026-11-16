@@ -9,6 +9,7 @@ public record ChangeMerchantLifecycleCommand(
         Action action,
         String reason
 ) implements Command<MerchantAccountResult> {
+
     public enum Action {
         REQUEST_CHANGES,
         APPROVE,

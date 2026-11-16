@@ -1,26 +1,16 @@
 package com.inventory.adapter.persistence.outbox;
 
-import com.grab.framework.outbox.OutboxStatus;
-import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.SerializedEvent;
+import com.grab.outbox.infrastructure.adapter.out.jpa.JpaOutboxEventEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
 
-@Getter
-@Setter
 @Entity
 @Table(name = "outbox_record", indexes = {
         @Index(name = "idx_inventory_outbox_status_available", columnList = "status, available_at"),
@@ -28,23 +18,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_inventory_outbox_aggregate", columnList = "aggregate_type, aggregate_id"),
         @Index(name = "idx_inventory_outbox_published_at", columnList = "published_at")
 })
-public class InventoryOutboxEvent implements OutboxEntry<Long> {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "aggregate_type", nullable = false)
-    private String aggregateType;
-
-    @Column(name = "aggregate_id", nullable = false)
-    private String aggregateId;
-
-    @Column(name = "event_type", nullable = false)
-    private String eventType;
-
-    @Column(name = "event_version", nullable = false)
-    private int eventVersion;
+public class InventoryOutboxEvent extends JpaOutboxEventEntity {
 
     @Lob
     @Column(name = "headers", nullable = false)
@@ -54,75 +28,52 @@ public class InventoryOutboxEvent implements OutboxEntry<Long> {
     @Column(name = "payload", nullable = false)
     private String payload;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private OutboxStatus status = OutboxStatus.NEW;
-
-    @Column(name = "attempt_count", nullable = false)
-    private int attemptCount = 0;
-
-    @Column(name = "occurred_at", nullable = false)
-    private LocalDateTime occurredAt;
-
-    @Column(name = "available_at", nullable = false)
-    private LocalDateTime availableAt;
-
-    @Column(name = "claimed_at")
-    private LocalDateTime claimedAt;
-
-    @Column(name = "claim_token")
-    private String claimToken;
-
-    @Column(name = "published_at")
-    private LocalDateTime publishedAt;
-
     @Lob
     @Column(name = "last_error")
     private String lastError;
 
+    protected InventoryOutboxEvent() {
+    }
+
     public static InventoryOutboxEvent pending(
+            UUID eventId,
             String aggregateType,
             String aggregateId,
             SerializedEvent serializedEvent,
-            LocalDateTime now
+            Instant now
     ) {
         InventoryOutboxEvent event = new InventoryOutboxEvent();
-        event.aggregateType = aggregateType;
-        event.aggregateId = aggregateId;
-        event.eventType = serializedEvent.eventType();
-        event.eventVersion = serializedEvent.eventVersion();
-        event.headers = serializedEvent.headers();
-        event.payload = serializedEvent.payload();
-        event.occurredAt = now;
-        event.availableAt = now;
-        event.status = OutboxStatus.NEW;
+        event.initialize(eventId, aggregateType, aggregateId, serializedEvent, now);
         return event;
     }
 
     @Override
-    public void markProcessing(LocalDateTime now, String claimToken) {
-        status = OutboxStatus.PROCESSING;
-        claimedAt = now;
-        this.claimToken = claimToken;
-        lastError = null;
-        attemptCount += 1;
+    public String getHeaders() {
+        return headers;
     }
 
     @Override
-    public void markPublished(LocalDateTime now) {
-        status = OutboxStatus.PUBLISHED;
-        publishedAt = now;
-        claimedAt = null;
-        claimToken = null;
-        lastError = null;
+    protected void setHeaders(String headers) {
+        this.headers = headers;
     }
 
     @Override
-    public void markFailed(LocalDateTime now, String error, Duration retryDelay) {
-        status = OutboxStatus.FAILED;
-        availableAt = now.plus(retryDelay);
-        claimedAt = null;
-        claimToken = null;
-        lastError = error;
+    public String getPayload() {
+        return payload;
+    }
+
+    @Override
+    protected void setPayload(String payload) {
+        this.payload = payload;
+    }
+
+    @Override
+    public String getLastError() {
+        return lastError;
+    }
+
+    @Override
+    protected void setLastError(String lastError) {
+        this.lastError = lastError;
     }
 }

@@ -1,6 +1,7 @@
 package com.grab.app.account.identity.internal.config;
 
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.outbox.OutboxDeliveryContext;
 import com.grab.framework.security.PlatformIdentityResolver;
 import com.identity.application.port.inbound.AcceptAccessInvitationUseCase;
 import com.identity.application.port.inbound.CancelAccessInvitationUseCase;
@@ -25,7 +26,6 @@ import com.identity.application.port.inbound.LogoutUseCase;
 import com.identity.application.port.inbound.ManageAuthorityUseCase;
 import com.identity.application.port.inbound.RefreshTokenUseCase;
 import com.identity.application.port.inbound.RegisterRoleDeclarationUseCase;
-import com.identity.application.port.inbound.RegisterSecurityManifestUseCase;
 import com.identity.application.port.inbound.RegisterUseCase;
 import com.identity.application.port.inbound.ReplaceAccessUseCase;
 import com.identity.application.port.inbound.RevalidateSecurityManifestUseCase;
@@ -34,6 +34,7 @@ import com.identity.application.port.inbound.SearchRolesUseCase;
 import com.identity.application.port.inbound.SwitchAccessContextUseCase;
 import com.identity.application.port.inbound.UpdateScopeDisplayUseCase;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
+import com.identity.application.port.outbound.EventDeliveryIdPort;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.RoleDeclarationQueryPort;
 import com.identity.application.port.outbound.RoleQueryPort;
@@ -262,10 +263,16 @@ public class IdentityUseCaseConfig {
     }
 
     @Bean
-    public RegisterSecurityManifestUseCase registerSecurityManifestUseCase(
+    public EventDeliveryIdPort identityEventDeliveryIdPort() {
+        return () -> OutboxDeliveryContext.currentEventId().orElseThrow(() ->
+                new IllegalStateException("Missing outbox delivery context for identity registration"));
+    }
+
+    @Bean
+    public RegisterSecurityManifestService registerSecurityManifestUseCase(
             SecurityCatalogRepository catalogs, SecurityManifestRevisionRepository revisions,
-            SecurityManifestInboxRepository inbox) {
-        return new RegisterSecurityManifestService(catalogs, revisions, inbox);
+            SecurityManifestInboxRepository inbox, EventDeliveryIdPort deliveryIds) {
+        return new RegisterSecurityManifestService(catalogs, revisions, inbox, deliveryIds);
     }
 
     @Bean
@@ -281,7 +288,7 @@ public class IdentityUseCaseConfig {
 
     @Bean
     public RevalidateSecurityManifestUseCase revalidateSecurityManifestUseCase(
-            SecurityManifestRevisionRepository revisions, RegisterSecurityManifestUseCase registration,
+            SecurityManifestRevisionRepository revisions, RegisterSecurityManifestService registration,
             SecurityCatalogRepository catalogs) {
         return new RevalidateSecurityManifestService(catalogs, revisions, registration);
     }
@@ -345,9 +352,10 @@ public class IdentityUseCaseConfig {
             RoleRepository roles,
             AuthorityRepository authorities,
             RoleDeclarationRepository declarations,
-            IdGenerator ids
+            IdGenerator ids,
+            EventDeliveryIdPort deliveryIds
     ) {
-        return new RegisterRoleDeclarationService(catalogs, roles, authorities, declarations, ids);
+        return new RegisterRoleDeclarationService(catalogs, roles, authorities, declarations, ids, deliveryIds);
     }
 
     @Bean

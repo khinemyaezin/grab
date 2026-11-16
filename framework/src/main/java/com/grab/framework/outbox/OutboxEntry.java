@@ -1,10 +1,12 @@
 package com.grab.framework.outbox;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
 
 public interface OutboxEntry<ID> {
     ID getId();
+
+    UUID getEventId();
 
     String getEventType();
 
@@ -18,11 +20,32 @@ public interface OutboxEntry<ID> {
 
     String getClaimToken();
 
-    LocalDateTime getAvailableAt();
+    int getAttemptCount();
 
-    void markProcessing(LocalDateTime now, String claimToken);
+    Instant getOccurredAt();
 
-    void markPublished(LocalDateTime now);
+    Instant getAvailableAt();
 
-    void markFailed(LocalDateTime now, String error, Duration retryDelay);
+    void markProcessing(Instant now, String claimToken);
+
+    void markPublished(Instant now);
+
+    void markFailed(String error, Instant nextAvailableAt);
+
+    void markDead(Instant now, String error);
+
+    void releaseClaim(Instant now);
+
+    /**
+     * Operator replay of a dead-lettered row: back to {@code NEW} with a fresh attempt budget.
+     */
+    default void requeue(Instant now) {
+        throw new UnsupportedOperationException("requeue is not supported by " + getClass().getName());
+    }
+
+    default boolean isClaimedBy(String claimToken) {
+        return getStatus() == OutboxStatus.PROCESSING
+                && claimToken != null
+                && claimToken.equals(getClaimToken());
+    }
 }

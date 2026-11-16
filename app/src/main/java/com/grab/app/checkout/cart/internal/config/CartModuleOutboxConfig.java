@@ -1,89 +1,78 @@
 package com.grab.app.checkout.cart.internal.config;
 
 import com.cart.adapter.persistence.outbox.CartOutboxEvent;
-import com.cart.adapter.persistence.outbox.CartOutboxEventProcessor;
-import com.cart.adapter.persistence.outbox.CartOutboxEventProducer;
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.outbox.JsonOutboxEventSerializer;
-import com.grab.framework.outbox.OutboxEventDispatcher;
-import com.grab.framework.outbox.OutboxEventSerializer;
-import com.grab.framework.outbox.OutboxRelay;
-import com.grab.outbox.infrastructure.OutboxRelays;
-import com.grab.outbox.infrastructure.OutboxStore;
-import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.outbox.infrastructure.core.port.in.DeliverOutboxEventsUseCase;
+import com.grab.outbox.infrastructure.module.OutboxModule;
+import com.grab.scheduling.infrastructure.ModuleJobScheduler;
+import com.grab.scheduling.infrastructure.OutboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ScheduledJob;
+import com.grab.scheduling.infrastructure.ShedLockSingletonJobExecutor;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
+import java.util.List;
+import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 public class CartModuleOutboxConfig {
 
-    @Bean("cartOutboxEventSerializer")
-    public OutboxEventSerializer cartOutboxEventSerializer() {
-        return new JsonOutboxEventSerializer();
-    }
-
-    @Bean("cartOutboxEventDispatcher")
-    public OutboxEventDispatcher cartOutboxEventDispatcher(ApplicationEventPublisher publisher) {
-        return publisher::publishEvent;
-    }
-
-    @Bean("cartOutboxStore")
-    public OutboxStore<CartOutboxEvent, Long> cartOutboxStore(JpaContext context) {
-        return new JpaOutboxStore<>(
-                context.getEntityManagerByManagedType(CartOutboxEvent.class),
-                CartOutboxEvent.class
-        );
-    }
-
-    @Bean("cartOutboxRelay")
-    public OutboxRelay<Long> cartOutboxRelay(
-            @Value("${cart.outbox.hot-queue.enabled:true}") boolean enabled,
-            @Value("${cart.outbox.hot-queue.workers:2}") int workers,
-            @Value("${cart.outbox.hot-queue.capacity:1000}") int capacity,
-            @Value("${cart.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    @Bean("cartSingletonJobExecutor")
+    public SingletonJobExecutor cartSingletonJobExecutor(
+            @Qualifier("orderDataSource") DataSource dataSource,
+            @Value("${cart.flyway.default-schema:cart}") String schema,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
     ) {
-        return OutboxRelays.moduleRelay("cart", enabled, workers, capacity, drainTimeoutMs);
+        MeterRegistry meterRegistry = meters.getIfAvailable();
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "cart.scheduling", meterRegistry);
+    }
+
+    @Bean("cartOutboxModule")
+    public OutboxModule<CartOutboxEvent> cartOutboxModule(
+            JpaContext context,
+            @Qualifier("cartTransactionManager") PlatformTransactionManager transactionManager,
+            ApplicationEventPublisher publisher,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(CartOutboxEvent.class);
+        return OutboxModule.builder("cart", CartOutboxEvent.class, CartOutboxEvent::pending)
+                .entityManager(entityManager)
+                .transactionManager(transactionManager)
+                .eventPublisher(publisher)
+                .properties(environment)
+                .meterRegistry(meters.getIfAvailable())
+                .build();
     }
 
     @Bean("cartDomainEventProducer")
     public DomainEventProducer cartDomainEventProducer(
-            @Qualifier("cartOutboxStore") OutboxStore<CartOutboxEvent, Long> store,
-            @Qualifier("cartOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("cartOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("cartOutboxModule") OutboxModule<CartOutboxEvent> outbox
     ) {
-        return new CartOutboxEventProducer(store, serializer, relay);
+        return outbox.producer();
     }
 
-    @Bean("cartOutboxEventProcessor")
-    public CartOutboxEventProcessor cartOutboxEventProcessor(
-            @Qualifier("cartOutboxStore") OutboxStore<CartOutboxEvent, Long> store,
-            @Qualifier("cartOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("cartOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
-            @Qualifier("cartTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${cart.outbox.batch-size:20}") int batchSize,
-            @Value("${cart.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${cart.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${cart.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("cartOutboxRelay") OutboxRelay<Long> relay
+    @Bean("cartJobScheduler")
+    public ModuleJobScheduler cartJobScheduler(
+            @Qualifier("cartOutboxModule") OutboxModule<CartOutboxEvent> outbox,
+            @Qualifier("cartSingletonJobExecutor") SingletonJobExecutor executor,
+            Environment environment
     ) {
-        return new CartOutboxEventProcessor(
-                store,
-                serializer,
-                dispatcher,
-                transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
-        );
+        DeliverOutboxEventsUseCase<Long> delivery = outbox.delivery();
+        List<ScheduledJob> jobs = OutboxScheduledJobs.of("cart", delivery::pollOnce, outbox.cleanupJob(),
+                delivery::cleanupPublished, executor, environment);
+        return ModuleJobScheduler.fromProperties("cart", jobs, environment);
     }
 }
-

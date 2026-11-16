@@ -21,7 +21,7 @@ public class SellerSecurityProperties {
     @Value("${security.api.cookie.refresh-token-max-age-days:7}")
     private long refreshTokenMaxAgeDays;
 
-    @Value("${security.api.cookie.refresh-token-path:/api/v1/auth/refresh}")
+    @Value("${security.api.cookie.refresh-token-path:/api/v1/identity/auth/refresh}")
     private String refreshTokenPath;
 
     @Value("${security.seller.cookie.access-token-path:/}")

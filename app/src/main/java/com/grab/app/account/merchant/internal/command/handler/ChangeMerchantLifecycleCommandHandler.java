@@ -5,17 +5,15 @@ import com.grab.framework.cqrs.command.CommandHandler;
 import com.merchant.application.model.write.ChangeMerchantLifecycleCommand;
 import com.merchant.application.model.write.MerchantAccountResult;
 import com.merchant.application.port.inbound.ChangeMerchantLifecycleUseCase;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ChangeMerchantLifecycleCommandHandler
         implements CommandHandler<ChangeMerchantLifecycleCommand, MerchantAccountResult> {
 
     private final ChangeMerchantLifecycleUseCase changeMerchantLifecycleUseCase;
-
-    public ChangeMerchantLifecycleCommandHandler(ChangeMerchantLifecycleUseCase changeMerchantLifecycleUseCase) {
-        this.changeMerchantLifecycleUseCase = changeMerchantLifecycleUseCase;
-    }
 
     @Override
     @MerchantTransactional
@@ -28,4 +26,3 @@ public class ChangeMerchantLifecycleCommandHandler
         return ChangeMerchantLifecycleCommand.class;
     }
 }
-

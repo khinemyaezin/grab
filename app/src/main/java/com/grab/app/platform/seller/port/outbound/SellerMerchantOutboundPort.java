@@ -41,6 +41,24 @@ public interface SellerMerchantOutboundPort {
 
     List<MerchantMemberOutboundResult> listMembers(String merchantId);
 
+    MerchantOutboundResult approveMerchant(String merchantId, String actorId);
+
+    MerchantOutboundResult rejectMerchant(String merchantId, String actorId, String reason);
+
+    MerchantOutboundResult requestChanges(String merchantId, String actorId, String comments);
+
+    MerchantOutboundResult suspendMerchant(String merchantId, String actorId, String reason);
+
+    MerchantOutboundResult reactivateMerchant(String merchantId, String actorId);
+
+    MerchantOutboundResult closeMerchant(String merchantId, String actorId);
+
+    List<MerchantOutboundResult> listReviewQueue(String status);
+
+    C2CApplicationOutboundResult getC2CApplication(String applicantUserId);
+
+    FirstPartyRetailerApplicationOutboundResult getFirstPartyApplication(String applicantUserId);
+
     record StartApplicationRecord(
             String actorId,
             String businessType,
@@ -127,5 +145,24 @@ public interface SellerMerchantOutboundPort {
             Instant createdAt,
             Instant updatedAt,
             long version
+    ) {}
+
+    record C2CApplicationOutboundResult(
+            String merchantId,
+            String applicantUserId,
+            String type,
+            String status,
+            boolean completedContactInfo,
+            boolean completedBasicInfo
+    ) {}
+
+    record FirstPartyRetailerApplicationOutboundResult(
+            String merchantId,
+            String applicantUserId,
+            String type,
+            String status,
+            boolean completedContactInfo,
+            boolean completedBasicInfo,
+            boolean completedBusinessRegistration
     ) {}
 }

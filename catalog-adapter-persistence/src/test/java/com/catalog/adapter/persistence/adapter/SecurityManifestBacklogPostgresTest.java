@@ -18,7 +18,11 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 
-import java.time.LocalDateTime;
+import com.grab.framework.outbox.SerializedEvent;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -48,11 +52,11 @@ class SecurityManifestBacklogPostgresTest extends PostgreSqlTestContainer {
 
     @Test
     void status_mixedOutboxEvents_countsOnlyUnpublishedManifestEvents() {
-        LocalDateTime oldest = LocalDateTime.of(2026, 10, 1, 0, 0);
+        Instant oldest = Instant.parse("2026-10-01T00:00:00Z");
         event("SecurityManifest", OutboxStatus.NEW, oldest);
-        event("SecurityManifest", OutboxStatus.FAILED, oldest.plusMinutes(2));
-        event("SecurityManifest", OutboxStatus.PUBLISHED, oldest.minusMinutes(5));
-        event("Product", OutboxStatus.NEW, oldest.minusMinutes(10));
+        event("SecurityManifest", OutboxStatus.FAILED, oldest.plus(2, ChronoUnit.MINUTES));
+        event("SecurityManifest", OutboxStatus.PUBLISHED, oldest.minus(5, ChronoUnit.MINUTES));
+        event("Product", OutboxStatus.NEW, oldest.minus(10, ChronoUnit.MINUTES));
         entityManager.flush();
         entityManager.clear();
 
@@ -62,17 +66,23 @@ class SecurityManifestBacklogPostgresTest extends PostgreSqlTestContainer {
         assertThat(result.oldestPendingAt()).isEqualTo(oldest.toString());
     }
 
-    private void event(String aggregateType, OutboxStatus status, LocalDateTime occurredAt) {
-        CatalogOutboxEvent event = new CatalogOutboxEvent();
-        event.setAggregateType(aggregateType);
-        event.setAggregateId("catalog");
-        event.setEventType("TestEvent");
-        event.setEventVersion(1);
-        event.setHeaders("{}");
-        event.setPayload("{}");
-        event.setStatus(status);
-        event.setOccurredAt(occurredAt);
-        event.setAvailableAt(occurredAt);
+    private void event(String aggregateType, OutboxStatus status, Instant occurredAt) {
+        CatalogOutboxEvent event = CatalogOutboxEvent.pending(
+                UUID.randomUUID(),
+                aggregateType,
+                "catalog",
+                new SerializedEvent("TestEvent", "{}", 1, "{}"),
+                occurredAt
+        );
+        if (status != OutboxStatus.NEW) {
+            event.markProcessing(occurredAt, "claim");
+        }
+        if (status == OutboxStatus.FAILED) {
+            event.markFailed("boom", occurredAt);
+        }
+        if (status == OutboxStatus.PUBLISHED) {
+            event.markPublished(occurredAt);
+        }
         entityManager.persist(event);
     }
 

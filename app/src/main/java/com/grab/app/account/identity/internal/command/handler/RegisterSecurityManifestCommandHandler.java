@@ -7,7 +7,6 @@ import com.identity.application.model.write.RegisterSecurityManifestCommand;
 import com.identity.application.model.write.RegisterSecurityManifestResult;
 import com.identity.application.port.inbound.RegisterSecurityManifestUseCase;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class RegisterSecurityManifestCommandHandler
@@ -21,7 +20,7 @@ public class RegisterSecurityManifestCommandHandler
 
     @Override
     @RequiresSecurityCatalog
-    @IdentityTransactional(propagation = Propagation.REQUIRES_NEW)
+    @IdentityTransactional
     public RegisterSecurityManifestResult handle(RegisterSecurityManifestCommand command) {
         return useCase.execute(command);
     }

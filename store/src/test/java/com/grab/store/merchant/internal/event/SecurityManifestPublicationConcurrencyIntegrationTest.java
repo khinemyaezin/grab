@@ -4,23 +4,23 @@ import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.grab.framework.cqrs.command.impl.DefaultCommandBus;
 import com.grab.framework.domain.Event;
+import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.outbox.JsonOutboxEventSerializer;
 import com.grab.framework.security.AuthorityDefinition;
+import com.grab.framework.security.ScopeDeclaration;
 import com.grab.framework.security.SecurityManifest;
 import com.grab.framework.security.SecurityManifestEnvelope;
 import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.framework.security.ScopeDeclaration;
-import com.grab.outbox.infrastructure.OutboxStore;
-import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.outbox.infrastructure.adapter.out.jpa.JpaOutboxDomainEventProducer;
+import com.grab.outbox.infrastructure.adapter.out.jpa.JpaOutboxStore;
+import com.grab.store.merchant.internal.command.handler.PublishMerchantSecurityManifestCommandHandler;
+import com.grab.store.shared.events.merchant.MerchantSecurityManifestDeclaredIntegrationEvent;
 import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationAdapter;
 import com.manifest.adapter.persistence.adapter.SecurityManifestPublicationStateProvider;
 import com.merchant.adapter.persistence.entity.MerchantSecurityManifestPublicationEntity;
 import com.merchant.adapter.persistence.outbox.MerchantOutboxEvent;
-import com.merchant.adapter.persistence.outbox.MerchantOutboxEventProducer;
 import com.merchant.application.model.write.PublishMerchantSecurityManifestCommand;
 import com.merchant.application.port.inbound.PublishMerchantSecurityManifestUseCase;
-import com.grab.store.merchant.internal.command.handler.PublishMerchantSecurityManifestCommandHandler;
-import com.grab.store.shared.events.merchant.MerchantSecurityManifestDeclaredIntegrationEvent;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,13 +42,12 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.sql.DataSource;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -65,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -491,10 +491,10 @@ class SecurityManifestPublicationConcurrencyIntegrationTest {
         @Bean("merchantPublication")
         SecurityManifestPublicationPort merchantPublication(
                 EntityManager entityManager,
-                OutboxStore<MerchantOutboxEvent, Long> outboxStore,
+                JpaOutboxStore<MerchantOutboxEvent, Long> outboxStore,
                 PublicationTestControl control) {
             JsonOutboxEventSerializer serializer = new JsonOutboxEventSerializer();
-            MerchantOutboxEventProducer outbox = new MerchantOutboxEventProducer(outboxStore, serializer);
+            DomainEventProducer outbox = new JpaOutboxDomainEventProducer<>("merchant", outboxStore, serializer, MerchantOutboxEvent::pending);
             var baseProvider = SecurityManifestPublicationStateProvider.optimisticProvider(
                     entityManager, MerchantSecurityManifestPublicationEntity.class, control::createState);
             Function<String, MerchantSecurityManifestPublicationEntity> stateProvider = moduleKey -> {

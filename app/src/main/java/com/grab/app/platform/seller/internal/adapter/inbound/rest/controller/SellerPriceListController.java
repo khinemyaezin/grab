@@ -5,11 +5,12 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.Cr
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.PriceListResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerPricingCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerPricingQueryService;
-import com.grab.app.platform.seller.port.rest.SellerPriceListResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -18,29 +19,22 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/pricing/price-lists")
-public class SellerPriceListController implements SellerPriceListResource {
+@RequiredArgsConstructor
+public class SellerPriceListController {
 
     private final SellerPricingCommandService commandService;
     private final SellerPricingQueryService queryService;
     private final PriceListModelAssembler modelAssembler;
 
-    public SellerPriceListController(
-            SellerPricingCommandService commandService,
-            SellerPricingQueryService queryService,
-            PriceListModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
-
     @PostMapping
-    public ResponseEntity<EntityModel<PriceListResponse>> createPriceList(@Valid @RequestBody CreatePriceListRequest request) {
+    public ResponseEntity<EntityModel<PriceListResponse>> createPriceList(
+            @Valid @RequestBody CreatePriceListRequest request) {
         PriceListResponse response = commandService.createPriceList(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.id())
                 .toUri();
-        return ResponseEntity.created(location).body(modelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(modelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{priceListId}")
@@ -54,7 +48,6 @@ public class SellerPriceListController implements SellerPriceListResource {
     @GetMapping
     public ResponseEntity<CollectionModel<EntityModel<PriceListResponse>>> listPriceLists() {
         List<PriceListResponse> results = queryService.listPriceLists();
-        List<EntityModel<PriceListResponse>> models = results.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.listPriceListsModel(results));
     }
 }

@@ -95,5 +95,30 @@
             <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>outbox-infrastructure</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>scheduling-infrastructure</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.coolstuff.ecommerce.grab</groupId>
+            <artifactId>scheduling-infrastructure</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

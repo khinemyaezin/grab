@@ -3,46 +3,80 @@ package com.identity.application.service;
 import com.grab.framework.id.impl.CommonId;
 import com.grab.framework.security.*;
 import com.identity.application.model.write.RegisterSecurityManifestCommand;
+import com.identity.application.model.write.RegisterSecurityManifestResult;
+import com.identity.application.model.write.RevalidateSecurityManifestCommand;
 import com.identity.domain.aggregate.SecurityCatalog;
 import com.identity.domain.port.outbound.*;
 import com.identity.domain.security.*;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RegisterSecurityManifestServiceTest {
+    private static final UUID FIRST_DELIVERY = UUID.randomUUID();
+    private static final UUID SECOND_DELIVERY = UUID.randomUUID();
     @Test
     void execute_duplicateAndSemanticReplay_doNotRepeatActivation() {
         var storage = new Storage();
-        var service = new RegisterSecurityManifestService(storage, storage, storage);
+        AtomicReference<UUID> deliveryId = new AtomicReference<>(FIRST_DELIVERY);
+        RegisterSecurityManifestService service = new RegisterSecurityManifestService(
+                storage, storage, storage, deliveryId::get);
         var manifest = merchant("Read");
-        var command = new RegisterSecurityManifestCommand(manifest, "event-1");
+        var command = new RegisterSecurityManifestCommand(manifest);
         assertThat(service.execute(command).newlyActivated()).isTrue();
         assertThat(service.execute(command).newlyActivated()).isFalse();
         storage.receipts.clear();
-        assertThat(service.execute(new RegisterSecurityManifestCommand(manifest, "event-2")).newlyActivated()).isFalse();
+        deliveryId.set(SECOND_DELIVERY);
+        assertThat(service.execute(new RegisterSecurityManifestCommand(manifest)).newlyActivated()).isFalse();
         assertThat(storage.activations).isEqualTo(1);
-        assertThat(storage.candidates.get("merchant:2").eventId()).isEqualTo("event-1");
+        assertThat(storage.candidates.get("merchant:2").eventId()).isEqualTo(FIRST_DELIVERY.toString());
     }
 
     @Test
     void execute_conflictingDelivery_preservesReceiptAndCanonicalPayload() {
         var storage = new Storage();
-        var service = new RegisterSecurityManifestService(storage, storage, storage);
+        AtomicReference<UUID> deliveryId = new AtomicReference<>(FIRST_DELIVERY);
+        RegisterSecurityManifestService service = new RegisterSecurityManifestService(
+                storage, storage, storage, deliveryId::get);
         var original = merchant("Read");
-        service.execute(new RegisterSecurityManifestCommand(original, "event-1"));
+        service.execute(new RegisterSecurityManifestCommand(original));
         var collision = merchant("Changed");
-        var result = service.execute(new RegisterSecurityManifestCommand(collision, "event-1"));
+        var result = service.execute(new RegisterSecurityManifestCommand(collision));
         assertThat(result.outcome()).isEqualTo("QUARANTINED");
         assertThat(storage.conflicts).isEqualTo(1);
-        assertThat(storage.receipts.get("event-1").status()).isEqualTo(SecurityManifestCandidateStatus.APPLIED);
+        assertThat(storage.receipts.get(FIRST_DELIVERY.toString()).status()).isEqualTo(SecurityManifestCandidateStatus.APPLIED);
         assertThat(storage.candidates.get("merchant:2").manifest()).isEqualTo(original);
         assertThat(storage.activations).isEqualTo(1);
+    }
+
+    @Test
+    void revalidationReusesStoredCandidateIdentityWithoutDeliveryContext() {
+        Storage storage = new Storage();
+        SecurityManifest manifest = merchant("Read");
+        String storedIdentity = "existing-publication-id";
+        SecurityManifestCandidate candidate = new SecurityManifestCandidate(storedIdentity, manifest,
+                SecurityManifestCandidateStatus.WAITING_DEPENDENCY, null, Instant.now(), null);
+        storage.save(candidate);
+        RegisterSecurityManifestService registration = new RegisterSecurityManifestService(
+                storage, storage, storage, () -> {
+                    throw new AssertionError("revalidation requested a delivery UUID");
+                });
+        RevalidateSecurityManifestService service = new RevalidateSecurityManifestService(storage, storage, registration);
+        RevalidateSecurityManifestCommand command = new RevalidateSecurityManifestCommand("merchant", 2);
+
+        RegisterSecurityManifestResult result = service.execute(command);
+
+        assertThat(result.outcome()).isEqualTo(SecurityManifestCandidateStatus.APPLIED.name());
+        assertThat(storage.receipts).containsOnlyKeys(storedIdentity);
+        assertThat(storage.candidates.get("merchant:2").eventId()).isEqualTo(storedIdentity);
     }
 
     private SecurityManifest merchant(String name) {

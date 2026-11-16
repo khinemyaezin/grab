@@ -1,89 +1,116 @@
 package com.grab.app.merchandising.inventory.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.outbox.JsonOutboxEventSerializer;
-import com.grab.framework.outbox.OutboxEventDispatcher;
-import com.grab.framework.outbox.OutboxEventSerializer;
-import com.grab.framework.outbox.OutboxRelay;
-import com.grab.outbox.infrastructure.OutboxRelays;
-import com.grab.outbox.infrastructure.OutboxStore;
-import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.outbox.infrastructure.core.port.in.DeliverOutboxEventsUseCase;
+import com.grab.outbox.infrastructure.inbox.ObservedProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.outbox.infrastructure.module.OutboxModule;
+import com.grab.scheduling.infrastructure.InboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ModuleJobScheduler;
+import com.grab.scheduling.infrastructure.OutboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ScheduledJob;
+import com.grab.scheduling.infrastructure.ShedLockSingletonJobExecutor;
 import com.inventory.adapter.persistence.outbox.InventoryOutboxEvent;
-import com.inventory.adapter.persistence.outbox.InventoryOutboxEventProcessor;
-import com.inventory.adapter.persistence.outbox.InventoryOutboxEventProducer;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.UnaryOperator;
+import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 public class InventoryModuleOutboxConfig {
 
-    @Bean("inventoryOutboxEventSerializer")
-    public OutboxEventSerializer inventoryOutboxEventSerializer() {
-        return new JsonOutboxEventSerializer();
-    }
-
-    @Bean("inventoryOutboxEventDispatcher")
-    public OutboxEventDispatcher inventoryOutboxEventDispatcher(ApplicationEventPublisher applicationEventPublisher) {
-        return applicationEventPublisher::publishEvent;
-    }
-
-    @Bean("inventoryOutboxStore")
-    public OutboxStore<InventoryOutboxEvent, Long> inventoryOutboxStore(JpaContext context) {
-        return new JpaOutboxStore<>(
-                context.getEntityManagerByManagedType(InventoryOutboxEvent.class),
-                InventoryOutboxEvent.class
-        );
-    }
-
-    @Bean("inventoryOutboxRelay")
-    public OutboxRelay<Long> inventoryOutboxRelay(
-            @Value("${inventory.outbox.hot-queue.enabled:true}") boolean enabled,
-            @Value("${inventory.outbox.hot-queue.workers:2}") int workers,
-            @Value("${inventory.outbox.hot-queue.capacity:1000}") int capacity,
-            @Value("${inventory.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    @Bean("inventorySingletonJobExecutor")
+    public SingletonJobExecutor inventorySingletonJobExecutor(
+            @Qualifier("catalogDataSource") DataSource dataSource,
+            @Value("${inventory.flyway.default-schema:inventory}") String schema,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
     ) {
-        return OutboxRelays.moduleRelay("inventory", enabled, workers, capacity, drainTimeoutMs);
+        MeterRegistry meterRegistry = meters.getIfAvailable();
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "inventory.scheduling", meterRegistry);
+    }
+
+    @Bean("inventoryOutboxModule")
+    public OutboxModule<InventoryOutboxEvent> inventoryOutboxModule(
+            JpaContext context,
+            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
+            ApplicationEventPublisher publisher,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(InventoryOutboxEvent.class);
+        return OutboxModule.builder("inventory", InventoryOutboxEvent.class, InventoryOutboxEvent::pending)
+                .entityManager(entityManager)
+                .transactionManager(transactionManager)
+                .eventPublisher(publisher)
+                .properties(environment)
+                .meterRegistry(meters.getIfAvailable())
+                .build();
     }
 
     @Bean("inventoryDomainEventProducer")
     public DomainEventProducer inventoryDomainEventProducer(
-            @Qualifier("inventoryOutboxStore") OutboxStore<InventoryOutboxEvent, Long> outboxStore,
-            @Qualifier("inventoryOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("inventoryOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("inventoryOutboxModule") OutboxModule<InventoryOutboxEvent> outbox
     ) {
-        return new InventoryOutboxEventProducer(outboxStore, serializer, relay);
+        return outbox.producer();
     }
 
-    @Bean("inventoryOutboxEventProcessor")
-    public InventoryOutboxEventProcessor inventoryOutboxEventProcessor(
-            @Qualifier("inventoryOutboxStore") OutboxStore<InventoryOutboxEvent, Long> outboxStore,
-            @Qualifier("inventoryOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("inventoryOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
-            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${inventory.outbox.batch-size:20}") int batchSize,
-            @Value("${inventory.outbox.retry-delay-ms:30000}") long retryDelayMs,
-            @Value("${inventory.outbox.claim-timeout-ms:120000}") long claimTimeoutMs,
-            @Value("${inventory.outbox.retention-ms:604800000}") long retentionMs,
-            @Qualifier("inventoryOutboxRelay") OutboxRelay<Long> relay
+    @Bean("inventoryInProcessDomainEventPublisher")
+    public DomainEventProducer inventoryInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
     ) {
-        return new InventoryOutboxEventProcessor(
-                outboxStore,
-                serializer,
-                dispatcher,
-                transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelayMs),
-                Duration.ofMillis(claimTimeoutMs),
-                Duration.ofMillis(retentionMs),
-                relay
-        );
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
+    @Bean("inventoryInboxDecorator")
+    public UnaryOperator<ProcessedEventRepository> inventoryInboxDecorator(ObjectProvider<MeterRegistry> meters) {
+        return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);
+    }
+
+    @Bean("inventoryProcessedEventRetention")
+    public ProcessedEventRetention inventoryProcessedEventRetention(
+            @Qualifier("inventoryProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
+            @Value("${inventory.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${inventory.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "inventory", processedEvents, transactionManager, retention, batchSize);
+    }
+
+    @Bean("inventoryJobScheduler")
+    public ModuleJobScheduler inventoryJobScheduler(
+            @Qualifier("inventoryOutboxModule") OutboxModule<InventoryOutboxEvent> outbox,
+            @Qualifier("inventorySingletonJobExecutor") SingletonJobExecutor executor,
+            @Qualifier("inventoryProcessedEventRetention") ProcessedEventRetention inbox,
+            Environment environment
+    ) {
+        DeliverOutboxEventsUseCase<Long> delivery = outbox.delivery();
+        List<ScheduledJob> outboxJobs = OutboxScheduledJobs.of("inventory", delivery::pollOnce, outbox.cleanupJob(),
+                delivery::cleanupPublished, executor, environment);
+        List<ScheduledJob> jobs = new ArrayList<>(outboxJobs);
+        jobs.add(InboxScheduledJobs.of("inventory", inbox::purgeExpired, executor, environment));
+        return ModuleJobScheduler.fromProperties("inventory", jobs, environment);
     }
 }
-

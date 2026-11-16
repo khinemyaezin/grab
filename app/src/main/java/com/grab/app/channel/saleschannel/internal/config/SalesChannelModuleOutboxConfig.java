@@ -1,89 +1,116 @@
 package com.grab.app.channel.saleschannel.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.outbox.JsonOutboxEventSerializer;
-import com.grab.framework.outbox.OutboxEventDispatcher;
-import com.grab.framework.outbox.OutboxEventSerializer;
-import com.grab.framework.outbox.OutboxRelay;
-import com.grab.outbox.infrastructure.OutboxRelays;
-import com.grab.outbox.infrastructure.OutboxStore;
-import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.outbox.infrastructure.core.port.in.DeliverOutboxEventsUseCase;
+import com.grab.outbox.infrastructure.inbox.ObservedProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.outbox.infrastructure.module.OutboxModule;
+import com.grab.scheduling.infrastructure.InboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ModuleJobScheduler;
+import com.grab.scheduling.infrastructure.OutboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ScheduledJob;
+import com.grab.scheduling.infrastructure.ShedLockSingletonJobExecutor;
 import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEvent;
-import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEventProcessor;
-import com.saleschannel.adapter.persistence.outbox.SalesChannelOutboxEventProducer;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.UnaryOperator;
+import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 public class SalesChannelModuleOutboxConfig {
 
-    @Bean("salesChannelOutboxEventSerializer")
-    public OutboxEventSerializer salesChannelOutboxEventSerializer() {
-        return new JsonOutboxEventSerializer();
-    }
-
-    @Bean("salesChannelOutboxEventDispatcher")
-    public OutboxEventDispatcher salesChannelOutboxEventDispatcher(ApplicationEventPublisher publisher) {
-        return publisher::publishEvent;
-    }
-
-    @Bean("salesChannelOutboxStore")
-    public OutboxStore<SalesChannelOutboxEvent, Long> salesChannelOutboxStore(JpaContext context) {
-        return new JpaOutboxStore<>(
-                context.getEntityManagerByManagedType(SalesChannelOutboxEvent.class),
-                SalesChannelOutboxEvent.class
-        );
-    }
-
-    @Bean("salesChannelOutboxRelay")
-    public OutboxRelay<Long> salesChannelOutboxRelay(
-            @Value("${saleschannel.outbox.hot-queue.enabled:true}") boolean enabled,
-            @Value("${saleschannel.outbox.hot-queue.workers:2}") int workers,
-            @Value("${saleschannel.outbox.hot-queue.capacity:1000}") int capacity,
-            @Value("${saleschannel.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    @Bean("salesChannelSingletonJobExecutor")
+    public SingletonJobExecutor salesChannelSingletonJobExecutor(
+            @Qualifier("channelDataSource") DataSource dataSource,
+            @Value("${saleschannel.flyway.default-schema:saleschannel}") String schema,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
     ) {
-        return OutboxRelays.moduleRelay("saleschannel", enabled, workers, capacity, drainTimeoutMs);
+        MeterRegistry meterRegistry = meters.getIfAvailable();
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "saleschannel.scheduling", meterRegistry);
+    }
+
+    @Bean("salesChannelOutboxModule")
+    public OutboxModule<SalesChannelOutboxEvent> salesChannelOutboxModule(
+            JpaContext context,
+            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
+            ApplicationEventPublisher publisher,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(SalesChannelOutboxEvent.class);
+        return OutboxModule.builder("saleschannel", SalesChannelOutboxEvent.class, SalesChannelOutboxEvent::pending)
+                .entityManager(entityManager)
+                .transactionManager(transactionManager)
+                .eventPublisher(publisher)
+                .properties(environment)
+                .meterRegistry(meters.getIfAvailable())
+                .build();
     }
 
     @Bean("salesChannelDomainEventProducer")
     public DomainEventProducer salesChannelDomainEventProducer(
-            @Qualifier("salesChannelOutboxStore") OutboxStore<SalesChannelOutboxEvent, Long> store,
-            @Qualifier("salesChannelOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("salesChannelOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("salesChannelOutboxModule") OutboxModule<SalesChannelOutboxEvent> outbox
     ) {
-        return new SalesChannelOutboxEventProducer(store, serializer, relay);
+        return outbox.producer();
     }
 
-    @Bean("salesChannelOutboxEventProcessor")
-    public SalesChannelOutboxEventProcessor salesChannelOutboxEventProcessor(
-            @Qualifier("salesChannelOutboxStore") OutboxStore<SalesChannelOutboxEvent, Long> store,
-            @Qualifier("salesChannelOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("salesChannelOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
-            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${saleschannel.outbox.batch-size:20}") int batchSize,
-            @Value("${saleschannel.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${saleschannel.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${saleschannel.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("salesChannelOutboxRelay") OutboxRelay<Long> relay
+    @Bean("salesChannelInProcessDomainEventPublisher")
+    public DomainEventProducer salesChannelInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
     ) {
-        return new SalesChannelOutboxEventProcessor(
-                store,
-                serializer,
-                dispatcher,
-                transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
-        );
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
+    @Bean("salesChannelInboxDecorator")
+    public UnaryOperator<ProcessedEventRepository> salesChannelInboxDecorator(ObjectProvider<MeterRegistry> meters) {
+        return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);
+    }
+
+    @Bean("salesChannelProcessedEventRetention")
+    public ProcessedEventRetention salesChannelProcessedEventRetention(
+            @Qualifier("salesChannelProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
+            @Value("${saleschannel.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${saleschannel.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "saleschannel", processedEvents, transactionManager, retention, batchSize);
+    }
+
+    @Bean("salesChannelJobScheduler")
+    public ModuleJobScheduler salesChannelJobScheduler(
+            @Qualifier("salesChannelOutboxModule") OutboxModule<SalesChannelOutboxEvent> outbox,
+            @Qualifier("salesChannelSingletonJobExecutor") SingletonJobExecutor executor,
+            @Qualifier("salesChannelProcessedEventRetention") ProcessedEventRetention inbox,
+            Environment environment
+    ) {
+        DeliverOutboxEventsUseCase<Long> delivery = outbox.delivery();
+        List<ScheduledJob> outboxJobs = OutboxScheduledJobs.of("saleschannel", delivery::pollOnce, outbox.cleanupJob(),
+                delivery::cleanupPublished, executor, environment);
+        List<ScheduledJob> jobs = new ArrayList<>(outboxJobs);
+        jobs.add(InboxScheduledJobs.of("saleschannel", inbox::purgeExpired, executor, environment));
+        return ModuleJobScheduler.fromProperties("saleschannel", jobs, environment);
     }
 }
-

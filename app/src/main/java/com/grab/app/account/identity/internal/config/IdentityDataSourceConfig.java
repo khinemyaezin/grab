@@ -5,7 +5,6 @@ import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -41,7 +40,6 @@ import java.util.Map;
 public class IdentityDataSourceConfig {
 
     @Bean(name = "identityFlyway", initMethod = "migrate")
-    @ConditionalOnProperty(prefix = "identity.seed", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Flyway identityFlyway(
             @Qualifier("accountDataSource") DataSource dataSource,
             @Value("${identity.flyway.default-schema:identity}") String schema,

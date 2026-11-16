@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,12 +43,15 @@ class RegisterRoleDeclarationServiceTest {
     private final FakeRoleRepository roles = new FakeRoleRepository();
     private final FakeAuthorityRepository authorities = new FakeAuthorityRepository();
     private final FakeRoleDeclarationRepository declarations = new FakeRoleDeclarationRepository();
+    private static final UUID FIRST_DELIVERY = UUID.randomUUID();
+    private static final UUID SECOND_DELIVERY = UUID.randomUUID();
+    private UUID eventId = FIRST_DELIVERY;
     private RegisterRoleDeclarationService service;
 
     @BeforeEach
     void setUp() {
         catalogs.catalog = catalogWithPermissionDependencies();
-        service = new RegisterRoleDeclarationService(catalogs, roles, authorities, declarations, new TestIdGenerator());
+        service = new RegisterRoleDeclarationService(catalogs, roles, authorities, declarations, new TestIdGenerator(), this::requireEventId);
     }
 
     @Test
@@ -60,7 +64,7 @@ class RegisterRoleDeclarationServiceTest {
         authorities.activeAuthorities = Set.of(authority);
 
         RegisterRoleDeclarationResult result =
-                service.execute(new RegisterRoleDeclarationCommand(declaration(), "event-1"));
+                service.execute(new RegisterRoleDeclarationCommand(declaration()));
 
         assertThat(result.outcome()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED.name());
         assertThat(role.isActive()).isTrue();
@@ -69,7 +73,7 @@ class RegisterRoleDeclarationServiceTest {
         assertThat(declarations.states.get("MERCHANT_ADMIN").appliedRevision()).isEqualTo(1);
         assertThat(declarations.candidates.values()).extracting(RoleDeclarationCandidate::status)
                 .containsExactly(RoleDeclarationCandidateStatus.APPLIED);
-        assertThat(declarations.receipts.get("event-1").status()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED);
+        assertThat(declarations.receipts.get(FIRST_DELIVERY.toString()).status()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED);
     }
 
     @Test
@@ -83,14 +87,22 @@ class RegisterRoleDeclarationServiceTest {
         RoleDeclaration declaration = declaration();
 
         RegisterRoleDeclarationResult first =
-                service.execute(new RegisterRoleDeclarationCommand(declaration, "event-1"));
+                service.execute(new RegisterRoleDeclarationCommand(declaration));
+        eventId = SECOND_DELIVERY;
         RegisterRoleDeclarationResult duplicate =
-                service.execute(new RegisterRoleDeclarationCommand(declaration, "event-2"));
+                service.execute(new RegisterRoleDeclarationCommand(declaration));
 
         assertThat(first.outcome()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED.name());
         assertThat(duplicate.outcome()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED.name());
         assertThat(declarations.candidates).hasSize(1);
-        assertThat(declarations.receipts).containsOnlyKeys("event-1");
+        assertThat(declarations.receipts).containsOnlyKeys(FIRST_DELIVERY.toString());
+    }
+
+    private UUID requireEventId() {
+        if (eventId == null) {
+            throw new IllegalStateException("Missing delivery ID in test");
+        }
+        return eventId;
     }
 
     @Test
@@ -103,28 +115,28 @@ class RegisterRoleDeclarationServiceTest {
         roles.save(role);
 
         RegisterRoleDeclarationResult result =
-                service.execute(new RegisterRoleDeclarationCommand(declaration(), "event-1"));
+                service.execute(new RegisterRoleDeclarationCommand(declaration()));
 
         assertThat(result.outcome()).isEqualTo(RoleDeclarationCandidateStatus.WAITING_DEPENDENCY.name());
         assertThat(role.isActive()).isFalse();
         assertThat(role.isAssignable()).isFalse();
         assertThat(declarations.candidates.values()).extracting(RoleDeclarationCandidate::status)
                 .containsExactly(RoleDeclarationCandidateStatus.WAITING_DEPENDENCY);
-        assertThat(declarations.receipts.get("event-1").status())
+        assertThat(declarations.receipts.get(FIRST_DELIVERY.toString()).status())
                 .isEqualTo(RoleDeclarationCandidateStatus.WAITING_DEPENDENCY);
     }
 
     @Test
     void executeWithInvalidDigestQuarantinesWithoutLoadingCatalog() {
         RegisterRoleDeclarationCommand command = new RegisterRoleDeclarationCommand(
-                declaration(), "event-1", "invalid-digest", null);
+                declaration(), "invalid-digest", null);
 
         RegisterRoleDeclarationResult result = service.execute(command);
 
         assertThat(result.outcome()).isEqualTo(RoleDeclarationCandidateStatus.QUARANTINED.name());
         assertThat(declarations.conflicts).hasSize(1);
         assertThat(catalogs.loadCount).isZero();
-        assertThat(declarations.receipts.get("event-1").status()).isEqualTo(RoleDeclarationCandidateStatus.QUARANTINED);
+        assertThat(declarations.receipts.get(FIRST_DELIVERY.toString()).status()).isEqualTo(RoleDeclarationCandidateStatus.QUARANTINED);
     }
 
     @Test
@@ -137,20 +149,21 @@ class RegisterRoleDeclarationServiceTest {
                 true, false, Set.of());
         roles.save(role);
         RoleDeclaration declaration = declaration();
-        RegisterRoleDeclarationCommand originalCommand = new RegisterRoleDeclarationCommand(declaration, "event-1");
+        RegisterRoleDeclarationCommand originalCommand = new RegisterRoleDeclarationCommand(declaration);
         RegisterRoleDeclarationResult waiting = service.execute(originalCommand);
         assertThat(waiting.outcome()).isEqualTo(RoleDeclarationCandidateStatus.WAITING_DEPENDENCY.name());
 
         catalogs.catalog = catalogWithPermissionDependencies();
         Authority authority = Authority.create(new CommonId("a-1"), "CATALOG_READ", "catalog", "Catalog Read", "Read");
         authorities.activeAuthorities = Set.of(authority);
+        eventId = null;
         RegisterRoleDeclarationCommand revalidation = new RegisterRoleDeclarationCommand(
-                declaration, "event-1", declaration.contentDigest(), null, true);
+                declaration, declaration.contentDigest(), null, true);
 
         RegisterRoleDeclarationResult applied = service.execute(revalidation);
 
         assertThat(applied.outcome()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED.name());
-        assertThat(declarations.receipts.get("event-1").status()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED);
+        assertThat(declarations.receipts.get(FIRST_DELIVERY.toString()).status()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED);
         assertThat(role.isAssignable()).isTrue();
     }
 
@@ -165,22 +178,24 @@ class RegisterRoleDeclarationServiceTest {
         roles.save(role);
         RoleDeclaration revisionOne = declaration(1);
         RegisterRoleDeclarationResult waiting = service.execute(
-                new RegisterRoleDeclarationCommand(revisionOne, "event-1"));
+                new RegisterRoleDeclarationCommand(revisionOne));
         assertThat(waiting.outcome()).isEqualTo(RoleDeclarationCandidateStatus.WAITING_DEPENDENCY.name());
 
         catalogs.catalog = catalogWithPermissionDependencies();
         Authority authority = Authority.create(new CommonId("a-1"), "CATALOG_READ", "catalog", "Catalog Read", "Read");
         authorities.activeAuthorities = Set.of(authority);
         RoleDeclaration revisionTwo = declaration(2);
+        eventId = SECOND_DELIVERY;
         RegisterRoleDeclarationResult applied = service.execute(
-                new RegisterRoleDeclarationCommand(revisionTwo, "event-2"));
+                new RegisterRoleDeclarationCommand(revisionTwo));
+        eventId = null;
         RegisterRoleDeclarationResult superseded = service.execute(new RegisterRoleDeclarationCommand(
-                revisionOne, "event-1", revisionOne.contentDigest(), null, true));
+                revisionOne, revisionOne.contentDigest(), null, true));
 
         assertThat(applied.outcome()).isEqualTo(RoleDeclarationCandidateStatus.APPLIED.name());
         assertThat(superseded.outcome()).isEqualTo(RoleDeclarationCandidateStatus.SUPERSEDED.name());
         assertThat(declarations.states.get("MERCHANT_ADMIN").appliedRevision()).isEqualTo(2);
-        assertThat(declarations.receipts.get("event-1").status()).isEqualTo(RoleDeclarationCandidateStatus.SUPERSEDED);
+        assertThat(declarations.receipts.get(FIRST_DELIVERY.toString()).status()).isEqualTo(RoleDeclarationCandidateStatus.SUPERSEDED);
         assertThat(role.isAssignable()).isTrue();
     }
 

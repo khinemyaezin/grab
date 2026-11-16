@@ -1,7 +1,22 @@
 package com.inventory.adapter.persistence.config;
 
 import com.grab.framework.event.DomainEventProducer;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import com.grab.framework.support.PersistenceExecutor;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.inventory.adapter.persistence.adapter.*;
+import com.inventory.adapter.persistence.adapter.InventorySecurityManifestEventFactory;
+import com.inventory.adapter.persistence.adapter.InventorySecurityManifestPublicationAdapter;
+import com.inventory.adapter.persistence.adapter.InventorySecurityManifestPublicationQueryAdapter;
+import com.inventory.adapter.persistence.adapter.ProductVariantViewQueryAdapter;
+import com.inventory.adapter.persistence.entity.BinEntity;
+import com.inventory.adapter.persistence.entity.InventoryItemEntity;
+import com.inventory.adapter.persistence.entity.InventorySecurityManifestPublicationEntity;
+import com.inventory.adapter.persistence.entity.LocationEntity;
+import com.inventory.adapter.persistence.entity.ZoneEntity;
+import com.inventory.adapter.persistence.mapper.ProductVariantProjectionMapper;
 import com.inventory.adapter.persistence.mapper.jpa.*;
 import com.inventory.adapter.persistence.mapper.jpa.impl.BinJpaAssemblerImpl;
 import com.inventory.adapter.persistence.mapper.jpa.impl.ChannelFulfillmentRouteJpaAssemblerImpl;
@@ -10,18 +25,29 @@ import com.inventory.adapter.persistence.mapper.jpa.impl.InventoryReservationJpa
 import com.inventory.adapter.persistence.mapper.jpa.impl.LocationJpaAssemblerImpl;
 import com.inventory.adapter.persistence.mapper.jpa.impl.StockMovementJpaAssemblerImpl;
 import com.inventory.adapter.persistence.mapper.jpa.impl.ZoneJpaAssemblerImpl;
-import com.inventory.adapter.persistence.adapter.ProductVariantViewQueryAdapter;
-import com.inventory.adapter.persistence.repository.jpa.ProductVariantViewJpaRepository;
-import com.inventory.application.port.outbound.ProductVariantViewQueryPort;
-import com.inventory.application.port.outbound.ProductVariantProjectionRepository;
-import com.inventory.adapter.persistence.mapper.ProductVariantProjectionMapper;
+import com.inventory.adapter.persistence.outbox.InventoryProcessedEvent;
 import com.inventory.adapter.persistence.repository.jpa.BinJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.ChannelFulfillmentRouteJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.InventoryItemJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.InventoryReservationJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.LocationJpaRepository;
+import com.inventory.adapter.persistence.repository.jpa.ProductVariantViewJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.StockMovementJpaRepository;
 import com.inventory.adapter.persistence.repository.jpa.ZoneJpaRepository;
+import com.inventory.adapter.persistence.specification.jpa.BinSearchSpecification;
+import com.inventory.adapter.persistence.specification.jpa.InventorySearchSpecification;
+import com.inventory.adapter.persistence.specification.jpa.InventorySummarySpecification;
+import com.inventory.adapter.persistence.specification.jpa.LocationSearchSpecification;
+import com.inventory.adapter.persistence.specification.jpa.ZoneSearchSpecification;
+import com.inventory.adapter.persistence.workflow.InventoryWorkflowStepRunner;
+import com.inventory.application.port.outbound.BinQueryPort;
+import com.inventory.application.port.outbound.InventoryQueryPort;
+import com.inventory.application.port.outbound.InventoryReservationQueryPort;
+import com.inventory.application.port.outbound.LocationQueryPort;
+import com.inventory.application.port.outbound.ProductVariantProjectionRepository;
+import com.inventory.application.port.outbound.ProductVariantViewQueryPort;
+import com.inventory.application.port.outbound.StockMovementQueryPort;
+import com.inventory.application.port.outbound.ZoneQueryPort;
 import com.inventory.domain.port.outbound.BinRepository;
 import com.inventory.domain.port.outbound.ChannelFulfillmentRouteRepository;
 import com.inventory.domain.port.outbound.InventoryRepository;
@@ -29,30 +55,8 @@ import com.inventory.domain.port.outbound.InventoryReservationRepository;
 import com.inventory.domain.port.outbound.LocationRepository;
 import com.inventory.domain.port.outbound.StockMovementRepository;
 import com.inventory.domain.port.outbound.ZoneRepository;
-import com.inventory.adapter.persistence.adapter.*;
-import com.inventory.adapter.persistence.entity.BinEntity;
-import com.inventory.adapter.persistence.entity.InventoryItemEntity;
-import com.inventory.adapter.persistence.entity.LocationEntity;
-import com.inventory.adapter.persistence.entity.ZoneEntity;
-import com.inventory.adapter.persistence.specification.jpa.BinSearchSpecification;
-import com.inventory.adapter.persistence.specification.jpa.InventorySearchSpecification;
-import com.inventory.adapter.persistence.specification.jpa.InventorySummarySpecification;
-import com.inventory.adapter.persistence.specification.jpa.LocationSearchSpecification;
-import com.inventory.adapter.persistence.specification.jpa.ZoneSearchSpecification;
-import com.inventory.application.port.outbound.BinQueryPort;
-import com.inventory.application.port.outbound.InventoryQueryPort;
-import com.inventory.application.port.outbound.InventoryReservationQueryPort;
-import com.inventory.application.port.outbound.LocationQueryPort;
-import com.inventory.application.port.outbound.StockMovementQueryPort;
-import com.inventory.application.port.outbound.ZoneQueryPort;
-import com.inventory.adapter.persistence.workflow.InventoryWorkflowStepRunner;
-import com.inventory.adapter.persistence.adapter.InventorySecurityManifestEventFactory;
-import com.inventory.adapter.persistence.adapter.InventorySecurityManifestPublicationAdapter;
-import com.inventory.adapter.persistence.adapter.InventorySecurityManifestPublicationQueryAdapter;
-import com.inventory.adapter.persistence.entity.InventorySecurityManifestPublicationEntity;
-import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.framework.security.SecurityManifestPublicationQueryPort;
 import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -62,6 +66,7 @@ import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
+import java.util.function.UnaryOperator;
 
 @Configuration
 public class InventoryPersistenceConfig {
@@ -75,12 +80,24 @@ public class InventoryPersistenceConfig {
         return new ProductVariantProjectionRepositoryAdapter(repository, mapper, executor);
     }
 
+    @Bean("inventoryProcessedEventRepository")
+    public ProcessedEventRepository inventoryProcessedEventRepository(
+            JpaContext context,
+            @Qualifier("inventoryInboxDecorator") ObjectProvider<UnaryOperator<ProcessedEventRepository>> decorator
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(InventoryProcessedEvent.class);
+        ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, InventoryProcessedEvent.class, InventoryProcessedEvent::of);
+        UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
+        return observe.apply(repository);
+    }
+
     @Bean
     public InventoryWorkflowStepRunner inventoryWorkflowSignalEmitter(
             @Qualifier("inventoryDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager
+            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("inventoryProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
-        return new InventoryWorkflowStepRunner(producer, transactionManager);
+        return new InventoryWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
 
@@ -167,7 +184,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public InventoryRepository inventoryRepository(InventoryItemJpaRepository jpaRepository,
                                                    InventoryJpaAssembler mapper,
-                                                   @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                                   @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                                    @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new InventoryRepositoryAdapter(
                 jpaRepository,
@@ -187,7 +204,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public LocationRepository locationRepository(LocationJpaRepository jpaRepository,
                                                  LocationJpaAssembler mapper,
-                                                 @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                                 @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                                  @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new LocationRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }
@@ -197,7 +214,7 @@ public class InventoryPersistenceConfig {
             ChannelFulfillmentRouteJpaRepository jpaRepository,
             LocationJpaRepository locationJpaRepository,
             ChannelFulfillmentRouteJpaAssembler mapper,
-            @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+            @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new ChannelFulfillmentRouteRepositoryAdapter(
@@ -212,7 +229,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public ZoneRepository zoneRepository(ZoneJpaRepository jpaRepository,
                                          ZoneJpaAssembler mapper,
-                                         @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                         @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                          @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new ZoneRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }
@@ -220,7 +237,7 @@ public class InventoryPersistenceConfig {
     @Bean
     public BinRepository binRepository(BinJpaRepository jpaRepository,
                                        BinJpaAssembler mapper,
-                                       @Qualifier("inventoryDomainEventProducer") DomainEventProducer domainEventProducer,
+                                       @Qualifier("inventoryInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
                                        @Qualifier("inventoryPersistenceExecutor") PersistenceExecutor executor) {
         return new BinRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
     }

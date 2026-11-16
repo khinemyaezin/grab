@@ -36,6 +36,10 @@ public interface MerchantAccountPort {
 
     List<MerchantMessageResult> listReviewQueue(String status);
 
+    C2CApplicationResult getC2CApplication(Id applicantUserId);
+
+    FirstPartyApplicationResult getFirstPartyApplication(Id applicantUserId);
+
     record StartMerchantApplicationMessage(
             Id applicantUserId,
             String businessType, // FIRST_PARTY, THIRD_PARTY, C2C
@@ -68,5 +72,24 @@ public interface MerchantAccountPort {
             String displayName,
             Instant createdAt,
             Instant updatedAt
+    ) {}
+
+    record C2CApplicationResult(
+            String merchantId,
+            String applicantUserId,
+            String type,
+            String status,
+            boolean completedContactInfo,
+            boolean completedBasicInfo
+    ) {}
+
+    record FirstPartyApplicationResult(
+            String merchantId,
+            String applicantUserId,
+            String type,
+            String status,
+            boolean completedContactInfo,
+            boolean completedBasicInfo,
+            boolean completedBusinessRegistration
     ) {}
 }

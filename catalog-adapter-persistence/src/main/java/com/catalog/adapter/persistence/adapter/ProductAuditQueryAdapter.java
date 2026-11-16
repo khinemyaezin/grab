@@ -4,6 +4,9 @@ import com.catalog.application.port.outbound.ProductAuditQueryPort;
 import com.catalog.adapter.persistence.repository.CatalogOutboxEventJpaRepo;
 import lombok.RequiredArgsConstructor;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -18,9 +21,13 @@ public class ProductAuditQueryAdapter implements ProductAuditQueryPort {
                 .map(event -> new AuditEntry(
                         event.getEventType(),
                         event.getStatus().name(),
-                        event.getOccurredAt(),
+                        toUtcLocalDateTime(event.getOccurredAt()),
                         event.getPayload()
                 ))
                 .toList();
+    }
+
+    private static LocalDateTime toUtcLocalDateTime(Instant instant) {
+        return instant == null ? null : LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

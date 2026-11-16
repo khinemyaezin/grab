@@ -1,0 +1,102 @@
+package com.grab.app.merchandising.pricing.internal.adapter.inbound.event;
+
+import com.grab.app.workflow.port.event.RequestSyncVariantPriceEvent;
+import com.grab.app.workflow.port.event.SellableProductStepFailedEvent;
+import com.grab.app.workflow.port.event.VariantPriceSyncedEvent;
+import com.grab.framework.cqrs.command.CommandBus;
+import com.grab.framework.domain.Event;
+import com.grab.framework.logger.Logger;
+import com.grab.framework.logger.Loggers;
+import com.pricing.adapter.persistence.workflow.PricingWorkflowStepRunner;
+import com.pricing.application.model.write.PriceRuleInput;
+import com.pricing.application.model.write.UpdateVariantPriceCommand;
+import com.pricing.application.model.write.UpdateVariantPriceResult;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+import java.util.List;
+
+@Component
+public class UpdateSellableProductPricingEventListener {
+
+    private static final Logger log = Loggers.getLogger(UpdateSellableProductPricingEventListener.class);
+    private static final int EVENT_VERSION = 1;
+    private static final String STEP_SYNC_VARIANT_PRICES = "sync-variant-prices";
+
+    private final CommandBus commandBus;
+    private final PricingWorkflowStepRunner signalEmitter;
+
+    public UpdateSellableProductPricingEventListener(
+            @Qualifier("merchandisingCommandBus") CommandBus commandBus,
+            PricingWorkflowStepRunner signalEmitter
+    ) {
+        this.commandBus = commandBus;
+        this.signalEmitter = signalEmitter;
+    }
+
+    @EventListener
+    public void onRequestSyncVariantPrice(RequestSyncVariantPriceEvent event) {
+        log.info(
+                "Handling RequestSyncVariantPriceEvent workflowId={} variantId={} sku={}",
+                event.workflowId(),
+                event.variantId(),
+                event.sku()
+        );
+        signalEmitter.runStep(
+                event.workflowId(),
+                () -> syncVariantPrice(event),
+                exception -> {
+                    log.warn(
+                            "Sync variant price failed for workflowId={} variantId={}: {}",
+                            event.workflowId(),
+                            event.variantId(),
+                            exception.getMessage()
+                    );
+                    return List.of(new SellableProductStepFailedEvent(
+                            event.workflowId(),
+                            STEP_SYNC_VARIANT_PRICES,
+                            exception.getMessage(),
+                            Instant.now(),
+                            EVENT_VERSION
+                    ));
+                }
+        );
+    }
+
+    private List<Event> syncVariantPrice(RequestSyncVariantPriceEvent event) {
+        List<PriceRuleInput> rules = event.rules().stream()
+                .map(rule -> new PriceRuleInput(
+                        rule.attribute(),
+                        rule.value(),
+                        rule.operator(),
+                        rule.priority()
+                ))
+                .toList();
+        UpdateVariantPriceResult result = commandBus.dispatch(
+                new UpdateVariantPriceCommand(
+                        event.variantId(),
+                        event.productId(),
+                        event.sku(),
+                        event.merchantId(),
+                        event.title(),
+                        event.currencyCode(),
+                        event.amount(),
+                        event.minQuantity(),
+                        event.maxQuantity(),
+                        rules
+                )
+        );
+        return List.of(new VariantPriceSyncedEvent(
+                event.workflowId(),
+                event.variantId(),
+                event.sku(),
+                result.priceSetId(),
+                result.priceSetCreated(),
+                Instant.now(),
+                EVENT_VERSION
+        ));
+    }
+}
+

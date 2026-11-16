@@ -1,89 +1,78 @@
 package com.grab.app.channel.region.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.outbox.JsonOutboxEventSerializer;
-import com.grab.framework.outbox.OutboxEventDispatcher;
-import com.grab.framework.outbox.OutboxEventSerializer;
-import com.grab.framework.outbox.OutboxRelay;
-import com.grab.outbox.infrastructure.OutboxRelays;
-import com.grab.outbox.infrastructure.OutboxStore;
-import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.outbox.infrastructure.core.port.in.DeliverOutboxEventsUseCase;
+import com.grab.outbox.infrastructure.module.OutboxModule;
+import com.grab.scheduling.infrastructure.ModuleJobScheduler;
+import com.grab.scheduling.infrastructure.OutboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ScheduledJob;
+import com.grab.scheduling.infrastructure.ShedLockSingletonJobExecutor;
 import com.region.adapter.persistence.outbox.RegionOutboxEvent;
-import com.region.adapter.persistence.outbox.RegionOutboxEventProcessor;
-import com.region.adapter.persistence.outbox.RegionOutboxEventProducer;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.Duration;
+import java.util.List;
+import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 public class RegionModuleOutboxConfig {
 
-    @Bean("regionOutboxEventSerializer")
-    public OutboxEventSerializer regionOutboxEventSerializer() {
-        return new JsonOutboxEventSerializer();
-    }
-
-    @Bean("regionOutboxEventDispatcher")
-    public OutboxEventDispatcher regionOutboxEventDispatcher(ApplicationEventPublisher publisher) {
-        return publisher::publishEvent;
-    }
-
-    @Bean("regionOutboxStore")
-    public OutboxStore<RegionOutboxEvent, Long> regionOutboxStore(JpaContext context) {
-        return new JpaOutboxStore<>(
-                context.getEntityManagerByManagedType(RegionOutboxEvent.class),
-                RegionOutboxEvent.class
-        );
-    }
-
-    @Bean("regionOutboxRelay")
-    public OutboxRelay<Long> regionOutboxRelay(
-            @Value("${region.outbox.hot-queue.enabled:true}") boolean enabled,
-            @Value("${region.outbox.hot-queue.workers:2}") int workers,
-            @Value("${region.outbox.hot-queue.capacity:1000}") int capacity,
-            @Value("${region.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    @Bean("regionSingletonJobExecutor")
+    public SingletonJobExecutor regionSingletonJobExecutor(
+            @Qualifier("channelDataSource") DataSource dataSource,
+            @Value("${region.flyway.default-schema:region}") String schema,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
     ) {
-        return OutboxRelays.moduleRelay("region", enabled, workers, capacity, drainTimeoutMs);
+        MeterRegistry meterRegistry = meters.getIfAvailable();
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "region.scheduling", meterRegistry);
+    }
+
+    @Bean("regionOutboxModule")
+    public OutboxModule<RegionOutboxEvent> regionOutboxModule(
+            JpaContext context,
+            @Qualifier("regionTransactionManager") PlatformTransactionManager transactionManager,
+            ApplicationEventPublisher publisher,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(RegionOutboxEvent.class);
+        return OutboxModule.builder("region", RegionOutboxEvent.class, RegionOutboxEvent::pending)
+                .entityManager(entityManager)
+                .transactionManager(transactionManager)
+                .eventPublisher(publisher)
+                .properties(environment)
+                .meterRegistry(meters.getIfAvailable())
+                .build();
     }
 
     @Bean("regionDomainEventProducer")
     public DomainEventProducer regionDomainEventProducer(
-            @Qualifier("regionOutboxStore") OutboxStore<RegionOutboxEvent, Long> store,
-            @Qualifier("regionOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("regionOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("regionOutboxModule") OutboxModule<RegionOutboxEvent> outbox
     ) {
-        return new RegionOutboxEventProducer(store, serializer, relay);
+        return outbox.producer();
     }
 
-    @Bean("regionOutboxEventProcessor")
-    public RegionOutboxEventProcessor regionOutboxEventProcessor(
-            @Qualifier("regionOutboxStore") OutboxStore<RegionOutboxEvent, Long> store,
-            @Qualifier("regionOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("regionOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
-            @Qualifier("regionTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${region.outbox.batch-size:20}") int batchSize,
-            @Value("${region.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${region.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${region.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("regionOutboxRelay") OutboxRelay<Long> relay
+    @Bean("regionJobScheduler")
+    public ModuleJobScheduler regionJobScheduler(
+            @Qualifier("regionOutboxModule") OutboxModule<RegionOutboxEvent> outbox,
+            @Qualifier("regionSingletonJobExecutor") SingletonJobExecutor executor,
+            Environment environment
     ) {
-        return new RegionOutboxEventProcessor(
-                store,
-                serializer,
-                dispatcher,
-                transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
-        );
+        DeliverOutboxEventsUseCase<Long> delivery = outbox.delivery();
+        List<ScheduledJob> jobs = OutboxScheduledJobs.of("region", delivery::pollOnce, outbox.cleanupJob(),
+                delivery::cleanupPublished, executor, environment);
+        return ModuleJobScheduler.fromProperties("region", jobs, environment);
     }
 }
-

@@ -1,45 +1,51 @@
 package com.saleschannel.adapter.persistence.config;
 
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.mapper.IdMapper;
 import com.grab.framework.id.IdGenerator;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.framework.mapper.IdMapper;
+import com.grab.framework.security.SecurityManifestPublicationPort;
+import com.grab.framework.security.SecurityManifestPublicationQueryPort;
+import com.grab.framework.support.PersistenceExecutor;
+import com.grab.outbox.infrastructure.inbox.jpa.JpaProcessedEventRepository;
+import com.manifest.adapter.persistence.SecurityManifestEventFactory;
+import com.saleschannel.adapter.persistence.adapter.ChannelRegionQueryAdapter;
 import com.saleschannel.adapter.persistence.adapter.PublishableKeyQueryAdapter;
 import com.saleschannel.adapter.persistence.adapter.PublishableKeyRepositoryAdapter;
-import com.saleschannel.adapter.persistence.entity.PublishableKeyJpaEntity;
-import com.saleschannel.adapter.persistence.mapper.PublishableKeyEntityMapper;
-import com.saleschannel.adapter.persistence.repository.jpa.PublishableKeyJpaRepository;
-import com.saleschannel.adapter.persistence.specification.jpa.PublishableKeyQuerySpecification;
-import com.saleschannel.application.port.outbound.PublishableKeyQueryPort;
-import com.saleschannel.domain.port.outbound.PublishableKeyRepository;
-import com.grab.framework.support.PersistenceExecutor;
-import com.saleschannel.application.port.outbound.SalesChannelQueryPort;
-import com.saleschannel.application.port.outbound.ChannelRegionLookupPort;
-import com.saleschannel.domain.port.outbound.SalesChannelRepository;
 import com.saleschannel.adapter.persistence.adapter.SalesChannelPersistenceExecutor;
 import com.saleschannel.adapter.persistence.adapter.SalesChannelQueryAdapter;
-import com.saleschannel.adapter.persistence.adapter.ChannelRegionQueryAdapter;
 import com.saleschannel.adapter.persistence.adapter.SalesChannelRepositoryAdapter;
+import com.saleschannel.adapter.persistence.adapter.SalesChannelSecurityManifestPublicationAdapter;
+import com.saleschannel.adapter.persistence.adapter.SalesChannelSecurityManifestPublicationQueryAdapter;
+import com.saleschannel.adapter.persistence.entity.PublishableKeyJpaEntity;
 import com.saleschannel.adapter.persistence.entity.SalesChannelEntity;
+import com.saleschannel.adapter.persistence.entity.SalesChannelSecurityManifestPublicationEntity;
+import com.saleschannel.adapter.persistence.mapper.PublishableKeyEntityMapper;
 import com.saleschannel.adapter.persistence.mapper.SalesChannelEntityMapper;
 import com.saleschannel.adapter.persistence.mapper.impl.SalesChannelJpaAssembler;
-import com.saleschannel.adapter.persistence.repository.SalesChannelJpaRepository;
+import com.saleschannel.adapter.persistence.outbox.SalesChannelProcessedEvent;
 import com.saleschannel.adapter.persistence.repository.ChannelRegionJpaRepository;
+import com.saleschannel.adapter.persistence.repository.SalesChannelJpaRepository;
+import com.saleschannel.adapter.persistence.repository.jpa.PublishableKeyJpaRepository;
 import com.saleschannel.adapter.persistence.specification.SalesChannelQuerySpecification;
+import com.saleschannel.adapter.persistence.specification.jpa.PublishableKeyQuerySpecification;
 import com.saleschannel.adapter.persistence.workflow.SalesChannelWorkflowStepRunner;
+import com.saleschannel.application.port.outbound.ChannelRegionLookupPort;
+import com.saleschannel.application.port.outbound.PublishableKeyQueryPort;
+import com.saleschannel.application.port.outbound.SalesChannelQueryPort;
+import com.saleschannel.domain.port.outbound.PublishableKeyRepository;
+import com.saleschannel.domain.port.outbound.SalesChannelRepository;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
-import jakarta.persistence.EntityManager;
+
 import java.time.Duration;
-import com.grab.framework.security.SecurityManifestPublicationPort;
-import com.grab.framework.security.SecurityManifestPublicationQueryPort;
-import com.manifest.adapter.persistence.SecurityManifestEventFactory;
-import com.saleschannel.adapter.persistence.adapter.SalesChannelSecurityManifestPublicationAdapter;
-import com.saleschannel.adapter.persistence.adapter.SalesChannelSecurityManifestPublicationQueryAdapter;
-import com.saleschannel.adapter.persistence.entity.SalesChannelSecurityManifestPublicationEntity;
+import java.util.function.UnaryOperator;
 
 @Configuration
 public class SalesChannelPersistenceConfig {
@@ -47,7 +53,7 @@ public class SalesChannelPersistenceConfig {
     PublishableKeyRepository publishableKeyRepository(
             PublishableKeyJpaRepository keys,
             PublishableKeyEntityMapper mapper,
-            @Qualifier("salesChannelDomainEventProducer") DomainEventProducer events,
+            @Qualifier("salesChannelInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new PublishableKeyRepositoryAdapter(keys, mapper, events, executor);
@@ -72,12 +78,24 @@ public class SalesChannelPersistenceConfig {
         return new SalesChannelPersistenceExecutor();
     }
 
+    @Bean("salesChannelProcessedEventRepository")
+    public ProcessedEventRepository salesChannelProcessedEventRepository(
+            JpaContext context,
+            @Qualifier("salesChannelInboxDecorator") ObjectProvider<UnaryOperator<ProcessedEventRepository>> decorator
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(SalesChannelProcessedEvent.class);
+        ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, SalesChannelProcessedEvent.class, SalesChannelProcessedEvent::of);
+        UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
+        return observe.apply(repository);
+    }
+
     @Bean
     public SalesChannelWorkflowStepRunner salesChannelWorkflowSignalEmitter(
             @Qualifier("salesChannelDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager
+            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
+            @Qualifier("salesChannelProcessedEventRepository") ProcessedEventRepository processedEvents
     ) {
-        return new SalesChannelWorkflowStepRunner(producer, transactionManager);
+        return new SalesChannelWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
     @Bean
@@ -89,7 +107,7 @@ public class SalesChannelPersistenceConfig {
     SalesChannelRepository salesChannelRepository(
             SalesChannelJpaRepository salesChannels,
             SalesChannelJpaAssembler assembler,
-            @Qualifier("salesChannelDomainEventProducer") DomainEventProducer events,
+            @Qualifier("salesChannelInProcessDomainEventPublisher") DomainEventProducer events,
             @Qualifier("salesChannelPersistenceExecutor") PersistenceExecutor executor
     ) {
         return new SalesChannelRepositoryAdapter(salesChannels, assembler, events, executor);

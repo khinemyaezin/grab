@@ -5,16 +5,14 @@ import com.customer.application.model.write.RegisterCustomerCommand;
 import com.customer.application.port.inbound.RegisterCustomerUseCase;
 import com.grab.app.account.customer.internal.config.CustomerTransactional;
 import com.grab.framework.cqrs.command.CommandHandler;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class RegisterCustomerCommandHandler implements CommandHandler<RegisterCustomerCommand, CustomerResult> {
 
     private final RegisterCustomerUseCase registerCustomerUseCase;
-
-    public RegisterCustomerCommandHandler(RegisterCustomerUseCase registerCustomerUseCase) {
-        this.registerCustomerUseCase = registerCustomerUseCase;
-    }
 
     @Override
     @CustomerTransactional
@@ -27,4 +25,3 @@ public class RegisterCustomerCommandHandler implements CommandHandler<RegisterCu
         return RegisterCustomerCommand.class;
     }
 }
-

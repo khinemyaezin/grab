@@ -1,5 +1,6 @@
 package com.grab.app.merchandising.catalog.internal.command.handler;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.catalog.application.model.write.PublishCatalogSecurityManifestCommand;
 import com.catalog.application.port.inbound.PublishCatalogSecurityManifestUseCase;
 import com.grab.app.merchandising.catalog.internal.config.CatalogTransactional;
@@ -10,7 +11,7 @@ import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class PublishCatalogSecurityManifestCommandHandler
-        implements CommandHandler<PublishCatalogSecurityManifestCommand, Void> {
+        implements CommandHandler<PublishCatalogSecurityManifestCommand, PublicationResult> {
 
     private final PublishCatalogSecurityManifestUseCase useCase;
 
@@ -21,9 +22,8 @@ public class PublishCatalogSecurityManifestCommandHandler
     @Override
     @SecurityManifestPublicationRetryable
     @CatalogTransactional(propagation = Propagation.REQUIRES_NEW)
-    public Void handle(PublishCatalogSecurityManifestCommand command) {
-        useCase.execute(command);
-        return null;
+    public PublicationResult handle(PublishCatalogSecurityManifestCommand command) {
+        return useCase.execute(command);
     }
 
     @Override

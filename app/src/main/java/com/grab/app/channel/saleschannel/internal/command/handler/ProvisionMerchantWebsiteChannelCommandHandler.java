@@ -6,7 +6,6 @@ import com.saleschannel.application.model.write.ProvisionMerchantWebsiteChannelC
 import com.saleschannel.application.model.write.ProvisionSalesChannelResult;
 import com.saleschannel.application.port.inbound.ProvisionMerchantWebsiteChannelUseCase;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class ProvisionMerchantWebsiteChannelCommandHandler
@@ -19,7 +18,7 @@ public class ProvisionMerchantWebsiteChannelCommandHandler
     }
 
     @Override
-    @SalesChannelTransactional(propagation = Propagation.REQUIRES_NEW)
+    @SalesChannelTransactional
     public ProvisionSalesChannelResult handle(ProvisionMerchantWebsiteChannelCommand command) {
         return useCase.execute(command);
     }

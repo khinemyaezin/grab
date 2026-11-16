@@ -1,6 +1,8 @@
 package com.grab.app.account.merchant.internal.adapter.inbound.message;
 
 import com.grab.app.account.merchant.internal.adapter.inbound.message.mapper.ChangeMerchantLifecyclePortMapper;
+import com.grab.app.account.merchant.internal.adapter.inbound.message.mapper.GetC2CApplicationPortMapper;
+import com.grab.app.account.merchant.internal.adapter.inbound.message.mapper.GetFirstPartyRetailerApplicationPortMapper;
 import com.grab.app.account.merchant.internal.adapter.inbound.message.mapper.GetMerchantPortMapper;
 import com.grab.app.account.merchant.internal.adapter.inbound.message.mapper.ListMerchantReviewQueuePortMapper;
 import com.grab.app.account.merchant.internal.adapter.inbound.message.mapper.ListMyMerchantsPortMapper;
@@ -11,6 +13,10 @@ import com.grab.app.account.merchant.port.message.MerchantAccountPort;
 import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.cqrs.query.QueryBus;
 import com.grab.framework.id.Id;
+import com.merchant.application.model.read.GetC2CApplicationQuery;
+import com.merchant.application.model.read.GetC2CApplicationResult;
+import com.merchant.application.model.read.GetFirstPartyRetailerApplicationQuery;
+import com.merchant.application.model.read.GetFirstPartyRetailerApplicationResult;
 import com.merchant.application.model.read.GetMerchantQuery;
 import com.merchant.application.model.read.ListMerchantReviewQueueQuery;
 import com.merchant.application.model.read.ListMyMerchantsQuery;
@@ -38,6 +44,8 @@ public class MerchantAccountPortAdapter implements MerchantAccountPort {
     private final GetMerchantPortMapper getMerchantMapper;
     private final ListMerchantReviewQueuePortMapper listReviewQueueMapper;
     private final ListMyMerchantsPortMapper listMyMerchantsMapper;
+    private final GetC2CApplicationPortMapper getC2CAppMapper;
+    private final GetFirstPartyRetailerApplicationPortMapper getFirstPartyAppMapper;
 
     public MerchantAccountPortAdapter(
             @Qualifier("accountCommandBus") CommandBus commandBus,
@@ -48,7 +56,9 @@ public class MerchantAccountPortAdapter implements MerchantAccountPort {
             UpdateMerchantProfilePortMapper updateProfileMapper,
             GetMerchantPortMapper getMerchantMapper,
             ListMerchantReviewQueuePortMapper listReviewQueueMapper,
-            ListMyMerchantsPortMapper listMyMerchantsMapper) {
+            ListMyMerchantsPortMapper listMyMerchantsMapper,
+            GetC2CApplicationPortMapper getC2CAppMapper,
+            GetFirstPartyRetailerApplicationPortMapper getFirstPartyAppMapper) {
         this.commandBus = commandBus;
         this.queryBus = queryBus;
         this.startAppMapper = startAppMapper;
@@ -58,6 +68,8 @@ public class MerchantAccountPortAdapter implements MerchantAccountPort {
         this.getMerchantMapper = getMerchantMapper;
         this.listReviewQueueMapper = listReviewQueueMapper;
         this.listMyMerchantsMapper = listMyMerchantsMapper;
+        this.getC2CAppMapper = getC2CAppMapper;
+        this.getFirstPartyAppMapper = getFirstPartyAppMapper;
     }
 
     @Override
@@ -163,5 +175,19 @@ public class MerchantAccountPortAdapter implements MerchantAccountPort {
             return Collections.emptyList();
         }
         return results.stream().map(listReviewQueueMapper::toResponse).toList();
+    }
+
+    @Override
+    public C2CApplicationResult getC2CApplication(Id applicantUserId) {
+        GetC2CApplicationQuery query = getC2CAppMapper.toQuery(applicantUserId);
+        GetC2CApplicationResult result = queryBus.dispatch(query);
+        return getC2CAppMapper.toResponse(result);
+    }
+
+    @Override
+    public FirstPartyApplicationResult getFirstPartyApplication(Id applicantUserId) {
+        GetFirstPartyRetailerApplicationQuery query = getFirstPartyAppMapper.toQuery(applicantUserId);
+        GetFirstPartyRetailerApplicationResult result = queryBus.dispatch(query);
+        return getFirstPartyAppMapper.toResponse(result);
     }
 }

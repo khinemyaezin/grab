@@ -5,7 +5,6 @@ import com.grab.discovery.application.model.write.ProjectDiscoveryProductCommand
 import com.grab.discovery.application.port.inbound.ProjectDiscoveryProductUseCase;
 import com.grab.framework.cqrs.command.CommandHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 
 @Component
 public class ProjectDiscoveryProductCommandHandler implements CommandHandler<ProjectDiscoveryProductCommand, Void> {
@@ -17,7 +16,7 @@ public class ProjectDiscoveryProductCommandHandler implements CommandHandler<Pro
     }
 
     @Override
-    @DiscoveryTransactional(propagation = Propagation.REQUIRES_NEW)
+    @DiscoveryTransactional
     public Void handle(ProjectDiscoveryProductCommand command) {
         useCase.execute(command);
         return null;

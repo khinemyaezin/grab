@@ -66,7 +66,7 @@ public class SellerSecurityConfig {
                 entryPoint,
                 authCookieHelper
         );
-        SellerContextRequiredFilter contextRequiredFilter = new SellerContextRequiredFilter(objectMapper);
+        //SellerContextRequiredFilter contextRequiredFilter = new SellerContextRequiredFilter(objectMapper);
 
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -91,10 +91,18 @@ public class SellerSecurityConfig {
                             "/v3/api-docs"
                     ).permitAll();
 
+                    // Kubernetes probes; details are hidden from anonymous callers (show-details: when-authorized).
+                    auth.requestMatchers(
+                            HttpMethod.GET,
+                            "/actuator/health",
+                            "/actuator/health/liveness",
+                            "/actuator/health/readiness"
+                    ).permitAll();
+
                     auth.anyRequest().authenticated();
                 })
                 .addFilterBefore(bearerFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(contextRequiredFilter, ProviderBearerAuthenticationFilter.class)
+                //.addFilterAfter(contextRequiredFilter, ProviderBearerAuthenticationFilter.class)
                 .build();
     }
 

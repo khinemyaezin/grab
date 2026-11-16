@@ -1,89 +1,116 @@
 package com.grab.app.account.merchant.internal.config;
 
 import com.grab.framework.event.DomainEventProducer;
-import com.grab.framework.outbox.JsonOutboxEventSerializer;
-import com.grab.framework.outbox.OutboxEventDispatcher;
-import com.grab.framework.outbox.OutboxEventSerializer;
-import com.grab.framework.outbox.OutboxRelay;
-import com.grab.outbox.infrastructure.OutboxRelays;
-import com.grab.outbox.infrastructure.OutboxStore;
-import com.grab.outbox.infrastructure.jpa.JpaOutboxStore;
+import com.grab.framework.inbox.ProcessedEventRepository;
+import com.grab.framework.scheduling.SingletonJobExecutor;
+import com.grab.outbox.infrastructure.core.port.in.DeliverOutboxEventsUseCase;
+import com.grab.outbox.infrastructure.inbox.ObservedProcessedEventRepository;
+import com.grab.outbox.infrastructure.inbox.ProcessedEventRetention;
+import com.grab.outbox.infrastructure.module.OutboxModule;
+import com.grab.scheduling.infrastructure.InboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ModuleJobScheduler;
+import com.grab.scheduling.infrastructure.OutboxScheduledJobs;
+import com.grab.scheduling.infrastructure.ScheduledJob;
+import com.grab.scheduling.infrastructure.ShedLockSingletonJobExecutor;
 import com.merchant.adapter.persistence.outbox.MerchantOutboxEvent;
-import com.merchant.adapter.persistence.outbox.MerchantOutboxEventProcessor;
-import com.merchant.adapter.persistence.outbox.MerchantOutboxEventProducer;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.UnaryOperator;
+import javax.sql.DataSource;
 
 @Configuration(proxyBeanMethods = false)
 public class MerchantModuleOutboxConfig {
 
-    @Bean("merchantOutboxEventSerializer")
-    public OutboxEventSerializer merchantOutboxEventSerializer() {
-        return new JsonOutboxEventSerializer();
-    }
-
-    @Bean("merchantOutboxEventDispatcher")
-    public OutboxEventDispatcher merchantOutboxEventDispatcher(ApplicationEventPublisher publisher) {
-        return publisher::publishEvent;
-    }
-
-    @Bean("merchantOutboxStore")
-    public OutboxStore<MerchantOutboxEvent, Long> merchantOutboxStore(JpaContext context) {
-        return new JpaOutboxStore<>(
-                context.getEntityManagerByManagedType(MerchantOutboxEvent.class),
-                MerchantOutboxEvent.class
-        );
-    }
-
-    @Bean("merchantOutboxRelay")
-    public OutboxRelay<Long> merchantOutboxRelay(
-            @Value("${merchant.outbox.hot-queue.enabled:true}") boolean enabled,
-            @Value("${merchant.outbox.hot-queue.workers:2}") int workers,
-            @Value("${merchant.outbox.hot-queue.capacity:1000}") int capacity,
-            @Value("${merchant.outbox.hot-queue.drain-timeout-ms:5000}") long drainTimeoutMs
+    @Bean("merchantSingletonJobExecutor")
+    public SingletonJobExecutor merchantSingletonJobExecutor(
+            @Qualifier("accountDataSource") DataSource dataSource,
+            @Value("${merchant.flyway.default-schema:merchant}") String schema,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
     ) {
-        return OutboxRelays.moduleRelay("merchant", enabled, workers, capacity, drainTimeoutMs);
+        MeterRegistry meterRegistry = meters.getIfAvailable();
+        return ShedLockSingletonJobExecutor.fromProperties(
+                dataSource, schema, environment, "merchant.scheduling", meterRegistry);
+    }
+
+    @Bean("merchantOutboxModule")
+    public OutboxModule<MerchantOutboxEvent> merchantOutboxModule(
+            JpaContext context,
+            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
+            ApplicationEventPublisher publisher,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(MerchantOutboxEvent.class);
+        return OutboxModule.builder("merchant", MerchantOutboxEvent.class, MerchantOutboxEvent::pending)
+                .entityManager(entityManager)
+                .transactionManager(transactionManager)
+                .eventPublisher(publisher)
+                .properties(environment)
+                .meterRegistry(meters.getIfAvailable())
+                .build();
     }
 
     @Bean("merchantDomainEventProducer")
     public DomainEventProducer merchantDomainEventProducer(
-            @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store,
-            @Qualifier("merchantOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("merchantOutboxRelay") OutboxRelay<Long> relay
+            @Qualifier("merchantOutboxModule") OutboxModule<MerchantOutboxEvent> outbox
     ) {
-        return new MerchantOutboxEventProducer(store, serializer, relay);
+        return outbox.producer();
     }
 
-    @Bean("merchantOutboxEventProcessor")
-    public MerchantOutboxEventProcessor merchantOutboxEventProcessor(
-            @Qualifier("merchantOutboxStore") OutboxStore<MerchantOutboxEvent, Long> store,
-            @Qualifier("merchantOutboxEventSerializer") OutboxEventSerializer serializer,
-            @Qualifier("merchantOutboxEventDispatcher") OutboxEventDispatcher dispatcher,
-            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
-            @Value("${merchant.outbox.batch-size:20}") int batchSize,
-            @Value("${merchant.outbox.retry-delay-ms:30000}") long retryDelay,
-            @Value("${merchant.outbox.claim-timeout-ms:120000}") long claimTimeout,
-            @Value("${merchant.outbox.retention-ms:604800000}") long retention,
-            @Qualifier("merchantOutboxRelay") OutboxRelay<Long> relay
+    @Bean("merchantInProcessDomainEventPublisher")
+    public DomainEventProducer merchantInProcessDomainEventPublisher(
+            ApplicationEventPublisher publisher
     ) {
-        return new MerchantOutboxEventProcessor(
-                store,
-                serializer,
-                dispatcher,
-                transactionManager,
-                batchSize,
-                Duration.ofMillis(retryDelay),
-                Duration.ofMillis(claimTimeout),
-                Duration.ofMillis(retention),
-                relay
-        );
+        return (type, id, events) -> {
+            if (events != null) {
+                events.forEach(publisher::publishEvent);
+            }
+        };
+    }
+
+    @Bean("merchantInboxDecorator")
+    public UnaryOperator<ProcessedEventRepository> merchantInboxDecorator(ObjectProvider<MeterRegistry> meters) {
+        return repository -> ObservedProcessedEventRepository.withMetrics(repository, meters);
+    }
+
+    @Bean("merchantProcessedEventRetention")
+    public ProcessedEventRetention merchantProcessedEventRetention(
+            @Qualifier("merchantProcessedEventRepository") ProcessedEventRepository processedEvents,
+            @Qualifier("merchantTransactionManager") PlatformTransactionManager transactionManager,
+            @Value("${merchant.inbox.retention-ms:1209600000}") long retentionMs,
+            @Value("${merchant.inbox.cleanup-batch-size:1000}") int batchSize
+    ) {
+        Duration retention = Duration.ofMillis(retentionMs);
+        return new ProcessedEventRetention(
+                "merchant", processedEvents, transactionManager, retention, batchSize);
+    }
+
+    @Bean("merchantJobScheduler")
+    public ModuleJobScheduler merchantJobScheduler(
+            @Qualifier("merchantOutboxModule") OutboxModule<MerchantOutboxEvent> outbox,
+            @Qualifier("merchantSingletonJobExecutor") SingletonJobExecutor executor,
+            @Qualifier("merchantProcessedEventRetention") ProcessedEventRetention inbox,
+            Environment environment
+    ) {
+        DeliverOutboxEventsUseCase<Long> delivery = outbox.delivery();
+        List<ScheduledJob> outboxJobs = OutboxScheduledJobs.of("merchant", delivery::pollOnce, outbox.cleanupJob(),
+                delivery::cleanupPublished, executor, environment);
+        List<ScheduledJob> jobs = new ArrayList<>(outboxJobs);
+        jobs.add(InboxScheduledJobs.of("merchant", inbox::purgeExpired, executor, environment));
+        return ModuleJobScheduler.fromProperties("merchant", jobs, environment);
     }
 }
-

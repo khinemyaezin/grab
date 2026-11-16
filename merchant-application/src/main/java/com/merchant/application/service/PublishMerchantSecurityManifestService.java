@@ -1,5 +1,6 @@
 package com.merchant.application.service;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.security.SecurityManifestPublicationPort;
@@ -16,8 +17,9 @@ public class PublishMerchantSecurityManifestService implements PublishMerchantSe
     }
 
     @Override
-    public void execute(PublishMerchantSecurityManifestCommand command) {
+    public PublicationResult execute(PublishMerchantSecurityManifestCommand command) {
         var result = publication.enqueue(MerchantSecurityManifest.CURRENT);
         log.info("Security manifest publication module: merchant, outcome: {}", result);
+        return result;
     }
 }

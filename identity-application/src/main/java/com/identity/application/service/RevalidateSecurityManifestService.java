@@ -1,9 +1,7 @@
 package com.identity.application.service;
 
 import com.identity.application.model.write.RevalidateSecurityManifestCommand;
-import com.identity.application.model.write.RegisterSecurityManifestCommand;
 import com.identity.application.model.write.RegisterSecurityManifestResult;
-import com.identity.application.port.inbound.RegisterSecurityManifestUseCase;
 import com.identity.application.port.inbound.RevalidateSecurityManifestUseCase;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.SecurityCatalogRepository;
@@ -14,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 public class RevalidateSecurityManifestService implements RevalidateSecurityManifestUseCase {
     private final SecurityCatalogRepository catalogs;
     private final SecurityManifestRevisionRepository revisions;
-    private final RegisterSecurityManifestUseCase registration;
+    private final RegisterSecurityManifestService registration;
 
     @Override
     public RegisterSecurityManifestResult execute(RevalidateSecurityManifestCommand command) {
@@ -24,7 +22,6 @@ public class RevalidateSecurityManifestService implements RevalidateSecurityMani
             return new RegisterSecurityManifestResult(command.moduleKey(), command.securityRevision(), "", "NOT_WAITING", null, false);
         }
         var waiting = candidate.get();
-        var registrationCommand = new RegisterSecurityManifestCommand(waiting.manifest(), waiting.eventId());
-        return registration.execute(registrationCommand);
+        return registration.revalidate(waiting);
     }
 }

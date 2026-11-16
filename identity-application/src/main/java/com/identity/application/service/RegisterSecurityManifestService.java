@@ -2,9 +2,11 @@ package com.identity.application.service;
 
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
+import com.grab.framework.security.SecurityManifest;
 import com.identity.application.model.write.RegisterSecurityManifestCommand;
 import com.identity.application.model.write.RegisterSecurityManifestResult;
 import com.identity.application.port.inbound.RegisterSecurityManifestUseCase;
+import com.identity.application.port.outbound.EventDeliveryIdPort;
 import com.identity.domain.aggregate.SecurityCatalog;
 import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
@@ -20,15 +22,24 @@ public class RegisterSecurityManifestService implements RegisterSecurityManifest
     private final SecurityCatalogRepository catalogs;
     private final SecurityManifestRevisionRepository revisions;
     private final SecurityManifestInboxRepository inbox;
+    private final EventDeliveryIdPort deliveryIds;
 
     @Override
     public RegisterSecurityManifestResult execute(RegisterSecurityManifestCommand command) {
+        String eventId = deliveryIds.requireEventId().toString();
+        return register(command.manifest(), command.suppliedContentDigest(), eventId);
+    }
+
+    RegisterSecurityManifestResult revalidate(SecurityManifestCandidate candidate) {
+        return register(candidate.manifest(), candidate.manifest().contentDigest(), candidate.eventId());
+    }
+
+    private RegisterSecurityManifestResult register(SecurityManifest manifest, String suppliedDigest, String eventId) {
         SecurityCatalog catalog = catalogs.loadForUpdate();
-        var manifest = command.manifest();
-        var receipt = inbox.find(command.eventId());
+        var receipt = inbox.find(eventId);
         var canonical = revisions.find(manifest.moduleKey(), manifest.securityRevision());
         int highestAccepted = revisions.highestAcceptedRevision(manifest.moduleKey());
-        var decision = catalog.consider(manifest, command.suppliedContentDigest(), command.eventId(),
+        var decision = catalog.consider(manifest, suppliedDigest, eventId,
                 receipt, canonical, highestAccepted);
         String errorCode = decision.errorCode();
         if (errorCode == null && !decision.newlyActivated() && canonical.isPresent()
@@ -36,14 +47,14 @@ public class RegisterSecurityManifestService implements RegisterSecurityManifest
             errorCode = canonical.get().errorCode();
         }
         if (decision.conflict()) {
-            inbox.recordConflict(command.eventId(), manifest, command.suppliedContentDigest(), errorCode);
+            inbox.recordConflict(eventId, manifest, suppliedDigest, errorCode);
         } else {
             Instant now = Instant.now();
-            var candidate = canonical.orElseGet(() -> new SecurityManifestCandidate(command.eventId(), manifest,
+            var candidate = canonical.orElseGet(() -> new SecurityManifestCandidate(eventId, manifest,
                     SecurityManifestCandidateStatus.RECEIVED, null, now, null));
             var decided = candidate.decide(decision, now);
             revisions.save(decided);
-            var outcome = new SecurityManifestReceipt(command.eventId(), manifest.moduleKey(), manifest.securityRevision(),
+            var outcome = new SecurityManifestReceipt(eventId, manifest.moduleKey(), manifest.securityRevision(),
                     manifest.contentDigest(), decision.status(), errorCode);
             inbox.save(outcome);
             if (decision.newlyActivated()) {

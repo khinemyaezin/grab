@@ -1,7 +1,8 @@
 package com.saleschannel.application.port.inbound;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.saleschannel.application.model.write.PublishSalesChannelSecurityManifestCommand;
 
 public interface PublishSalesChannelSecurityManifestUseCase {
-    void execute(PublishSalesChannelSecurityManifestCommand command);
+    PublicationResult execute(PublishSalesChannelSecurityManifestCommand command);
 }

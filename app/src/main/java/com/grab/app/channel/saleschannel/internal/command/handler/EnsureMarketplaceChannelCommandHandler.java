@@ -1,6 +1,7 @@
 package com.grab.app.channel.saleschannel.internal.command.handler;
 
 import com.grab.app.channel.saleschannel.internal.config.SalesChannelTransactional;
+import com.grab.app.shared.bootstrap.EnsureRetryable;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.saleschannel.application.model.write.EnsureMarketplaceChannelCommand;
 import com.saleschannel.application.model.write.ProvisionSalesChannelResult;
@@ -19,6 +20,7 @@ public class EnsureMarketplaceChannelCommandHandler
     }
 
     @Override
+    @EnsureRetryable
     @SalesChannelTransactional(propagation = Propagation.REQUIRES_NEW)
     public ProvisionSalesChannelResult handle(EnsureMarketplaceChannelCommand command) {
         return useCase.execute(command);

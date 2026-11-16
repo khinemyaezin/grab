@@ -7,8 +7,40 @@ spring:
   task:
     scheduling:
       pool:
-        size: 5
+        size: ${SCHEDULER_POOL_SIZE:4}
       thread-name-prefix: app-scheduled-
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+bootstrap:
+  gate-readiness: ${BOOTSTRAP_GATE_READINESS:false}
+  max-attempts: ${BOOTSTRAP_MAX_ATTEMPTS:5}
+  initial-backoff: ${BOOTSTRAP_INITIAL_BACKOFF:2s}
+  max-backoff: ${BOOTSTRAP_MAX_BACKOFF:30s}
+  lock-poll-interval: ${BOOTSTRAP_LOCK_POLL_INTERVAL:2s}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+      group:
+        readiness:
+          include: readinessState,bootstrap
+        liveness:
+          include: livenessState
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+app:
+  async:
+    core-pool-size: ${ASYNC_CORE_POOL_SIZE:4}
+    max-pool-size: ${ASYNC_MAX_POOL_SIZE:8}
+    queue-capacity: ${ASYNC_QUEUE_CAPACITY:200}
 
 springdoc:
   api-docs:

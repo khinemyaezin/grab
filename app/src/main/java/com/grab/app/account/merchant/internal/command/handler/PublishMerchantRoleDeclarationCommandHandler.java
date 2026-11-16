@@ -1,0 +1,33 @@
+package com.grab.app.account.merchant.internal.command.handler;
+
+import com.grab.framework.security.role.RoleDeclarationPublicationPort.PublicationResult;
+import com.grab.app.account.merchant.internal.config.MerchantTransactional;
+import com.grab.app.shared.security.SecurityManifestPublicationRetryable;
+import com.grab.framework.cqrs.command.CommandHandler;
+import com.merchant.application.model.write.PublishMerchantRoleDeclarationCommand;
+import com.merchant.application.port.inbound.PublishMerchantRoleDeclarationUseCase;
+import org.springframework.stereotype.Component;
+
+@Component
+public class PublishMerchantRoleDeclarationCommandHandler
+        implements CommandHandler<PublishMerchantRoleDeclarationCommand, PublicationResult> {
+
+    private final PublishMerchantRoleDeclarationUseCase useCase;
+
+    public PublishMerchantRoleDeclarationCommandHandler(PublishMerchantRoleDeclarationUseCase useCase) {
+        this.useCase = useCase;
+    }
+
+    @Override
+    @SecurityManifestPublicationRetryable
+    @MerchantTransactional
+    public PublicationResult handle(PublishMerchantRoleDeclarationCommand command) {
+        return useCase.execute(command);
+    }
+
+    @Override
+    public Class<PublishMerchantRoleDeclarationCommand> getCommandType() {
+        return PublishMerchantRoleDeclarationCommand.class;
+    }
+}
+

@@ -2,6 +2,7 @@ package com.grab.app.account.merchant.internal.config;
 
 import com.grab.framework.id.IdGenerator;
 import com.merchant.application.port.inbound.AcceptMerchantMemberInvitationUseCase;
+import com.merchant.application.port.inbound.AutoApproveMerchantApplicationUseCase;
 import com.merchant.application.port.inbound.ChangeMerchantLifecycleUseCase;
 import com.merchant.application.port.inbound.ChangeMerchantMemberRoleUseCase;
 import com.merchant.application.port.inbound.ChangeStorefrontLifecycleUseCase;
@@ -29,6 +30,7 @@ import com.merchant.application.port.outbound.MerchantMemberQueryPort;
 import com.merchant.application.port.outbound.PrimaryMarketRegionPort;
 import com.merchant.application.port.outbound.StorefrontQueryPort;
 import com.merchant.application.service.AcceptMerchantMemberInvitationService;
+import com.merchant.application.service.AutoApproveMerchantApplicationService;
 import com.merchant.application.service.ChangeMerchantLifecycleService;
 import com.merchant.application.service.ChangeMerchantMemberRoleService;
 import com.merchant.application.service.ChangeStorefrontLifecycleService;
@@ -88,6 +90,14 @@ public class MerchantUseCaseConfig {
     @Bean
     public MerchantOwnershipPolicy merchantOwnershipPolicy() {
         return new MerchantOwnershipPolicy();
+    }
+
+    @Bean
+    public AutoApproveMerchantApplicationUseCase autoApproveMerchantApplicationUseCase(
+            MerchantAccountRepository merchants,
+            MerchantApprovalPolicy approvalPolicy
+    ) {
+        return new AutoApproveMerchantApplicationService(merchants, approvalPolicy);
     }
 
     @Bean

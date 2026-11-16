@@ -11,7 +11,7 @@ public class SellerRootSecurityConfigurer implements SellerModuleSecurityConfigu
 
     @Override
     public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
-        auth.requestMatchers(HttpMethod.GET, "/api/v1", "/api/v1/").permitAll();
+        auth.requestMatchers(HttpMethod.GET, "/api/v1").permitAll();
     }
 }
 

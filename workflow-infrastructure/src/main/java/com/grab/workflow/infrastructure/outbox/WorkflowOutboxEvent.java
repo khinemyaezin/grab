@@ -1,20 +1,14 @@
 package com.grab.workflow.infrastructure.outbox;
 
-import com.grab.framework.outbox.OutboxEntry;
-import com.grab.framework.outbox.OutboxStatus;
 import com.grab.framework.outbox.SerializedEvent;
+import com.grab.outbox.infrastructure.adapter.out.jpa.JpaOutboxEventEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "workflow_outbox_events", indexes = {
@@ -22,92 +16,30 @@ import java.time.LocalDateTime;
         @Index(name = "idx_workflow_outbox_claimed_at", columnList = "claimed_at"),
         @Index(name = "idx_workflow_outbox_aggregate", columnList = "aggregate_type, aggregate_id")
 })
-public class WorkflowOutboxEvent implements OutboxEntry<Long> {
+public class WorkflowOutboxEvent extends JpaOutboxEventEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "aggregate_type", nullable = false)
-    private String aggregateType;
-
-    @Column(name = "aggregate_id", nullable = false)
-    private String aggregateId;
-
-    @Column(name = "event_type", nullable = false)
-    private String eventType;
-
-    @Column(name = "event_version", nullable = false)
-    private int eventVersion;
-
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "headers", columnDefinition = "text", nullable = false)
     private String headers;
 
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "payload", columnDefinition = "text", nullable = false)
     private String payload;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private OutboxStatus status = OutboxStatus.NEW;
-
-    @Column(name = "attempt_count", nullable = false)
-    private int attemptCount;
-
-    @Column(name = "occurred_at", nullable = false)
-    private LocalDateTime occurredAt;
-
-    @Column(name = "available_at", nullable = false)
-    private LocalDateTime availableAt;
-
-    @Column(name = "claimed_at")
-    private LocalDateTime claimedAt;
-
-    @Column(name = "claim_token")
-    private String claimToken;
-
-    @Column(name = "published_at")
-    private LocalDateTime publishedAt;
 
     @Column(name = "last_error", columnDefinition = "text")
     private String lastError;
 
+    protected WorkflowOutboxEvent() {
+    }
+
     public static WorkflowOutboxEvent pending(
+            UUID eventId,
             String aggregateType,
             String aggregateId,
             SerializedEvent serializedEvent,
-            LocalDateTime now
+            Instant now
     ) {
         WorkflowOutboxEvent event = new WorkflowOutboxEvent();
-        event.aggregateType = aggregateType;
-        event.aggregateId = aggregateId;
-        event.eventType = serializedEvent.eventType();
-        event.eventVersion = serializedEvent.eventVersion();
-        event.headers = serializedEvent.headers();
-        event.payload = serializedEvent.payload();
-        event.occurredAt = now;
-        event.availableAt = now;
-        event.status = OutboxStatus.NEW;
+        event.initialize(eventId, aggregateType, aggregateId, serializedEvent, now);
         return event;
-    }
-
-    @Override
-    public Long getId() {
-        return id;
-    }
-
-    @Override
-    public String getEventType() {
-        return eventType;
-    }
-
-    @Override
-    public String getPayload() {
-        return payload;
-    }
-
-    @Override
-    public int getEventVersion() {
-        return eventVersion;
     }
 
     @Override
@@ -116,44 +48,27 @@ public class WorkflowOutboxEvent implements OutboxEntry<Long> {
     }
 
     @Override
-    public OutboxStatus getStatus() {
-        return status;
+    protected void setHeaders(String headers) {
+        this.headers = headers;
     }
 
     @Override
-    public String getClaimToken() {
-        return claimToken;
+    public String getPayload() {
+        return payload;
     }
 
     @Override
-    public LocalDateTime getAvailableAt() {
-        return availableAt;
+    protected void setPayload(String payload) {
+        this.payload = payload;
     }
 
     @Override
-    public void markProcessing(LocalDateTime now, String claimToken) {
-        status = OutboxStatus.PROCESSING;
-        claimedAt = now;
-        this.claimToken = claimToken;
-        lastError = null;
-        attemptCount += 1;
+    public String getLastError() {
+        return lastError;
     }
 
     @Override
-    public void markPublished(LocalDateTime now) {
-        status = OutboxStatus.PUBLISHED;
-        publishedAt = now;
-        claimedAt = null;
-        claimToken = null;
-        lastError = null;
-    }
-
-    @Override
-    public void markFailed(LocalDateTime now, String error, Duration retryDelay) {
-        status = OutboxStatus.FAILED;
-        availableAt = now.plus(retryDelay);
-        claimedAt = null;
-        claimToken = null;
-        lastError = error;
+    protected void setLastError(String lastError) {
+        this.lastError = lastError;
     }
 }

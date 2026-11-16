@@ -2,6 +2,7 @@ package com.grab.outbox.infrastructure;
 
 import com.grab.framework.outbox.ClaimedOutboxEvent;
 import com.grab.framework.outbox.OutboxWorkSource;
+import com.grab.outbox.infrastructure.adapter.in.relay.DualQueueOutboxRelay;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 

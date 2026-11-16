@@ -6,11 +6,12 @@ import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.request.Up
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.dto.response.StorefrontResponse;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerMerchantCommandService;
 import com.grab.app.platform.seller.internal.adapter.inbound.rest.service.SellerMerchantQueryService;
-import com.grab.app.platform.seller.port.rest.SellerMerchantResource;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -19,20 +20,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/merchants/{merchantId}/storefronts")
-public class SellerStorefrontController implements SellerMerchantResource.Storefronts {
+@RequiredArgsConstructor
+public class SellerStorefrontController {
 
     private final SellerMerchantCommandService commandService;
     private final SellerMerchantQueryService queryService;
     private final StorefrontModelAssembler modelAssembler;
-
-    public SellerStorefrontController(
-            SellerMerchantCommandService commandService,
-            SellerMerchantQueryService queryService,
-            StorefrontModelAssembler modelAssembler) {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.modelAssembler = modelAssembler;
-    }
 
     @PostMapping
     public ResponseEntity<EntityModel<StorefrontResponse>> createStorefront(
@@ -43,7 +36,7 @@ public class SellerStorefrontController implements SellerMerchantResource.Storef
                 .path("/{id}")
                 .buildAndExpand(response.storefrontId())
                 .toUri();
-        return ResponseEntity.created(location).body(modelAssembler.toModel(response));
+        return ResponseEntity.created(location).body(modelAssembler.toCommandModel(response));
     }
 
     @GetMapping("/{storefrontId}")
@@ -57,10 +50,10 @@ public class SellerStorefrontController implements SellerMerchantResource.Storef
     }
 
     @GetMapping
-    public ResponseEntity<CollectionModel<EntityModel<StorefrontResponse>>> listStorefronts(@PathVariable String merchantId) {
+    public ResponseEntity<CollectionModel<EntityModel<StorefrontResponse>>> listStorefronts(
+            @PathVariable String merchantId) {
         List<StorefrontResponse> results = queryService.listStorefronts(merchantId);
-        List<EntityModel<StorefrontResponse>> models = results.stream().map(modelAssembler::toModel).toList();
-        return ResponseEntity.ok(CollectionModel.of(models));
+        return ResponseEntity.ok(modelAssembler.listStorefrontsModel(results, merchantId));
     }
 
     @PutMapping("/{storefrontId}")
@@ -69,17 +62,21 @@ public class SellerStorefrontController implements SellerMerchantResource.Storef
             @PathVariable String storefrontId,
             @Valid @RequestBody UpdateStorefrontRequest request) {
         StorefrontResponse response = commandService.updateStorefront(merchantId, storefrontId, request);
-        return ResponseEntity.ok(modelAssembler.toModel(response));
+        return ResponseEntity.ok(modelAssembler.toCommandModel(response));
     }
 
     @PatchMapping("/{storefrontId}/activate")
-    public ResponseEntity<Void> activateStorefront(@PathVariable String merchantId, @PathVariable String storefrontId) {
+    public ResponseEntity<Void> activateStorefront(
+            @PathVariable String merchantId,
+            @PathVariable String storefrontId) {
         commandService.activateStorefront(merchantId, storefrontId);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{storefrontId}/close")
-    public ResponseEntity<Void> closeStorefront(@PathVariable String merchantId, @PathVariable String storefrontId) {
+    public ResponseEntity<Void> closeStorefront(
+            @PathVariable String merchantId,
+            @PathVariable String storefrontId) {
         commandService.closeStorefront(merchantId, storefrontId);
         return ResponseEntity.noContent().build();
     }

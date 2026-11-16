@@ -11,13 +11,18 @@ public class SellerAuthSecurityConfigurer implements SellerModuleSecurityConfigu
 
     @Override
     public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
-        auth.requestMatchers(HttpMethod.GET, "/api/v1/auth").permitAll();
-        auth.requestMatchers(HttpMethod.POST,
-                "/api/v1/auth/login",
-                "/api/v1/auth/register",
-                "/api/v1/auth/refresh"
+        auth.requestMatchers(HttpMethod.GET,
+                "/api/v1/identity",
+                "/api/v1/identity/auth"
         ).permitAll();
-        auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated();
+        auth.requestMatchers(HttpMethod.POST,
+                "/api/v1/identity/auth/login",
+                "/api/v1/identity/auth/register",
+                "/api/v1/identity/auth/refresh",
+                "/api/v1/identity/auth/logout"
+        ).permitAll();
+        auth.requestMatchers(
+                "/api/v1/identity/session/**"
+        ).authenticated();
     }
 }
-

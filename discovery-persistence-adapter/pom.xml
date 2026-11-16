@@ -16,6 +16,11 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>outbox-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.coolstuff.ecommerce.grab</groupId>
             <artifactId>framework</artifactId>
             <version>${project.version}</version>

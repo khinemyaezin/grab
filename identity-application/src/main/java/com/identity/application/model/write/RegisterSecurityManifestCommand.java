@@ -8,20 +8,15 @@ import java.time.Instant;
 
 public record RegisterSecurityManifestCommand(
         SecurityManifest manifest,
-        String eventId,
         String suppliedContentDigest,
         Instant publishedAt
 ) implements Command<RegisterSecurityManifestResult> {
-    public RegisterSecurityManifestCommand(SecurityManifest manifest, String eventId) {
-        this(manifest, eventId, manifest.contentDigest(), null);
+    public RegisterSecurityManifestCommand(SecurityManifest manifest) {
+        this(manifest, manifest.contentDigest(), null);
     }
 
     public RegisterSecurityManifestCommand {
         Objects.requireNonNull(manifest, "manifest is required");
-        Objects.requireNonNull(eventId, "event id is required");
-        if (eventId.isBlank()) {
-            throw new IllegalArgumentException("event id must not be blank");
-        }
         Objects.requireNonNull(suppliedContentDigest, "supplied content digest is required");
     }
 }

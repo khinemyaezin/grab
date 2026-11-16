@@ -1,5 +1,6 @@
 package com.inventory.application.service;
 
+import com.grab.framework.security.SecurityManifestPublicationPort.PublicationResult;
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.security.SecurityManifestPublicationPort;
@@ -16,8 +17,9 @@ public class PublishInventorySecurityManifestService implements PublishInventory
     }
 
     @Override
-    public void execute(PublishInventorySecurityManifestCommand command) {
+    public PublicationResult execute(PublishInventorySecurityManifestCommand command) {
         var result = publication.enqueue(InventorySecurityManifest.CURRENT);
         log.info("Security manifest publication module: inventory, outcome: {}", result);
+        return result;
     }
 }

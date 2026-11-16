@@ -89,5 +89,38 @@ public final class SellerMerchantCommands {
             String memberId,
             String actorId
     ) implements Command<Void> {}
+
+    public record ApproveSellerMerchantCommand(
+            String merchantId,
+            String actorId
+    ) implements Command<MerchantOutboundResult> {}
+
+    public record RejectSellerMerchantCommand(
+            String merchantId,
+            String actorId,
+            String reason
+    ) implements Command<MerchantOutboundResult> {}
+
+    public record RequestSellerMerchantChangesCommand(
+            String merchantId,
+            String actorId,
+            String comments
+    ) implements Command<MerchantOutboundResult> {}
+
+    public record SuspendSellerMerchantCommand(
+            String merchantId,
+            String actorId,
+            String reason
+    ) implements Command<MerchantOutboundResult> {}
+
+    public record ReactivateSellerMerchantCommand(
+            String merchantId,
+            String actorId
+    ) implements Command<MerchantOutboundResult> {}
+
+    public record CloseSellerMerchantCommand(
+            String merchantId,
+            String actorId
+    ) implements Command<MerchantOutboundResult> {}
 }
 
