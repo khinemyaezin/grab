@@ -1,29 +1,27 @@
 package com.grab.app.account.merchant.internal.adapter.outbound.message;
 
+import com.grab.app.account.identity.port.message.AccessAssignmentPort;
+import com.grab.app.account.identity.port.message.AccessAssignmentPort.ReplaceAccessMessage;
+import com.grab.app.account.identity.port.message.AccessAssignmentPort.RevokeAccessMessage;
+import com.grab.app.account.identity.port.message.AccessAssignmentPort.RevokeSessionsByScopeMessage;
 import com.grab.app.account.merchant.internal.config.MerchantTransactional;
-import com.grab.framework.cqrs.command.CommandBus;
 import com.grab.framework.id.Id;
 import com.grab.framework.id.IdGenerator;
-import com.identity.application.model.write.ReplaceAccessCommand;
-import com.identity.application.model.write.RevokeSessionsByScopeCommand;
 import com.merchant.application.port.outbound.IdentityAccessManagementPort;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
-
-import java.util.Set;
 
 @Component
 public class IdentityAccessManagementPortAdapter implements IdentityAccessManagementPort {
 
-    private final CommandBus accountCommandBus;
+    private final AccessAssignmentPort identityPort;
     private final IdGenerator idGenerator;
 
     public IdentityAccessManagementPortAdapter(
-            @Qualifier("accountCommandBus") CommandBus accountCommandBus,
+            AccessAssignmentPort identityPort,
             IdGenerator idGenerator
     ) {
-        this.accountCommandBus = accountCommandBus;
+        this.identityPort = identityPort;
         this.idGenerator = idGenerator;
     }
 
@@ -31,37 +29,34 @@ public class IdentityAccessManagementPortAdapter implements IdentityAccessManage
     @MerchantTransactional(propagation = Propagation.NOT_SUPPORTED)
     public void replaceAccess(ReplaceAccessRequest request) {
         Id userId = idGenerator.convertIdFrom(request.userId());
-        ReplaceAccessCommand command = new ReplaceAccessCommand(
+        ReplaceAccessMessage message = new ReplaceAccessMessage(
                 userId,
                 request.previousRoleCode(),
                 request.roleCode(),
                 request.scopeKey(),
                 request.scopeId(),
-                request.authorityCodes() != null ? request.authorityCodes() : Set.of()
+                request.authorityCodes()
         );
-        accountCommandBus.dispatch(command);
+        identityPort.replaceAccess(message);
     }
 
     @Override
     @MerchantTransactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeAccess(RevokeAccessRequest request) {
         Id userId = idGenerator.convertIdFrom(request.userId());
-        ReplaceAccessCommand command = new ReplaceAccessCommand(
+        RevokeAccessMessage message = new RevokeAccessMessage(
                 userId,
                 request.roleCode(),
-                null,
                 request.scopeKey(),
-                request.scopeId(),
-                Set.of()
+                request.scopeId()
         );
-        accountCommandBus.dispatch(command);
+        identityPort.revokeAccess(message);
     }
 
     @Override
     @MerchantTransactional(propagation = Propagation.NOT_SUPPORTED)
     public void revokeSessionsByScope(String scopeKey, String scopeId) {
-        RevokeSessionsByScopeCommand command = new RevokeSessionsByScopeCommand(scopeKey, scopeId);
-        accountCommandBus.dispatch(command);
+        RevokeSessionsByScopeMessage message = new RevokeSessionsByScopeMessage(scopeKey, scopeId);
+        identityPort.revokeSessionsByScope(message);
     }
 }
-

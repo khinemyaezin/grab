@@ -1,6 +1,6 @@
 package com.grab.app.account.merchant.internal.command.handler;
 
-import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.app.account.merchant.internal.config.MerchantTransactional;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.merchant.application.model.write.SyncMerchantMemberRoleAccessCommand;
 import com.merchant.application.port.inbound.SyncMerchantMemberRoleAccessUseCase;
@@ -18,7 +18,7 @@ public class SyncMerchantMemberRoleAccessCommandHandler
     }
 
     @Override
-    @IdentityTransactional
+    @MerchantTransactional
     public Void handle(SyncMerchantMemberRoleAccessCommand command) {
         syncMerchantMemberRoleAccessUseCase.execute(command);
         return null;

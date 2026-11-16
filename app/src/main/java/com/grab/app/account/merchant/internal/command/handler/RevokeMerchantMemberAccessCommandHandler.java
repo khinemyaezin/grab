@@ -1,6 +1,6 @@
 package com.grab.app.account.merchant.internal.command.handler;
 
-import com.grab.app.account.identity.internal.config.IdentityTransactional;
+import com.grab.app.account.merchant.internal.config.MerchantTransactional;
 import com.grab.framework.cqrs.command.CommandHandler;
 import com.merchant.application.model.write.RevokeMerchantMemberAccessCommand;
 import com.merchant.application.port.inbound.RevokeMerchantMemberAccessUseCase;
@@ -18,7 +18,7 @@ public class RevokeMerchantMemberAccessCommandHandler
     }
 
     @Override
-    @IdentityTransactional
+    @MerchantTransactional
     public Void handle(RevokeMerchantMemberAccessCommand command) {
         revokeMerchantMemberAccessUseCase.execute(command);
         return null;

@@ -22,6 +22,27 @@ public interface AccessAssignmentPort {
 
     List<ContextMessageResult> listAvailableContexts(Id userId);
 
+    AccessWriteAcknowledgement replaceAccess(ReplaceAccessMessage message);
+
+    AccessWriteAcknowledgement revokeAccess(RevokeAccessMessage message);
+
+    AccessWriteAcknowledgement revokeSessionsByScope(RevokeSessionsByScopeMessage message);
+
+    record ReplaceAccessMessage(
+            Id userId, String previousRoleCode, String replacementRoleCode,
+            String scopeKey, String scopeId, Set<String> authorityCodes
+    ) {
+        public ReplaceAccessMessage {
+            authorityCodes = authorityCodes == null ? Set.of() : Set.copyOf(authorityCodes);
+        }
+    }
+
+    record RevokeAccessMessage(Id userId, String roleCode, String scopeKey, String scopeId) {}
+
+    record RevokeSessionsByScopeMessage(String scopeKey, String scopeId) {}
+
+    record AccessWriteAcknowledgement() {}
+
     record AssignAccessMessage(
             Id userId,
             String roleCode,
