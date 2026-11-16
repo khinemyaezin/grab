@@ -21,7 +21,6 @@ public class SellerApiRootController {
         model.add(SellerDiscoveryApiLinks.merchantRoot());
         model.add(SellerDiscoveryApiLinks.pricingRoot());
         model.add(SellerDiscoveryApiLinks.salesChannelRoot());
-        model.add(SellerDiscoveryApiLinks.workflowRoot());
         model.add(SellerDiscoveryApiLinks.authRoot());
 
         model.add(SellerDiscoveryApiLinks.regionRoot());

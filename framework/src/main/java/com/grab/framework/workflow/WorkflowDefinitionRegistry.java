@@ -1,48 +1,32 @@
 package com.grab.framework.workflow;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 public final class WorkflowDefinitionRegistry {
 
-    private final Map<String, ProcessDefinition<?>> byName;
+    private final Map<WorkflowDefinitionKey, WorkflowDefinition<?, ?>> definitions = new LinkedHashMap<>();
 
-    public static WorkflowDefinitionRegistry fromProcesses(Collection<WorkflowProcess<?>> processes) {
-        List<ProcessDefinition<?>> definitions = new ArrayList<>();
-        if (processes != null) {
-            for (WorkflowProcess<?> process : processes) {
-                definitions.add(definitionOf(process));
-            }
+    public void register(WorkflowDefinition<?, ?> definition) {
+        Objects.requireNonNull(definition, "definition");
+        WorkflowDefinitionKey key = new WorkflowDefinitionKey(definition.name(), definition.version());
+        if (definitions.putIfAbsent(key, definition) != null) {
+            throw new IllegalArgumentException("Workflow definition is already registered: " + key);
         }
-        return new WorkflowDefinitionRegistry(definitions);
     }
 
-    public WorkflowDefinitionRegistry(Collection<ProcessDefinition<?>> definitions) {
-        Objects.requireNonNull(definitions, "definitions");
-        Map<String, ProcessDefinition<?>> index = new LinkedHashMap<>();
-        for (ProcessDefinition<?> definition : definitions) {
-            ProcessDefinition<?> previous = index.put(definition.name(), definition);
-            if (previous != null) {
-                throw new IllegalArgumentException("Duplicate workflow definition: " + definition.name());
-            }
-        }
-        this.byName = Map.copyOf(index);
+    public Optional<WorkflowDefinition<?, ?>> find(String name, int version) {
+        return Optional.ofNullable(definitions.get(new WorkflowDefinitionKey(name, version)));
     }
 
-    private static <C> ProcessDefinition<?> definitionOf(WorkflowProcess<C> process) {
-        return process.create();
+    public WorkflowDefinition<?, ?> require(String name, int version) {
+        return find(name, version).orElseThrow(() ->
+                new WorkflowDefinitionUnavailableException("Workflow definition is not registered: " + name + " v" + version));
     }
 
-    public Optional<ProcessDefinition<?>> find(String name) {
-        return Optional.ofNullable(byName.get(name));
-    }
-
-    public Collection<ProcessDefinition<?>> all() {
-        return byName.values();
+    public Map<WorkflowDefinitionKey, WorkflowDefinition<?, ?>> definitions() {
+        return Map.copyOf(definitions);
     }
 }

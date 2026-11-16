@@ -50,8 +50,4 @@ public final class SellerDiscoveryApiLinks {
                 .withSelfRel();
     }
 
-    public static Link workflowRoot() {
-        return linkTo(methodOn(SellerWorkflowRootController.class).root())
-                .withRel("get-workflows-root");
-    }
 }

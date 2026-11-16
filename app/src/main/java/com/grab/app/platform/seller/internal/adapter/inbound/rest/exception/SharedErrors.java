@@ -29,17 +29,4 @@ public final class SharedErrors {
         );
     }
 
-    public static SharedException workflowScopeForbidden(String scopeKey, String scopeId) {
-        return new SharedException(
-                new SharedError.WorkflowScopeForbidden(scopeKey, scopeId),
-                "A merchant account scope is required for workflows."
-        );
-    }
-
-    public static SharedException workflowNotFound(String workflowId) {
-        return new SharedException(
-                new SharedError.WorkflowNotFound(workflowId),
-                "Workflow not found."
-        );
-    }
 }

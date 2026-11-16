@@ -28,10 +28,6 @@ public class SellerCatalogRootController {
         model.add(SellerVariantOptionApiLinks.listVariantOptions(null, null));
         model.add(SellerVariantOptionApiLinks.listVariantTypes(null));
 
-        model.add(SellerWorkflowApiLinks.startCreateSellableProduct());
-        model.add(SellerWorkflowApiLinks.startUpdateSellableProduct());
-        model.add(SellerWorkflowApiLinks.startUpdateProductVariant());
-
         return ResponseEntity.ok(model);
     }
 }
