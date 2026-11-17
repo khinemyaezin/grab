@@ -194,7 +194,8 @@ public class GlobalApiExceptionHandler {
         return Map.of(
                 "field", fieldError.getField(),
                 "message", Objects.toString(fieldError.getDefaultMessage(), "invalid"),
-                "rejectedValue", Objects.toString(fieldError.getRejectedValue(), "")
+                "rejectedValue", "password".equalsIgnoreCase(fieldError.getField())
+                        ? "[redacted]" : Objects.toString(fieldError.getRejectedValue(), "")
         );
     }
 

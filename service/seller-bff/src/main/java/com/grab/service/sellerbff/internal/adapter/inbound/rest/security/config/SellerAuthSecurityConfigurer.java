@@ -16,9 +16,7 @@ public class SellerAuthSecurityConfigurer implements SellerModuleSecurityConfigu
                 "/api/v1/identity/auth"
         ).permitAll();
         auth.requestMatchers(HttpMethod.POST,
-                "/api/v1/identity/auth/login",
                 "/api/v1/identity/auth/register",
-                "/api/v1/identity/auth/refresh",
                 "/api/v1/identity/auth/logout"
         ).permitAll();
         auth.requestMatchers(

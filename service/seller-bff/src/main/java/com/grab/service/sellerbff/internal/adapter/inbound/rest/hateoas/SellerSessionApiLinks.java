@@ -12,7 +12,7 @@ public final class SellerSessionApiLinks {
     }
 
     public static Link selectContext(String assignmentId) {
-        return linkTo(methodOn(SellerSessionController.class).selectContext(assignmentId, null, null, null))
+        return linkTo(methodOn(SellerSessionController.class).selectContext(assignmentId, null, null))
                 .withRel("select-context");
     }
 

@@ -13,7 +13,7 @@ public class OpenApiConfiguration {
 
     @Bean
     public OpenAPI sellerOpenApi() {
-        final String securitySchemeName = "bearerAuth";
+        final String securitySchemeName = "sellerSession";
         return new OpenAPI()
                 .info(new Info()
                         .title("Grab Seller API")
@@ -23,9 +23,8 @@ public class OpenApiConfiguration {
                 .components(new Components()
                         .addSecuritySchemes(securitySchemeName,
                                 new SecurityScheme()
-                                        .name(securitySchemeName)
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")));
+                                        .name("GRAB_SELLER_SESSION")
+                                        .type(SecurityScheme.Type.APIKEY)
+                                        .in(SecurityScheme.In.COOKIE)));
     }
 }

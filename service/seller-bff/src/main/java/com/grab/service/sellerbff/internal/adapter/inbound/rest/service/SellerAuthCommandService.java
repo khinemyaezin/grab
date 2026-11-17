@@ -1,20 +1,9 @@
 package com.grab.service.sellerbff.internal.adapter.inbound.rest.service;
 
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request.SellerLoginRequest;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request.SellerLogoutRequest;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request.SellerRefreshTokenRequest;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request.SellerRegisterRequest;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerAuthResponse;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerUserProfileResponse;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.mapper.SellerLoginMapper;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.mapper.SellerLogoutMapper;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.mapper.SellerRefreshTokenMapper;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.mapper.SellerRegisterMapper;
-import com.grab.service.sellerbff.internal.command.model.SellerAuthCommands.SellerLoginCommand;
-import com.grab.service.sellerbff.internal.command.model.SellerAuthCommands.SellerLogoutCommand;
-import com.grab.service.sellerbff.internal.command.model.SellerAuthCommands.SellerRefreshTokenCommand;
 import com.grab.service.sellerbff.internal.command.model.SellerAuthCommands.SellerRegisterUserCommand;
-import com.grab.service.sellerbff.port.outbound.SellerAuthOutboundPort.SellerAuthTokensResult;
 import com.grab.service.sellerbff.port.outbound.SellerAuthOutboundPort.SellerUserRegistrationResult;
 import com.grab.framework.cqrs.command.CommandBus;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,39 +13,13 @@ import org.springframework.stereotype.Service;
 public class SellerAuthCommandService {
 
     private final CommandBus commandBus;
-    private final SellerLoginMapper loginMapper;
-    private final SellerRefreshTokenMapper refreshTokenMapper;
-    private final SellerLogoutMapper logoutMapper;
     private final SellerRegisterMapper registerMapper;
 
     public SellerAuthCommandService(
             @Qualifier("sellerCommandBus") CommandBus commandBus,
-            SellerLoginMapper loginMapper,
-            SellerRefreshTokenMapper refreshTokenMapper,
-            SellerLogoutMapper logoutMapper,
             SellerRegisterMapper registerMapper) {
         this.commandBus = commandBus;
-        this.loginMapper = loginMapper;
-        this.refreshTokenMapper = refreshTokenMapper;
-        this.logoutMapper = logoutMapper;
         this.registerMapper = registerMapper;
-    }
-
-    public SellerAuthResponse login(SellerLoginRequest request) {
-        SellerLoginCommand command = loginMapper.toCommand(request);
-        SellerAuthTokensResult result = commandBus.dispatch(command);
-        return loginMapper.toResponse(result);
-    }
-
-    public SellerAuthResponse refresh(SellerRefreshTokenRequest request) {
-        SellerRefreshTokenCommand command = refreshTokenMapper.toCommand(request);
-        SellerAuthTokensResult result = commandBus.dispatch(command);
-        return refreshTokenMapper.toResponse(result);
-    }
-
-    public void logout(SellerLogoutRequest request) {
-        SellerLogoutCommand command = logoutMapper.toCommand(request);
-        commandBus.dispatch(command);
     }
 
     public SellerUserProfileResponse register(SellerRegisterRequest request) {

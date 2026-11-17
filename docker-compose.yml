@@ -192,7 +192,7 @@ services:
       - "-c"
       - "shared_buffers=${POSTGRES_SHARED_BUFFERS:-256MB}"
     environment:
-      MODULE_DATABASES: "${MODULE_DATABASES:-merchandising checkout account channel}"
+      MODULE_DATABASES: "${MODULE_DATABASES:-merchandising checkout account channel authorization}"
       POSTGRES_USER: "${POSTGRES_USER:-admin}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-123}"
     ports:

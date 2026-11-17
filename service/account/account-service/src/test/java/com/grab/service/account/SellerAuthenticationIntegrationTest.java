@@ -12,6 +12,8 @@ import com.grab.service.contract.message.account.identity.SellerAuthenticationPo
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.Credentials;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.StateRequest;
 import com.grab.service.contract.message.account.identity.SellerRegistrationPort;
+import com.grab.service.contract.message.account.identity.SellerRegistrationPort.RegisterUserRequest;
+import com.grab.service.contract.message.account.identity.SellerRegistrationPort.RegistrationStatus;
 import com.grab.service.contract.message.account.merchant.MerchantAccountPort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -71,7 +73,13 @@ class SellerAuthenticationIntegrationTest {
                 MutualTlsRmiClient client = new MutualTlsRmiClient(2000, 4000);
                 connectWith(bff, serverTrust);
                 SellerRegistrationPort registration = client.lookup("localhost", bffPort, SellerRegistrationPort.class);
-                String userId = registration.registerUser(new RegisterUserMessage(SELLER, PASSWORD)).id();
+                var registered = registration.registerUser(new RegisterUserRequest(SELLER, PASSWORD));
+                assertThat(registered.status()).isEqualTo(RegistrationStatus.CREATED);
+                String userId = registered.id();
+                assertThat(registration.registerUser(new RegisterUserRequest(SELLER, PASSWORD)).status())
+                        .isEqualTo(RegistrationStatus.EMAIL_EXISTS);
+                assertThat(registration.registerUser(new RegisterUserRequest("other@example.com", "x".repeat(73))).status())
+                        .isEqualTo(RegistrationStatus.INVALID_INPUT);
                 assertThatThrownBy(() -> client.lookup("localhost", issuerPort, SellerAuthenticationPort.class))
                         .isInstanceOf(RemoteException.class);
 

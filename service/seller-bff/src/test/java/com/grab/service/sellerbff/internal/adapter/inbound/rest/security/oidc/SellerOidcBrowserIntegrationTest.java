@@ -6,6 +6,7 @@ import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerIssuerClient.Tokens;
 import com.grab.service.sellerbff.port.outbound.SellerAuthOutboundPort;
+import com.grab.service.sellerbff.port.outbound.SellerAuthOutboundPort.SellerUserRegistrationResult;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +32,10 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "grab.seller-oidc.enabled=true",
-        "grab.seller-oidc.legacy-bearer=false",
         "grab.seller-oidc.issuer=http://localhost:9000",
         "grab.seller-oidc.client-secret=local-test-only-secret",
         "grab.seller-oidc.callback=http://localhost:8080/login/oauth2/code/seller",
@@ -90,6 +91,22 @@ class SellerOidcBrowserIntegrationTest {
 
         HttpResponse<String> missingCsrf = send(browser, "/api/v1/identity/auth/register", "POST", "{}");
         assertThat(missingCsrf.statusCode()).isEqualTo(403);
+
+        when(registrations.registerUser("new@example.com", "safe-password"))
+                .thenReturn(new SellerUserRegistrationResult("user-1", "new@example.com", "ACTIVE", "now"));
+        HttpResponse<String> registered = send(browser, "/api/v1/identity/auth/register", "POST",
+                "{\"email\":\"new@example.com\",\"password\":\"safe-password\"}",
+                token.path("token").asText());
+        assertThat(registered.statusCode()).isEqualTo(201);
+        assertThat(registered.body()).contains("new@example.com", "/oauth2/authorization/seller")
+                .doesNotContain("safe-password");
+
+        HttpRequest bearerRequest = HttpRequest.newBuilder(URI.create("http://localhost:" + port
+                        + "/api/v1/identity/session"))
+                .header("Authorization", "Bearer not-a-valid-token").GET().build();
+        HttpResponse<String> bearerResponse = HttpClient.newHttpClient().send(bearerRequest,
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(bearerResponse.statusCode()).isNotEqualTo(200);
     }
 
     @Test
@@ -132,10 +149,18 @@ class SellerOidcBrowserIntegrationTest {
     }
 
     private HttpResponse<String> send(HttpClient client, String path, String method, String body) throws Exception {
+        return send(client, path, method, body, null);
+    }
+
+    private HttpResponse<String> send(HttpClient client, String path, String method, String body, String csrf) throws Exception {
         URI url = URI.create("http://localhost:" + port + path);
         HttpRequest.BodyPublisher payload = body == null
                 ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body);
-        HttpRequest request = HttpRequest.newBuilder(url).header("Content-Type", "application/json")
+        HttpRequest.Builder builder = HttpRequest.newBuilder(url).header("Content-Type", "application/json");
+        if (csrf != null) {
+            builder.header("X-CSRF-TOKEN", csrf);
+        }
+        HttpRequest request = builder
                 .method(method, payload).build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());
     }

@@ -31,4 +31,12 @@ public final class SellerOidcFailure extends ResponseStatusException {
     public static SellerOidcFailure unavailable() {
         return new SellerOidcFailure(HttpStatus.SERVICE_UNAVAILABLE, "Authentication is temporarily unavailable");
     }
+
+    public static SellerOidcFailure emailExists() {
+        return new SellerOidcFailure(HttpStatus.CONFLICT, "A user with this email already exists");
+    }
+
+    public static SellerOidcFailure invalidRegistration() {
+        return new SellerOidcFailure(HttpStatus.BAD_REQUEST, "Registration details are invalid");
+    }
 }

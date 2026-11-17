@@ -5,13 +5,11 @@ import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request.Sell
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerCsrfResponse;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerUserProfileResponse;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcBrowserSession;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.util.SellerAuthCookieHelper;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerAuthCommandService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -29,12 +27,10 @@ import java.net.URI;
 @RestController
 @RequestMapping("/api/v1/identity/auth")
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "grab.seller-oidc.enabled", havingValue = "true")
 public class SellerOidcAuthController {
     private final SellerAuthCommandService commands;
     private final SellerUserProfileModelAssembler profiles;
     private final SellerOidcBrowserSession sessions;
-    private final SellerAuthCookieHelper cookies;
 
     @GetMapping("/csrf")
     public ResponseEntity<EntityModel<SellerCsrfResponse>> csrf(CsrfToken token) {
@@ -52,8 +48,7 @@ public class SellerOidcAuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         URI destination = sessions.logout(request, response);
-        HttpHeaders legacy = cookies.clearTokenCookies();
-        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(destination).headers(legacy)
+        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(destination)
                 .header("Referrer-Policy", "no-referrer")
                 .cacheControl(CacheControl.noStore()).build();
     }

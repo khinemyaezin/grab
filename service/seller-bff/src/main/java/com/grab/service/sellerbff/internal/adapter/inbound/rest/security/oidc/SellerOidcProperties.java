@@ -5,10 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.net.URI;
 
 @ConfigurationProperties("grab.seller-oidc")
-public record SellerOidcProperties(boolean enabled, String issuer, String backchannel, String audience, String clientId,
+public record SellerOidcProperties(String issuer, String backchannel, String audience, String clientId,
                                    String clientSecret, String callback, URI ui, URI postLogout,
-                                   String accountHost, int registrationPort, boolean secureCookies,
-                                   boolean legacyBearer) {
+                                   String accountHost, int registrationPort, boolean secureCookies) {
     String endpoint(String path) {
         String base = backchannel == null || backchannel.isBlank() ? issuer : backchannel;
         return base + path;
