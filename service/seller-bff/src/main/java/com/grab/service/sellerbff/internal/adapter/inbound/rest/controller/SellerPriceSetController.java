@@ -1,0 +1,54 @@
+package com.grab.service.sellerbff.internal.adapter.inbound.rest.controller;
+
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.assembler.PriceSetModelAssembler;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request.CalculatePriceRequest;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.CalculatedPriceResponse;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.PriceSetResponse;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerPricingCommandService;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerPricingQueryService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/pricing/price-sets")
+@RequiredArgsConstructor
+public class SellerPriceSetController {
+
+    private final SellerPricingCommandService commandService;
+    private final SellerPricingQueryService queryService;
+    private final PriceSetModelAssembler modelAssembler;
+
+    @PostMapping
+    public ResponseEntity<EntityModel<PriceSetResponse>> createPriceSet() {
+        PriceSetResponse response = commandService.createPriceSet();
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(response.id())
+                .toUri();
+        return ResponseEntity.created(location).body(modelAssembler.toCommandModel(response));
+    }
+
+    @GetMapping("/{priceSetId}")
+    public ResponseEntity<EntityModel<PriceSetResponse>> getPriceSet(@PathVariable String priceSetId) {
+        return queryService.getPriceSet(priceSetId)
+                .map(modelAssembler::toModel)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/calculate")
+    public ResponseEntity<List<CalculatedPriceResponse>> calculatePrices(
+            @Valid @RequestBody CalculatePriceRequest request) {
+        List<CalculatedPriceResponse> results = queryService.calculatePrices(request);
+        return ResponseEntity.ok(results);
+    }
+}

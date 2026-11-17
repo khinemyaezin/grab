@@ -1,6 +1,8 @@
 package com.identity.adapter.persistence.adapter;
 
+import com.grab.framework.id.Id;
 import com.grab.framework.security.AccessContext;
+import com.identity.application.model.read.CredentialView;
 import com.grab.framework.security.AuthenticatedActor;
 import com.identity.domain.enums.UserStatus;
 import com.identity.domain.exception.IdentityDomainError;
@@ -35,6 +37,43 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
         this.entitlementMappings = entitlementMappings;
         this.accessAssignments = accessAssignments;
         this.scopes = scopes;
+    }
+
+    @Override
+    public Optional<CredentialView> findCredentials(String normalizedEmail) {
+        return users.findCredentialView(normalizedEmail);
+    }
+
+    @Override
+    public Optional<AuthenticatedActor> resolveSeller(Id userId, Id assignmentId) {
+        String userKey = userId.getValue();
+        Optional<UserEntity> found = users.findByUuid(userKey);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
+        UserEntity user = found.orElseThrow();
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            return Optional.empty();
+        }
+        AccessContext context = null;
+        if (assignmentId != null) {
+            String assignmentKey = assignmentId.getValue();
+            Instant now = Instant.now();
+            Optional<AccessAssignmentEntity> anchor = accessAssignments.findEffectiveByUser(userKey, now).stream()
+                    .filter(assignment -> assignment.getUuid().equals(assignmentKey))
+                    .findFirst();
+            if (anchor.isEmpty()) {
+                return Optional.empty();
+            }
+            AccessAssignmentEntity assignment = anchor.orElseThrow();
+            context = new AccessContext(assignmentKey, assignment.getScopeKey(), assignment.getScopeId());
+        }
+        try {
+            AuthenticatedActor actor = resolveForUser(user, "seller-oidc", userKey, context, Set.of());
+            return Optional.of(actor);
+        } catch (IdentityDomainValidationException exception) {
+            return Optional.empty();
+        }
     }
 
     @Override

@@ -1,0 +1,9 @@
+security:
+  local-jwt:
+    public-key-path: ${JWT_PUBLIC_KEY_PATH}
+  api:
+    cors: ${SECURITY_API_CORS}
+management:
+  endpoint:
+    health:
+      show-details: never

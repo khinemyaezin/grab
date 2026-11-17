@@ -2,6 +2,7 @@ package com.identity.adapter.persistence.repository.jpa;
 
 import com.identity.adapter.persistence.entity.UserEntity;
 import com.identity.application.model.read.UserAssignmentView;
+import com.identity.application.model.read.CredentialView;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -19,6 +20,14 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByUuidForUpdate(@Param("uuid") String uuid);
     Optional<UserEntity> findByEmail(String email);
     boolean existsByEmail(String email);
+
+    @Query("""
+            SELECT new com.identity.application.model.read.CredentialView(
+                u.uuid, u.passwordHash, u.status, u.authenticationVersion)
+            FROM UserEntity u
+            WHERE u.email = :email
+            """)
+    Optional<CredentialView> findCredentialView(@Param("email") String email);
 
     @Query("""
             SELECT new com.identity.application.model.read.UserAssignmentView(

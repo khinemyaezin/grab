@@ -12,10 +12,13 @@ import java.util.Set;
  */
 public interface AuthenticationPort extends Remote {
 
+    @Deprecated
     AuthTokensResult login(LoginMessage message) throws RemoteException;
 
+    @Deprecated
     AuthTokensResult refreshToken(RefreshTokenMessage message) throws RemoteException;
 
+    @Deprecated
     void logout(LogoutMessage message) throws RemoteException;
 
     UserRegistrationResult registerUser(RegisterUserMessage message) throws RemoteException;
@@ -36,7 +39,12 @@ public interface AuthenticationPort extends Remote {
     record RegisterUserMessage(
             String email,
             String password
-    ) implements Serializable {}
+    ) implements Serializable {
+        @Override
+        public String toString() {
+            return "RegisterUserMessage[redacted]";
+        }
+    }
 
     record AuthTokensResult(
             String accessToken,

@@ -10,9 +10,16 @@ Headless domain service groups in `app/` decouple themselves from HTTP REST cont
 
 | Component | Location | Example |
 |---|---|---|
-| Universal Port Interface & Nested DTOs | `app/src/main/java/com/grab/app/{group}/{domain}/port/message/{Capability}Port.java` | `com.grab.app.account.identity.port.message.AuthenticationPort` |
+| Runtime Universal Port Interface & Nested DTOs | `app/src/main/java/com/grab/app/{group}/{domain}/port/message/{Capability}Port.java` | `com.grab.app.account.identity.port.message.AuthenticationPort` |
+| Published RMI Contract | `service/{group}/{group}-message-contract/src/main/java/com/grab/service/contract/message/{group}/{domain}/{Capability}Port.java` | `com.grab.service.contract.message.account.identity.AuthenticationPort` |
 | Inbound Port Adapter | `app/src/main/java/com/grab/app/{group}/{domain}/internal/adapter/inbound/message/{Capability}PortAdapter.java` | `com.grab.app.account.identity.internal.adapter.inbound.message.AuthenticationPortAdapter` |
 | Single-Operation Port Mappers | `app/src/main/java/com/grab/app/{group}/{domain}/internal/adapter/inbound/message/mapper/{Action}PortMapper.java` | `com.grab.app.account.identity.internal.adapter.inbound.message.mapper.LoginPortMapper` |
+| RMI Provider Adapter | `service/{group}/{group}-service/src/main/java/com/grab/service/{group}/{domain}/internal/adapter/inbound/message/{Capability}PortAdapter.java` | `com.grab.service.account.identity.internal.adapter.inbound.message.AuthenticationPortAdapter` |
+| RMI Provider Mapper | `service/{group}/{group}-service/src/main/java/com/grab/service/{group}/{domain}/internal/adapter/inbound/message/mapper/{Action}PortMapper.java` | `com.grab.service.account.identity.internal.adapter.inbound.message.mapper.LoginPortMapper` |
+
+The service message-contract interfaces are additive RMI contracts in `com.grab.service.contract.message.{group}.{domain}`. They extend `java.rmi.Remote`; remote methods declare `RemoteException`, and all request/result records implement `Serializable`. Optional results use nullable return values because `Optional` is not serializable. These remain separate from the existing runtime interfaces under `com.grab.app...port.message` until consumers are explicitly migrated.
+
+Provider adapters in each `{group}-service` implement the matching published RMI contract. They use the same one-operation MapStruct mapping pattern as the in-process adapters, mapping to the module's existing application command or query before dispatching on `{group}CommandBus` or `{group}QueryBus`. Nullable RPC results are produced by unwrapping in-process optional results at this boundary. RMI export is enabled only with `grab.rpc.enabled=true` and remains off by default while the group runtime is incomplete.
 
 ### Rules for Universal Ports
 

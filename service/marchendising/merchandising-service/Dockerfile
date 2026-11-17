@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
 WORKDIR /app
@@ -13,7 +11,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
 LABEL application="merchandising-service"
-LABEL description="Grab merchandising service"
+LABEL description="Grab merchandising headless domain service"
 
 WORKDIR /app
 
@@ -26,7 +24,10 @@ USER appuser
 
 EXPOSE 1100
 
-ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0 -Djava.security.egd=file:/dev/./urandom"
+ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport \
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:InitialRAMPercentage=50.0 \
+    -Djava.security.egd=file:/dev/./urandom"
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD if [ "${GRAB_RPC_ENABLED:-false}" = "true" ]; then \

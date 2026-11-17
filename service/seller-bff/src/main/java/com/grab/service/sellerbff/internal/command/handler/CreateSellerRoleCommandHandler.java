@@ -1,0 +1,28 @@
+package com.grab.service.sellerbff.internal.command.handler;
+
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.RoleResponse;
+import com.grab.service.sellerbff.internal.command.model.SellerIdentityAdminCommands.CreateRoleCommand;
+import com.grab.service.sellerbff.port.outbound.SellerIdentityAdminOutboundPort;
+import com.grab.framework.cqrs.command.CommandHandler;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CreateSellerRoleCommandHandler implements CommandHandler<CreateRoleCommand, RoleResponse> {
+
+    private final SellerIdentityAdminOutboundPort outboundPort;
+
+    public CreateSellerRoleCommandHandler(SellerIdentityAdminOutboundPort outboundPort) {
+        this.outboundPort = outboundPort;
+    }
+
+    @Override
+    public RoleResponse handle(CreateRoleCommand command) {
+        return outboundPort.createRole(command.request());
+    }
+
+    @Override
+    public Class<CreateRoleCommand> getCommandType() {
+        return CreateRoleCommand.class;
+    }
+}
+

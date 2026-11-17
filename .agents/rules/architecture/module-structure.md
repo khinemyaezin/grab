@@ -26,6 +26,8 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
   - `{name}-domain` + `{name}-application` <- `{name}-adapter-persistence`
   - Headless Domain Service Groups in `app/` wire application use cases, group-scoped CQRS buses, and universal Java port adapters (`port.message.*Port` + `internal.adapter.inbound.message.*PortAdapter`).
   - Platform BFFs in `app/` depend on universal Java port interfaces (`port.message.*Port`).
+  - Service message-contract modules under `service/{group}/*-message-contract` publish additive native Java RMI interfaces under `com.grab.service.contract.message.{group}.{submodule}`; the existing app interfaces remain valid compatibility APIs.
+  - Group runtime providers live in `service/{group}/{group}-service`, implement the published RMI contracts, and dispatch through group-scoped CQRS buses. These service modules depend on module application artifacts and message contracts, never on `app`.
   - **BFFs NEVER import domain `internal/` packages or domain JPA persistence adapters.**
   - **Domain modules are strictly headless and NEVER depend on Platform BFFs or Spring Web MVC (`@RestController`, `@RequestMapping`).**
 
@@ -41,7 +43,7 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
 
 ## Named interfaces
 
-- Events: cross-module integration events MUST be written under `store/src/main/java/com/grab/store/shared/events/{module}/` (or `app/src/main/java/com/grab/app/shared/events/{module}/`) organized by module folder name. Since `shared` is OPEN, consuming modules access integration events via `shared`. Module-internal domain events stay inside their respective domain.
+- Events: cross-module integration event contracts MUST be published from the owning `service/{group}/*-event-contract` module under `com.grab.service.{group}.{submodule}`. The app depends on those contracts for publishers and listeners. Legacy `app.shared.events` event classes remain temporarily available for persisted outbox type names and are forwarded to their new contract equivalents. Module-internal domain events stay inside their respective domain.
 - HATEOAS links: publish link facades from a public named-interface package (e.g. `com.grab.app.merchandising.catalog.api` with `@NamedInterface("api")`). Consuming modules declare `{module}::api` in `allowedDependencies`. See `inbound/hateoas.md`.
 
 ## Layer contents
@@ -52,3 +54,6 @@ Load when adding a module, changing package layout, or wiring Modulith dependenc
 - **Storage Adapter (`storage-adapter-s3/`)**: Outbound file storage adapter implementing `FileStoragePort` using AWS S3 / MinIO.
 - **Platform BFFs (`app/src/main/java/com/grab/app/{bff}/`)**: REST controllers, request/response DTOs, mappers, HATEOAS model assemblers, security perimeter configuration, and OpenAPI specifications. Delegates to universal Java ports.
 - **Headless Domain Groups (`app/src/main/java/com/grab/app/{group}/{domain}/`)**: Universal Java port interfaces (`port/message/*Port`), single-operation MapStruct mappers (`internal/adapter/inbound/message/mapper/*PortMapper`), inbound port adapters (`internal/adapter/inbound/message/*PortAdapter`), CQRS command/query handlers (`internal/command/handler/`, `internal/query/handler/`), group CQRS bus configurations (`internal/config/*BusConfig`), and multi-schema datasource configurations (`config/*DataSourceConfig`).
+- **Service Message Contracts (`service/{group}/*-message-contract/`)**: API-only Java RMI interfaces under `com.grab.service.contract.message.{group}.{submodule}`. Interfaces extend `Remote`, methods declare `RemoteException`, and serialized DTO records implement `Serializable`. These modules do not contain adapters, handlers, repositories, or business logic.
+- **Service Runtime Providers (`service/{group}/{group}-service/`)**: Headless Spring Boot group runtimes. RMI providers and operation mappers live under `com.grab.service.{group}.{domain}.internal.adapter.inbound.message`, implement the existing published contracts, and dispatch module application commands and queries via isolated group buses. They do not depend on `app`; RMI export is disabled by default until runtime handlers and persistence are wired.
+- **Service Event Contracts (`service/{group}/*-event-contract/`)**: API-only immutable integration event records under `com.grab.service.contract.event.{group}.{submodule}`. These modules depend only on the framework event/security API and contain no adapters, handlers, repositories, or business logic.

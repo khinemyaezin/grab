@@ -61,6 +61,16 @@ bootstrap:
   lock-poll-interval: ${BOOTSTRAP_LOCK_POLL_INTERVAL:2s}
 
 grab:
+  seller-authentication:
+    rpc:
+      enabled: ${SELLER_AUTH_RPC_ENABLED:false}
+      issuer-port: ${SELLER_AUTH_ISSUER_PORT:1199}
+      registration-port: ${SELLER_AUTH_REGISTRATION_PORT:1200}
+      keystore: ${SELLER_AUTH_RPC_KEYSTORE:}
+      key-password: ${SELLER_AUTH_RPC_KEY_PASSWORD:}
+      issuer-truststore: ${SELLER_AUTH_RPC_ISSUER_TRUSTSTORE:}
+      bff-truststore: ${SELLER_AUTH_RPC_BFF_TRUSTSTORE:}
+      trust-password: ${SELLER_AUTH_RPC_TRUST_PASSWORD:}
   rpc:
     enabled: ${GRAB_RPC_ENABLED:false}
     registry-port: ${GRAB_RPC_REGISTRY_PORT:1099}

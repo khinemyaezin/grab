@@ -25,6 +25,7 @@
         <module>channel/channel-event-contract</module>
         <module>channel/channel-service</module>
         <module>seller-bff</module>
+        <module>authorization-server</module>
         <module>checkout</module>
         <module>checkout/checkout-message-contract</module>
         <module>checkout/checkout-event-contract</module>

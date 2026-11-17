@@ -14,8 +14,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 @Component
 public class MerchantSessionRevocationEventListener extends AbstractIntegrationEventListener {
-    public static final String MERCHANT_ACCOUNT_SCOPE = "merchant";
-    public static final String MERCHANT_STOREFRONT_SCOPE = "storefront";
+    public static final String MERCHANT_ACCOUNT_SCOPE = "merchant.account";
+    public static final String MERCHANT_STOREFRONT_SCOPE = "merchant.storefront";
 
     private final CommandBus commandBus;
 
@@ -48,7 +48,7 @@ public class MerchantSessionRevocationEventListener extends AbstractIntegrationE
             if (!"SUSPENDED".equals(event.status()) && !"CLOSED".equals(event.status())) {
                 return;
             }
-            var command = new RevokeSessionsByScopeCommand(
+            RevokeSessionsByScopeCommand command = new RevokeSessionsByScopeCommand(
                     MERCHANT_STOREFRONT_SCOPE,
                     event.storefrontId()
             );
@@ -57,7 +57,7 @@ public class MerchantSessionRevocationEventListener extends AbstractIntegrationE
     }
 
     private void revokeMerchantAccount(String merchantId) {
-        var command = new RevokeSessionsByScopeCommand(
+        RevokeSessionsByScopeCommand command = new RevokeSessionsByScopeCommand(
                 MERCHANT_ACCOUNT_SCOPE,
                 merchantId
         );

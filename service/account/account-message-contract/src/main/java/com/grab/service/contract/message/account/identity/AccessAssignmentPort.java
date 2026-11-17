@@ -20,6 +20,7 @@ public interface AccessAssignmentPort extends Remote {
 
     AssignmentMessageResult changeAssignmentStatus(ChangeAssignmentStatusMessage message) throws RemoteException;
 
+    @Deprecated
     AuthTokenResult switchAccessContext(SwitchContextMessage message) throws RemoteException;
 
     List<AssignmentMessageResult> listAssignmentsForUser(Id userId, String actorScopeKey, String actorScopeId) throws RemoteException;

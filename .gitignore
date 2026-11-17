@@ -47,3 +47,5 @@ build/
 .env.*
 docker/env/*.env
 !docker/env/*.env.example
+
+/docker/secrets/seller-oidc/

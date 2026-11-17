@@ -1,0 +1,9 @@
+workflows:
+  datasource:
+    url: ${WORKFLOW_DB_URL:${WORKFLOWS_DATASOURCE_URL:jdbc:postgresql://localhost:5432/order_management}}
+    username: ${WORKFLOW_DB_USERNAME:${WORKFLOWS_DATASOURCE_USERNAME:admin}}
+    password: ${WORKFLOW_DB_PASSWORD:${WORKFLOWS_DATASOURCE_PASSWORD:123}}
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: ${WORKFLOWS_JPA_DDL_AUTO:validate}

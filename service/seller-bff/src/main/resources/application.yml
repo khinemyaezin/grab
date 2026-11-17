@@ -1,0 +1,76 @@
+spring:
+  data:
+    redis:
+      url: ${SELLER_OIDC_REDIS_URL:redis://localhost:6379}
+  application:
+    name: seller-bff
+  profiles:
+    default: dev
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  jackson:
+    default-property-inclusion: non_null
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+security:
+  enabled: ${API_SECURITY:true}
+  local-jwt:
+    issuer: ${JWT_ISSUER:https://identity.local.grab}
+    audience: ${JWT_AUDIENCE:grab-commerce-api}
+    public-key-path: ${JWT_PUBLIC_KEY_PATH:}
+  api:
+    cors: ${SECURITY_API_CORS:*}
+    cookie:
+      secure: ${SECURITY_API_COOKIE_SECURE:false}
+      same-site: ${SECURITY_API_COOKIE_SAME_SITE:Lax}
+      refresh-token-max-age-days: ${SECURITY_API_COOKIE_REFRESH_TOKEN_MAX_AGE_DAYS:7}
+      refresh-token-path: ${SECURITY_API_COOKIE_REFRESH_TOKEN_PATH:/api/v1/identity/auth/refresh}
+  seller:
+    cookie:
+      access-token-path: ${SECURITY_SELLER_COOKIE_ACCESS_TOKEN_PATH:/}
+grab:
+  rpc:
+    clients:
+      account:
+        host: ${GRAB_RPC_CLIENTS_ACCOUNT_HOST:localhost}
+        port: ${GRAB_RPC_CLIENTS_ACCOUNT_PORT:1099}
+      merchandising:
+        host: ${GRAB_RPC_CLIENTS_MERCHANDISING_HOST:localhost}
+        port: ${GRAB_RPC_CLIENTS_MERCHANDISING_PORT:1100}
+      channel:
+        host: ${GRAB_RPC_CLIENTS_CHANNEL_HOST:localhost}
+        port: ${GRAB_RPC_CLIENTS_CHANNEL_PORT:1101}
+
+  seller-oidc:
+    enabled: ${SELLER_OIDC_ENABLED:false}
+    issuer: ${SELLER_OIDC_ISSUER:}
+    backchannel: ${SELLER_OIDC_BACKCHANNEL:}
+    audience: ${SELLER_OIDC_AUDIENCE:grab-seller-api}
+    client-id: ${SELLER_OIDC_CLIENT_ID:seller-bff}
+    client-secret: ${SELLER_OIDC_CLIENT_SECRET:}
+    callback: ${SELLER_OIDC_CALLBACK:}
+    ui: ${SELLER_OIDC_UI:}
+    post-logout: ${SELLER_OIDC_POST_LOGOUT_URI:}
+    account-host: ${SELLER_AUTH_ACCOUNT_HOST:localhost}
+    registration-port: ${SELLER_AUTH_REGISTRATION_PORT:1200}
+    secure-cookies: ${SELLER_OIDC_SECURE_COOKIES:true}
+    legacy-bearer: ${SELLER_OIDC_LEGACY_BEARER:true}
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}

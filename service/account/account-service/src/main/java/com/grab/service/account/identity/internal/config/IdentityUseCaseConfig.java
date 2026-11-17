@@ -158,9 +158,9 @@ public class IdentityUseCaseConfig {
     @Bean
     public ChangeUserStatusUseCase changeUserStatusUseCase(
             UserRepository userRepository,
-            @Autowired(required = false) TokenLifeCycle tokenLifeCycle
+            SessionStore sessions
     ) {
-        return new ChangeUserStatusService(userRepository, tokenLifeCycle);
+        return ChangeUserStatusService.forHeadlessAccount(userRepository, sessions);
     }
 
     @Bean

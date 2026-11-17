@@ -33,7 +33,7 @@ public interface IdentityAdminPort extends Remote {
                 String scopeKey,
                 String scopeId,
                 String status
-        ) {}
+        ) implements Serializable {}
     }
 
     record UserSummaryResult(
