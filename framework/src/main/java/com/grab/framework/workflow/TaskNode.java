@@ -13,7 +13,8 @@ public record TaskNode<I, O>(
         String operation,
         Duration timeout,
         RetryPolicy retryPolicy,
-        Optional<CompensationDefinition> compensation
+        Optional<CompensationDefinition> compensation,
+        TaskEffect effect
 ) implements WorkflowNode {
 
     public TaskNode {
@@ -24,6 +25,10 @@ public record TaskNode<I, O>(
         timeout = requirePositive(timeout, "timeout");
         retryPolicy = Objects.requireNonNull(retryPolicy, "retryPolicy");
         compensation = compensation == null ? Optional.empty() : compensation;
+        effect = Objects.requireNonNull(effect, "effect");
+        if (effect == TaskEffect.READ_ONLY && compensation.isPresent()) {
+            throw new IllegalArgumentException("read-only tasks cannot declare compensation");
+        }
     }
 
     public TaskNode(
@@ -32,11 +37,20 @@ public record TaskNode<I, O>(
             Class<O> outputType,
             String operation
     ) {
-        this(id, inputType, outputType, operation, Duration.ofMinutes(10), RetryPolicy.DEFAULT, Optional.empty());
+        this(id, inputType, outputType, operation, Duration.ofMinutes(10), RetryPolicy.DEFAULT, Optional.empty(), TaskEffect.MUTATING);
+    }
+
+    public TaskNode(String id, Class<I> inputType, Class<O> outputType, String operation,
+                    Duration timeout, RetryPolicy retryPolicy, Optional<CompensationDefinition> compensation) {
+        this(id, inputType, outputType, operation, timeout, retryPolicy, compensation, TaskEffect.MUTATING);
     }
 
     public TaskNode<I, O> withCompensation(CompensationDefinition definition) {
-        return new TaskNode<>(id, inputType, outputType, operation, timeout, retryPolicy, Optional.of(definition));
+        return new TaskNode<>(id, inputType, outputType, operation, timeout, retryPolicy, Optional.of(definition), effect);
+    }
+
+    public TaskNode<I, O> readOnly() {
+        return new TaskNode<>(id, inputType, outputType, operation, timeout, retryPolicy, compensation, TaskEffect.READ_ONLY);
     }
 
     @Override

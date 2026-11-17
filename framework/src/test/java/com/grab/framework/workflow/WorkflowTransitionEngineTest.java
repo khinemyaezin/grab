@@ -9,6 +9,7 @@ import java.util.Map;
 
 import static com.grab.framework.workflow.WorkflowDsl.choice;
 import static com.grab.framework.workflow.WorkflowDsl.parallel;
+import static com.grab.framework.workflow.WorkflowDsl.passThrough;
 import static com.grab.framework.workflow.WorkflowDsl.sequence;
 import static com.grab.framework.workflow.WorkflowDsl.task;
 import static com.grab.framework.workflow.WorkflowDsl.workflow;
@@ -54,6 +55,23 @@ class WorkflowTransitionEngineTest {
         assertEquals("published", completed.state().outputs().get("second"));
         assertEquals("published", completed.state().result());
         assertEquals(NodeExecutionStatus.SUCCEEDED, completed.state().node("root").status());
+    }
+
+    @Test
+    void passThroughCompletesWithoutDispatchAndProvidesSequenceInput() {
+        PassThroughNode<String> skip = passThrough("skip-optional", String.class);
+        TaskNode<String, String> finalTask = task("finish", String.class, String.class, "catalog.finish");
+        WorkflowDefinition<String, String> definition = workflow("pass-through-sequence", 1, String.class, String.class)
+                .root(sequence("root", skip, finalTask))
+                .outputNode("finish")
+                .build();
+
+        WorkflowTransition started = engine.start(definition, "execution-pass", "scope", 1, "input", BASE);
+
+        assertEquals(1, started.dispatches().size());
+        assertEquals("input", started.dispatches().getFirst().input());
+        assertEquals(NodeExecutionStatus.SUCCEEDED, started.state().node("skip-optional").status());
+        assertEquals("input", started.state().outputs().get("skip-optional"));
     }
 
     @Test

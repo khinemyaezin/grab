@@ -9,6 +9,30 @@ public final class WorkflowDefinitionRegistry {
 
     private final Map<WorkflowDefinitionKey, WorkflowDefinition<?, ?>> definitions = new LinkedHashMap<>();
 
+    private final Map<WorkflowIdentity, WorkflowDefinitionProvider<?, ?>> providers = new LinkedHashMap<>();
+
+    public void register(WorkflowDefinitionProvider<?, ?> provider) {
+        WorkflowDefinition<?, ?> definition = provider.definition();
+        if (!definition.identity().equals(provider.identity())) {
+            throw new IllegalArgumentException("Workflow provider identity differs from its definition");
+        }
+        register(definition);
+        providers.put(definition.identity(), provider);
+    }
+
+    public void validateStart(WorkflowDefinition<?, ?> definition, String callerScope, Object input) {
+        WorkflowDefinitionProvider<?, ?> provider = providers.get(definition.identity());
+        if (provider != null) {
+            validateStart(provider, callerScope, input);
+        }
+    }
+
+    private static <I> void validateStart(WorkflowDefinitionProvider<I, ?> provider, String callerScope, Object input) {
+        Class<I> inputType = provider.definition().inputType();
+        I typed = inputType.cast(input);
+        provider.validateStart(callerScope, typed);
+    }
+
     public void register(WorkflowDefinition<?, ?> definition) {
         Objects.requireNonNull(definition, "definition");
         WorkflowDefinitionKey key = new WorkflowDefinitionKey(definition.name(), definition.version());

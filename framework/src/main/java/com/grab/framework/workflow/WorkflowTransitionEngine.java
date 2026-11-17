@@ -51,6 +51,9 @@ public final class WorkflowTransitionEngine {
         if (!definition.inputType().isInstance(input)) {
             throw new IllegalArgumentException("input does not match workflow input type");
         }
+        if (definition.identity().payloadVersion() != payloadVersion) {
+            throw new WorkflowCodecUnavailableException(definition, payloadVersion);
+        }
         Map<String, NodeExecution> nodes = new LinkedHashMap<>();
         definition.nodes().keySet().forEach(nodeId -> nodes.put(nodeId, NodeExecution.pending(nodeId)));
         WorkflowExecutionState state = new WorkflowExecutionState(
@@ -358,8 +361,10 @@ public final class WorkflowTransitionEngine {
         Map<String, Object> outputs = new LinkedHashMap<>(state.outputs());
         Map<String, String> choices = new LinkedHashMap<>(state.choices());
         try {
-            CompositeProgression.reconcile(definition.root(), state.input(), nodes, choices, outputs);
-        } catch (ChoiceSelectionException exception) {
+            if (!state.cancellationRequested() && state.status() != ExecutionStatus.CANCEL_REQUESTED) {
+                CompositeProgression.reconcile(definition.root(), state.input(), nodes, choices, outputs);
+            }
+        } catch (ChoiceSelectionException | WorkflowMappingException exception) {
             WorkflowExecutionState incident = ExecutionUpdate.from(state)
                     .status(ExecutionStatus.NEEDS_ATTENTION)
                     .nodes(nodes)
@@ -542,7 +547,8 @@ public final class WorkflowTransitionEngine {
     private static void verifyDefinition(WorkflowDefinition<?, ?> definition, WorkflowExecutionState state) {
         Objects.requireNonNull(definition, "definition");
         Objects.requireNonNull(state, "state");
-        if (!definition.name().equals(state.workflowName()) || definition.version() != state.definitionVersion()) {
+        if (!definition.name().equals(state.workflowName()) || definition.version() != state.definitionVersion()
+                || definition.identity().payloadVersion() != state.payloadVersion()) {
             throw new WorkflowCorrelationException("Definition name/version does not match execution state");
         }
         if (!definition.nodes().keySet().containsAll(state.nodes().keySet())) {

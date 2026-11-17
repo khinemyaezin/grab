@@ -9,8 +9,7 @@ import java.util.Set;
 
 public final class WorkflowDefinition<I, O> {
 
-    private final String name;
-    private final int version;
+    private final WorkflowIdentity identity;
     private final Class<I> inputType;
     private final Class<O> outputType;
     private final WorkflowNode root;
@@ -18,18 +17,13 @@ public final class WorkflowDefinition<I, O> {
     private final Map<String, WorkflowNode> nodes;
 
     private WorkflowDefinition(
-            String name,
-            int version,
+            WorkflowIdentity identity,
             Class<I> inputType,
             Class<O> outputType,
             WorkflowNode root,
             String outputNodeId
     ) {
-        this.name = requireText(name, "name");
-        if (version < 1) {
-            throw new IllegalArgumentException("version must be positive");
-        }
-        this.version = version;
+        this.identity = Objects.requireNonNull(identity, "identity");
         this.inputType = Objects.requireNonNull(inputType, "inputType");
         this.outputType = Objects.requireNonNull(outputType, "outputType");
         this.root = Objects.requireNonNull(root, "root");
@@ -85,15 +79,25 @@ public final class WorkflowDefinition<I, O> {
             WorkflowNode root,
             String outputNodeId
     ) {
-        return new WorkflowDefinition<>(name, version, inputType, outputType, root, outputNodeId);
+        WorkflowIdentity identity = new WorkflowIdentity(name, version, 1);
+        return of(identity, inputType, outputType, root, outputNodeId);
+    }
+
+    public static <I, O> WorkflowDefinition<I, O> of(WorkflowIdentity identity, Class<I> inputType,
+                                                      Class<O> outputType, WorkflowNode root, String outputNodeId) {
+        return new WorkflowDefinition<>(identity, inputType, outputType, root, outputNodeId);
+    }
+
+    public WorkflowIdentity identity() {
+        return identity;
     }
 
     public String name() {
-        return name;
+        return identity.name();
     }
 
     public int version() {
-        return version;
+        return identity.definitionVersion();
     }
 
     public Class<I> inputType() {
@@ -117,6 +121,7 @@ public final class WorkflowDefinition<I, O> {
     }
 
     private static void collect(WorkflowNode node, Map<String, WorkflowNode> discovered) {
+        requireText(node.id(), "node ID");
         if (node.id().startsWith("comp:")) {
             throw new IllegalArgumentException("Node ID uses the reserved compensation prefix: " + node.id());
         }

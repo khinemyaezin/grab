@@ -1,10 +1,14 @@
 package com.grab.framework.workflow.internal;
 
+import com.grab.framework.workflow.BoundTaskNode;
 import com.grab.framework.workflow.ChoiceNode;
+import com.grab.framework.workflow.JoinedParallelNode;
+import com.grab.framework.workflow.LocalMapNode;
 import com.grab.framework.workflow.DelayNode;
 import com.grab.framework.workflow.NodeExecution;
 import com.grab.framework.workflow.NodeExecutionStatus;
 import com.grab.framework.workflow.ParallelNode;
+import com.grab.framework.workflow.PassThroughNode;
 import com.grab.framework.workflow.SequenceNode;
 import com.grab.framework.workflow.TaskNode;
 import com.grab.framework.workflow.TimerPurpose;
@@ -81,6 +85,19 @@ public final class ForwardDispatchPolicy {
                 NodeExecution dispatched = execution.dispatch(logical, attemptId, execution.input(), due);
                 nodes.put(node.id(), dispatched);
                 timers.add(new WorkflowTimerIntent(node.id(), logical, TimerPurpose.DELAY, dispatched.generation(), due, WorkflowPhase.FORWARD));
+                return;
+            }
+            case LocalMapNode<?, ?> map -> { }
+            case BoundTaskNode<?, ?, ?, ?> bound ->
+                    dispatchLeaves(bound.task(), nodes, choices, dispatches, timers, state, now, existingDispatches);
+            case JoinedParallelNode<?, ?, ?, ?> join -> {
+                for (WorkflowNode branch : join.children()) {
+                    if (!CompositeProgression.isTerminalNode(nodes.get(branch.id()))) {
+                        dispatchLeaves(branch, nodes, choices, dispatches, timers, state, now, existingDispatches);
+                    }
+                }
+            }
+            case PassThroughNode<?> passThrough -> {
                 return;
             }
             case SequenceNode sequence -> {

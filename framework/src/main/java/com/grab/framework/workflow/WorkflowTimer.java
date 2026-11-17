@@ -1,5 +1,6 @@
 package com.grab.framework.workflow;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -10,7 +11,7 @@ public record WorkflowTimer(
         int generation,
         Instant dueAt,
         WorkflowPhase phase
-) {
+) implements Serializable {
 
     public WorkflowTimer {
         nodeId = requireText(nodeId, "nodeId");

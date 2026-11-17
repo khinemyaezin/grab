@@ -9,6 +9,7 @@ import com.grab.framework.workflow.NodeExecution;
 import com.grab.framework.workflow.NodeExecutionStatus;
 import com.grab.framework.workflow.SignalDisposition;
 import com.grab.framework.workflow.TaskNode;
+import com.grab.framework.workflow.TaskEffect;
 import com.grab.framework.workflow.TimerPurpose;
 import com.grab.framework.workflow.WorkflowDefinition;
 import com.grab.framework.workflow.WorkflowDispatch;
@@ -44,7 +45,7 @@ public final class CompensationPolicy {
                 NodeExecution execution = state.nodes().get(task.id());
                 if (execution != null && execution.status() == NodeExecutionStatus.SUCCEEDED) {
                     succeededTasks.add(task.id());
-                    if (task.compensation().isEmpty()) {
+                    if (task.effect() == TaskEffect.MUTATING && task.compensation().isEmpty()) {
                         irreversible = true;
                     }
                 }

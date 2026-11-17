@@ -12,7 +12,8 @@ public record ChoiceNode<I>(
         Class<I> inputType,
         Map<String, WorkflowNode> branches,
         String defaultBranch,
-        ChoiceSelector<? super I> selector
+        ChoiceSelector<? super I> selector,
+        boolean legacySelectorFailureHandling
 ) implements WorkflowNode {
 
     public ChoiceNode {
@@ -41,6 +42,11 @@ public record ChoiceNode<I>(
         if (branches.values().stream().anyMatch(node -> !branchOutput.equals(node.outputType()))) {
             throw new IllegalArgumentException("choice branches must have the same output type");
         }
+    }
+
+    public ChoiceNode(String id, Class<I> inputType, Map<String, WorkflowNode> branches, String defaultBranch,
+                      ChoiceSelector<? super I> selector) {
+        this(id, inputType, branches, defaultBranch, selector, true);
     }
 
     public ChoiceNode(String id, Class<I> inputType, Map<String, WorkflowNode> branches, String defaultBranch) {

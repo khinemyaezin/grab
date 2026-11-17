@@ -6,5 +6,9 @@ public enum WorkflowNodeKind {
     CHOICE,
     PARALLEL,
     WAIT_FOR_SIGNAL,
-    DELAY
+    DELAY,
+    PASS_THROUGH,
+    LOCAL_MAP,
+    BOUND_TASK,
+    JOINED_PARALLEL
 }

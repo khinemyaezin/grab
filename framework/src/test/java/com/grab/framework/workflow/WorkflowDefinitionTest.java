@@ -8,6 +8,7 @@ import java.util.Map;
 
 import static com.grab.framework.workflow.WorkflowDsl.choice;
 import static com.grab.framework.workflow.WorkflowDsl.parallel;
+import static com.grab.framework.workflow.WorkflowDsl.passThrough;
 import static com.grab.framework.workflow.WorkflowDsl.sequence;
 import static com.grab.framework.workflow.WorkflowDsl.task;
 import static com.grab.framework.workflow.WorkflowDsl.waitForSignal;
@@ -89,6 +90,24 @@ class WorkflowDefinitionTest {
         assertEquals(Duration.ofSeconds(2), RetryPolicy.DEFAULT.delayForAttempt(2));
         assertEquals(Duration.ofSeconds(4), RetryPolicy.DEFAULT.delayForAttempt(3));
         assertEquals(Duration.ofSeconds(30), RetryPolicy.DEFAULT.delayForAttempt(10));
+    }
+
+    @Test
+    void passThroughNodePreservesItsDeclaredType() {
+        PassThroughNode<String> node = passThrough("unchanged", String.class);
+        WorkflowDefinition<String, String> definition = workflow("pass-through", 1, String.class, String.class)
+                .root(node)
+                .build();
+
+        assertEquals(String.class, definition.nodes().get("unchanged").outputType());
+        assertEquals(WorkflowNodeKind.PASS_THROUGH, node.kind());
+    }
+
+    @Test
+    void readOnlyTaskCannotDeclareCompensation() {
+        assertThrows(IllegalArgumentException.class, () -> task("assert", String.class, String.class, "catalog.assert")
+                .readOnly()
+                .withCompensation(CompensationDefinition.of("catalog.undo-assert", List.of())));
     }
 
     @Test

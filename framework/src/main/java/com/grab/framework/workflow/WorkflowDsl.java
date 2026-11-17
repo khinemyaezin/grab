@@ -1,12 +1,80 @@
 package com.grab.framework.workflow;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.Map;
 
 public final class WorkflowDsl {
 
     private WorkflowDsl() {
+    }
+
+    public static <I> WorkflowFlow<I, I> flow(Class<I> input) {
+        return new WorkflowFlow<>(input, input, List.of());
+    }
+
+    public static <Q, R> WorkflowStep<Q, R> operation(String id, WorkflowOperation<Q, R> operation) {
+        TaskNode<Q, R> node = operationTask(id, operation, Optional.empty());
+        return new WorkflowStep<>(node, operation.requestType(), operation.resultType());
+    }
+
+    public static <S, Q, R, T> WorkflowStep<S, T> bind(
+            String id, Class<S> input, Class<T> output, WorkflowOperation<Q, R> operation,
+            Function<? super S, ? extends Q> request, BiFunction<? super S, ? super R, ? extends T> result) {
+        return bind(id, input, output, operation, request, result, Optional.empty());
+    }
+
+    public static <S, Q, R, T> WorkflowStep<S, T> bind(
+            String id, Class<S> input, Class<T> output, WorkflowOperation<Q, R> operation,
+            Function<? super S, ? extends Q> request, BiFunction<? super S, ? super R, ? extends T> result,
+            Optional<CompensationDefinition> compensation) {
+        TaskNode<Q, R> task = operationTask(id + ".task", operation, compensation);
+        BoundTaskNode<S, Q, R, T> node = new BoundTaskNode<>(id, input, output, task, request, result);
+        return new WorkflowStep<>(node, input, output);
+    }
+
+    private static <Q, R> TaskNode<Q, R> operationTask(
+            String id, WorkflowOperation<Q, R> operation, Optional<CompensationDefinition> compensation) {
+        Duration timeout = Duration.ofMinutes(10);
+        return new TaskNode<>(id, operation.requestType(), operation.resultType(), operation.name(),
+                timeout, RetryPolicy.DEFAULT, compensation, operation.effect());
+    }
+
+    public static <I, O> WorkflowStep<I, O> map(
+            String id, Class<I> input, Class<O> output, Function<? super I, ? extends O> mapper) {
+        LocalMapNode<I, O> node = new LocalMapNode<>(id, input, output, mapper);
+        return new WorkflowStep<>(node, input, output);
+    }
+
+    public static <T> WorkflowStep<T, T> when(String id, Predicate<? super T> predicate, WorkflowStep<T, T> run) {
+        Class<T> type = run.inputType();
+        PassThroughNode<T> skipNode = passThrough(id + ".skip", type);
+        WorkflowStep<T, T> skip = new WorkflowStep<>(skipNode, type, type);
+        Map<String, WorkflowStep<T, T>> branches = new LinkedHashMap<>();
+        branches.put("run", run);
+        branches.put("skip", skip);
+        return choose(id, type, type, branches, "skip", value -> predicate.test(value) ? "run" : "skip");
+    }
+
+    public static <I, O> WorkflowStep<I, O> choose(
+            String id, Class<I> input, Class<O> output, Map<String, WorkflowStep<I, O>> branches,
+            String fallback, ChoiceSelector<? super I> selector) {
+        Map<String, WorkflowNode> nodes = new LinkedHashMap<>();
+        branches.forEach((label, step) -> nodes.put(label, step.node()));
+        ChoiceNode<I> node = new ChoiceNode<>(id, input, nodes, fallback, selector, false);
+        return new WorkflowStep<>(node, input, output);
+    }
+
+    public static <I, L, R, O> WorkflowStep<I, O> join(
+            String id, WorkflowStep<I, L> left, WorkflowStep<I, R> right, Class<O> output,
+            BiFunction<? super L, ? super R, ? extends O> mapper) {
+        JoinedParallelNode<I, L, R, O> node = new JoinedParallelNode<>(id, left, right, output, mapper);
+        return new WorkflowStep<>(node, left.inputType(), output);
     }
 
     public static <I, O> WorkflowDefinitionBuilder<I, O> workflow(
@@ -66,6 +134,10 @@ public final class WorkflowDsl {
 
     public static DelayNode delay(String id, Class<?> inputType, Duration delay) {
         return new DelayNode(id, inputType, delay);
+    }
+
+    public static <T> PassThroughNode<T> passThrough(String id, Class<T> type) {
+        return new PassThroughNode<>(id, type);
     }
 
     public static final class WorkflowDefinitionBuilder<I, O> {

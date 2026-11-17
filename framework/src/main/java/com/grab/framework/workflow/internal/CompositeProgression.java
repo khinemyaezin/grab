@@ -1,10 +1,14 @@
 package com.grab.framework.workflow.internal;
 
+import com.grab.framework.workflow.BoundTaskNode;
 import com.grab.framework.workflow.ChoiceNode;
+import com.grab.framework.workflow.JoinedParallelNode;
+import com.grab.framework.workflow.LocalMapNode;
 import com.grab.framework.workflow.DelayNode;
 import com.grab.framework.workflow.NodeExecution;
 import com.grab.framework.workflow.NodeExecutionStatus;
 import com.grab.framework.workflow.ParallelNode;
+import com.grab.framework.workflow.PassThroughNode;
 import com.grab.framework.workflow.SequenceNode;
 import com.grab.framework.workflow.TaskNode;
 import com.grab.framework.workflow.WaitForSignalNode;
@@ -32,6 +36,49 @@ public final class CompositeProgression {
             case TaskNode<?, ?> task -> { }
             case WaitForSignalNode wait -> { }
             case DelayNode delay -> { }
+            case PassThroughNode<?> passThrough -> {
+                Object result = passThrough.type().cast(input);
+                nodes.put(node.id(), execution.succeed(result, null));
+                outputs.put(node.id(), result);
+                return;
+            }
+            case LocalMapNode<?, ?> map -> {
+                Object result = map.apply(input);
+                complete(node, execution, result, nodes, outputs);
+            }
+            case BoundTaskNode<?, ?, ?, ?> bound -> {
+                WorkflowNode task = bound.task();
+                NodeExecution child = nodes.get(task.id());
+                if (child.status() == NodeExecutionStatus.PENDING) {
+                    Object request = child.input() == null ? bound.request(execution.input()) : child.input();
+                    reconcile(task, request, nodes, choices, outputs);
+                } else if (child.status() == NodeExecutionStatus.SUCCEEDED) {
+                    Object result = bound.combine(execution.input(), child.output());
+                    complete(node, execution, result, nodes, outputs);
+                } else if (child.status() == NodeExecutionStatus.FAILED || child.status() == NodeExecutionStatus.UNKNOWN) {
+                    nodes.put(node.id(), execution.fail(child.error()));
+                }
+            }
+            case JoinedParallelNode<?, ?, ?, ?> join -> {
+                List<WorkflowNode> branches = join.children();
+                for (WorkflowNode branch : branches) {
+                    reconcile(branch, input, nodes, choices, outputs);
+                    NodeExecution child = nodes.get(branch.id());
+                    if (child.status() == NodeExecutionStatus.FAILED || child.status() == NodeExecutionStatus.UNKNOWN) {
+                        nodes.put(node.id(), execution.fail(child.error()));
+                        return;
+                    }
+                }
+                WorkflowNode left = branches.getFirst();
+                WorkflowNode right = branches.getLast();
+                NodeExecution leftExecution = nodes.get(left.id());
+                NodeExecution rightExecution = nodes.get(right.id());
+                if (leftExecution.status() == NodeExecutionStatus.SUCCEEDED
+                        && rightExecution.status() == NodeExecutionStatus.SUCCEEDED) {
+                    Object result = join.join(leftExecution.output(), rightExecution.output());
+                    complete(node, execution, result, nodes, outputs);
+                }
+            }
             case SequenceNode sequence -> {
                 Object childInput = input;
                 for (WorkflowNode child : sequence.children()) {
@@ -81,11 +128,7 @@ public final class CompositeProgression {
             case ChoiceNode<?> choice -> {
                 String selected = choices.get(node.id());
                 if (selected == null) {
-                    try {
-                        selected = choice.selectResolvedInput(input);
-                    } catch (RuntimeException exception) {
-                        throw new ChoiceSelectionException("Choice selector failed: " + exception.getMessage(), exception);
-                    }
+                    selected = select(choice, input);
                     if (selected == null) {
                         selected = choice.defaultBranch();
                     }
@@ -114,6 +157,24 @@ public final class CompositeProgression {
                 }
             }
         }
+    }
+
+    private static String select(ChoiceNode<?> choice, Object input) {
+        if (!choice.legacySelectorFailureHandling()) {
+            return choice.selectResolvedInput(input);
+        }
+        try {
+            return choice.selectResolvedInput(input);
+        } catch (RuntimeException exception) {
+            throw new ChoiceSelectionException("Choice selector failed: " + exception.getMessage(), exception);
+        }
+    }
+
+    private static void complete(WorkflowNode node, NodeExecution execution, Object result,
+                                 Map<String, NodeExecution> nodes, Map<String, Object> outputs) {
+        NodeExecution succeeded = execution.succeed(result, null);
+        nodes.put(node.id(), succeeded);
+        outputs.put(node.id(), result);
     }
 
     static boolean isTerminalNode(NodeExecution execution) {

@@ -1,5 +1,6 @@
 package com.grab.framework.workflow;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -9,7 +10,7 @@ public record WorkflowTimerClaim(
         WorkflowTimer timer,
         String claimToken,
         Instant leaseExpiresAt
-) {
+) implements Serializable {
 
     public WorkflowTimerClaim {
         if (timerId < 1) {
