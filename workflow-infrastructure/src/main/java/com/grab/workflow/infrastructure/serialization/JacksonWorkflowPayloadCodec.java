@@ -11,27 +11,32 @@ import com.grab.framework.workflow.WorkflowPayloadCodec;
 import com.grab.framework.workflow.WorkflowDefinition;
 import com.grab.framework.workflow.WorkflowCodecUnavailableException;
 
+import java.util.Map;
 import java.util.Objects;
 
 public final class JacksonWorkflowPayloadCodec implements WorkflowPayloadCodec {
 
     private final ObjectMapper objectMapper;
+    private final Map<Integer, WorkflowPayloadCodec> codecs;
 
     public JacksonWorkflowPayloadCodec() {
         this(defaultObjectMapper());
     }
 
     public JacksonWorkflowPayloadCodec(ObjectMapper objectMapper) {
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
+        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper").copy()
+                .registerModule(new WorkflowPayloadJacksonModule());
+        this.codecs = Map.of(1, this, 2, this);
     }
 
     @Override
     public WorkflowPayloadCodec require(WorkflowDefinition<?, ?> definition, int payloadVersion) {
         Objects.requireNonNull(definition, "definition");
-        if (payloadVersion != 1) {
+        WorkflowPayloadCodec codec = codecs.get(payloadVersion);
+        if (codec == null || definition.identity().payloadVersion() != payloadVersion) {
             throw new WorkflowCodecUnavailableException(definition, payloadVersion);
         }
-        return this;
+        return codec;
     }
 
     @Override

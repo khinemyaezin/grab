@@ -1,0 +1,5 @@
+checkout:
+  datasource:
+    url: ${CHECKOUT_DB_URL:jdbc:postgresql://localhost:5432/order_management}
+    username: ${CHECKOUT_DB_USERNAME:admin}
+    password: ${CHECKOUT_DB_PASSWORD:123}

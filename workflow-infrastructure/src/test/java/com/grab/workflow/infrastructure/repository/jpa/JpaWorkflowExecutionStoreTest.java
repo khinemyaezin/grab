@@ -9,6 +9,13 @@ import com.grab.framework.workflow.WorkflowStartReceipt;
 import com.grab.framework.workflow.WorkflowConcurrencyException;
 import jakarta.persistence.EntityManager;
 import com.grab.framework.workflow.WorkflowDefinition;
+import com.grab.framework.workflow.WorkflowFlow;
+import com.grab.framework.workflow.WorkflowIdentity;
+import com.grab.framework.workflow.WorkflowOperation;
+import com.grab.framework.workflow.WorkflowStep;
+import com.grab.framework.workflow.WorkflowTimer;
+import com.grab.framework.workflow.WorkflowTimerIntent;
+import com.grab.framework.workflow.TimerPurpose;
 import com.grab.framework.workflow.WorkflowExecutionState;
 import com.grab.framework.workflow.WorkflowPhase;
 import com.grab.framework.workflow.WorkflowDispatch;
@@ -39,9 +46,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.List;
 import com.grab.workflow.infrastructure.serialization.JacksonWorkflowFingerprint;
 
+import static com.grab.framework.workflow.WorkflowDsl.bind;
+import static com.grab.framework.workflow.WorkflowDsl.flow;
+import static com.grab.framework.workflow.WorkflowDsl.join;
+import static com.grab.framework.workflow.WorkflowDsl.map;
 import static com.grab.framework.workflow.WorkflowDsl.parallel;
 import static com.grab.framework.workflow.WorkflowDsl.sequence;
 import static com.grab.framework.workflow.WorkflowDsl.task;
@@ -82,6 +95,82 @@ class JpaWorkflowExecutionStoreTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Test
+    void restoresTypedJoinAndBoundRetryWithoutReevaluatingCompletedCallbacks() {
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
+        AtomicInteger joins = new AtomicInteger();
+        AtomicInteger requests = new AtomicInteger();
+        WorkflowStep<String, Reservation> left = map("left", String.class, Reservation.class, Reservation::new);
+        WorkflowStep<String, Integer> right = map("right", String.class, Integer.class, String::length);
+        WorkflowStep<String, Joined> join = join("join", left, right, Joined.class, (reservation, length) -> {
+            joins.incrementAndGet();
+            return new Joined(List.of(reservation), length);
+        });
+        WorkflowOperation<Reservation, Reservation> operation =
+                WorkflowOperation.mutation("owner.write", Reservation.class, Reservation.class);
+        CompensationDefinition reverse = CompensationDefinition.of("owner.reverse", List.of());
+        Optional<CompensationDefinition> compensation = Optional.of(reverse);
+        WorkflowStep<Joined, Joined> write = bind("bound", Joined.class, Joined.class, operation,
+                input -> {
+                    requests.incrementAndGet();
+                    return input.reservations().getFirst();
+                }, (input, receipt) -> new Joined(List.of(receipt), input.length()), compensation);
+        WorkflowIdentity identity = new WorkflowIdentity("typed-workflow", 2, 2);
+        WorkflowFlow<String, String> start = flow(String.class);
+        WorkflowFlow<String, Joined> steps = start.then(join).then(write);
+        WorkflowDefinition<String, Joined> definition = steps.build(identity, "root");
+        WorkflowTransitionEngine engine = new WorkflowTransitionEngine(new JacksonWorkflowFingerprint());
+
+        WorkflowTransition issued = engine.start(definition, "typed-execution", "scope", 2, "sku", now);
+        WorkflowDispatch original = issued.dispatches().getFirst();
+        WorkflowSignal failure = new WorkflowSignal("retry", "typed-execution", original.nodeId(),
+                original.logicalOperationId(), original.attemptId(), original.attempt(), WorkflowPhase.FORWARD,
+                WorkflowSignalOutcome.FAILED, null, WorkflowFailureClassification.RETRYABLE, null, null, 2, now);
+        WorkflowTransition waiting = engine.accept(definition, issued.state(), failure, now);
+        WorkflowTimerIntent retry = waiting.timers().stream()
+                .filter(timer -> timer.purpose() == TimerPurpose.RETRY).findFirst().orElseThrow();
+        JpaWorkflowExecutionStore store = new JpaWorkflowExecutionStore(
+                executionRepository, nodeRepository, startReceiptRepository, new JacksonWorkflowPayloadCodec());
+        WorkflowStoredExecution record = new WorkflowStoredExecution("scope", 2, "typed-key", waiting.state(), now, now, 0);
+        store.create(record);
+        JpaWorkflowStartReceiptStore receipts = new JpaWorkflowStartReceiptStore(startReceiptRepository, entityManager);
+        WorkflowStartReceipt receipt = new WorkflowStartReceipt("scope", "typed-key", "typed-workflow",
+                2, 2, "hash", "typed-execution", now);
+        receipts.insert(receipt);
+        entityManager.flush();
+        entityManager.clear();
+
+        WorkflowStoredExecution restored = store.find("typed-execution", definition).orElseThrow();
+        Joined joined = assertInstanceOf(Joined.class, restored.state().node("join").output());
+        assertInstanceOf(Reservation.class, joined.reservations().getFirst());
+        WorkflowTimer due = new WorkflowTimer(retry.nodeId(), retry.logicalOperationId(), retry.purpose(),
+                retry.generation(), retry.dueAt(), retry.phase());
+        WorkflowTransition retried = engine.onTimer(definition, restored.state(), due, retry.dueAt());
+        WorkflowDispatch dispatch = retried.dispatches().getFirst();
+        assertEquals(original.input(), dispatch.input());
+        assertEquals(1, joins.get());
+        assertEquals(1, requests.get());
+
+        Reservation written = new Reservation("assigned");
+        WorkflowSignal success = new WorkflowSignal("success", "typed-execution", dispatch.nodeId(),
+                dispatch.logicalOperationId(), dispatch.attemptId(), dispatch.attempt(), WorkflowPhase.FORWARD,
+                WorkflowSignalOutcome.SUCCEEDED, written, WorkflowFailureClassification.UNCLASSIFIED, null, null, 2, now);
+        WorkflowTransition finished = engine.accept(definition, retried.state(), success, now);
+        WorkflowStoredExecution completed = new WorkflowStoredExecution("scope", 2, "typed-key",
+                finished.state(), now, now, restored.version());
+        store.save(completed);
+        entityManager.flush();
+        entityManager.clear();
+
+        WorkflowStoredExecution result = store.find("typed-execution", definition).orElseThrow();
+        assertEquals(new Joined(List.of(written), 3), result.state().result());
+        assertEquals(1, joins.get());
+        assertEquals(1, requests.get());
+    }
+
+    private record Joined(List<Reservation> reservations, int length) {
+    }
 
     @Test
     void savesAndRestoresStateThroughPostgres() {

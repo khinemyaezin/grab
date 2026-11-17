@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.grab.framework.workflow.BoundTaskNode;
 import com.grab.framework.workflow.ChoiceNode;
+import com.grab.framework.workflow.JoinedParallelNode;
+import com.grab.framework.workflow.LocalMapNode;
 import com.grab.framework.workflow.CompensationInput;
 import com.grab.framework.workflow.DelayNode;
 import com.grab.framework.workflow.ExecutionStatus;
@@ -12,6 +15,7 @@ import com.grab.framework.workflow.NodeExecution;
 import com.grab.framework.workflow.NodeAttempt;
 import com.grab.framework.workflow.NodeExecutionStatus;
 import com.grab.framework.workflow.ParallelNode;
+import com.grab.framework.workflow.PassThroughNode;
 import com.grab.framework.workflow.SequenceNode;
 import com.grab.framework.workflow.TaskNode;
 import com.grab.framework.workflow.WaitForSignalNode;
@@ -105,14 +109,48 @@ public final class WorkflowSnapshotCodec {
             case SequenceNode sequence -> restoreSequence(sequence, suppliedInput, rows, choices, restored, codec);
             case ChoiceNode<?> choice -> restoreChoice(choice, suppliedInput, rows, choices, restored, codec);
             case ParallelNode parallel -> restoreParallel(parallel, suppliedInput, rows, choices, restored, codec);
+            case LocalMapNode<?, ?> map -> codec.readTyped(row.getOutputJson(), map.outputType());
+            case JoinedParallelNode<?, ?, ?, ?> join -> {
+                for (WorkflowNode branch : join.children()) {
+                    restoreNode(branch, suppliedInput, rows, choices, restored, codec);
+                }
+                validateCompletedChildren(join, row, restored);
+                yield codec.readTyped(row.getOutputJson(), join.outputType());
+            }
+            case BoundTaskNode<?, ?, ?, ?> bound -> {
+                TaskNode<?, ?> task = bound.task();
+                WorkflowNodeExecutionEntity child = rows.get(task.id());
+                Object request = codec.readTyped(child.getInputJson(), task.inputType());
+                if (request != null && input == null) {
+                    throw new IllegalStateException("Bound task request has no workflow input: " + task.id());
+                }
+                restoreNode(task, request, rows, choices, restored, codec);
+                validateCompletedChildren(bound, row, restored);
+                yield codec.readTyped(row.getOutputJson(), bound.outputType());
+            }
             case TaskNode<?, ?> task -> codec.readTyped(row.getOutputJson(), task.outputType());
             case DelayNode delay -> input;
+            case PassThroughNode<?> passThrough -> passThrough.type().cast(input);
             case WaitForSignalNode wait -> codec.readTyped(row.getOutputJson(), wait.outputType());
+            default -> throw new IllegalStateException("Unexpected value: " + node);
         };
         Object output = row.getStatus() == NodeExecutionStatus.SUCCEEDED ? childOutput : null;
         verifyValue(row.getOutputJson(), output, codec);
         restored.put(node.id(), toNode(row, input, output));
         return output;
+    }
+
+    private static void validateCompletedChildren(WorkflowNode node, WorkflowNodeExecutionEntity row,
+                                                  Map<String, NodeExecution> restored) {
+        if (row.getStatus() != NodeExecutionStatus.SUCCEEDED) {
+            return;
+        }
+        for (WorkflowNode child : node.children()) {
+            NodeExecution execution = restored.get(child.id());
+            if (execution.status() != NodeExecutionStatus.SUCCEEDED) {
+                throw new IllegalStateException("Completed workflow node has an incomplete child: " + child.id());
+            }
+        }
     }
 
     private Object restoreSequence(SequenceNode sequence, Object input, Map<String, WorkflowNodeExecutionEntity> rows,

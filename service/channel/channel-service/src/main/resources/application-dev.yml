@@ -1,0 +1,5 @@
+channel:
+  datasource:
+    url: ${CHANNEL_DB_URL:jdbc:postgresql://localhost:5432/channel_context}
+    username: ${CHANNEL_DB_USERNAME:admin}
+    password: ${CHANNEL_DB_PASSWORD:123}

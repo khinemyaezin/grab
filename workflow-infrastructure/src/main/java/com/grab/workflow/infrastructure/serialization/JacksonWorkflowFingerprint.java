@@ -12,6 +12,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.grab.framework.workflow.WorkflowFingerprint;
 import com.grab.framework.workflow.WorkflowFingerprintValue;
 import com.grab.framework.workflow.WorkflowSignal;
+import com.grab.framework.id.Id;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.RecordComponent;
@@ -39,6 +40,7 @@ public final class JacksonWorkflowFingerprint implements WorkflowFingerprint {
     private static final HexFormat HEX = HexFormat.of();
     private final ObjectMapper mapper = JsonMapper.builder()
             .addModule(new JavaTimeModule())
+            .addModule(new WorkflowPayloadJacksonModule())
             .disable(MapperFeature.USE_ANNOTATIONS)
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
@@ -142,6 +144,7 @@ public final class JacksonWorkflowFingerprint implements WorkflowFingerprint {
                 || value instanceof Integer || value instanceof Long || value instanceof Float
                 || value instanceof Double || value instanceof BigInteger || value instanceof BigDecimal
                 || value instanceof TemporalAccessor || value instanceof Duration || value instanceof Period
+                || value instanceof Id
                 || value instanceof UUID)) {
             throw new IllegalArgumentException("Unsupported workflow fingerprint payload type: " + value.getClass().getName());
         }

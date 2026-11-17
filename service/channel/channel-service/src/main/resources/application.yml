@@ -1,0 +1,178 @@
+spring:
+  application:
+    name: channel-service
+  profiles:
+    default: dev
+  main:
+    web-application-type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  task:
+    scheduling:
+      pool:
+        size: ${SCHEDULER_POOL_SIZE:4}
+      thread-name-prefix: channel-scheduled-
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+  jmx:
+    enabled: true
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        include: health,metrics
+    web:
+      exposure:
+        exclude: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,bootstrap
+        liveness:
+          include: livenessState
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: channel-service
+
+logger:
+  backend: ${LOGGER_BACKEND:slf4j}
+  fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
+  file:
+    enabled: ${LOGGER_FILE_ENABLED:false}
+    path: ${LOGGER_FILE_PATH:logs}
+    name: ${LOGGER_FILE_NAME:channel-service.log}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+bootstrap:
+  gate-readiness: ${BOOTSTRAP_GATE_READINESS:false}
+  max-attempts: ${BOOTSTRAP_MAX_ATTEMPTS:5}
+  initial-backoff: ${BOOTSTRAP_INITIAL_BACKOFF:2s}
+  max-backoff: ${BOOTSTRAP_MAX_BACKOFF:30s}
+  lock-poll-interval: ${BOOTSTRAP_LOCK_POLL_INTERVAL:2s}
+
+grab:
+  rpc:
+    enabled: ${GRAB_RPC_ENABLED:false}
+    registry-port: ${GRAB_RPC_REGISTRY_PORT:1101}
+    bind-address: ${GRAB_RPC_BIND_ADDRESS:127.0.0.1}
+    advertised-host: ${GRAB_RPC_ADVERTISED_HOST:localhost}
+    connect-timeout-ms: ${GRAB_RPC_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${GRAB_RPC_READ_TIMEOUT_MS:30000}
+    clients:
+      merchandising:
+        host: ${GRAB_RPC_CLIENTS_MERCHANDISING_HOST:}
+        port: ${GRAB_RPC_CLIENTS_MERCHANDISING_PORT:1100}
+
+channel:
+  datasource:
+    driver-class-name: ${CHANNEL_DB_DRIVER:org.postgresql.Driver}
+    hikari:
+      pool-name: ChannelHikariPool
+      maximum-pool-size: ${CHANNEL_HIKARI_MAXIMUM_POOL_SIZE:10}
+      minimum-idle: ${CHANNEL_HIKARI_MIN_IDLE:2}
+      connection-timeout: ${CHANNEL_HIKARI_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${CHANNEL_HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${CHANNEL_HIKARI_MAX_LIFETIME:1800000}
+
+saleschannel:
+  enabled: ${SALESCHANNEL_ENABLED:true}
+  seed:
+    enabled: ${SALESCHANNEL_SEED_ENABLED:true}
+  jpa:
+    hibernate:
+      dialect: ${SALESCHANNEL_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${SALESCHANNEL_JPA_DDL_AUTO:validate}
+      show_sql: ${SALESCHANNEL_JPA_SHOW_SQL:false}
+      format_sql: ${SALESCHANNEL_JPA_FORMAT_SQL:false}
+      default_schema: ${SALESCHANNEL_JPA_DEFAULT_SCHEMA:saleschannel}
+  flyway:
+    schemas: saleschannel
+    default-schema: saleschannel
+    table: flyway_schema_history
+    locations: classpath:db/migration/saleschannel
+  outbox:
+    fixed-delay-ms: ${SALESCHANNEL_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${SALESCHANNEL_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${SALESCHANNEL_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${SALESCHANNEL_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${SALESCHANNEL_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${SALESCHANNEL_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${SALESCHANNEL_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${SALESCHANNEL_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${SALESCHANNEL_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${SALESCHANNEL_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+region:
+  seed:
+    enabled: ${REGION_SEED_ENABLED:true}
+  jpa:
+    hibernate:
+      dialect: ${REGION_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${REGION_JPA_DDL_AUTO:validate}
+      show_sql: ${REGION_JPA_SHOW_SQL:false}
+      format_sql: ${REGION_JPA_FORMAT_SQL:false}
+      default_schema: ${REGION_JPA_DEFAULT_SCHEMA:region}
+  flyway:
+    schemas: region
+    default-schema: region
+    table: flyway_schema_history
+    locations: classpath:db/migration/region
+  outbox:
+    fixed-delay-ms: ${REGION_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${REGION_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${REGION_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${REGION_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${REGION_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${REGION_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${REGION_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${REGION_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${REGION_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${REGION_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+storefrontquery:
+  rebuild:
+    # Rebuilds run as a one-shot job (JOBS_DISCOVERY_REBUILD_ENABLED=true), never on startup.
+    batch-size: ${STOREFRONTQUERY_REBUILD_BATCH_SIZE:100}
+  jpa:
+    hibernate:
+      dialect: ${STOREFRONTQUERY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${STOREFRONTQUERY_JPA_DDL_AUTO:validate}
+      show_sql: ${STOREFRONTQUERY_JPA_SHOW_SQL:false}
+      format_sql: ${STOREFRONTQUERY_JPA_FORMAT_SQL:false}
+      default_schema: ${STOREFRONTQUERY_JPA_DEFAULT_SCHEMA:discovery}
+  flyway:
+    schemas: discovery
+    default-schema: discovery
+    table: flyway_schema_history
+    locations: classpath:db/migration/discovery
+
+security:
+  manifest:
+    republish:
+      initial-delay-ms: ${SECURITY_MANIFEST_REPUBLISH_INITIAL_DELAY_MS:300000}
+      fixed-delay-ms: ${SECURITY_MANIFEST_REPUBLISH_FIXED_DELAY_MS:300000}
+
+jobs:
+  discovery-rebuild:
+    enabled: ${JOBS_DISCOVERY_REBUILD_ENABLED:false}
+    exit-on-completion: ${JOBS_DISCOVERY_REBUILD_EXIT_ON_COMPLETION:true}

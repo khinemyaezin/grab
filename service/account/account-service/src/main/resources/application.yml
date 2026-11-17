@@ -1,0 +1,170 @@
+spring:
+  application:
+    name: account-service
+  profiles:
+    default: dev
+  main:
+    web-application-type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  jmx:
+    enabled: true
+  datasource:
+    hikari:
+      register-mbeans: true
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        include: health,metrics
+    web:
+      exposure:
+        exclude: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,bootstrap
+        liveness:
+          include: livenessState
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: account-service
+
+logger:
+  backend: ${LOGGER_BACKEND:slf4j}
+  fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
+  file:
+    enabled: ${LOGGER_FILE_ENABLED:false}
+    path: ${LOGGER_FILE_PATH:logs}
+    name: ${LOGGER_FILE_NAME:account-service.log}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+bootstrap:
+  gate-readiness: ${BOOTSTRAP_GATE_READINESS:false}
+  max-attempts: ${BOOTSTRAP_MAX_ATTEMPTS:5}
+  initial-backoff: ${BOOTSTRAP_INITIAL_BACKOFF:2s}
+  max-backoff: ${BOOTSTRAP_MAX_BACKOFF:30s}
+  lock-poll-interval: ${BOOTSTRAP_LOCK_POLL_INTERVAL:2s}
+
+grab:
+  rpc:
+    enabled: ${GRAB_RPC_ENABLED:false}
+    registry-port: ${GRAB_RPC_REGISTRY_PORT:1099}
+    bind-address: ${GRAB_RPC_BIND_ADDRESS:127.0.0.1}
+    advertised-host: ${GRAB_RPC_ADVERTISED_HOST:localhost}
+    connect-timeout-ms: ${GRAB_RPC_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${GRAB_RPC_READ_TIMEOUT_MS:30000}
+    clients:
+      channel:
+        host: ${GRAB_RPC_CLIENTS_CHANNEL_HOST:}
+        port: ${GRAB_RPC_CLIENTS_CHANNEL_PORT:1099}
+
+account:
+  datasource:
+    driver-class-name: ${ACCOUNT_DB_DRIVER:org.postgresql.Driver}
+    hikari:
+      pool-name: AccountHikariPool
+      maximum-pool-size: ${ACCOUNT_HIKARI_MAXIMUM_POOL_SIZE:10}
+      minimum-idle: ${ACCOUNT_HIKARI_MIN_IDLE:2}
+      connection-timeout: ${ACCOUNT_HIKARI_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${ACCOUNT_HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${ACCOUNT_HIKARI_MAX_LIFETIME:1800000}
+
+identity:
+  jpa:
+    hibernate:
+      dialect: ${IDENTITY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      default_schema: ${IDENTITY_JPA_DEFAULT_SCHEMA:identity}
+  flyway:
+    default-schema: identity
+    table: flyway_schema_history
+    locations: classpath:db/migration/identity
+  outbox:
+    fixed-delay-ms: ${IDENTITY_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${IDENTITY_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${IDENTITY_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${IDENTITY_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${IDENTITY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${IDENTITY_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${IDENTITY_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${IDENTITY_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${IDENTITY_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${IDENTITY_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+merchant:
+  jpa:
+    hibernate:
+      dialect: ${MERCHANT_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      default_schema: ${MERCHANT_JPA_DEFAULT_SCHEMA:merchant}
+  flyway:
+    default-schema: merchant
+    table: flyway_schema_history
+    locations: classpath:db/migration/merchant
+  outbox:
+    fixed-delay-ms: ${MERCHANT_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${MERCHANT_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${MERCHANT_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${MERCHANT_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${MERCHANT_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${MERCHANT_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${MERCHANT_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${MERCHANT_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${MERCHANT_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${MERCHANT_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+customer:
+  jpa:
+    hibernate:
+      dialect: ${CUSTOMER_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      show_sql: ${CUSTOMER_JPA_SHOW_SQL:false}
+      format_sql: ${CUSTOMER_JPA_FORMAT_SQL:false}
+      default_schema: ${CUSTOMER_JPA_DEFAULT_SCHEMA:customer}
+  flyway:
+    default-schema: customer
+    table: flyway_schema_history
+    locations: classpath:db/migration/customer
+  outbox:
+    fixed-delay-ms: ${CUSTOMER_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${CUSTOMER_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${CUSTOMER_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${CUSTOMER_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${CUSTOMER_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${CUSTOMER_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${CUSTOMER_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${CUSTOMER_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${CUSTOMER_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${CUSTOMER_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+security:
+  manifest:
+    republish:
+      initial-delay-ms: ${SECURITY_MANIFEST_REPUBLISH_INITIAL_DELAY_MS:300000}
+      fixed-delay-ms: ${SECURITY_MANIFEST_REPUBLISH_FIXED_DELAY_MS:300000}
+    revalidation:
+      fixed-delay-ms: ${SECURITY_MANIFEST_REVALIDATION_FIXED_DELAY_MS:30000}
+      batch-size: ${SECURITY_MANIFEST_REVALIDATION_BATCH_SIZE:100}
+  local-jwt:
+    issuer: ${JWT_ISSUER:https://identity.local.grab}
+    audience: ${JWT_AUDIENCE:grab-commerce-api}
+    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
+    refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P7D}
+    keystore-path: ${JWT_KEYSTORE_PATH:}
+    keystore-password: ${JWT_KEYSTORE_PASSWORD:}
+    key-alias: ${JWT_KEY_ALIAS:account-service}

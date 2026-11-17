@@ -5,6 +5,8 @@ import com.grab.framework.workflow.WorkflowFingerprintValue;
 import com.grab.framework.workflow.WorkflowPhase;
 import com.grab.framework.workflow.WorkflowSignal;
 import com.grab.framework.workflow.WorkflowSignalOutcome;
+import com.grab.framework.id.Id;
+import com.grab.framework.id.impl.CommonId;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -58,6 +60,21 @@ class JacksonWorkflowFingerprintTest {
         assertThrows(IllegalArgumentException.class, () -> fingerprint.start("order", 1, 1, Set.of("a", "b")));
         assertThrows(IllegalArgumentException.class, () -> fingerprint.start("order", 1, 1, Map.of(12, "value")));
         assertThrows(IllegalArgumentException.class, () -> fingerprint.start("order", 1, 1, Double.NaN));
+    }
+
+    @Test
+    void id_isFingerprintedAndRestoredAsScalar() {
+        Id original = new CommonId("merchant-123");
+        assertEquals(fingerprint.start("workflow", 1, 1, original),
+                fingerprint.start("workflow", 1, 1, new CommonId("merchant-123")));
+        JacksonWorkflowPayloadCodec codec = new JacksonWorkflowPayloadCodec();
+        String json = codec.writeTyped(new IdPayload(original));
+        IdPayload restored = codec.readTyped(json, IdPayload.class);
+        assertEquals(original.getValue(), restored.merchantId().getValue());
+        assertEquals("{\"merchantId\":\"merchant-123\"}", json);
+    }
+
+    private record IdPayload(Id merchantId) {
     }
 
     @Test
