@@ -41,7 +41,7 @@ public class AuthorizationUserInfoService implements Function<OidcUserInfoAuthen
         if (!AuthorizationTokenSupport.hasAudience(authorization, policy.audience())) {
             throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_TOKEN);
         }
-        Identity identity = identities.live(authorization, clientId);
+        Identity identity = identities.live(authorization);
         if (identity == null) {
             throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_TOKEN);
         }

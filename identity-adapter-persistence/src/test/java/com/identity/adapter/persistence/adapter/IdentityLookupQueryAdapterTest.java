@@ -7,6 +7,7 @@ import com.identity.adapter.persistence.entity.AccessAssignmentEntity;
 import com.identity.adapter.persistence.entity.AuthorityEntity;
 import com.identity.adapter.persistence.entity.RoleEntity;
 import com.identity.adapter.persistence.entity.UserEntity;
+import com.identity.adapter.persistence.entity.ExternalIdentityEntity;
 import com.identity.adapter.persistence.repository.jpa.AccessAssignmentJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.ExternalIdentityJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.UserJpaRepository;
@@ -107,6 +108,47 @@ class IdentityLookupQueryAdapterTest {
         var context = new AccessContext("assignment-1", "unknown.scope", "resource-1");
         assertThatThrownBy(() -> adapter.resolveByPlatformUserId("local", "user-1", context))
                 .isInstanceOf(com.identity.domain.exception.IdentityDomainValidationException.class);
+    }
+
+    @Test
+    void resolveByExternalIdentity_doesNotGrantRolesFromExternalEntitlements() {
+        UserEntity user = new UserEntity();
+        user.setUuid("platform-user");
+        user.setEmail("user@example.com");
+        user.setStatus(UserStatus.ACTIVE);
+        ExternalIdentityEntity externalIdentity = new ExternalIdentityEntity();
+        externalIdentity.setUser(user);
+        when(externalIdentities.findByIssuerAndSubject("https://iam.example", "iam-subject"))
+                .thenReturn(Optional.of(externalIdentity));
+
+        var adapter = new IdentityLookupQueryAdapter(users, externalIdentities, assignments, () ->
+                new ScopeCatalogView(Collections.emptyMap(), Collections.emptyMap(), Set.of()));
+
+        var actor = adapter.resolveByExternalIdentity(
+                "https://iam.example", "iam-subject", Set.of("platform-admin"), null).orElseThrow();
+
+        assertThat(actor.platformUserId()).isEqualTo("platform-user");
+        assertThat(actor.roles()).isEmpty();
+        assertThat(actor.authorities()).isEmpty();
+    }
+
+    @Test
+    void resolveByExternalIdentity_disabledDirectoryLinkIsRejected() {
+        UserEntity user = new UserEntity();
+        user.setUuid("platform-user");
+        user.setEmail("user@example.com");
+        user.setStatus(UserStatus.ACTIVE);
+        ExternalIdentityEntity externalIdentity = new ExternalIdentityEntity();
+        externalIdentity.setUser(user);
+        externalIdentity.setEnabled(false);
+        when(externalIdentities.findByIssuerAndSubject("https://iam.example", "iam-subject"))
+                .thenReturn(Optional.of(externalIdentity));
+
+        IdentityLookupQueryAdapter adapter = new IdentityLookupQueryAdapter(users, externalIdentities, assignments,
+                () -> new ScopeCatalogView(Collections.emptyMap(), Collections.emptyMap(), Set.of()));
+
+        assertThat(adapter.resolveByExternalIdentity("https://iam.example", "iam-subject", Set.of(), null))
+                .isEmpty();
     }
 
     @Test

@@ -18,8 +18,6 @@ import java.util.stream.Stream;
 
 @Component
 public final class AuthorizationClientPolicies {
-    public static final String ASSIGNMENT_CONTEXT = "seller-context";
-
     private static final Pattern BCRYPT = Pattern.compile("\\{bcrypt}\\$2[aby]\\$(?:0[4-9]|[12][0-9]|3[01])\\$[./A-Za-z0-9]{53}");
     private static final Pattern SCOPE = Pattern.compile("[!#-+\\--\\[\\]-~]+");
 
@@ -58,9 +56,6 @@ public final class AuthorizationClientPolicies {
         }
         if (client.clientSecretHash() == null || !BCRYPT.matcher(client.clientSecretHash()).matches()) {
             throw new IllegalStateException("Authorization client secrets require a delegated BCrypt hash");
-        }
-        if (!Set.of(ASSIGNMENT_CONTEXT).containsAll(client.capabilities())) {
-            throw new IllegalStateException("Unknown authorization client capability");
         }
         if (!client.scopes().contains(OidcScopes.OPENID) || String.join(",", client.scopes()).length() > 1000
                 || client.scopes().stream().anyMatch(scope -> !SCOPE.matcher(scope).matches())) {
@@ -118,7 +113,4 @@ public final class AuthorizationClientPolicies {
         return audiences;
     }
 
-    public boolean hasAssignmentContext(String clientId) {
-        return find(clientId).map(client -> client.capabilities().contains(ASSIGNMENT_CONTEXT)).orElse(false);
-    }
 }

@@ -3,6 +3,7 @@ package com.identity.domain.aggregate;
 import com.grab.framework.domain.AggregateRoot;
 import com.grab.framework.id.Id;
 import com.identity.domain.enums.UserStatus;
+import com.identity.domain.enums.IdentityManagementMode;
 import com.identity.domain.event.UserRegisteredEvent;
 import com.identity.domain.event.UserStatusChangedEvent;
 import com.identity.domain.exception.IdentityDomainError;
@@ -18,17 +19,19 @@ import java.util.Optional;
 @Getter
 public class User extends AggregateRoot<Id> {
     private final Email email;
-    private final HashedPassword passwordHash;
+    private HashedPassword passwordHash;
+    private IdentityManagementMode identityManagementMode;
     private long authenticationVersion;
     private UserStatus status;
     private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public User(Id id, Email email, HashedPassword passwordHash,
+    public User(Id id, Email email, HashedPassword passwordHash, IdentityManagementMode identityManagementMode,
                 UserStatus status, LocalDateTime createdAt, LocalDateTime updatedAt) {
         super(id);
         this.email = Objects.requireNonNull(email);
         this.passwordHash = passwordHash;
+        this.identityManagementMode = Objects.requireNonNull(identityManagementMode);
         this.status = Objects.requireNonNull(status);
         this.createdAt = Objects.requireNonNull(createdAt);
         this.updatedAt = Objects.requireNonNull(updatedAt);
@@ -36,7 +39,8 @@ public class User extends AggregateRoot<Id> {
 
     public static User createLocal(Id id, Email email, HashedPassword password) {
         LocalDateTime now = LocalDateTime.now();
-        User user = new User(id, email, Objects.requireNonNull(password), UserStatus.ACTIVE, now, now);
+        User user = new User(id, email, Objects.requireNonNull(password), IdentityManagementMode.LOCAL,
+                UserStatus.ACTIVE, now, now);
         user.addEvent(new UserRegisteredEvent(id, email.value(), UserStatus.ACTIVE, now));
         return user;
     }
@@ -62,6 +66,19 @@ public class User extends AggregateRoot<Id> {
 
     public boolean isActive() {
         return status == UserStatus.ACTIVE;
+    }
+
+    public boolean isLocallyManaged() {
+        return identityManagementMode == IdentityManagementMode.LOCAL;
+    }
+
+    public void markExternallyManaged() {
+        if (identityManagementMode == IdentityManagementMode.EXTERNAL) {
+            return;
+        }
+        identityManagementMode = IdentityManagementMode.EXTERNAL;
+        passwordHash = null;
+        invalidateAuthenticationSessions();
     }
 
     public void invalidateAuthenticationSessions() {

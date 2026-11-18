@@ -6,7 +6,6 @@ import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,14 +32,11 @@ class AuthorizationClientPoliciesTest {
         assertThat(sharedPolicies.audiences()).containsExactly("portal-api");
         assertThat(sharedPolicies.isActive("second-client")).isTrue();
         Client malformed = new Client("portal", "Portal", "{bcrypt}bad", first.redirectUris(), List.of(),
-                List.of("openid"), "portal-api", null, Set.of(), null, null);
+                List.of("openid"), "portal-api", null, null, null);
         assertThatThrownBy(() -> policies("prod", malformed)).hasMessageContaining("delegated BCrypt")
                 .hasMessageNotContaining("{bcrypt}bad");
-        Client unsupported = new Client("portal", "Portal", HASH, first.redirectUris(), List.of(),
-                List.of("openid"), "portal-api", null, Set.of("unknown"), null, null);
-        assertThatThrownBy(() -> policies("prod", unsupported)).hasMessageContaining("Unknown");
         Client invalidTtl = new Client("portal", "Portal", HASH, first.redirectUris(), List.of(),
-                List.of("openid"), "portal-api", null, Set.of(), java.time.Duration.ofSeconds(-1), null);
+                List.of("openid"), "portal-api", null, java.time.Duration.ofSeconds(-1), null);
         assertThatThrownBy(() -> policies("prod", invalidTtl)).hasMessageContaining("TTL must be positive");
     }
 
@@ -58,7 +54,7 @@ class AuthorizationClientPoliciesTest {
 
     static Client client(String id, String registration, String audience, String uri) {
         String hash = "{bcrypt}" + new BCryptPasswordEncoder(4).encode("secret-for-" + id);
-        return new Client(id, id, hash, List.of(uri), List.of(), List.of("openid"), audience, registration, Set.of(), null, null);
+        return new Client(id, id, hash, List.of(uri), List.of(), List.of("openid"), audience, registration, null, null);
     }
 
     static AuthorizationClientPolicies policies(String profile, Client... clients) {

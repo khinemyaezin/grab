@@ -1,7 +1,6 @@
 package com.grab.service.authorizationserver.config;
 
 import com.grab.service.authorizationserver.config.AuthorizationClientProperties.Client;
-import com.grab.service.authorizationserver.core.grant.SellerContextGrant;
 import com.grab.service.authorizationserver.port.outbound.GrantFamilyStorePort;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -81,9 +80,6 @@ public class AuthorizationClientInitializer implements ApplicationRunner {
                 .tokenSettings(tokenSettings);
         if (previous != null) {
             builder.clientIdIssuedAt(previous.getClientIdIssuedAt());
-        }
-        if (policies.hasAssignmentContext(client.clientId())) {
-            builder.authorizationGrantType(SellerContextGrant.TYPE);
         }
         return builder.build();
     }

@@ -1,6 +1,7 @@
 package com.identity.adapter.persistence.repository.jpa;
 
 import com.identity.domain.enums.UserStatus;
+import com.identity.domain.enums.IdentityManagementMode;
 import com.identity.adapter.persistence.entity.UserEntity;
 import com.identity.adapter.persistence.repository.jpa.config.RepositoryTestConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ public class UserJpaRepositoryTest extends RepositoryTestConfig {
         suspendedUser.setUuid("uuid-user-suspended");
         suspendedUser.setEmail("suspended@example.com");
         suspendedUser.setPasswordHash("hashed-pwd-2");
+        suspendedUser.setIdentityManagementMode(IdentityManagementMode.EXTERNAL);
         suspendedUser.setStatus(UserStatus.SUSPENDED);
         suspendedUser.setCreatedAt(LocalDateTime.now());
         suspendedUser.setUpdatedAt(LocalDateTime.now());
@@ -95,6 +97,11 @@ public class UserJpaRepositoryTest extends RepositoryTestConfig {
 
         assertThat(result).isPresent();
         assertThat(result.get().getStatus()).isEqualTo(UserStatus.SUSPENDED);
+    }
+
+    @Test
+    void findCredentialView_excludesExternallyManagedUsers() {
+        assertThat(userJpaRepository.findCredentialView("suspended@example.com")).isEmpty();
     }
 
     @Test

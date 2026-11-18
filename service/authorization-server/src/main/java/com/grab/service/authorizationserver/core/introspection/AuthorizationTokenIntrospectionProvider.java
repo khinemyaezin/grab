@@ -5,7 +5,6 @@ import com.grab.service.authorizationserver.config.AuthorizationClientPolicies;
 import com.grab.service.authorizationserver.core.grant.AuthorizationTokenSupport;
 import com.grab.service.authorizationserver.core.grant.AuthorizationIdentity;
 import com.grab.service.authorizationserver.core.grant.AuthorizationIdentity.Identity;
-import com.grab.service.authorizationserver.port.outbound.AssignmentIdentityPort.State;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
@@ -47,7 +46,7 @@ public class AuthorizationTokenIntrospectionProvider implements AuthenticationPr
                 && authorization.getAccessToken() != null
                 && authorization.getAccessToken().isActive()
                 && AuthorizationTokenSupport.hasAudience(authorization, audience)) {
-            Identity identity = identities.live(authorization, clientId);
+            Identity identity = identities.live(authorization);
             if (identity != null) {
                 OAuth2AccessToken access = authorization.getAccessToken().getToken();
                 claims.active(true)
@@ -55,15 +54,6 @@ public class AuthorizationTokenIntrospectionProvider implements AuthenticationPr
                         .issuer(properties.issuer()).audience(audience)
                         .subject(identity.subject().userId()).issuedAt(access.getIssuedAt()).expiresAt(access.getExpiresAt())
                         .tokenType("Bearer").claim(AuthorizationTokenSupport.VERSION, identity.subject().authenticationVersion());
-                State state = identity.assignment();
-                if (state != null) {
-                    claims.claim("email", state.email()).claim("roles", state.roles()).claim("authorities", state.authorities());
-                    if (state.assignmentId() != null) {
-                        claims.claim(AuthorizationTokenSupport.ASSIGNMENT, state.assignmentId())
-                                .claim(AuthorizationTokenSupport.SCOPE_KEY, state.scopeKey())
-                                .claim(AuthorizationTokenSupport.SCOPE_ID, state.scopeId());
-                    }
-                }
             }
         }
         return new OAuth2TokenIntrospectionAuthenticationToken(supplied, client, claims.build());

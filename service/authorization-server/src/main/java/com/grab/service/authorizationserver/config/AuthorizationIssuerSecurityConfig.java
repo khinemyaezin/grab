@@ -8,8 +8,6 @@ import com.grab.service.authorizationserver.adapter.inbound.web.AuthorizationPro
 import com.grab.service.authorizationserver.core.grant.AuthorizationCodeRedeemProvider;
 import com.grab.service.authorizationserver.core.grant.AuthorizationIdentity;
 import com.grab.service.authorizationserver.core.logout.ActiveClientLogoutProvider;
-import com.grab.service.authorizationserver.core.grant.SellerContextGrantAuthenticationProvider;
-import com.grab.service.authorizationserver.core.grant.SellerContextGrantConverter;
 import com.grab.service.authorizationserver.core.grant.AuthorizationRefreshTokenProvider;
 import com.grab.service.authorizationserver.core.introspection.AuthorizationTokenIntrospectionProvider;
 import com.grab.service.authorizationserver.core.revocation.AuthorizationTokenRevocationProvider;
@@ -69,7 +67,6 @@ public class AuthorizationIssuerSecurityConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain issuerProtocol(HttpSecurity http,
-                                              SellerContextGrantAuthenticationProvider contextGrantProvider,
                                               AuthorizationTokenIntrospectionProvider introspectionProvider,
                                               AuthorizationTokenRevocationProvider revocationProvider,
                                               AuthorizationUserInfoService userInfoService,
@@ -111,7 +108,6 @@ public class AuthorizationIssuerSecurityConfig {
                                     }
                                 })))
                         .tokenEndpoint(token -> token
-                                .accessTokenRequestConverter(new SellerContextGrantConverter())
                                 .authenticationProviders(providers -> {
                                     providers.replaceAll(provider -> {
                                         if (provider instanceof OAuth2AuthorizationCodeAuthenticationProvider) {
@@ -122,7 +118,6 @@ public class AuthorizationIssuerSecurityConfig {
                                         }
                                         return provider;
                                     });
-                                    providers.addFirst(contextGrantProvider);
                                 })
                                 .errorResponseHandler(failure))
                         .tokenIntrospectionEndpoint(endpoint -> endpoint

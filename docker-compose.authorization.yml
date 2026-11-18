@@ -1,0 +1,88 @@
+services:
+  authorization-db-provision:
+    profiles: [authorization]
+    image: postgres:16-alpine
+    entrypoint: ["/bin/sh", "/opt/authorization/provision.sh"]
+    env_file:
+      - ${AUTHORIZATION_ENV_FILE:-docker/env/authorization-server.env}
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-admin}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-123}
+      AUTHORIZATION_DB_NAME: ${AUTHORIZATION_DB_NAME:-authorization}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [app-network]
+    volumes:
+      - ./docker/postgres/provision-authorization.sh:/opt/authorization/provision.sh:ro
+
+  authorization-server:
+    profiles: [authorization]
+    build:
+      context: .
+      dockerfile: service/authorization-server/Dockerfile
+    env_file:
+      - ${AUTHORIZATION_ENV_FILE:-docker/env/authorization-server.env}
+    environment:
+      AUTHORIZATION_ACCOUNT_HOST: account-service
+      AUTHORIZATION_ACCOUNT_PORT: ${AUTHORIZATION_ACCOUNT_PORT:-1199}
+      AUTHORIZATION_REDIS_URL: ${AUTHORIZATION_COMPOSE_REDIS_URL:-redis://authorization-redis:6379}
+      AUTHORIZATION_PORT: 9000
+      SPRING_CONFIG_IMPORT: file:/app/config/authorization-clients.yml
+    depends_on:
+      authorization-db-provision:
+        condition: service_completed_successfully
+      account-service:
+        condition: service_healthy
+      authorization-redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${AUTHORIZATION_PUBLISHED_PORT:-9000}:9000"
+    networks: [app-network]
+    volumes:
+      - type: bind
+        source: ${AUTHORIZATION_CLIENTS_FILE:-./docker/config/authorization-clients.yml}
+        target: /app/config/authorization-clients.yml
+        read_only: true
+        bind:
+          create_host_path: false
+      - ${AUTHORIZATION_SECRETS_DIR:-./docker/secrets/authorization}/issuer:/run/secrets/issuer:ro
+
+  authorization-redis:
+    profiles: [authorization]
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - seller-auth-redis:/data
+    networks: [app-network]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  account-service:
+    volumes:
+      - ${AUTHORIZATION_SECRETS_DIR:-./docker/secrets/authorization}/account:/run/secrets/seller-auth:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z -w 2 127.0.0.1 ${AUTHORIZATION_ACCOUNT_PORT:-1199} && nc -z -w 2 127.0.0.1 ${SELLER_AUTH_REGISTRATION_PORT:-1200}"]
+    environment:
+      SELLER_AUTH_RPC_ENABLED: "true"
+      SELLER_AUTH_ISSUER_PORT: ${AUTHORIZATION_ACCOUNT_PORT:-1199}
+      SELLER_AUTH_REGISTRATION_PORT: ${SELLER_AUTH_REGISTRATION_PORT:-1200}
+
+  seller-bff:
+    depends_on:
+      authorization-server:
+        condition: service_healthy
+    volumes:
+      - ${AUTHORIZATION_SECRETS_DIR:-./docker/secrets/authorization}/bff:/run/secrets/seller-auth:ro
+    environment:
+      SELLER_AUTH_ACCOUNT_HOST: account-service
+      SELLER_AUTH_REGISTRATION_PORT: ${SELLER_AUTH_REGISTRATION_PORT:-1200}
+      SELLER_OIDC_BACKCHANNEL: ${AUTHORIZATION_BACKCHANNEL:-http://authorization-server:9000}
+      SELLER_OIDC_REDIS_URL: ${SELLER_COMPOSE_REDIS_URL:-redis://authorization-redis:6379}
+
+volumes:
+  seller-auth-redis:

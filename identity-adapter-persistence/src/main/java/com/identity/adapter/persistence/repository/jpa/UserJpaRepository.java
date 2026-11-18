@@ -27,7 +27,7 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
             SELECT new com.identity.application.model.read.CredentialView(
                 u.uuid, u.passwordHash, u.status, u.authenticationVersion)
             FROM UserEntity u
-            WHERE u.email = :email
+            WHERE u.email = :email AND u.identityManagementMode = 'LOCAL'
             """)
     Optional<CredentialView> findCredentialView(@Param("email") String email);
 

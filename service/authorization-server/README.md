@@ -1,6 +1,6 @@
 # Authorization Server
 
-This service hosts one OIDC issuer backed by PostgreSQL, Redis, and Account. Client registrations come from YAML. Account verifies credentials and resolves active subjects over private mTLS RMI. The optional `seller-context` capability enables Seller Central's assignment claims and context grant.
+This service hosts the bundled OIDC issuer backed by PostgreSQL, Redis, and Account. Client registrations come from the mounted YAML registry. Account verifies credentials and resolves active subjects over private mTLS RMI. Seller assignment selection is managed by the BFF through Account and does not use a provider-specific OAuth grant.
 
 ## Local Compose deployment
 

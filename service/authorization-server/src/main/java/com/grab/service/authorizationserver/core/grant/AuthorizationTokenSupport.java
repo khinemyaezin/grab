@@ -16,11 +16,6 @@ import java.util.Map;
 
 public final class AuthorizationTokenSupport {
     public static final String VERSION = "authentication_version";
-    public static final String ASSIGNMENT = "assignment_id";
-    public static final String SCOPE_KEY = "scope_key";
-    public static final String SCOPE_ID = "scope_id";
-    public static final String MERCHANT_REVISION = "merchant_revision";
-    public static final String STOREFRONT_REVISION = "storefront_revision";
 
     private AuthorizationTokenSupport() {}
 
@@ -45,11 +40,6 @@ public final class AuthorizationTokenSupport {
         Map<String, Object> claims = authorization.getAccessToken().getClaims();
         List<String> expected = List.of(audience);
         return claims != null && expected.equals(claims.get(JwtClaimNames.AUD));
-    }
-
-    public static long version(OAuth2Authorization authorization, String key) {
-        Number version = authorization.getAttribute(key);
-        return version == null ? -1 : version.longValue();
     }
 
     public static OAuth2Authorization lockCurrent(OAuth2AuthorizationService authorizations,

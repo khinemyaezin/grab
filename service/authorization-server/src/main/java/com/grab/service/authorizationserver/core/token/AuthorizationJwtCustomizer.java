@@ -15,9 +15,6 @@ import java.util.List;
 
 public class AuthorizationJwtCustomizer implements OAuth2TokenCustomizer<JwtEncodingContext> {
     public static final String VERSION = "authentication_version";
-    public static final String ASSIGNMENT = "assignment_id";
-    public static final String SCOPE_KEY = "scope_key";
-    public static final String SCOPE_ID = "scope_id";
 
     private final AuthorizationSigningKeys keys;
     private final AuthorizationClientPolicies clients;
@@ -41,12 +38,6 @@ public class AuthorizationJwtCustomizer implements OAuth2TokenCustomizer<JwtEnco
             context.getClaims().audience(audiences);
             context.getClaims().claims(claims -> {
                 claims.put(VERSION, authorization.getAttribute(VERSION));
-                String assignment = authorization.getAttribute(ASSIGNMENT);
-                if (clients.hasAssignmentContext(clientId) && assignment != null) {
-                    claims.put(ASSIGNMENT, assignment);
-                    claims.put(SCOPE_KEY, authorization.getAttribute(SCOPE_KEY));
-                    claims.put(SCOPE_ID, authorization.getAttribute(SCOPE_ID));
-                }
             });
         } else if (OidcParameterNames.ID_TOKEN.equals(context.getTokenType().getValue())
                 && AuthorizationGrantType.REFRESH_TOKEN.equals(context.getAuthorizationGrantType())) {

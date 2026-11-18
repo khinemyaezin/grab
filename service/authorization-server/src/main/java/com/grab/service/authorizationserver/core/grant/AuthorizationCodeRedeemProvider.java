@@ -43,7 +43,6 @@ public class AuthorizationCodeRedeemProvider implements AuthenticationProvider {
     public Authentication authenticate(Authentication authentication) {
         OAuth2AuthorizationCodeAuthenticationToken grant = (OAuth2AuthorizationCodeAuthenticationToken) authentication;
         OAuth2ClientAuthenticationToken client = AuthorizationTokenSupport.validateClient(grant.getPrincipal(), clients);
-        String clientId = client.getRegisteredClient().getClientId();
         Authentication result = store.inTransaction(() -> {
             OAuth2Authorization authorization = AuthorizationTokenSupport.lockCurrent(
                     authorizations, store, grant.getCode(), CODE, client);
@@ -56,7 +55,7 @@ public class AuthorizationCodeRedeemProvider implements AuthenticationProvider {
                 return null;
             }
             Authentication principal = authorization.getAttribute(Principal.class.getName());
-            Identity state = identities.initial(authorization, clientId);
+            Identity state = identities.initial(authorization);
             if (state == null || state.subject().authenticationVersion() != AccountFormAuthenticationProvider.loginVersion(principal)) {
                 return null;
             }

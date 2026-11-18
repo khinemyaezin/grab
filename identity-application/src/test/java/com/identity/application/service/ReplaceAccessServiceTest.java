@@ -13,6 +13,7 @@ import com.identity.domain.aggregate.User;
 import com.identity.domain.enums.RoleKind;
 import com.identity.domain.enums.AccessAssignmentStatus;
 import com.identity.domain.enums.UserStatus;
+import com.identity.domain.enums.IdentityManagementMode;
 import com.identity.domain.aggregate.Authority;
 import com.identity.domain.port.outbound.AccessAssignmentRepository;
 import com.identity.domain.port.outbound.AuthorityRepository;
@@ -106,6 +107,7 @@ class ReplaceAccessServiceTest {
                 userId,
                 new Email("seller@example.com"),
                 new HashedPassword("$2a$10$validhashvalueforuser"),
+                IdentityManagementMode.LOCAL,
                 UserStatus.ACTIVE,
                 LocalDateTime.now(),
                 LocalDateTime.now()

@@ -40,7 +40,6 @@ public class AuthorizationRefreshTokenProvider implements AuthenticationProvider
     public Authentication authenticate(Authentication authentication) {
         OAuth2RefreshTokenAuthenticationToken grant = (OAuth2RefreshTokenAuthenticationToken) authentication;
         OAuth2ClientAuthenticationToken client = AuthorizationTokenSupport.validateClient(grant.getPrincipal(), clients);
-        String clientId = client.getRegisteredClient().getClientId();
         String token = grant.getRefreshToken();
         Authentication result = store.inTransaction(() -> {
             OAuth2Authorization authorization = AuthorizationTokenSupport.lockCurrent(
@@ -52,7 +51,7 @@ public class AuthorizationRefreshTokenProvider implements AuthenticationProvider
             OAuth2Authorization.Token<OAuth2RefreshToken> current = authorization.getRefreshToken();
             if (current == null || !current.isActive()
                     || !client.getRegisteredClient().getScopes().containsAll(authorization.getAuthorizedScopes())
-                    || identities.live(authorization, clientId) == null) {
+                    || identities.live(authorization) == null) {
                 AuthorizationTokenSupport.invalidate(authorizations, authorization);
                 return null;
             }

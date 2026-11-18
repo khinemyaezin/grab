@@ -4,10 +4,12 @@ import com.grab.framework.id.Id;
 import com.grab.framework.security.AccessContext;
 import com.identity.application.model.read.ActiveSubjectView;
 import com.identity.application.model.read.CredentialView;
+import com.identity.application.model.read.ScopeCatalogView;
 import com.grab.framework.security.AuthenticatedActor;
 import com.identity.domain.enums.UserStatus;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
+import com.identity.domain.valueobject.ScopeHierarchy;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.adapter.persistence.entity.*;
 import com.identity.adapter.persistence.repository.jpa.AccessAssignmentJpaRepository;
@@ -89,6 +91,7 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
     @Override
     public Optional<AuthenticatedActor> resolveByExternalIdentity(String issuer, String subject, Set<String> entitlements, AccessContext accessContext) {
         return externalIdentities.findByIssuerAndSubject(issuer, subject)
+                .filter(ExternalIdentityEntity::isEnabled)
                 .map(ExternalIdentityEntity::getUser)
                 .map(user -> resolveForUser(user, issuer, subject, accessContext));
     }
@@ -99,9 +102,10 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
                     new IdentityDomainError.AccountNotActive(user.getUuid()), "Account is not active");
         }
 
-        Set<RoleEntity> effectiveRoles = accessContext == null
+        AccessContext effectiveContext = accessContext == null ? null : effectiveContext(user, accessContext);
+        Set<RoleEntity> effectiveRoles = effectiveContext == null
                 ? new LinkedHashSet<>()
-                : scopedRoles(user, accessContext);
+                : scopedRoles(user, effectiveContext);
 
         Set<String> roleCodes = effectiveRoles.stream()
                 .filter(RoleEntity::isActive)
@@ -122,14 +126,38 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
                 user.getEmail(),
                 roleCodes,
                 authorities,
-                accessContext,
+                effectiveContext,
                 user.getAuthenticationVersion()
         );
     }
 
+    private AccessContext effectiveContext(UserEntity user, AccessContext requestedContext) {
+        if (requestedContext.assignmentId() == null) {
+            throw invalidAccessContext();
+        }
+        if (requestedContext.scopeKey() != null) {
+            ScopeCatalogView catalog = scopes.load();
+            ScopeHierarchy hierarchy = catalog.hierarchy();
+            if (!hierarchy.isEffective(requestedContext.scopeKey())) {
+                throw invalidAccessContext();
+            }
+        }
+        AccessAssignmentEntity anchor = accessAssignments.findEffectiveByUser(user.getUuid(), Instant.now()).stream()
+                .filter(assignment -> assignment.getUuid().equals(requestedContext.assignmentId()))
+                .findFirst()
+                .orElseThrow(this::invalidAccessContext);
+        boolean requestedScopeMatches = requestedContext.scopeKey() == null && requestedContext.scopeId() == null
+                || anchor.getScopeKey().equals(requestedContext.scopeKey())
+                && anchor.getScopeId().equals(requestedContext.scopeId());
+        if (!requestedScopeMatches) {
+            throw invalidAccessContext();
+        }
+        return new AccessContext(requestedContext.assignmentId(), anchor.getScopeKey(), anchor.getScopeId());
+    }
+
     private Set<RoleEntity> scopedRoles(UserEntity user, AccessContext context) {
-        var catalog = scopes.load();
-        var hierarchy = catalog.hierarchy();
+        ScopeCatalogView catalog = scopes.load();
+        ScopeHierarchy hierarchy = catalog.hierarchy();
         if (!hierarchy.isEffective(context.scopeKey())) {
             throw invalidAccessContext();
         }

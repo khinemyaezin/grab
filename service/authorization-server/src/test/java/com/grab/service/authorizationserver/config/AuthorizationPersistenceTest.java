@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AuthorizationPersistenceTest {
     @Test
-    void reloadsAuthorizationCodeAfterSavingSellerRevisions() {
+    void reloadsAuthorizationCodeAfterSavingAuthenticationVersion() {
         try (PostgreSQLContainer<?> database = new PostgreSQLContainer<>("postgres:16-alpine")) {
             database.start();
             DriverManagerDataSource dataSource = new DriverManagerDataSource(
@@ -52,17 +52,13 @@ class AuthorizationPersistenceTest {
 
             OAuth2Authorization contextual = OAuth2Authorization.from(initial)
                     .attribute(AuthorizationTokenSupport.VERSION, 3L)
-                    .attribute(AuthorizationTokenSupport.MERCHANT_REVISION, 4L)
-                    .attribute(AuthorizationTokenSupport.STOREFRONT_REVISION, 5L)
                     .build();
             authorizations.save(contextual);
 
             OAuth2TokenType codeType = new OAuth2TokenType("code");
             OAuth2Authorization restored = authorizations.findByToken("test-code", codeType);
             assertThat(restored).isNotNull();
-            assertThat(restored.getAttributes()).containsEntry(AuthorizationTokenSupport.VERSION, 3L)
-                    .containsEntry(AuthorizationTokenSupport.MERCHANT_REVISION, 4L)
-                    .containsEntry(AuthorizationTokenSupport.STOREFRONT_REVISION, 5L);
+            assertThat(restored.getAttributes()).containsEntry(AuthorizationTokenSupport.VERSION, 3L);
         }
     }
 }

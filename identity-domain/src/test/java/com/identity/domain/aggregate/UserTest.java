@@ -2,6 +2,7 @@ package com.identity.domain.aggregate;
 
 import com.grab.framework.id.impl.CommonId;
 import com.identity.domain.enums.UserStatus;
+import com.identity.domain.enums.IdentityManagementMode;
 import com.identity.domain.event.UserRegisteredEvent;
 import com.identity.domain.event.UserStatusChangedEvent;
 import com.identity.domain.exception.IdentityDomainError;
@@ -15,6 +16,8 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UserTest {
     @Test
@@ -57,9 +60,22 @@ class UserTest {
                 new CommonId("u1"),
                 new Email("user@example.com"),
                 new HashedPassword("hash"),
+                IdentityManagementMode.LOCAL,
                 status,
                 now,
                 now
         );
+    }
+
+    @Test
+    void markExternallyManagedDisablesLocalCredentialsAndInvalidatesSessions() {
+        User user = hydratedUser(UserStatus.ACTIVE);
+        user.restoreAuthenticationVersion(4);
+
+        user.markExternallyManaged();
+
+        assertFalse(user.isLocallyManaged());
+        assertTrue(user.getPasswordHash().isEmpty());
+        assertEquals(5, user.getAuthenticationVersion());
     }
 }

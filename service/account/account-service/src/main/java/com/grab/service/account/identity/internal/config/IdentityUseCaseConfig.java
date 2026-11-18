@@ -19,6 +19,7 @@ import com.identity.application.port.inbound.ListAccessAssignmentsUseCase;
 import com.identity.application.port.inbound.ListAccessContextsUseCase;
 import com.identity.application.port.inbound.ListRolesUseCase;
 import com.identity.application.port.inbound.ListUsersUseCase;
+import com.identity.application.port.inbound.LinkExternalIdentityUseCase;
 import com.identity.application.port.inbound.ListWaitingRoleDeclarationsUseCase;
 import com.identity.application.port.inbound.ListWaitingSecurityManifestCandidatesUseCase;
 import com.identity.application.port.inbound.LoginUseCase;
@@ -59,6 +60,7 @@ import com.identity.application.service.ListAccessAssignmentsService;
 import com.identity.application.service.ListAccessContextsService;
 import com.identity.application.service.ListRolesService;
 import com.identity.application.service.ListUsersService;
+import com.identity.application.service.LinkExternalIdentityService;
 import com.identity.application.service.ListWaitingRoleDeclarationsService;
 import com.identity.application.service.ListWaitingSecurityManifestCandidatesService;
 import com.identity.application.service.LoginService;
@@ -88,12 +90,15 @@ import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.port.outbound.ExternalIdentityRepository;
 import com.identity.domain.service.InvitationTokenService;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.domain.service.TokenLifeCycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
 public class IdentityUseCaseConfig {
@@ -161,6 +166,19 @@ public class IdentityUseCaseConfig {
             SessionStore sessions
     ) {
         return ChangeUserStatusService.forHeadlessAccount(userRepository, sessions);
+    }
+
+    @Bean
+    public Clock identityClock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    public LinkExternalIdentityUseCase linkExternalIdentityUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            Clock identityClock) {
+        return new LinkExternalIdentityService(users, externalIdentities, identityClock);
     }
 
     @Bean
