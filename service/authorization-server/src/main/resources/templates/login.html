@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grab Seller Central - Sign In</title>
+    <link rel="stylesheet" th:href="@{/css/login.css}" />
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="brand-header">
+                <div class="brand-badge">Grab</div>
+                <h1 class="brand-title">Seller Central</h1>
+                <p class="brand-subtitle">Sign in to manage your merchant catalog and operations</p>
+            </div>
+
+            <!-- Error Notification -->
+            <div th:if="${param.error}" class="alert alert-error" role="alert">
+                Invalid email or password. Please verify your credentials and try again.
+            </div>
+
+            <!-- Logout Notification -->
+            <div th:if="${param.logout}" class="alert alert-info" role="alert">
+                You have been signed out successfully.
+            </div>
+
+            <form th:action="@{/login}" method="post" class="login-form">
+                <!-- Explicit CSRF Token field matching integration test expectations -->
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+
+                <div class="form-group">
+                    <label for="username" class="form-label">Email Address</label>
+                    <input type="email" id="username" name="username" class="form-input"
+                           placeholder="seller@example.com" required autofocus />
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-input"
+                           placeholder="••••••••••••" required />
+                </div>
+
+                <button type="submit" class="btn-primary">Sign In</button>
+            </form>
+
+            <div class="login-footer">
+                <p>Protected by Grab Platform Security & OAuth 2.1</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

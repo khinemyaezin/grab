@@ -17,6 +17,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -55,11 +56,17 @@ import java.util.List;
 @EnableConfigurationProperties(SellerOidcProperties.class)
 class SellerOidcSecurityConfig {
     private static final Logger LOG = Loggers.getLogger(SellerOidcSecurityConfig.class);
+
     @Bean
-    SecurityFilterChain sellerOidcSecurity(HttpSecurity http, SellerOidcProperties properties,
-            ClientRegistrationRepository registrations, SellerOidcBrowserSession sessions, ObjectMapper json,
-            AuthenticationEntryPoint entryPoint, AccessDeniedHandler deniedHandler,
-            @Value("${security.api.cors:http://localhost:3000}") List<String> origins, MeterRegistry metrics) throws Exception {
+    SecurityFilterChain sellerOidcSecurity(HttpSecurity http,
+                                           SellerOidcProperties properties,
+                                           ClientRegistrationRepository registrations,
+                                           SellerOidcBrowserSession sessions, ObjectMapper json,
+                                           AuthenticationEntryPoint entryPoint,
+                                           AccessDeniedHandler deniedHandler,
+                                           @Value("${security.api.cors:http://localhost:3000}") List<String> origins,
+                                           MeterRegistry metrics
+    ) throws Exception {
         HttpSessionOAuth2AuthorizedClientRepository clients = new HttpSessionOAuth2AuthorizedClientRepository();
         DefaultOAuth2AuthorizationRequestResolver requests =
                 new DefaultOAuth2AuthorizationRequestResolver(registrations, "/oauth2/authorization");
@@ -75,15 +82,28 @@ class SellerOidcSecurityConfig {
         source.registerCorsConfiguration("/**", cors);
 
         http.cors(configuration -> configuration.configurationSource(source))
-                .exceptionHandling(errors -> errors.authenticationEntryPoint(entryPoint).accessDeniedHandler(deniedHandler))
+                .exceptionHandling(errors ->
+                        errors.authenticationEntryPoint(entryPoint).accessDeniedHandler(deniedHandler))
                 .authorizeHttpRequests(access -> access
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/oauth2/authorization/seller",
-                                "/login/oauth2/code/seller", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1", "/api/v1/identity", "/api/v1/identity/auth/csrf").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/identity/auth/register").permitAll()
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/oauth2/authorization/seller",
+                                "/login/oauth2/code/seller",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1",
+                                "/api/v1/identity",
+                                "/api/v1/identity/auth/csrf")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/identity/auth/register")
+                        .permitAll()
                         .anyRequest().authenticated())
-                .logout(logout -> logout.disable())
+                .logout(AbstractHttpConfigurer::disable)
                 .oauth2Login(login -> login.authorizedClientRepository(clients)
                         .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(requests))
                         .successHandler((request, response, authentication) -> {

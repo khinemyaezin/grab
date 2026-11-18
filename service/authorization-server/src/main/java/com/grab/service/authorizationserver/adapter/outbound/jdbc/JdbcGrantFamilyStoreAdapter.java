@@ -1,5 +1,7 @@
-package com.grab.service.authorizationserver;
+package com.grab.service.authorizationserver.adapter.outbound.jdbc;
 
+import com.grab.service.authorizationserver.config.SellerIssuerProperties;
+import com.grab.service.authorizationserver.port.outbound.GrantFamilyStorePort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.JdbcTransactionManager;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,40 +14,45 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.function.Supplier;
 
 @Component
-final class SellerGrantStore {
+public class JdbcGrantFamilyStoreAdapter implements GrantFamilyStorePort {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
+    private final SellerIssuerProperties properties;
 
-    SellerGrantStore(JdbcTemplate jdbc, DataSource dataSource) {
+    public JdbcGrantFamilyStoreAdapter(JdbcTemplate jdbc, DataSource dataSource, SellerIssuerProperties properties) {
         this.jdbc = jdbc;
+        this.properties = properties;
         JdbcTransactionManager manager = new JdbcTransactionManager(dataSource);
-        transaction = new TransactionTemplate(manager);
+        this.transaction = new TransactionTemplate(manager);
     }
 
-    <T> T transaction(Supplier<T> work) {
+    @Override
+    public <T> T inTransaction(Supplier<T> work) {
         return transaction.execute(status -> work.get());
     }
 
-    boolean lock(String familyId) {
+    @Override
+    public boolean lock(String familyId) {
         List<String> rows = jdbc.queryForList(
                 "SELECT id FROM oauth2_authorization WHERE id = ? FOR UPDATE", String.class, familyId);
         return !rows.isEmpty();
     }
 
-    void consume(String familyId, OAuth2RefreshToken token) {
+    @Override
+    public void consume(String familyId, OAuth2RefreshToken token) {
         String digest = digest(token.getTokenValue());
         Timestamp expires = Timestamp.from(token.getExpiresAt());
         jdbc.update("INSERT INTO seller_consumed_refresh (digest, authorization_id, expires_at) VALUES (?, ?, ?)",
                 digest, familyId, expires);
     }
 
-    String consumedFamily(String token) {
+    @Override
+    public String findConsumedFamily(String token) {
         String digest = digest(token);
         List<String> rows = jdbc.queryForList("""
                 SELECT authorization_id FROM seller_consumed_refresh
@@ -54,14 +61,16 @@ final class SellerGrantStore {
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
+    @Override
     @Scheduled(fixedDelayString = "${grab.seller-issuer.cleanup-delay:PT1H}")
-    void cleanExpired() {
+    public void cleanExpired() {
         jdbc.update("DELETE FROM seller_consumed_refresh WHERE expires_at < CURRENT_TIMESTAMP");
+        long retentionSeconds = properties.tokenRetention().toSeconds();
         jdbc.update("""
                 DELETE FROM oauth2_authorization
                 WHERE COALESCE(refresh_token_expires_at, access_token_expires_at, authorization_code_expires_at)
-                    < CURRENT_TIMESTAMP - INTERVAL '1 day'
-                """);
+                    < CURRENT_TIMESTAMP - (? * INTERVAL '1 second')
+                """, retentionSeconds);
     }
 
     private static String digest(String token) {

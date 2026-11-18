@@ -1,0 +1,14 @@
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"

@@ -1,9 +1,11 @@
-package com.grab.service.authorizationserver;
+package com.grab.service.authorizationserver.adapter.outbound.rpc;
 
 import com.grab.framework.logger.Logger;
 import com.grab.framework.logger.Loggers;
 import com.grab.rpc.adapter.MutualTlsRmiClient;
 import com.grab.rpc.adapter.MutualTlsRmiEndpoint.SslMaterial;
+import com.grab.service.authorizationserver.config.SellerIssuerProperties;
+import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.AuthenticationState;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.Credentials;
@@ -14,19 +16,21 @@ import org.springframework.stereotype.Component;
 import java.rmi.RemoteException;
 
 @Component
-class SellerAccountAuthentication {
-    private static final Logger LOG = Loggers.getLogger(SellerAccountAuthentication.class);
+public class RmiAccountIdentityAdapter implements AccountIdentityPort {
+    private static final Logger LOG = Loggers.getLogger(RmiAccountIdentityAdapter.class);
     private final SellerIssuerProperties properties;
-    private final MutualTlsRmiClient transport = new MutualTlsRmiClient(1500, 3000);
+    private final MutualTlsRmiClient transport;
 
-    SellerAccountAuthentication(SellerIssuerProperties properties) {
+    public RmiAccountIdentityAdapter(SellerIssuerProperties properties) {
         this.properties = properties;
+        this.transport = new MutualTlsRmiClient(properties.accountConnectTimeout(), properties.accountReadTimeout());
         SslMaterial tls = new SslMaterial(properties.accountClientKeyStore(), properties.accountClientKeyPassword(),
                 properties.accountTrustStore(), properties.accountTrustPassword());
         MutualTlsRmiClient.configure(tls);
     }
 
-    VerifiedUser verify(String email, String password) {
+    @Override
+    public VerifiedUser verify(String email, String password) {
         try {
             SellerAuthenticationPort account = connect();
             return account.verify(new Credentials(email, password));
@@ -35,7 +39,8 @@ class SellerAccountAuthentication {
         }
     }
 
-    AuthenticationState resolve(String userId, String assignmentId, boolean selectSingleContext) {
+    @Override
+    public AuthenticationState resolve(String userId, String assignmentId, boolean selectSingleContext) {
         try {
             SellerAuthenticationPort account = connect();
             return account.resolve(new StateRequest(userId, assignmentId, selectSingleContext));
@@ -44,23 +49,17 @@ class SellerAccountAuthentication {
         }
     }
 
-    private AccountUnavailable unavailable(Exception exception) {
+    private AccountUnavailableException unavailable(Exception exception) {
         Throwable cause = exception;
         while (cause.getCause() != null && cause.getCause() != cause) {
             cause = cause.getCause();
         }
         String failure = cause.getClass().getSimpleName();
         LOG.warn("Account authentication RPC failed cause={}", failure);
-        return new AccountUnavailable(exception);
+        return new AccountUnavailableException("Account authentication is unavailable", exception);
     }
 
     private SellerAuthenticationPort connect() throws RemoteException {
         return transport.lookup(properties.accountHost(), properties.accountPort(), SellerAuthenticationPort.class);
-    }
-
-    static final class AccountUnavailable extends RuntimeException {
-        AccountUnavailable(Throwable cause) {
-            super("Account authentication is unavailable", cause);
-        }
     }
 }

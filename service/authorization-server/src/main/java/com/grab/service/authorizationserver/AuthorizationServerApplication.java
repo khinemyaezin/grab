@@ -2,6 +2,7 @@ package com.grab.service.authorizationserver;
 
 import com.grab.framework.logger.Loggers;
 import com.grab.framework.logger.spi.LoggerConfig;
+import com.grab.service.authorizationserver.config.SellerIssuerProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

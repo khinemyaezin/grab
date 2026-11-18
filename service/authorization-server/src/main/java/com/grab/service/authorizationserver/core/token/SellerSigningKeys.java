@@ -1,5 +1,6 @@
-package com.grab.service.authorizationserver;
+package com.grab.service.authorizationserver.core.token;
 
+import com.grab.service.authorizationserver.config.SellerIssuerProperties;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -20,8 +21,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
-record SellerSigningKeys(String currentId, JWKSource<SecurityContext> source) {
-    static SellerSigningKeys load(SellerIssuerProperties properties) throws GeneralSecurityException, IOException {
+public record SellerSigningKeys(String currentId, JWKSource<SecurityContext> source) {
+    public static SellerSigningKeys load(SellerIssuerProperties properties) throws GeneralSecurityException, IOException {
         KeyStore store = KeyStore.getInstance("PKCS12");
         char[] password = properties.keyStorePassword().toCharArray();
         try (InputStream stream = Files.newInputStream(properties.keyStore())) {

@@ -6,42 +6,47 @@ spring:
     username: ${AUTHORIZATION_DB_USERNAME}
     password: ${AUTHORIZATION_DB_PASSWORD}
     hikari:
-      schema: authorization_server
+      schema: ${AUTHORIZATION_DB_SCHEMA:authorization_server}
       maximum-pool-size: ${AUTHORIZATION_DB_POOL_SIZE:12}
-      minimum-idle: 2
-      connection-timeout: 3000
+      minimum-idle: ${AUTHORIZATION_DB_MIN_IDLE:2}
+      connection-timeout: ${AUTHORIZATION_DB_TIMEOUT_MS:3000}
+      idle-timeout: ${AUTHORIZATION_DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${AUTHORIZATION_DB_MAX_LIFETIME_MS:1800000}
   flyway:
-    default-schema: authorization_server
-    schemas: authorization_server
+    default-schema: ${AUTHORIZATION_DB_SCHEMA:authorization_server}
+    schemas: ${AUTHORIZATION_DB_SCHEMA:authorization_server}
     locations: classpath:db/migration/authorization
     clean-disabled: true
   data:
     redis:
       url: ${AUTHORIZATION_REDIS_URL:redis://localhost:6379}
   session:
-    timeout: 7d
+    timeout: ${AUTHORIZATION_SESSION_TIMEOUT:7d}
     redis:
-      namespace: grab:issuer:sessions
+      namespace: ${AUTHORIZATION_SESSION_NAMESPACE:grab:issuer:sessions}
       repository-type: indexed
 
 server:
   port: ${AUTHORIZATION_PORT:9000}
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:framework}
   servlet:
     session:
       cookie:
-        name: GRAB_ISSUER_SESSION
+        name: ${AUTHORIZATION_SESSION_COOKIE_NAME:GRAB_ISSUER_SESSION}
         http-only: true
         secure: ${AUTHORIZATION_SECURE_COOKIES:true}
-        same-site: lax
+        same-site: ${AUTHORIZATION_SESSION_COOKIE_SAME_SITE:lax}
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus,metrics
+        include: ${MANAGEMENT_ENDPOINTS_EXPOSURE:health,prometheus,metrics}
   endpoint:
     health:
       probes:
         enabled: true
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
 
 grab:
   seller-issuer:
@@ -53,8 +58,16 @@ grab:
     audience: ${SELLER_OIDC_AUDIENCE:grab-seller-api}
     access-token-ttl: ${SELLER_OIDC_ACCESS_TOKEN_TTL:PT15M}
     refresh-token-ttl: ${SELLER_OIDC_REFRESH_TOKEN_TTL:P7D}
+    cleanup-delay: ${SELLER_OIDC_CLEANUP_DELAY:PT1H}
     account-host: ${SELLER_AUTH_ACCOUNT_HOST:localhost}
     account-port: ${SELLER_AUTH_ACCOUNT_PORT:1199}
+    account-connect-timeout: ${SELLER_AUTH_CONNECT_TIMEOUT_MS:1500}
+    account-read-timeout: ${SELLER_AUTH_READ_TIMEOUT_MS:3000}
+    rate-limit-max-attempts: ${SELLER_AUTH_RATE_LIMIT_MAX:30}
+    rate-limit-window-seconds: ${SELLER_AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
+    scopes: ${SELLER_OIDC_SCOPES:openid}
+    token-retention: ${SELLER_OIDC_TOKEN_RETENTION:P1D}
+    client-init-advisory-lock: ${SELLER_OIDC_CLIENT_INIT_ADVISORY_LOCK:6021278}
     key-store: ${SELLER_OIDC_SIGNING_KEYSTORE}
     key-store-password: ${SELLER_OIDC_SIGNING_PASSWORD}
     signing-alias: ${SELLER_OIDC_SIGNING_ALIAS:seller-current}
