@@ -1,26 +1,47 @@
 package com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.security.oauth2.client.oidc.authentication.OidcIdTokenDecoderFactory;
+import org.springframework.http.client.support.BasicAuthenticationInterceptor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.endpoint.DefaultRefreshTokenTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.AuthenticationMethod;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
+import org.springframework.security.oauth2.server.resource.introspection.SpringOpaqueTokenIntrospector;
+import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
 import org.springframework.security.oauth2.jwt.JwtDecoderFactory;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.util.List;
+import java.util.Map;
+
+import static com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcRoutes.AUTHORIZATION_BASE;
+import static com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcRoutes.REGISTRATION_ID;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SellerOidcProperties.class)
@@ -29,7 +50,7 @@ class SellerOidcClientConfig {
     @Bean
     DefaultOAuth2AuthorizationRequestResolver sellerAuthorizationRequests(ClientRegistrationRepository registrations) {
         DefaultOAuth2AuthorizationRequestResolver requests =
-                new DefaultOAuth2AuthorizationRequestResolver(registrations, SellerOidcRoutes.AUTHORIZATION_BASE);
+                new DefaultOAuth2AuthorizationRequestResolver(registrations, AUTHORIZATION_BASE);
         requests.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
         return requests;
     }
@@ -43,55 +64,176 @@ class SellerOidcClientConfig {
     }
 
     @Bean
-    JwtDecoderFactory<ClientRegistration> sellerIdTokenDecoderFactory(SellerOidcProperties properties) {
-        OidcIdTokenDecoderFactory factory = new OidcIdTokenDecoderFactory();
+    @ConditionalOnMissingBean(ClientRegistrationRepository.class)
+    ClientRegistrationRepository sellerClientRegistrations(SellerOidcProperties properties,
+                                                             ClientHttpRequestFactory sellerIssuerRequests) {
+        String discoveryUri = properties.metadataUri() == null || properties.metadataUri().isBlank()
+                ? properties.issuer() + "/.well-known/openid-configuration" : properties.metadataUri();
+        Map<String, Object> metadata;
+        try {
+            RestTemplate rest = new RestTemplate(sellerIssuerRequests);
+            ResponseEntity<Map<String, Object>> responseEntity = rest.exchange(discoveryUri,
+                    org.springframework.http.HttpMethod.GET, null,
+                    new ParameterizedTypeReference<Map<String, Object>>() {});
+            Map<String, Object> response = responseEntity.getBody();
+            metadata = response == null ? Map.of() : response;
+        } catch (RuntimeException exception) {
+            throw new IllegalArgumentException("Unable to load trusted Seller OIDC provider metadata", exception);
+        }
+        Object discoveredIssuer = metadata.get("issuer");
+        if (discoveredIssuer == null || !properties.issuer().equals(discoveredIssuer.toString())) {
+            throw new IllegalArgumentException("Seller OIDC metadata issuer must match grab.seller-oidc.issuer");
+        }
+        String authorization = endpoint(properties, properties.authorizationEndpoint(), metadata,
+                "authorization_endpoint", "authorization-endpoint");
+        String token = endpoint(properties, properties.tokenEndpoint(), metadata, "token_endpoint", "token-endpoint");
+        String jwks = endpoint(properties, properties.jwkSetEndpoint(), metadata, "jwks_uri", "jwk-set-endpoint");
+        String userInfo = optionalEndpoint(properties, metadata.get("userinfo_endpoint"));
+        ClientRegistration.Builder registration = ClientRegistration.withRegistrationId(REGISTRATION_ID)
+                .clientId(properties.clientId())
+                .clientSecret(properties.clientSecret())
+                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .redirectUri(properties.callback())
+                .scope(properties.scopes())
+                .authorizationUri(authorization)
+                .tokenUri(token)
+                .jwkSetUri(jwks)
+                .issuerUri(properties.issuer())
+                .providerConfigurationMetadata(metadata)
+                .clientName("Seller Central");
+        if (userInfo != null) {
+            registration.userInfoUri(userInfo)
+                    .userInfoAuthenticationMethod(AuthenticationMethod.HEADER)
+                    .userNameAttributeName("sub");
+        }
+        return new InMemoryClientRegistrationRepository(registration.build());
+    }
+
+    @Bean
+    JwtDecoderFactory<ClientRegistration> sellerIdTokenDecoderFactory(SellerOidcProperties properties,
+                                                                      ClientHttpRequestFactory sellerIssuerRequests) {
         return registration -> {
-            // Check the public issuer without asking Spring Boot to discover provider metadata.
-            ClientRegistration expectedIssuer = ClientRegistration.withClientRegistration(registration)
-                    .issuerUri(properties.issuer())
-                    .build();
-            return factory.createDecoder(expectedIssuer);
+            RestTemplate jwks = new RestTemplate(sellerIssuerRequests);
+            NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(registration.getProviderDetails().getJwkSetUri())
+                    .jwsAlgorithm(org.springframework.security.oauth2.jose.jws.SignatureAlgorithm.RS256)
+                    .restOperations(jwks).build();
+            OAuth2TokenValidator<Jwt> issuer = JwtValidators.createDefaultWithIssuer(properties.issuer());
+            OAuth2TokenValidator<Jwt> audience = new JwtClaimValidator<>("aud", values ->
+                    values instanceof List<?> audiences && audiences.contains(registration.getClientId()));
+            decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(issuer, audience));
+            return decoder;
         };
     }
 
     @Bean
-    SellerIssuerClient sellerIssuerClient(SellerOidcProperties properties, MeterRegistry metrics,
-                                          ClientHttpRequestFactory issuerRequests,
-                                          ClientRegistrationRepository registrations) {
-        ClientRegistration registration = registrations.findByRegistrationId(SellerOidcRoutes.REGISTRATION_ID);
+    OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> sellerAuthorizationCodeClient(
+            ClientHttpRequestFactory sellerIssuerRequests) {
+        RestTemplate rest = new RestTemplate(sellerIssuerRequests);
+        rest.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
+        DefaultAuthorizationCodeTokenResponseClient client = new DefaultAuthorizationCodeTokenResponseClient();
+        client.setRestOperations(rest);
+        return client;
+    }
+
+    @Bean
+    OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest> sellerRefreshTokenClient(
+            ClientHttpRequestFactory sellerIssuerRequests) {
+        RestTemplate rest = new RestTemplate(sellerIssuerRequests);
+        rest.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
+        DefaultRefreshTokenTokenResponseClient client = new DefaultRefreshTokenTokenResponseClient();
+        client.setRestOperations(rest);
+        return client;
+    }
+
+    @Bean
+    OpaqueTokenIntrospector sellerOpaqueTokenIntrospector(SellerOidcProperties properties,
+                                                         ClientRegistrationRepository registrations,
+                                                         ClientHttpRequestFactory sellerIssuerRequests) {
+        ClientRegistration registration = requiredRegistration(registrations);
+        String uri = configuredOrDiscovered(properties, properties.introspectionEndpoint(), registration,
+                "introspection_endpoint", "introspection-uri");
+        RestTemplate rest = new RestTemplate(sellerIssuerRequests);
+        rest.getInterceptors().add(new BasicAuthenticationInterceptor(
+                properties.resourceClientId(), properties.resourceClientSecret()));
+        rest.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
+        return new SpringOpaqueTokenIntrospector(uri, rest);
+    }
+
+    @Bean
+    SellerOAuthClient sellerOAuthClient(SellerOidcProperties properties,
+                                        OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest> refreshClient,
+                                        OpaqueTokenIntrospector introspector,
+                                        ClientRegistrationRepository registrations,
+                                        ClientHttpRequestFactory sellerIssuerRequests,
+                                        MeterRegistry metrics) {
+        ClientRegistration registration = requiredRegistration(registrations);
+        String revocation = configuredOrDiscovered(properties, properties.revocationEndpoint(), registration,
+                "revocation_endpoint", "revocation-uri");
+        String logout = configuredOrDiscovered(properties, properties.logoutEndpoint(), registration,
+                "end_session_endpoint", "logout-uri");
+        return new SellerOAuthClient(properties, registration, refreshClient, introspector,
+                revocation, logout, sellerIssuerRequests, metrics);
+    }
+
+    private static ClientRegistration requiredRegistration(ClientRegistrationRepository registrations) {
+        ClientRegistration registration = registrations.findByRegistrationId(REGISTRATION_ID);
         if (registration == null) {
             throw new IllegalArgumentException("The seller OAuth client registration is required");
         }
-        ClientRegistration.ProviderDetails provider = registration.getProviderDetails();
-        URI tokenUri = providerUri("token-uri", provider.getTokenUri());
-        URI jwkSetUri = providerUri("jwk-set-uri", provider.getJwkSetUri());
-        RestTemplate jwks = new RestTemplate(issuerRequests);
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri.toString())
-                .restOperations(jwks).validateType(false).build();
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
-                JwtValidators.createDefaultWithIssuer(properties.issuer()),
-                jwt -> "at+jwt".equals(jwt.getHeaders().get("typ")) && jwt.getExpiresAt() != null
-                        && jwt.getAudience() != null && jwt.getAudience().contains(properties.audience())
-                        ? OAuth2TokenValidatorResult.success()
-                        : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"))));
-        return new SellerIssuerClient(properties, tokenUri, decoder, metrics, issuerRequests);
+        return registration;
     }
-    private static URI providerUri(String property, String value) {
-        String error = "spring.security.oauth2.client.provider.seller." + property
-                + " must be an absolute HTTP(S) URL without credentials or a fragment";
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(error);
+
+    private static String configuredOrDiscovered(SellerOidcProperties properties, String configured, ClientRegistration registration,
+                                                 String metadataKey, String propertyKey) {
+        String endpoint = configured;
+        if (endpoint == null || endpoint.isBlank()) {
+            ClientRegistration.ProviderDetails providerDetails = registration.getProviderDetails();
+            Map<String, Object> metadata = providerDetails.getConfigurationMetadata();
+            Object discovered = metadata.get(metadataKey);
+            endpoint = discovered == null ? null : discovered.toString();
         }
+        if (endpoint == null || endpoint.isBlank()) {
+            throw new IllegalArgumentException("grab.seller-oidc." + propertyKey
+                    + " or trusted issuer metadata " + metadataKey + " is required");
+        }
+        return validateEndpoint(properties, endpoint, propertyKey);
+    }
+
+    private static String endpoint(SellerOidcProperties properties, String configured,
+                                   Map<String, Object> metadata, String metadataKey, String propertyKey) {
+        String endpoint = configured;
+        if (endpoint == null || endpoint.isBlank()) {
+            Object discovered = metadata.get(metadataKey);
+            endpoint = discovered == null ? null : discovered.toString();
+        }
+        if (endpoint == null || endpoint.isBlank()) {
+            throw new IllegalArgumentException("grab.seller-oidc." + propertyKey
+                    + " or trusted issuer metadata " + metadataKey + " is required");
+        }
+        return validateEndpoint(properties, endpoint, propertyKey);
+    }
+
+    private static String optionalEndpoint(SellerOidcProperties properties, Object value) {
+        return value == null ? null : validateEndpoint(properties, value.toString(), "userinfo-endpoint");
+    }
+
+    private static String validateEndpoint(SellerOidcProperties properties, String endpoint, String propertyKey) {
         URI uri;
         try {
-            uri = URI.create(value);
+            uri = URI.create(endpoint);
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException(error);
+            throw new IllegalArgumentException("grab.seller-oidc." + propertyKey
+                    + " must be an absolute HTTP(S) URL", exception);
         }
+        URI issuerUri = URI.create(properties.issuer());
+        boolean secureIssuer = "https".equalsIgnoreCase(issuerUri.getScheme());
         if (uri.getHost() == null || uri.getUserInfo() != null || uri.getFragment() != null
+                || secureIssuer && !"https".equalsIgnoreCase(uri.getScheme())
                 || !("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))) {
-            throw new IllegalArgumentException(error);
+            throw new IllegalArgumentException("grab.seller-oidc." + propertyKey
+                    + " must be an absolute HTTP(S) URL without credentials or fragments");
         }
-        return uri;
+        return uri.toASCIIString();
     }
 }

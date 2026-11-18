@@ -74,7 +74,7 @@ final class SellerOidcBrowserFilter extends OncePerRequestFilter {
             actor = sessions.authenticate(session, oidc);
         } catch (SellerOidcFailure failure) {
             if (session != null && HttpStatus.UNAUTHORIZED.equals(failure.getStatusCode())) {
-                session.invalidate();
+                sessions.invalidate(session);
             }
             ProblemDetail problem = failure.getBody();
             response.setStatus(problem.getStatus());

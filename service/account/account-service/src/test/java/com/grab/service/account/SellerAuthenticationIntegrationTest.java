@@ -11,7 +11,10 @@ import com.grab.service.contract.message.account.identity.IdentityAdminPort;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.VerifiedUser;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.Credentials;
-import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.StateRequest;
+import com.grab.service.contract.message.account.identity.SellerAccessPort;
+import com.grab.service.contract.message.account.identity.SellerAccessPort.AccessRequest;
+import com.grab.service.contract.message.account.identity.SellerAccessPort.Intent;
+import com.grab.service.contract.message.account.identity.SellerAccessPort.Status;
 import com.grab.service.contract.message.account.identity.SellerRegistrationPort;
 import com.grab.service.contract.message.account.identity.SellerRegistrationPort.RegisterUserRequest;
 import com.grab.service.contract.message.account.identity.SellerRegistrationPort.RegistrationStatus;
@@ -66,6 +69,7 @@ class SellerAuthenticationIntegrationTest {
                             "--grab.seller-authentication.rpc.enabled=true",
                             "--grab.seller-authentication.rpc.issuer-port=" + issuerPort,
                             "--grab.seller-authentication.rpc.registration-port=" + bffPort,
+                            "--grab.seller-authentication.trusted-native-issuer=test-issuer",
                             "--grab.seller-authentication.rpc.keystore=" + server,
                             "--grab.seller-authentication.rpc.key-password=" + CERTIFICATE_PASSWORD,
                             "--grab.seller-authentication.rpc.issuer-truststore=" + issuerTrust,
@@ -74,7 +78,8 @@ class SellerAuthenticationIntegrationTest {
                 MutualTlsRmiClient client = new MutualTlsRmiClient(2000, 4000);
                 connectWith(bff, serverTrust);
                 SellerRegistrationPort registration = client.lookup("localhost", bffPort, SellerRegistrationPort.class);
-                var registered = registration.registerUser(new RegisterUserRequest(SELLER, PASSWORD));
+                SellerRegistrationPort.RegistrationResult registered =
+                        registration.registerUser(new RegisterUserRequest(SELLER, PASSWORD));
                 assertThat(registered.status()).isEqualTo(RegistrationStatus.CREATED);
                 String userId = registered.id();
                 assertThat(registration.registerUser(new RegisterUserRequest(SELLER, PASSWORD)).status())
@@ -83,10 +88,21 @@ class SellerAuthenticationIntegrationTest {
                         .isEqualTo(RegistrationStatus.INVALID_INPUT);
                 assertThatThrownBy(() -> client.lookup("localhost", issuerPort, SellerAuthenticationPort.class))
                         .isInstanceOf(RemoteException.class);
+                assertThatThrownBy(() -> client.lookup("localhost", issuerPort, SellerAccessPort.class))
+                        .isInstanceOf(RemoteException.class);
+                SellerAccessPort sellerAccess = client.lookup("localhost", bffPort, SellerAccessPort.class);
+                assertThat(sellerAccess.resolve(new AccessRequest("test-issuer", userId, null, Intent.INITIAL)).status())
+                        .isEqualTo(Status.ACTIVE);
+                assertThat(sellerAccess.resolve(new AccessRequest("https://other-issuer.example", userId,
+                        null, Intent.INITIAL)).status()).isEqualTo(Status.UNKNOWN_IDENTITY);
+                assertThatThrownBy(() -> client.lookup("localhost", issuerPort, SellerAuthenticationPort.class))
+                        .isInstanceOf(RemoteException.class);
 
                 connectWith(issuer, serverTrust);
                 MutualTlsRmiClient freshClient = new MutualTlsRmiClient(2100, 4100);
                 assertThatThrownBy(() -> freshClient.lookup("localhost", bffPort, SellerRegistrationPort.class))
+                        .isInstanceOf(RemoteException.class);
+                assertThatThrownBy(() -> freshClient.lookup("localhost", bffPort, SellerAccessPort.class))
                         .isInstanceOf(RemoteException.class);
                 SellerAuthenticationPort auth = client.lookup("localhost", issuerPort, SellerAuthenticationPort.class);
                 AccountAuthenticationPort shared = client.lookup("localhost", issuerPort, AccountAuthenticationPort.class);
@@ -96,13 +112,14 @@ class SellerAuthenticationIntegrationTest {
                 assertThat(shared.resolve(subject).userId()).isEqualTo(userId);
                 assertThat(auth.verify(new Credentials(SELLER, PASSWORD)).userId()).isEqualTo(userId);
                 assertThat(auth.verify(new Credentials(SELLER, "wrong"))).isNull();
-                assertThat(auth.resolve(new StateRequest(userId, null, true)).assignmentId()).isNull();
 
                 IdentityAdminPort admin = context.getBean(IdentityAdminPort.class);
                 CommonId seller = new CommonId(userId);
                 admin.changeUserStatus(seller, "SUSPENDED");
                 assertThat(auth.verify(new Credentials(SELLER, PASSWORD))).isNull();
-                assertThat(auth.resolve(new StateRequest(userId, null, false))).isNull();
+                connectWith(bff, serverTrust);
+                assertThat(sellerAccess.resolve(new AccessRequest("test-issuer", userId, null, Intent.REVALIDATE)).status())
+                        .isEqualTo(Status.INACTIVE_IDENTITY);
                 assertThat(shared.verify(credentials)).isNull();
                 assertThat(shared.resolve(subject)).isNull();
                 admin.changeUserStatus(seller, "ACTIVE");
@@ -112,13 +129,14 @@ class SellerAuthenticationIntegrationTest {
 
                 DataSource databaseSource = context.getBean("accountDataSource", DataSource.class);
                 JdbcTemplate jdbc = new JdbcTemplate(databaseSource);
-                assertMerchantRevocation(context, jdbc, auth, userId);
+                connectWith(bff, serverTrust);
+                assertMerchantRevocation(context, jdbc, sellerAccess, userId);
             }
         }
     }
 
     private void assertMerchantRevocation(ConfigurableApplicationContext context, JdbcTemplate jdbc,
-                                          SellerAuthenticationPort auth, String userId) throws RemoteException {
+                                          SellerAccessPort sellerAccess, String userId) throws RemoteException {
         jdbc.update("""
                 INSERT INTO merchant.merchant_accounts
                   (created_at, updated_at, version, applicant_user_id, display_name, merchant_type,
@@ -148,10 +166,12 @@ class SellerAuthenticationIntegrationTest {
                 FROM identity.roles r CROSS JOIN identity.users u
                 WHERE r.code = 'SELLER_SCOPE_TEST' AND u.uuid = ?
                 """, userId);
-        StateRequest login = new StateRequest(userId, null, true);
-        assertThat(auth.resolve(login).scopeId()).isEqualTo("merchant-scope");
-        StateRequest selected = new StateRequest(userId, "merchant-assignment", false);
-        assertThat(auth.resolve(selected).merchantRevision()).isZero();
+        AccessRequest login = new AccessRequest("test-issuer", userId, null, Intent.INITIAL);
+        assertThat(sellerAccess.resolve(login).scopeId()).isEqualTo("merchant-scope");
+        AccessRequest selected = new AccessRequest("test-issuer", userId, "merchant-assignment", Intent.REVALIDATE);
+        assertThat(sellerAccess.resolve(selected).merchantRevision()).isZero();
+        assertThat(sellerAccess.resolve(new AccessRequest("test-issuer", userId, "missing-assignment", Intent.SELECT))
+                .status()).isEqualTo(Status.DENIED);
         SellerScopeRevisionQuery revisions = context.getBean(SellerScopeRevisionQuery.class);
         CommonId storefront = new CommonId("storefront-scope");
         assertThat(revisions.find("merchant.storefront", storefront)).isEqualTo(new SellerScopeRevisionQuery.Revision(0, 0));
@@ -160,12 +180,12 @@ class SellerAuthenticationIntegrationTest {
         CommonId merchant = new CommonId("merchant-scope");
         CommonId actor = new CommonId(userId);
         merchants.suspendMerchant(merchant, actor, "review");
-        assertThat(auth.resolve(selected)).isNull();
+        assertThat(sellerAccess.resolve(selected).status()).isEqualTo(Status.INVALID_CONTEXT);
         AccessAssignmentPort assignments = context.getBean(AccessAssignmentPort.class);
         assertThat(assignments.listAvailableContexts(actor)).isEmpty();
         assertThat(revisions.find("merchant.storefront", storefront)).isNull();
         merchants.reactivateMerchant(merchant, actor);
-        assertThat(auth.resolve(selected).merchantRevision()).isEqualTo(1);
+        assertThat(sellerAccess.resolve(selected).merchantRevision()).isEqualTo(1);
         assertThat(revisions.find("merchant.storefront", storefront)).isEqualTo(new SellerScopeRevisionQuery.Revision(1, 0));
         Long events = jdbc.queryForObject("""
                 SELECT count(*) FROM merchant.outbox_record WHERE aggregate_type='MerchantAccount'

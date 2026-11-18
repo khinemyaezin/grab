@@ -16,6 +16,8 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
@@ -47,6 +49,7 @@ class SellerOidcSecurityConfig {
                                            SellerOidcProperties properties,
                                            List<SellerModuleSecurityConfigurer> modules,
                                            DefaultOAuth2AuthorizationRequestResolver requests,
+                                           OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> codeClient,
                                            SellerOidcBrowserSession sessions, ObjectMapper json,
                                            AuthenticationEntryPoint entryPoint,
                                            AccessDeniedHandler deniedHandler,
@@ -78,6 +81,7 @@ class SellerOidcSecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .oauth2Login(login -> login.authorizedClientRepository(clients)
                         .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(requests))
+                        .tokenEndpoint(endpoint -> endpoint.accessTokenResponseClient(codeClient))
                         .successHandler((request, response, authentication) -> {
                             OAuth2AuthorizedClient client = clients.loadAuthorizedClient(REGISTRATION_ID, authentication, request);
                             try {

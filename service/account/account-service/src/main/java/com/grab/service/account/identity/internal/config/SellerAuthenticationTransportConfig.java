@@ -4,6 +4,7 @@ import com.grab.rpc.adapter.MutualTlsRmiEndpoint;
 import com.grab.rpc.adapter.MutualTlsRmiEndpoint.SslMaterial;
 import com.grab.service.contract.message.account.identity.AccountAuthenticationPort;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort;
+import com.grab.service.contract.message.account.identity.SellerAccessPort;
 import com.grab.service.contract.message.account.identity.SellerRegistrationPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -33,7 +34,7 @@ public class SellerAuthenticationTransportConfig {
 
     @Bean
     MutualTlsRmiEndpoint sellerRegistrationEndpoint(
-            SellerRegistrationPort provider,
+            SellerRegistrationPort provider, SellerAccessPort sellerAccess,
             @Value("${grab.rpc.bind-address:127.0.0.1}") String bind,
             @Value("${grab.rpc.advertised-host:localhost}") String host,
             @Value("${grab.seller-authentication.rpc.registration-port:1200}") int port,
@@ -42,6 +43,7 @@ public class SellerAuthenticationTransportConfig {
             @Value("${grab.seller-authentication.rpc.bff-truststore}") Path trustStore,
             @Value("${grab.seller-authentication.rpc.trust-password}") String trustPassword) {
         SslMaterial material = new SslMaterial(keyStore, keyPassword, trustStore, trustPassword);
-        return new MutualTlsRmiEndpoint(bind, host, port, material, SellerRegistrationPort.class, provider);
+        return new MutualTlsRmiEndpoint(bind, host, port, material,
+                Map.of(SellerRegistrationPort.class, provider, SellerAccessPort.class, sellerAccess));
     }
 }

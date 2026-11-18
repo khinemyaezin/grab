@@ -2,7 +2,7 @@ package com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerIssuerClient.Tokens;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOAuthClient.Tokens;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
@@ -12,8 +12,6 @@ import java.util.UUID;
 import java.util.function.Function;
 
 final class SellerOidcTokenSlots {
-    private static final Duration DEFAULT_TOKEN_TTL = Duration.ofDays(7);
-
     private static final DefaultRedisScript<Long> RENEW = new DefaultRedisScript<>("""
             if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
             return redis.call('PEXPIRE', KEYS[1], ARGV[2])
@@ -38,13 +36,15 @@ final class SellerOidcTokenSlots {
     private final ObjectMapper json;
     private final String prefix;
     private final Duration ttl;
+    private final Duration lockTtl;
 
     SellerOidcTokenSlots(StringRedisTemplate redis, ObjectMapper json, SellerOidcProperties properties) {
         this.redis = redis;
         this.json = json;
         prefix = properties.redisNamespace() + ":tokens:";
         Duration timeout = properties.sessionTimeout();
-        ttl = timeout.compareTo(DEFAULT_TOKEN_TTL) > 0 ? timeout : DEFAULT_TOKEN_TTL;
+        ttl = timeout;
+        lockTtl = properties.lockTtl();
     }
 
     void markLoggedOut(String sessionId) {
@@ -79,7 +79,7 @@ final class SellerOidcTokenSlots {
     <T> T locked(String sessionId, Function<Slot, T> function) {
         String key = sessionKey(sessionId) + ":lock";
         String owner = UUID.randomUUID().toString();
-        Boolean acquired = redis.opsForValue().setIfAbsent(key, owner, SellerOidcProperties.LOCK_TTL);
+        Boolean acquired = redis.opsForValue().setIfAbsent(key, owner, lockTtl);
         if (!Boolean.TRUE.equals(acquired)) {
             throw SellerOidcFailure.busy();
         }
@@ -106,7 +106,7 @@ final class SellerOidcTokenSlots {
         }
 
         void renew() {
-            String leaseMillis = Long.toString(SellerOidcProperties.LOCK_TTL.toMillis());
+            String leaseMillis = Long.toString(lockTtl.toMillis());
             List<String> keys = List.of(key);
             Long renewed = redis.execute(RENEW, keys, owner, leaseMillis);
             requireOwnership(renewed);

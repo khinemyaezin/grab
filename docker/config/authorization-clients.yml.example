@@ -1,0 +1,31 @@
+grab:
+  authorization-server:
+    clients:
+      - client-id: seller-bff
+        client-name: Seller Central
+        registration-id: grab-seller-browser
+        client-secret-hash: ${AUTHORIZATION_CLIENT_0_SECRET_HASH}
+        redirect-uris:
+          - http://localhost:8080/login/oauth2/code/seller
+        post-logout-redirect-uris:
+          - http://localhost:3000/
+        scopes:
+          - openid
+          - profile
+          - email
+        audience: grab-seller-api
+
+      # Example: Additional client (e.g. Marketplace BFF or Mobile App)
+      # - client-id: marketplace-bff
+      #   client-name: Marketplace Web
+      #   registration-id: grab-marketplace-browser
+      #   client-secret-hash: ${AUTHORIZATION_CLIENT_1_SECRET_HASH}
+      #   redirect-uris:
+      #     - http://localhost:8081/login/oauth2/code/marketplace
+      #   post-logout-redirect-uris:
+      #     - http://localhost:3001/
+      #   scopes:
+      #     - openid
+      #   audience: grab-seller-api # Clients may share target API audience
+      #   access-token-ttl: PT30M   # Optional per-client TTL override
+      #   refresh-token-ttl: P14D

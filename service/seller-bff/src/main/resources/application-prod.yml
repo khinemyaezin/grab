@@ -1,6 +1,14 @@
 security:
   api:
     cors: ${SECURITY_API_CORS}
+grab:
+  seller-oidc:
+    secure-cookies: true
+spring:
+  data:
+    redis:
+      ssl:
+        enabled: true
 management:
   endpoint:
     health:

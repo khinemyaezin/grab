@@ -4,22 +4,19 @@ import com.grab.service.sellerbff.internal.adapter.inbound.rest.assembler.Access
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.assembler.CurrentUserProfileModelAssembler;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.AccessContextResponse;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.CurrentUserProfileResponse;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerAuthResponse;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcBrowserSession;
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.hateoas.RepresentationModel;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerAccessContextCommandService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerAccessContextQueryService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerProfileQueryService;
+import com.grab.service.sellerbff.port.inbound.SellerSessionPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +32,7 @@ public class SellerSessionController {
     private final SellerAccessContextCommandService accessContextCommandService;
     private final CurrentUserProfileModelAssembler profileModelAssembler;
     private final AccessContextModelAssembler contextModelAssembler;
-    private final ObjectProvider<SellerOidcBrowserSession> oidcSessions;
+    private final SellerSessionPort sessions;
 
     @GetMapping
     public ResponseEntity<EntityModel<CurrentUserProfileResponse>> getProfile(
@@ -59,9 +56,8 @@ public class SellerSessionController {
             @PathVariable String assignmentId,
             @AuthenticationPrincipal SellerSecurityPrincipal principal,
             HttpServletRequest request) {
-        SellerOidcBrowserSession oidc = oidcSessions.getObject();
-        String userId = principal.getPlatformUserId();
-        AuthenticatedActor selected = oidc.select(request, userId, assignmentId);
+        String subject = principal.actor().subject();
+        AuthenticatedActor selected = sessions.select(request, subject, assignmentId);
         AccessContext context = selected.accessContext();
         AccessContextResponse response = new AccessContextResponse(context.assignmentId(), selected.roles(),
                 context.scopeKey(), context.scopeId(), null, null, null);

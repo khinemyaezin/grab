@@ -1,6 +1,6 @@
 package com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc;
 
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerIssuerClient.Tokens;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOAuthClient.Tokens;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -31,7 +31,7 @@ final class SellerPendingRevocations {
             """, Long.class);
 
     private final StringRedisTemplate redis;
-    private final SellerIssuerClient issuer;
+    private final SellerOAuthClient issuer;
     private final MeterRegistry metrics;
     private final SellerOidcTokenSlots slots;
     private final String queueKey;
@@ -40,7 +40,7 @@ final class SellerPendingRevocations {
     private final long claimLeaseSeconds;
     private final int batchSize;
 
-    SellerPendingRevocations(StringRedisTemplate redis, SellerIssuerClient issuer, MeterRegistry metrics,
+    SellerPendingRevocations(StringRedisTemplate redis, SellerOAuthClient issuer, MeterRegistry metrics,
                              SellerOidcTokenSlots slots, SellerOidcProperties properties) {
         this.redis = redis;
         this.issuer = issuer;

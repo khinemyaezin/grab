@@ -49,3 +49,5 @@ docker/env/*.env
 !docker/env/*.env.example
 
 /docker/secrets/seller-oidc/
+/docker/secrets/authorization/
+/docker/config/authorization-clients.yml

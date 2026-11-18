@@ -62,6 +62,7 @@ bootstrap:
 
 grab:
   seller-authentication:
+    trusted-native-issuer: ${SELLER_AUTH_TRUSTED_NATIVE_ISSUER:}
     rpc:
       enabled: ${SELLER_AUTH_RPC_ENABLED:false}
       issuer-port: ${SELLER_AUTH_ISSUER_PORT:1199}

@@ -11,6 +11,7 @@ import org.springframework.session.data.redis.RedisSessionRepository;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
+import com.grab.service.sellerbff.port.outbound.SellerAccessOutboundPort;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
@@ -41,15 +42,16 @@ class SellerOidcSessionConfig {
     }
 
     @Bean
-    SellerPendingRevocations sellerPendingRevocations(StringRedisTemplate redis, SellerIssuerClient issuer,
+    SellerPendingRevocations sellerPendingRevocations(StringRedisTemplate redis, SellerOAuthClient issuer,
                                                        MeterRegistry metrics, SellerOidcTokenSlots slots,
                                                        SellerOidcProperties properties) {
         return new SellerPendingRevocations(redis, issuer, metrics, slots, properties);
     }
 
     @Bean
-    SellerOidcBrowserSession sellerBrowserSession(SellerOidcTokenSlots slots, SellerIssuerClient issuer,
+    SellerOidcBrowserSession sellerBrowserSession(SellerOidcTokenSlots slots, SellerOAuthClient issuer,
+                                                  SellerAccessOutboundPort account,
                                                   SellerPendingRevocations pending, SellerOidcProperties properties) {
-        return new SellerOidcBrowserSession(issuer, slots, pending, properties);
+        return new SellerOidcBrowserSession(issuer, account, slots, pending, properties);
     }
 }

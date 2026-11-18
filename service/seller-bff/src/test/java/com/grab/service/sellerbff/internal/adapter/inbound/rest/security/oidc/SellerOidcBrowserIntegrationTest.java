@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerIssuerClient.Tokens;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOAuthClient.Tokens;
+import com.grab.service.sellerbff.port.outbound.SellerAccessOutboundPort;
+import com.grab.service.sellerbff.port.outbound.SellerAccessOutboundPort.AccessState;
+import com.grab.service.sellerbff.port.outbound.SellerAccessOutboundPort.Status;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerC2CApplicationQueryService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerCategoryCommandService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerMerchantCommandService;
@@ -21,6 +24,7 @@ import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,6 +33,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
@@ -37,6 +42,10 @@ import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -75,6 +84,9 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -82,7 +94,12 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "grab.seller-oidc.issuer=http://localhost:9000",
-        "grab.seller-oidc.backchannel=http://issuer:9000",
+        "grab.seller-oidc.authorization-endpoint=http://localhost:9000/oauth2/authorize",
+        "grab.seller-oidc.token-endpoint=http://issuer:9000/oauth2/token",
+        "grab.seller-oidc.jwk-set-endpoint=http://issuer:9000/oauth2/jwks",
+        "grab.seller-oidc.introspection-endpoint=http://issuer:9000/oauth2/introspect",
+        "grab.seller-oidc.revocation-endpoint=http://issuer:9000/oauth2/revoke",
+        "grab.seller-oidc.logout-endpoint=http://issuer:9000/connect/logout",
         "grab.seller-oidc.cookie-name=SELLER_TEST_SESSION",
         "grab.seller-oidc.redis-namespace=grab:seller-test",
         "grab.seller-oidc.session-timeout=45m",
@@ -105,7 +122,10 @@ class SellerOidcBrowserIntegrationTest {
     SellerAuthOutboundPort registrations;
 
     @MockitoBean
-    SellerIssuerClient issuer;
+    SellerOAuthClient oauth;
+
+    @MockitoBean
+    SellerAccessOutboundPort sellerAccess;
 
     @MockitoBean
     SellerMerchantQueryService merchants;
@@ -154,6 +174,15 @@ class SellerOidcBrowserIntegrationTest {
     static void redis(DynamicPropertyRegistry properties) {
         REDIS.start();
         properties.add("spring.data.redis.url", () -> "redis://" + REDIS.getHost() + ":" + REDIS.getMappedPort(6379));
+    }
+
+    @BeforeEach
+    void opaqueIdentityAndAccountStateAreTestControlled() {
+        redis.getConnectionFactory().getConnection().serverCommands().flushDb();
+        when(oauth.logoutUri()).thenReturn("http://localhost:9000/connect/logout");
+        when(oauth.introspect(anyString())).thenAnswer(invocation -> new DefaultOAuth2AuthenticatedPrincipal(
+                "seller", Map.of("iss", properties.issuer(), "aud", List.of(properties.audience()),
+                "exp", Instant.now().plusSeconds(600)), List.of()));
     }
 
     @AfterAll
@@ -257,27 +286,50 @@ class SellerOidcBrowserIntegrationTest {
     @Test
     void protectedRoute_requiresContextAndRejectsAnotherMerchant() throws Exception {
         Session session = authenticatedSession(sessions);
-        Tokens tokens = new Tokens("actor-token", "actor-refresh", Instant.now().plusSeconds(60), "seller", "id");
-        slots.start(session.getId(), tokens);
+        Tokens tokens = startTokens(session);
         assertThat(session.getMaxInactiveInterval()).isEqualTo(Duration.ofMinutes(45));
         String redisKey = "grab:seller-test:sessions:sessions:" + session.getId();
         assertThat(redis.hasKey(redisKey)).isTrue();
         HttpClient browser = browser(session);
         String csrf = csrf(browser);
         AuthenticatedActor unscoped = actor(null, Set.of(), Set.of());
-        AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
-        when(issuer.actor(tokens)).thenReturn(unscoped, actor(merchant));
+        stubAccess(tokens, unscoped);
 
         String profile = "/api/v1/merchants/other/profile";
         HttpResponse<String> missingContext = send(browser, profile, "PATCH", "{}", csrf);
         assertProblem(missingContext, 409, "idt.service.auth.access_context_required", "Select an access context to continue");
-        HttpResponse<String> wrongTenant = send(browser, profile, "PATCH", "{}", csrf);
+
+        Session scopedSession = authenticatedSession(sessions);
+        AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
+        Tokens scopedTokens = startTokens(scopedSession, merchant);
+        HttpClient scopedBrowser = browser(scopedSession);
+        String scopedCsrf = csrf(scopedBrowser);
+        stubAccess(scopedTokens, actor(merchant));
+        HttpResponse<String> wrongTenant = send(scopedBrowser, profile, "PATCH", "{}", scopedCsrf);
         assertProblem(wrongTenant, 403, "idt.service.auth.access_denied", "Access denied");
     }
 
-    // End probe requests after the security chain, before controller side effects.
     @TestConfiguration(proxyBeanMethods = false)
     static class RouteProbeConfiguration {
+        @Bean
+        @Primary
+        ClientRegistrationRepository sellerTestClientRegistration(SellerOidcProperties properties) {
+            ClientRegistration registration = ClientRegistration.withRegistrationId("seller")
+                    .clientId(properties.clientId())
+                    .clientSecret(properties.clientSecret())
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .redirectUri(properties.callback())
+                    .scope("openid", "profile", "email")
+                    .authorizationUri("http://localhost:9000/oauth2/authorize")
+                    .tokenUri("http://issuer:9000/oauth2/token")
+                    .jwkSetUri("http://issuer:9000/oauth2/jwks")
+                    .issuerUri(properties.issuer())
+                    .clientName("Seller Central")
+                    .build();
+            return new InMemoryClientRegistrationRepository(registration);
+        }
+
         @Bean
         FilterRegistrationBean<Filter> routeProbe() {
             FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>();
@@ -295,13 +347,13 @@ class SellerOidcBrowserIntegrationTest {
     @Test
     void controllerMappings_haveTestedHttpPermissions() throws Exception {
         Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session);
+        Tokens tokens = startTokens(session, new AccessContext("assignment", "merchant.account", "own"));
         HttpClient seller = browser(session);
         HttpClient anonymous = HttpClient.newBuilder().cookieHandler(new CookieManager()).build();
         String sellerCsrf = csrf(seller);
         String anonymousCsrf = csrf(anonymous);
         Set<String> tested = new HashSet<>();
-        var cases = new ClassPathResource("seller-http-permissions.txt");
+        ClassPathResource cases = new ClassPathResource("seller-http-permissions.txt");
         for (String line : cases.getContentAsString(StandardCharsets.UTF_8).lines().skip(1).toList()) {
             String[] fields = line.split(" ");
             String pattern = fields[1];
@@ -310,27 +362,26 @@ class SellerOidcBrowserIntegrationTest {
             boolean isPublic = access.equals("public");
             boolean needsAuthority = !isPublic && !access.equals("authenticated");
             AccessContext context = fields[3].equals("none") ? null : new AccessContext("assignment", fields[3], "own");
+            AccessContext liveContext = context == null
+                    ? new AccessContext("assignment", "merchant.account", "own") : context;
             for (String method : fields[0].split(",")) {
                 String route = method + " " + pattern;
                 assertThat(tested.add(route)).as("unique case for %s", route).isTrue();
                 assertThat(send(anonymous, path, method, null, anonymousCsrf).statusCode())
                         .as("anonymous %s", route).isEqualTo(isPublic ? 204 : 401);
                 if (needsAuthority) {
-                    when(issuer.actor(tokens)).thenReturn(actor(null, Set.of(), Set.of(access)));
-                    assertThat(send(seller, path, method, null, sellerCsrf).statusCode())
-                            .as("missing context for %s", route).isEqualTo(409);
-                    when(issuer.actor(tokens)).thenReturn(actor(context, Set.of(), Set.of()));
+                    stubAccess(tokens, actor(liveContext, Set.of(), Set.of()));
                     assertThat(send(seller, path, method, null, sellerCsrf).statusCode())
                             .as("missing authority for %s", route).isEqualTo(403);
                 }
                 Set<String> granted = needsAuthority ? Set.of(access) : Set.of();
-                when(issuer.actor(tokens)).thenReturn(actor(context, Set.of(), granted));
+                stubAccess(tokens, actor(liveContext, Set.of(), granted));
                 assertThat(send(seller, path, method, null, sellerCsrf).statusCode())
                         .as("permitted %s", route).isEqualTo(204);
             }
         }
         Map<RequestMappingInfo, HandlerMethod> handlers = controllerMappings.getHandlerMethods();
-        for (var entry : handlers.entrySet()) {
+        for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : handlers.entrySet()) {
             if (entry.getValue().getBeanType().getPackageName().startsWith("com.grab.service.sellerbff.")) {
                 RequestMappingInfo mapping = entry.getKey();
                 assertThat(mapping.getMethodsCondition().getMethods()).as("explicit methods for %s", mapping).isNotEmpty();
@@ -351,7 +402,7 @@ class SellerOidcBrowserIntegrationTest {
 
         Session session = authenticatedSession(sessions);
         Tokens tokens = startTokens(session);
-        when(issuer.actor(tokens)).thenReturn(actor(null, Set.of(), Set.of()));
+        stubAccess(tokens, actor(null, Set.of(), Set.of()));
         HttpClient browser = browser(session);
         assertThat(send(browser, catalog, "HEAD", null).statusCode()).isEqualTo(200);
         assertThat(send(browser, "/api/v1/merchants/root", "GET", null).statusCode()).isEqualTo(200);
@@ -361,10 +412,9 @@ class SellerOidcBrowserIntegrationTest {
         assertThat(send(browser, "/api/v1/unconfigured", "GET", null).statusCode()).isEqualTo(403);
 
         String csrf = csrf(browser);
-        Tokens selected = new Tokens("selected", "refresh", Instant.now().plusSeconds(60), "seller", "id");
         AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
-        when(issuer.select(tokens, "assignment")).thenReturn(selected);
-        when(issuer.actor(selected)).thenReturn(actor(merchant));
+        stubAccess(tokens, actor(null, Set.of(), Set.of()), actor(null, Set.of(), Set.of()),
+                actor(null, Set.of(), Set.of()), actor(merchant));
         assertThat(send(browser, "/api/v1/catalog", "PUT", null, csrf).statusCode()).isEqualTo(403);
         String selection = "/api/v1/identity/session/contexts/assignment/select";
         HttpResponse<String> response = send(browser, selection, "POST", null, csrf);
@@ -375,7 +425,7 @@ class SellerOidcBrowserIntegrationTest {
     @Test
     void merchantMembershipAndStorefronts_requireAuthorityAndMatchingContext() throws Exception {
         Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session);
+        Tokens tokens = startTokens(session, new AccessContext("assignment", "merchant.account", "own"));
         HttpClient browser = browser(session);
         AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
         AccessContext storefront = new AccessContext("assignment", "merchant.storefront", "store");
@@ -383,7 +433,7 @@ class SellerOidcBrowserIntegrationTest {
         AuthenticatedActor admin = actor(merchant, Set.of(MerchantAdminAccessProfile.ADMIN_ROLE_CODE), Set.of());
         AuthenticatedActor storeReader = actor(storefront, Set.of(), Set.of(MerchantAuthorityManifest.STOREFRONT_READ));
         AuthenticatedActor writer = actor(merchant, Set.of(), Set.of(IdentityAuthorityManifest.ACCESS_ASSIGNMENT_WRITE));
-        when(issuer.actor(tokens)).thenReturn(member, admin, member, member, writer, writer, storeReader, storeReader, storeReader);
+        stubAccess(tokens, member, admin, member, member, writer, writer, storeReader, storeReader, storeReader);
 
         assertThat(send(browser, "/api/v1/merchants/own/members", "GET", null).statusCode()).isEqualTo(200);
         assertThat(send(browser, "/api/v1/merchants/own/members", "GET", null).statusCode()).isEqualTo(403);
@@ -404,7 +454,7 @@ class SellerOidcBrowserIntegrationTest {
     @Test
     void moduleRules_distinguishPlatformWritesAndPublishableKeyAuthorities() throws Exception {
         Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session);
+        Tokens tokens = startTokens(session, new AccessContext("assignment", "merchant.account", "own"));
         HttpClient browser = browser(session);
         String csrf = csrf(browser);
         AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
@@ -413,7 +463,7 @@ class SellerOidcBrowserIntegrationTest {
         AuthenticatedActor platformWriter = actor(platform, Set.of(), Set.of(CatalogAuthorityManifest.WRITE));
         AuthenticatedActor channelReader = actor(merchant, Set.of(), Set.of(SalesChannelAuthorityManifest.READ));
         AuthenticatedActor keyReader = actor(merchant, Set.of(), Set.of(SalesChannelAuthorityManifest.KEY_READ));
-        when(issuer.actor(tokens)).thenReturn(merchantWriter, platformWriter, channelReader, channelReader, keyReader, keyReader);
+        stubAccess(tokens, merchantWriter, platformWriter, channelReader, channelReader, keyReader, keyReader);
 
         String category = "/api/v1/categories/category";
         assertThat(send(browser, category, "DELETE", null, csrf).statusCode()).isEqualTo(403);
@@ -432,30 +482,32 @@ class SellerOidcBrowserIntegrationTest {
     void logout_duringIssuerOutage_skipsLiveIdentityResolution() throws Exception {
         Session session = authenticatedSession(sessions);
         Tokens tokens = startTokens(session);
-        when(issuer.actor(tokens)).thenThrow(SellerOidcFailure.unavailable());
+        when(oauth.introspect(tokens.access())).thenThrow(SellerOidcFailure.unavailable());
         HttpClient browser = browser(session);
         String csrf = csrf(browser);
         assertThat(send(browser, "/api/v1/identity/session", "GET", null).statusCode()).isEqualTo(503);
         assertThat(send(browser, "/api/v1/identity/auth/logout", "POST", null, csrf).statusCode()).isEqualTo(303);
         assertThat(sessions.findById(session.getId())).isNull();
-        verify(issuer).actor(tokens);
+        verify(oauth).introspect(tokens.access());
     }
 
     @Test
     void logout_duringRotation_revokesLatestTokenAfterTransientFailure() throws Exception {
         Session session = authenticatedSession(sessions);
         String sessionId = session.getId();
-        Tokens expired = new Tokens("old-access", "old-refresh", Instant.now(), "seller", "id");
-        Tokens rotated = new Tokens("new-access", "new-refresh", Instant.now().plusSeconds(60), "seller", "id");
+        Tokens expired = new Tokens("old-access", "old-refresh", Instant.now(), "seller", "id")
+                .withIssuer(properties.issuer()).withAccessState("seller", null, 0, 0, 0);
+        Tokens rotated = new Tokens("new-access", "new-refresh", Instant.now().plusSeconds(60), "seller", "id")
+                .withIssuer(properties.issuer()).withAccessState("seller", null, 0, 0, 0);
         slots.start(sessionId, expired);
         CountDownLatch requested = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
-        when(issuer.refresh(expired)).thenAnswer(invocation -> {
+        when(oauth.refresh(expired)).thenAnswer(invocation -> {
             requested.countDown();
             assertThat(release.await(10, TimeUnit.SECONDS)).isTrue();
             return rotated;
         });
-        doThrow(SellerOidcFailure.unavailable()).doNothing().when(issuer).revoke(rotated.refresh());
+        doThrow(SellerOidcFailure.unavailable()).doNothing().when(oauth).revoke(rotated.refresh());
         HttpClient browser = browser(session);
         String csrf = csrf(browser);
         assertThat(send(browser, "/api/v1/identity/auth/logout", "POST", null).statusCode()).isEqualTo(403);
@@ -474,13 +526,13 @@ class SellerOidcBrowserIntegrationTest {
 
             pending.retry();
             assertThat(redis.opsForZSet().score(queue, sessionId)).isNotNull();
-            verify(issuer, never()).revoke(expired.refresh());
+            verify(oauth, never()).revoke(expired.refresh());
         } finally {
             release.countDown();
         }
         HttpResponse<String> inFlight = rotation.get(10, TimeUnit.SECONDS);
         assertThat(inFlight.statusCode()).isEqualTo(401);
-        verify(issuer, never()).actor(rotated);
+        verify(sellerAccess, never()).resolve(anyString(), anyString(), any(), any());
         assertThat(slots.read(sessionId)).isEqualTo(rotated);
 
         redis.opsForZSet().add(queue, sessionId, 0);
@@ -493,7 +545,7 @@ class SellerOidcBrowserIntegrationTest {
         assertThat(slots.read(sessionId)).isNull();
         assertThat(redis.opsForZSet().score(queue, sessionId)).isNull();
         assertThat(sessions.findById(sessionId)).isNull();
-        verify(issuer, never()).revoke(expired.refresh());
+        verify(oauth, never()).revoke(expired.refresh());
     }
 
     @Test
@@ -506,7 +558,7 @@ class SellerOidcBrowserIntegrationTest {
 
         pending.retry();
 
-        verify(issuer).revoke("legacy-refresh");
+        verify(oauth).revoke("legacy-refresh");
         assertThat(redis.hasKey(key)).isFalse();
         assertThat(redis.opsForZSet().score(queue, item)).isNull();
     }
@@ -532,7 +584,7 @@ class SellerOidcBrowserIntegrationTest {
             for (String key : keys) {
                 assertThat(redis.getExpire(key)).isBetween(590L, 600L);
             }
-            doThrow(SellerOidcFailure.unavailable()).when(issuer).revoke(anyString());
+            doThrow(SellerOidcFailure.unavailable()).when(oauth).revoke(anyString());
             long before = Instant.now().getEpochSecond();
             pending.retry();
             long after = Instant.now().getEpochSecond();
@@ -589,10 +641,29 @@ class SellerOidcBrowserIntegrationTest {
     }
 
     private Tokens startTokens(Session session) {
+        return startTokens(session, null);
+    }
+
+    private Tokens startTokens(Session session, AccessContext context) {
         Instant expiry = Instant.now().plusSeconds(60);
-        Tokens tokens = new Tokens("access", "refresh", expiry, "seller", "id");
+        Tokens tokens = new Tokens("access", "refresh", expiry, "seller", "id")
+                .withIssuer(properties.issuer()).withAccessState("seller",
+                        context == null ? null : context.assignmentId(), 0, 0, 0);
         slots.start(session.getId(), tokens);
         return tokens;
+    }
+
+    private void stubAccess(Tokens tokens, AuthenticatedActor... actors) {
+        AccessState[] states = java.util.Arrays.stream(actors).map(this::accessState).toArray(AccessState[]::new);
+        when(sellerAccess.resolve(eq(properties.issuer()), eq(tokens.subject()), nullable(String.class), any()))
+                .thenReturn(states[0], java.util.Arrays.copyOfRange(states, 1, states.length));
+    }
+
+    private AccessState accessState(AuthenticatedActor actor) {
+        AccessContext context = actor.accessContext();
+        return new AccessState(Status.ACTIVE, actor.platformUserId(), actor.email(), actor.authenticationVersion(),
+                context == null ? null : context.assignmentId(), context == null ? null : context.scopeKey(),
+                context == null ? null : context.scopeId(), actor.roles(), actor.authorities(), 0, 0);
     }
 
     private void assertProblem(HttpResponse<String> response, int status, String code, String detail) throws Exception {

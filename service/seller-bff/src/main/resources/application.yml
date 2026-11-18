@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:configtree:/run/secrets/seller-bff/
   security:
     oauth2:
       client:
@@ -9,20 +11,17 @@ spring:
             client-authentication-method: client_secret_basic
             authorization-grant-type: authorization_code
             redirect-uri: ${grab.seller-oidc.callback}
-            scope: openid
+            scope: ${grab.seller-oidc.scopes}
             client-name: Seller Central
-        provider:
-          seller:
-            authorization-uri: ${grab.seller-oidc.issuer}/oauth2/authorize
-            token-uri: ${grab.seller-oidc.backchannel}/oauth2/token
-            jwk-set-uri: ${grab.seller-oidc.backchannel}/oauth2/jwks
   data:
     redis:
-      url: ${SELLER_OIDC_REDIS_URL:redis://localhost:6379}
+      url: ${SELLER_OIDC_REDIS_URL:}
+      username: ${SELLER_OIDC_REDIS_USERNAME:}
+      password: ${SELLER_OIDC_REDIS_PASSWORD:}
+      ssl:
+        enabled: ${SELLER_OIDC_REDIS_SSL:false}
   application:
     name: seller-bff
-  profiles:
-    default: dev
   lifecycle:
     timeout-per-shutdown-phase: 20s
   jackson:
@@ -65,21 +64,31 @@ grab:
 
   seller-oidc:
     issuer: ${SELLER_OIDC_ISSUER:}
-    backchannel: ${SELLER_OIDC_BACKCHANNEL:${grab.seller-oidc.issuer}}
-    audience: ${SELLER_OIDC_AUDIENCE:grab-seller-api}
-    client-id: ${SELLER_OIDC_CLIENT_ID:seller-bff}
+    audience: ${SELLER_OIDC_AUDIENCE:}
+    scopes: ${SELLER_OIDC_SCOPES:openid,profile,email}
+    client-id: ${SELLER_OIDC_CLIENT_ID:}
     client-secret: ${SELLER_OIDC_CLIENT_SECRET:}
+    resource-client-id: ${SELLER_OIDC_RESOURCE_CLIENT_ID:${SELLER_OIDC_CLIENT_ID:seller-bff}}
+    resource-client-secret: ${SELLER_OIDC_RESOURCE_CLIENT_SECRET:${SELLER_OIDC_CLIENT_SECRET:}}
     callback: ${SELLER_OIDC_CALLBACK:}
     ui: ${SELLER_OIDC_UI:}
     post-logout: ${SELLER_OIDC_POST_LOGOUT_URI:}
-    account-host: ${SELLER_AUTH_ACCOUNT_HOST:localhost}
+    account-host: ${SELLER_AUTH_ACCOUNT_HOST:account-service}
     registration-port: ${SELLER_AUTH_REGISTRATION_PORT:1200}
+    account-key-store: ${SELLER_AUTH_CLIENT_KEYSTORE:/run/secrets/seller-auth/client.p12}
+    account-key-password: ${SELLER_AUTH_CLIENT_KEY_PASSWORD:}
+    account-trust-store: ${SELLER_AUTH_CLIENT_TRUSTSTORE:/run/secrets/seller-auth/account-trust.p12}
+    account-trust-password: ${SELLER_AUTH_CLIENT_TRUST_PASSWORD:}
+    account-connect-timeout: ${SELLER_AUTH_CONNECT_TIMEOUT:2s}
+    account-read-timeout: ${SELLER_AUTH_READ_TIMEOUT:6s}
     secure-cookies: ${SELLER_OIDC_SECURE_COOKIES:true}
     cookie-name: ${SELLER_OIDC_COOKIE_NAME:GRAB_SELLER_SESSION}
     redis-namespace: ${SELLER_OIDC_REDIS_NAMESPACE:grab:seller}
     session-timeout: ${SELLER_OIDC_SESSION_TIMEOUT:7d}
     connect-timeout: ${SELLER_OIDC_CONNECT_TIMEOUT:2s}
     read-timeout: ${SELLER_OIDC_READ_TIMEOUT:6s}
+    refresh-skew: ${SELLER_OIDC_REFRESH_SKEW:5s}
+    lock-ttl: ${SELLER_OIDC_LOCK_TTL:30s}
     revocation-retry-delay: ${SELLER_OIDC_REVOCATION_RETRY_DELAY:30s}
     revocation-token-ttl: ${SELLER_OIDC_REVOCATION_TOKEN_TTL:7d}
     revocation-claim-lease: ${SELLER_OIDC_REVOCATION_CLAIM_LEASE:60s}
