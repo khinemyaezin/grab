@@ -1,0 +1,3 @@
+security:
+  api:
+    cors: ${SECURITY_API_CORS:*}

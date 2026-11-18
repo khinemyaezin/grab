@@ -1,0 +1,9 @@
+package com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record MerchantLifecycleRequest(
+        @NotBlank @Size(max = 1000) String reason
+) {}
+

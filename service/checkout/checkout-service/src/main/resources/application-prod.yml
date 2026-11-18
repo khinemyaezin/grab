@@ -1,0 +1,11 @@
+checkout:
+  datasource:
+    url: ${CHECKOUT_DB_URL}
+    username: ${CHECKOUT_DB_USERNAME}
+    password: ${CHECKOUT_DB_PASSWORD}
+
+cart:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate

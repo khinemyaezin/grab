@@ -6,6 +6,14 @@ import java.util.UUID;
 public interface OutboxEntry<ID> {
     ID getId();
 
+    default String getAggregateType() {
+        return null;
+    }
+
+    default String getAggregateId() {
+        return null;
+    }
+
     UUID getEventId();
 
     String getEventType();

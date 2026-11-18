@@ -1,0 +1,10 @@
+-- Pre-create the per-module publication state row so that concurrent replicas booting against an empty schema never
+-- race on the INSERT (the bootstrap lock makes publication single-writer; this removes the PK-violation retry path).
+-- Defaults mirror the JPA constructor: revision 0, empty digest, version 0.
+INSERT INTO security_manifest_publication (module_key, security_revision, content_digest, version)
+VALUES ('merchant', 0, '', 0)
+ON CONFLICT (module_key) DO NOTHING;
+
+INSERT INTO role_declaration_publication (publication_key, declaration_revision, content_digest, version)
+VALUES ('merchant:MERCHANT_ADMIN', 0, '', 0)
+ON CONFLICT (publication_key) DO NOTHING;

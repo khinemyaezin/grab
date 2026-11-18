@@ -1,0 +1,7 @@
+security:
+  api:
+    cors: ${SECURITY_API_CORS}
+management:
+  endpoint:
+    health:
+      show-details: never

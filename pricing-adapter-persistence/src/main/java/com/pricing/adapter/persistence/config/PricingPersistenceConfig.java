@@ -22,7 +22,6 @@ import com.pricing.adapter.persistence.repository.jpa.PriceListJpaRepository;
 import com.pricing.adapter.persistence.repository.jpa.PricePreferenceJpaRepository;
 import com.pricing.adapter.persistence.repository.jpa.PriceSetJpaRepository;
 import com.pricing.adapter.persistence.repository.jpa.VariantPriceSetLinkJpaRepository;
-import com.pricing.adapter.persistence.workflow.PricingWorkflowStepRunner;
 import com.pricing.application.port.outbound.PriceQueryPort;
 import com.pricing.application.port.outbound.VariantPriceSetLinkQueryPort;
 import com.pricing.domain.port.outbound.PriceListRepository;
@@ -36,7 +35,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaContext;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.function.UnaryOperator;
 
@@ -52,15 +50,6 @@ public class PricingPersistenceConfig {
         ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, PricingProcessedEvent.class, PricingProcessedEvent::of);
         UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
         return observe.apply(repository);
-    }
-
-    @Bean
-    public PricingWorkflowStepRunner pricingWorkflowSignalEmitter(
-            @Qualifier("pricingDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("pricingTransactionManager") PlatformTransactionManager transactionManager,
-            @Qualifier("pricingProcessedEventRepository") ProcessedEventRepository processedEvents
-    ) {
-        return new PricingWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
     @Bean("pricingPersistenceExecutor")

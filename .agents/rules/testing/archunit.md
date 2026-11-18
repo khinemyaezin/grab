@@ -47,6 +47,8 @@ static final ArchRule application_layer_should_not_depend_on_outer_layers =
 ### 3. Headless Domain Invariant (R1, R3)
 Classes in headless domain service groups (`com.grab.app.account..`, `com.grab.app.merchandising..`, `com.grab.app.channel..`, `com.grab.app.checkout..`, `com.grab.app.workflow..`) MUST NOT depend on Spring Web MVC annotations. REST controllers reside strictly in Platform BFFs (`sellercentral`, `marketplace`).
 
+Published message-contract packages (`com.grab.service.account..`, `com.grab.service.merchandising..`, `com.grab.service.channel..`, `com.grab.service.checkout..`, and `com.grab.service.workflow..`) MUST remain API-only and must not depend on Spring Web MVC, persistence, adapters, handlers, or repositories. Remote interfaces extend `java.rmi.Remote`, declare `RemoteException`, and expose serializable request/result types.
+
 ```java
 @ArchTest
 static final ArchRule headless_domains_must_not_use_web_annotations =
@@ -180,5 +182,6 @@ static final ArchRule commands_and_queries_must_be_records =
 ## Test Placement & Execution
 
 - Place ArchUnit architecture test suites in `app/src/test/java/com/grab/app/` and root test suites.
+- Place service-provider architecture tests in each `service/{group}/{group}-service/src/test/java/com/grab/service/{group}/`. Verify no dependency on `com.grab.app` or Spring Web MVC and assert each injected CQRS bus uses that group's qualifier.
 - Group tests with descriptive names referencing the invariant or rule ID (e.g. `R1_DomainIsolationTest`, `R2_CqrsIsolationTest`, `R3_HeadlessDomainTest`, `R11_NoNativeQueriesTest`).
 - Ensure ArchUnit runs as part of standard `mvn test` without requiring external services or Docker containers.

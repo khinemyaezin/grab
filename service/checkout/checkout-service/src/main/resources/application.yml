@@ -1,0 +1,113 @@
+spring:
+  application:
+    name: checkout-service
+  profiles:
+    default: dev
+  main:
+    web-application-type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  task:
+    scheduling:
+      pool:
+        size: ${SCHEDULER_POOL_SIZE:4}
+      thread-name-prefix: checkout-scheduled-
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+  jmx:
+    enabled: true
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        include: health,metrics
+    web:
+      exposure:
+        exclude: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+        liveness:
+          include: livenessState
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: checkout-service
+
+logger:
+  backend: ${LOGGER_BACKEND:slf4j}
+  fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
+  file:
+    enabled: ${LOGGER_FILE_ENABLED:false}
+    path: ${LOGGER_FILE_PATH:logs}
+    name: ${LOGGER_FILE_NAME:checkout-service.log}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+grab:
+  rpc:
+    enabled: ${GRAB_RPC_ENABLED:false}
+    registry-port: ${GRAB_RPC_REGISTRY_PORT:1102}
+    bind-address: ${GRAB_RPC_BIND_ADDRESS:127.0.0.1}
+    advertised-host: ${GRAB_RPC_ADVERTISED_HOST:localhost}
+    connect-timeout-ms: ${GRAB_RPC_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${GRAB_RPC_READ_TIMEOUT_MS:30000}
+    clients:
+      merchandising:
+        host: ${GRAB_RPC_CLIENTS_MERCHANDISING_HOST:}
+        port: ${GRAB_RPC_CLIENTS_MERCHANDISING_PORT:1100}
+      channel:
+        host: ${GRAB_RPC_CLIENTS_CHANNEL_HOST:}
+        port: ${GRAB_RPC_CLIENTS_CHANNEL_PORT:1101}
+
+checkout:
+  datasource:
+    driver-class-name: ${CHECKOUT_DB_DRIVER:org.postgresql.Driver}
+    hikari:
+      pool-name: CheckoutHikariPool
+      maximum-pool-size: ${CHECKOUT_HIKARI_MAXIMUM_POOL_SIZE:20}
+      minimum-idle: ${CHECKOUT_HIKARI_MINIMUM_IDLE:5}
+      connection-timeout: ${CHECKOUT_HIKARI_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${CHECKOUT_HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${CHECKOUT_HIKARI_MAX_LIFETIME:1800000}
+
+cart:
+  jpa:
+    hibernate:
+      dialect: ${CART_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${CART_JPA_DDL_AUTO:validate}
+      show_sql: ${CART_JPA_SHOW_SQL:false}
+      format_sql: ${CART_JPA_FORMAT_SQL:false}
+      default_schema: ${CART_JPA_DEFAULT_SCHEMA:cart}
+  flyway:
+    schemas: cart
+    default-schema: cart
+    table: flyway_schema_history
+    locations: classpath:db/migration/cart
+  outbox:
+    fixed-delay-ms: ${CART_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${CART_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${CART_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${CART_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${CART_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${CART_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${CART_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${CART_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${CART_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${CART_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}

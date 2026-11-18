@@ -25,7 +25,6 @@ import com.catalog.adapter.persistence.repository.*;
 import com.catalog.adapter.persistence.repository.impl.*;
 import com.catalog.adapter.persistence.specification.ProductSearchSpecification;
 import com.catalog.adapter.persistence.specification.ProductVariantSearchSpecification;
-import com.catalog.adapter.persistence.workflow.CatalogWorkflowStepRunner;
 import com.catalog.application.port.outbound.BuyabilityQueryPort;
 import com.catalog.application.port.outbound.CategoryHierarchyQueryPort;
 import com.catalog.application.port.outbound.CategoryQueryPort;
@@ -60,7 +59,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
 import java.util.function.UnaryOperator;
@@ -82,15 +80,6 @@ public class CatalogPersistenceConfig {
         ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, CatalogProcessedEvent.class, CatalogProcessedEvent::of);
         UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
         return observe.apply(repository);
-    }
-
-    @Bean
-    public CatalogWorkflowStepRunner catalogWorkflowSignalEmitter(
-            @Qualifier("catalogDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("catalogTransactionManager") PlatformTransactionManager transactionManager,
-            @Qualifier("catalogProcessedEventRepository") ProcessedEventRepository processedEvents
-    ) {
-        return new CatalogWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
     @Bean

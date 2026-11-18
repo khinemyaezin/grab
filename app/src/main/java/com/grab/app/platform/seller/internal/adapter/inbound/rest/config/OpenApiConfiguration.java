@@ -17,7 +17,7 @@ public class OpenApiConfiguration {
         return new OpenAPI()
                 .info(new Info()
                         .title("Grab Seller API")
-                        .description("Seller BFF APIs for catalog, inventory, merchants, pricing, sales channels, workflows, and auth")
+                        .description("Seller BFF APIs for catalog, inventory, merchants, pricing, sales channels, and auth")
                         .version("v1"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()

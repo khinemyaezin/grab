@@ -29,7 +29,6 @@ import com.saleschannel.adapter.persistence.repository.SalesChannelJpaRepository
 import com.saleschannel.adapter.persistence.repository.jpa.PublishableKeyJpaRepository;
 import com.saleschannel.adapter.persistence.specification.SalesChannelQuerySpecification;
 import com.saleschannel.adapter.persistence.specification.jpa.PublishableKeyQuerySpecification;
-import com.saleschannel.adapter.persistence.workflow.SalesChannelWorkflowStepRunner;
 import com.saleschannel.application.port.outbound.ChannelRegionLookupPort;
 import com.saleschannel.application.port.outbound.PublishableKeyQueryPort;
 import com.saleschannel.application.port.outbound.SalesChannelQueryPort;
@@ -42,7 +41,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
 import java.util.function.UnaryOperator;
@@ -87,15 +85,6 @@ public class SalesChannelPersistenceConfig {
         ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, SalesChannelProcessedEvent.class, SalesChannelProcessedEvent::of);
         UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
         return observe.apply(repository);
-    }
-
-    @Bean
-    public SalesChannelWorkflowStepRunner salesChannelWorkflowSignalEmitter(
-            @Qualifier("salesChannelDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("salesChannelTransactionManager") PlatformTransactionManager transactionManager,
-            @Qualifier("salesChannelProcessedEventRepository") ProcessedEventRepository processedEvents
-    ) {
-        return new SalesChannelWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
     @Bean

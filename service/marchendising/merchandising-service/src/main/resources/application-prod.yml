@@ -1,0 +1,27 @@
+merchandising:
+  datasource:
+    url: ${MERCHANDISING_DB_URL}
+    username: ${MERCHANDISING_DB_USERNAME}
+    password: ${MERCHANDISING_DB_PASSWORD}
+
+catalog:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate
+  seed:
+    enabled: false
+
+inventory:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate
+  seed:
+    enabled: false
+
+pricing:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate

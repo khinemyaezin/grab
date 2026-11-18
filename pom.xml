@@ -18,6 +18,8 @@
         <module>scheduling-infrastructure</module>
         <module>manifest-adapter-persistence</module>
         <module>workflow-infrastructure</module>
+        <module>rmi-adapter</module>
+        <module>redpanda-adapter</module>
         <module>catalog-domain</module>
         <module>catalog-application</module>
         <module>catalog-adapter-persistence</module>
@@ -47,6 +49,7 @@
         <module>customer-domain</module>
         <module>customer-application</module>
         <module>customer-adapter-persistence</module>
+        <module>service</module>
 <!--        <module>order-domain</module>-->
 <!--        <module>order-application</module>-->
 <!--        <module>order-adapter-persistence</module>-->

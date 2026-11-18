@@ -1,0 +1,27 @@
+channel:
+  datasource:
+    url: ${CHANNEL_DB_URL}
+    username: ${CHANNEL_DB_USERNAME}
+    password: ${CHANNEL_DB_PASSWORD}
+
+saleschannel:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate
+  seed:
+    enabled: false
+
+region:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate
+  seed:
+    enabled: false
+
+storefrontquery:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate

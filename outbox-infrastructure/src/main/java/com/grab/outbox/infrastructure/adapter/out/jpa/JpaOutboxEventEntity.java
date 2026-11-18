@@ -164,10 +164,12 @@ public abstract class JpaOutboxEventEntity implements OutboxEntry<Long> {
         return eventId;
     }
 
+    @Override
     public String getAggregateType() {
         return aggregateType;
     }
 
+    @Override
     public String getAggregateId() {
         return aggregateId;
     }

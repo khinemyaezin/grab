@@ -9,9 +9,7 @@ import java.util.Map;
 public sealed interface SharedError extends MessageSource permits
         SharedError.RequestValidation,
         SharedError.RequestMalformedJson,
-        SharedError.InternalUnexpected,
-        SharedError.WorkflowScopeForbidden,
-        SharedError.WorkflowNotFound {
+        SharedError.InternalUnexpected {
 
     record RequestValidation(List<Map<String, Object>> errors) implements SharedError {
         @Override
@@ -64,40 +62,4 @@ public sealed interface SharedError extends MessageSource permits
         }
     }
 
-    record WorkflowScopeForbidden(String scopeKey, String scopeId) implements SharedError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.FORBIDDEN;
-        }
-
-        @Override
-        public String code() {
-            return "shr.workflow.scope_forbidden";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of(
-                    "scopeKey", scopeKey,
-                    "scopeId", scopeId
-            );
-        }
-    }
-
-    record WorkflowNotFound(String workflowId) implements SharedError {
-        @Override
-        public ErrorCategory kind() {
-            return ErrorCategory.NOT_FOUND;
-        }
-
-        @Override
-        public String code() {
-            return "shr.workflow.not_found";
-        }
-
-        @Override
-        public Map<String, Object> args() {
-            return Map.of("workflowId", workflowId);
-        }
-    }
 }

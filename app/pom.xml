@@ -231,6 +231,34 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>workflow-verification</id>
+            <activation>
+                <property>
+                    <name>workflow.verification</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <workflow.testcontainers.required>true</workflow.testcontainers.required>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <workflow.testcontainers.required>true</workflow.testcontainers.required>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <finalName>app</finalName>
         <plugins>

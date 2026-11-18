@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaContext;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.function.UnaryOperator;
 
@@ -65,12 +64,4 @@ public class CustomerPersistenceConfig {
         return observe.apply(repository);
     }
 
-    @Bean
-    public com.customer.adapter.persistence.workflow.CustomerWorkflowStepRunner customerWorkflowSignalEmitter(
-            @Qualifier("customerDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("customerTransactionManager") PlatformTransactionManager transactionManager,
-            @Qualifier("customerProcessedEventRepository") ProcessedEventRepository processedEvents
-    ) {
-        return new com.customer.adapter.persistence.workflow.CustomerWorkflowStepRunner(producer, transactionManager, processedEvents);
-    }
 }

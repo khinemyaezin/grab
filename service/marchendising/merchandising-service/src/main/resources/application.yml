@@ -1,0 +1,195 @@
+spring:
+  application:
+    name: merchandising-service
+  profiles:
+    default: dev
+  main:
+    web-application-type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  task:
+    scheduling:
+      pool:
+        size: ${SCHEDULER_POOL_SIZE:4}
+      thread-name-prefix: merchandising-scheduled-
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+  jmx:
+    enabled: true
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        include: health,metrics
+    web:
+      exposure:
+        exclude: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db,bootstrap
+        liveness:
+          include: livenessState
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: merchandising-service
+
+logger:
+  backend: ${LOGGER_BACKEND:slf4j}
+  fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
+  file:
+    enabled: ${LOGGER_FILE_ENABLED:false}
+    path: ${LOGGER_FILE_PATH:logs}
+    name: ${LOGGER_FILE_NAME:merchandising-service.log}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+bootstrap:
+  gate-readiness: ${BOOTSTRAP_GATE_READINESS:false}
+  max-attempts: ${BOOTSTRAP_MAX_ATTEMPTS:5}
+  initial-backoff: ${BOOTSTRAP_INITIAL_BACKOFF:2s}
+  max-backoff: ${BOOTSTRAP_MAX_BACKOFF:30s}
+  lock-poll-interval: ${BOOTSTRAP_LOCK_POLL_INTERVAL:2s}
+
+grab:
+  rpc:
+    enabled: ${GRAB_RPC_ENABLED:false}
+    registry-port: ${GRAB_RPC_REGISTRY_PORT:1100}
+    bind-address: ${GRAB_RPC_BIND_ADDRESS:127.0.0.1}
+    advertised-host: ${GRAB_RPC_ADVERTISED_HOST:localhost}
+    connect-timeout-ms: ${GRAB_RPC_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${GRAB_RPC_READ_TIMEOUT_MS:30000}
+
+merchandising:
+  datasource:
+    driver-class-name: ${MERCHANDISING_DB_DRIVER:org.postgresql.Driver}
+    hikari:
+      pool-name: MerchandisingHikariPool
+      maximum-pool-size: ${MERCHANDISING_HIKARI_MAXIMUM_POOL_SIZE:15}
+      minimum-idle: ${MERCHANDISING_HIKARI_MINIMUM_IDLE:3}
+      connection-timeout: ${MERCHANDISING_HIKARI_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${MERCHANDISING_HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${MERCHANDISING_HIKARI_MAX_LIFETIME:1800000}
+
+catalog:
+  seed:
+    enabled: ${CATALOG_SEED_ENABLED:true}
+  jpa:
+    hibernate:
+      dialect: ${CATALOG_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${CATALOG_JPA_DDL_AUTO:update}
+      show_sql: ${CATALOG_JPA_SHOW_SQL:true}
+      format_sql: ${CATALOG_JPA_FORMAT_SQL:true}
+      default_schema: ${CATALOG_JPA_DEFAULT_SCHEMA:catalog}
+  flyway:
+    schemas: catalog
+    default-schema: catalog
+    table: flyway_schema_history
+    locations: classpath:db/migration/catalog
+  outbox:
+    fixed-delay-ms: ${CATALOG_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${CATALOG_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${CATALOG_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${CATALOG_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${CATALOG_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${CATALOG_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${CATALOG_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${CATALOG_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${CATALOG_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${CATALOG_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+inventory:
+  seed:
+    enabled: ${INVENTORY_SEED_ENABLED:true}
+  jpa:
+    hibernate:
+      dialect: ${INVENTORY_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${INVENTORY_JPA_DDL_AUTO:update}
+      show_sql: ${INVENTORY_JPA_SHOW_SQL:true}
+      format_sql: ${INVENTORY_JPA_FORMAT_SQL:true}
+      default_schema: ${INVENTORY_JPA_DEFAULT_SCHEMA:inventory}
+  flyway:
+    schemas: inventory
+    default-schema: inventory
+    table: flyway_schema_history
+    locations: classpath:db/migration/inventory
+  outbox:
+    fixed-delay-ms: ${INVENTORY_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${INVENTORY_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${INVENTORY_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${INVENTORY_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${INVENTORY_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${INVENTORY_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${INVENTORY_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${INVENTORY_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${INVENTORY_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${INVENTORY_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+  reservation:
+    expiry:
+      fixed-delay-ms: ${INVENTORY_RESERVATION_EXPIRY_FIXED_DELAY_MS:60000}
+      batch-size: ${INVENTORY_RESERVATION_EXPIRY_BATCH_SIZE:100}
+
+pricing:
+  enabled: ${PRICING_ENABLED:true}
+  jpa:
+    hibernate:
+      dialect: ${PRICING_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${PRICING_JPA_DDL_AUTO:validate}
+      show_sql: ${PRICING_JPA_SHOW_SQL:false}
+      format_sql: ${PRICING_JPA_FORMAT_SQL:false}
+      default_schema: ${PRICING_JPA_DEFAULT_SCHEMA:pricing}
+  flyway:
+    schemas: pricing
+    default-schema: pricing
+    table: flyway_schema_history
+    locations: classpath:db/migration/pricing
+  outbox:
+    fixed-delay-ms: ${PRICING_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${PRICING_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${PRICING_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${PRICING_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${PRICING_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${PRICING_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${PRICING_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${PRICING_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${PRICING_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${PRICING_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}
+
+security:
+  manifest:
+    republish:
+      initial-delay-ms: ${SECURITY_MANIFEST_REPUBLISH_INITIAL_DELAY_MS:300000}
+      fixed-delay-ms: ${SECURITY_MANIFEST_REPUBLISH_FIXED_DELAY_MS:300000}
+
+storage:
+  s3:
+    endpoint: ${STORAGE_S3_ENDPOINT:http://localhost:8333}
+    region: ${STORAGE_S3_REGION:us-east-1}
+    bucket: ${STORAGE_S3_BUCKET:grab-media}
+    access-key: ${STORAGE_S3_ACCESS_KEY:s3admin}
+    secret-key: ${STORAGE_S3_SECRET_KEY:s3secret}
+    public-base-url: ${STORAGE_S3_PUBLIC_BASE_URL:http://localhost:8333/grab-media}
+    presign-ttl: ${STORAGE_S3_PRESIGN_TTL:PT15M}
+    key-prefix: ${STORAGE_S3_KEY_PREFIX:}
+  upload:
+    max-size-bytes: ${STORAGE_UPLOAD_MAX_SIZE_BYTES:10485760}

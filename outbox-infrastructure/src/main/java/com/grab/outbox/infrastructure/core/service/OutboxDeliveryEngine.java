@@ -5,6 +5,7 @@ import com.grab.framework.logger.slf4j.LogContext;
 import com.grab.framework.logger.slf4j.TraceContext;
 import com.grab.framework.outbox.ClaimedOutboxEvent;
 import com.grab.framework.outbox.OutboxDeliveryContext;
+import com.grab.framework.outbox.OutboxDispatchMetadata;
 import com.grab.framework.outbox.OutboxEntry;
 import com.grab.framework.outbox.OutboxEventDispatcher;
 import com.grab.framework.outbox.OutboxEventHeaders;
@@ -144,17 +145,36 @@ public final class OutboxDeliveryEngine<T extends OutboxEntry<ID>, ID> implement
     }
 
     private void dispatch(T event) {
-        Event payload = serializer.deserialize(new SerializedEvent(
-                event.getEventType(),
-                event.getPayload(),
-                event.getEventVersion(),
-                event.getHeaders()
-        ));
+        String eventType = event.getEventType();
+        String eventPayload = event.getPayload();
+        int eventVersion = event.getEventVersion();
+        String eventHeaders = event.getHeaders();
+        SerializedEvent serializedEvent = new SerializedEvent(
+                eventType,
+                eventPayload,
+                eventVersion,
+                eventHeaders
+        );
+        Event payload = serializer.deserialize(serializedEvent);
+        UUID metadataEventId = event.getEventId();
+        String aggregateType = event.getAggregateType();
+        String aggregateId = event.getAggregateId();
+        Instant occurredAt = event.getOccurredAt();
+        OutboxDispatchMetadata metadata = new OutboxDispatchMetadata(
+                metadataEventId,
+                eventType,
+                aggregateType,
+                aggregateId,
+                eventVersion,
+                occurredAt,
+                eventPayload,
+                eventHeaders
+        );
         String headerTraceId = OutboxEventHeaders.extractTraceId(event.getHeaders());
         String traceId = headerTraceId == null || headerTraceId.isBlank() ? TraceContext.generate() : headerTraceId;
         UUID eventId = event.getEventId();
         String eventIdValue = eventId == null ? null : eventId.toString();
-        Runnable delivery = () -> OutboxDeliveryContext.run(eventId, () -> dispatcher.dispatch(payload));
+        Runnable delivery = () -> OutboxDeliveryContext.run(metadata, () -> dispatcher.dispatch(payload));
         TraceContext.run(traceId, () -> LogContext.run(LogContext.EVENT_ID, eventIdValue, delivery));
     }
 }

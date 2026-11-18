@@ -1,19 +1,29 @@
 package com.grab.app.workflow.internal.config;
 
+import com.grab.framework.event.DomainEventProducer;
 import com.grab.framework.scheduling.SingletonJobExecutor;
-import com.grab.scheduling.infrastructure.ShedLockSingletonJobExecutor;
+import com.grab.framework.workflow.WorkflowDispatchPublisher;
+import com.grab.outbox.infrastructure.core.port.in.DeliverOutboxEventsUseCase;
+import com.grab.outbox.infrastructure.module.OutboxModule;
+import com.grab.scheduling.infrastructure.*;
+import com.grab.workflow.infrastructure.outbox.WorkflowOutboxEvent;
+import com.grab.workflow.infrastructure.service.OutboxWorkflowDispatchPublisher;
 import com.zaxxer.hikari.HikariDataSource;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.env.Environment;
+import org.springframework.data.jpa.repository.JpaContext;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -22,6 +32,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
 
@@ -58,6 +69,7 @@ public class WorkflowDataSourceConfig {
     }
 
     @Bean("workflowsEntityManagerFactory")
+    @DependsOn("workflowsFlyway")
     public LocalContainerEntityManagerFactoryBean workflowsEntityManagerFactory(
             @Qualifier("workflowsDataSource") DataSource workflowsDataSource
     ) {
@@ -108,6 +120,51 @@ public class WorkflowDataSourceConfig {
                 .locations("classpath:db/migration/workflows")
                 .baselineOnMigrate(true)
                 .load();
+    }
+
+    @Bean("workflowsOutboxModule")
+    public OutboxModule<WorkflowOutboxEvent> workflowsOutboxModule(
+            JpaContext context,
+            @Qualifier("workflowsTransactionManager") PlatformTransactionManager transactionManager,
+            ApplicationEventPublisher publisher,
+            Environment environment,
+            ObjectProvider<MeterRegistry> meters
+    ) {
+        EntityManager entityManager = context.getEntityManagerByManagedType(WorkflowOutboxEvent.class);
+        return OutboxModule.builder("workflows", WorkflowOutboxEvent.class, WorkflowOutboxEvent::pending)
+                .entityManager(entityManager)
+                .transactionManager(transactionManager)
+                .eventPublisher(publisher)
+                .properties(environment)
+                .meterRegistry(meters.getIfAvailable())
+                .build();
+    }
+
+    @Bean("workflowDomainEventProducer")
+    public DomainEventProducer workflowDomainEventProducer(
+            @Qualifier("workflowsOutboxModule") OutboxModule<WorkflowOutboxEvent> outbox
+    ) {
+        return outbox.producer();
+    }
+
+    @Bean("workflowsJobScheduler")
+    public ModuleJobScheduler workflowsJobScheduler(
+            @Qualifier("workflowsOutboxModule") OutboxModule<WorkflowOutboxEvent> outbox,
+            @Qualifier("workflowsSingletonJobExecutor") ObjectProvider<SingletonJobExecutor> configuredExecutor,
+            Environment environment
+    ) {
+        SingletonJobExecutor executor = configuredExecutor.getIfAvailable(LocalSingletonJobExecutor::new);
+        DeliverOutboxEventsUseCase<Long> delivery = outbox.delivery();
+        List<ScheduledJob> jobs = OutboxScheduledJobs.of("workflows", delivery::pollOnce, outbox.cleanupJob(),
+                delivery::cleanupPublished, executor, environment);
+        return ModuleJobScheduler.fromProperties("workflows", jobs, environment);
+    }
+
+    @Bean
+    public WorkflowDispatchPublisher workflowDispatchPublisher(
+            @Qualifier("workflowDomainEventProducer") DomainEventProducer domainEventProducer
+    ) {
+        return new OutboxWorkflowDispatchPublisher(domainEventProducer);
     }
 }
 

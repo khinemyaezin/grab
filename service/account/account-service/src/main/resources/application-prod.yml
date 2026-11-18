@@ -1,0 +1,31 @@
+account:
+  datasource:
+    url: ${ACCOUNT_DB_URL}
+    username: ${ACCOUNT_DB_USERNAME}
+    password: ${ACCOUNT_DB_PASSWORD}
+
+identity:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate
+  seed:
+    enabled: false
+
+merchant:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate
+
+customer:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate
+
+
+security:
+  local-jwt:
+    keystore-path: ${JWT_KEYSTORE_PATH}
+    keystore-password: ${JWT_KEYSTORE_PASSWORD}

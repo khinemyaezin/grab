@@ -1,0 +1,109 @@
+spring:
+  application:
+    name: workflow-service
+  profiles:
+    default: dev
+  main:
+    web-application-type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  task:
+    scheduling:
+      pool:
+        size: ${SCHEDULER_POOL_SIZE:4}
+      thread-name-prefix: workflow-scheduled-
+      shutdown:
+        await-termination: true
+        await-termination-period: 30s
+  jmx:
+    enabled: true
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        include: health,metrics
+    web:
+      exposure:
+        exclude: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+        liveness:
+          include: livenessState
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: workflow-service
+
+logger:
+  backend: ${LOGGER_BACKEND:slf4j}
+  fail-on-missing-backend: ${LOGGER_FAIL_ON_MISSING_BACKEND:false}
+  file:
+    enabled: ${LOGGER_FILE_ENABLED:false}
+    path: ${LOGGER_FILE_PATH:logs}
+    name: ${LOGGER_FILE_NAME:workflow-service.log}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+
+grab:
+  rpc:
+    enabled: ${GRAB_RPC_ENABLED:false}
+    registry-port: ${GRAB_RPC_REGISTRY_PORT:1103}
+    bind-address: ${GRAB_RPC_BIND_ADDRESS:127.0.0.1}
+    advertised-host: ${GRAB_RPC_ADVERTISED_HOST:localhost}
+    connect-timeout-ms: ${GRAB_RPC_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${GRAB_RPC_READ_TIMEOUT_MS:30000}
+
+workflow:
+  workers-enabled: ${WORKFLOW_WORKERS_ENABLED:true}
+  starts-enabled: ${WORKFLOW_STARTS_ENABLED:true}
+  timer:
+    fixed-delay-ms: ${WORKFLOW_TIMER_FIXED_DELAY_MS:1000}
+    lease: ${WORKFLOW_TIMER_LEASE:PT60S}
+
+workflows:
+  seed:
+    enabled: ${WORKFLOW_SEED_ENABLED:true}
+  datasource:
+    driver-class-name: ${WORKFLOW_DB_DRIVER:${WORKFLOWS_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}}
+    hikari:
+      pool-name: WorkflowHikariPool
+      maximum-pool-size: ${WORKFLOW_HIKARI_MAXIMUM_POOL_SIZE:${WORKFLOWS_HIKARI_MAX_POOL_SIZE:10}}
+      minimum-idle: ${WORKFLOW_HIKARI_MIN_IDLE:${WORKFLOWS_HIKARI_MIN_IDLE:2}}
+      connection-timeout: ${WORKFLOW_HIKARI_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${WORKFLOW_HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${WORKFLOW_HIKARI_MAX_LIFETIME:1800000}
+  jpa:
+    hibernate:
+      dialect: ${WORKFLOWS_DATASOURCE_DIALECT:org.hibernate.dialect.PostgreSQLDialect}
+      hbm2ddl:
+        auto: ${WORKFLOWS_JPA_DDL_AUTO:validate}
+      show_sql: ${WORKFLOWS_JPA_SHOW_SQL:false}
+      format_sql: ${WORKFLOWS_JPA_FORMAT_SQL:false}
+  sweeper:
+    fixed-delay-ms: ${WORKFLOWS_SWEEPER_FIXED_DELAY_MS:30000}
+  outbox:
+    fixed-delay-ms: ${WORKFLOWS_OUTBOX_FIXED_DELAY_MS:5000}
+    cleanup-fixed-delay-ms: ${WORKFLOWS_OUTBOX_CLEANUP_FIXED_DELAY_MS:300000}
+    batch-size: ${WORKFLOWS_OUTBOX_BATCH_SIZE:20}
+    retry-delay-ms: ${WORKFLOWS_OUTBOX_RETRY_DELAY_MS:30000}
+    claim-timeout-ms: ${WORKFLOWS_OUTBOX_CLAIM_TIMEOUT_MS:120000}
+    retention-ms: ${WORKFLOWS_OUTBOX_RETENTION_MS:604800000}
+    hot-queue:
+      enabled: ${WORKFLOWS_OUTBOX_HOT_QUEUE_ENABLED:true}
+      workers: ${WORKFLOWS_OUTBOX_HOT_QUEUE_WORKERS:2}
+      capacity: ${WORKFLOWS_OUTBOX_HOT_QUEUE_CAPACITY:1000}
+      drain-timeout-ms: ${WORKFLOWS_OUTBOX_HOT_QUEUE_DRAIN_TIMEOUT_MS:5000}

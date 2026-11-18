@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grab Seller Central - Sign In</title>
+    <link rel="stylesheet" th:href="@{/css/login.css}" />
+</head>
+<body class="login-body">
+    <main class="login-container">
+        <header class="login-header">
+            <h1>Welcome to Seller Central.</h1>
+            <p>Sign in securely with your Seller account.</p>
+        </header>
+
+        <div th:if="${param.error}" class="alert alert-error" role="alert">
+            Invalid email or password. Please verify your credentials and try again.
+        </div>
+
+        <div th:if="${param.logout}" class="alert alert-info" role="alert">
+            You have been signed out successfully.
+        </div>
+
+        <form th:action="@{/login}" method="post" class="login-form">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+
+            <div class="form-group">
+                <label for="username" class="form-label">Email Address</label>
+                <input type="email" id="username" name="username" class="form-input"
+                       placeholder="seller@example.com" autocomplete="username" required autofocus />
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-input"
+                       placeholder="••••••••••••" autocomplete="current-password" required />
+            </div>
+
+            <button type="submit" class="btn-primary">Sign in</button>
+        </form>
+    </main>
+</body>
+</html>

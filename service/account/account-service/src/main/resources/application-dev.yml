@@ -1,0 +1,25 @@
+account:
+  datasource:
+    url: ${ACCOUNT_DB_URL:jdbc:postgresql://localhost:5432/identity_account}
+    username: ${ACCOUNT_DB_USERNAME:admin}
+    password: ${ACCOUNT_DB_PASSWORD:123}
+
+identity:
+  seed:
+    enabled: ${IDENTITY_SEED_ENABLED:false}
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: ${IDENTITY_JPA_DDL_AUTO:update}
+
+merchant:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: ${MERCHANT_JPA_DDL_AUTO:validate}
+
+customer:
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: ${CUSTOMER_JPA_DDL_AUTO:validate}

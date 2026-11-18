@@ -39,7 +39,6 @@ import com.inventory.adapter.persistence.specification.jpa.InventorySearchSpecif
 import com.inventory.adapter.persistence.specification.jpa.InventorySummarySpecification;
 import com.inventory.adapter.persistence.specification.jpa.LocationSearchSpecification;
 import com.inventory.adapter.persistence.specification.jpa.ZoneSearchSpecification;
-import com.inventory.adapter.persistence.workflow.InventoryWorkflowStepRunner;
 import com.inventory.application.port.outbound.BinQueryPort;
 import com.inventory.application.port.outbound.InventoryQueryPort;
 import com.inventory.application.port.outbound.InventoryReservationQueryPort;
@@ -63,7 +62,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.JpaContext;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
 import java.util.function.UnaryOperator;
@@ -89,15 +87,6 @@ public class InventoryPersistenceConfig {
         ProcessedEventRepository repository = new JpaProcessedEventRepository<>(entityManager, InventoryProcessedEvent.class, InventoryProcessedEvent::of);
         UnaryOperator<ProcessedEventRepository> observe = decorator.getIfAvailable(UnaryOperator::identity);
         return observe.apply(repository);
-    }
-
-    @Bean
-    public InventoryWorkflowStepRunner inventoryWorkflowSignalEmitter(
-            @Qualifier("inventoryDomainEventProducer") DomainEventProducer producer,
-            @Qualifier("inventoryTransactionManager") PlatformTransactionManager transactionManager,
-            @Qualifier("inventoryProcessedEventRepository") ProcessedEventRepository processedEvents
-    ) {
-        return new InventoryWorkflowStepRunner(producer, transactionManager, processedEvents);
     }
 
 

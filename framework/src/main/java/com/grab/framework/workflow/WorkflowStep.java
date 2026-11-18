@@ -1,11 +1,26 @@
 package com.grab.framework.workflow;
 
-public interface WorkflowStep {
+public final class WorkflowStep<I, O> {
 
-    String name();
+    private final WorkflowNode node;
+    private final Class<I> inputType;
+    private final Class<O> outputType;
 
-    Object execute(WorkflowContext context);
+    WorkflowStep(WorkflowNode node, Class<I> inputType, Class<O> outputType) {
+        this.node = node;
+        this.inputType = inputType;
+        this.outputType = outputType;
+    }
 
-    default void compensate(WorkflowContext context, Object output) {
+    WorkflowNode node() {
+        return node;
+    }
+
+    public Class<I> inputType() {
+        return inputType;
+    }
+
+    public Class<O> outputType() {
+        return outputType;
     }
 }

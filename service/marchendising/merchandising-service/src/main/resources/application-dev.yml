@@ -1,0 +1,5 @@
+merchandising:
+  datasource:
+    url: ${MERCHANDISING_DB_URL:jdbc:postgresql://localhost:5432/product_merchandising}
+    username: ${MERCHANDISING_DB_USERNAME:admin}
+    password: ${MERCHANDISING_DB_PASSWORD:123}

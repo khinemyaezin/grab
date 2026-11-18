@@ -1,0 +1,9 @@
+workflows:
+  datasource:
+    url: ${WORKFLOW_DB_URL:${WORKFLOWS_DATASOURCE_URL}}
+    username: ${WORKFLOW_DB_USERNAME:${WORKFLOWS_DATASOURCE_USERNAME}}
+    password: ${WORKFLOW_DB_PASSWORD:${WORKFLOWS_DATASOURCE_PASSWORD}}
+  jpa:
+    hibernate:
+      hbm2ddl:
+        auto: validate

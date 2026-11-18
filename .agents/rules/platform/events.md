@@ -20,7 +20,8 @@ The choice of listener annotation depends on the **event delivery mechanism and 
 
 ## MUST
 
-- Place all cross-module integration events under `store/src/main/java/com/grab/store/shared/events/{module}/` (or `app/src/main/java/com/grab/app/shared/events/{module}/`) organized by module folder name (e.g., `com.grab.store.shared.events.catalog.*`, `com.grab.store.shared.events.identity.*`).
+- Place cross-module integration event contracts in the owning service group's `*-event-contract` module under `com.grab.service.{group}.{submodule}`. These modules contain only immutable event records and their minimal framework event/security API dependencies.
+- Keep legacy `com.grab.app.shared.events.*` event classes available while persisted outbox rows can still reference their fully qualified class names. Forward deserialized legacy event records to the matching service event-contract type so migrated listeners continue receiving queued events.
 - For independent module startup, each module emits its authority manifest integration event asynchronously and non-blocking upon receiving `ApplicationReadyEvent`. Identity listens to these manifest events and registers them idempotently.
 - Use `@EventListener` in event listener classes for all outbox-dispatched events (cross-module integration events, outbox domain events, and workflow signals).
 - Use `@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)` ONLY for direct in-memory events published during an active database transaction.
