@@ -1,20 +1,10 @@
 # Seller BFF
 
-Standalone Spring Boot web boundary for Seller APIs. Browser authentication uses the Seller Authorization Server and an OIDC session cookie. Account remains the source of seller credentials and identity. The BFF keeps OAuth tokens server-side in Redis.
+Standalone Spring Boot web boundary for Seller APIs. Browser authentication uses the Authorization Server and an OIDC session cookie. Account remains the source of seller credentials and identity. The BFF keeps OAuth tokens server-side in Redis.
 
 ## Local OIDC setup
 
-1. Configure the Account database and Seller mTLS settings in `docker/env/account-service.env`. Set `SELLER_AUTH_RPC_ENABLED=true` and mount the Account server keystore plus separate issuer and BFF client allowlists.
-2. Configure `docker/env/authorization-server.env` with its PostgreSQL URL and credentials, `SELLER_OIDC_ISSUER=http://localhost:9000`, the BFF callback `http://localhost:8080/login/oauth2/code/seller`, the same client ID and secret configured on the BFF, the BCrypt encoded client-secret hash, the signing keystore, and its Account client keystore and truststore.
-3. Configure `docker/env/seller-bff.env` from `docker/env/seller-bff.env.example`. Set the issuer and callback URLs, UI and post-logout URLs, client secret, and the registration mTLS client keystore and Account truststore. For local HTTP, secure cookies are disabled in the example. Use HTTPS and secure cookies outside local development.
-4. Place the PKCS#12 files under `docker/secrets/seller-oidc/{account,issuer,bff}` as mounted by the Compose overlay. Use distinct issuer and BFF client certificates. Account's TLS certificate SAN must match `account-service`. The issuer and BFF truststores must trust that certificate or its CA.
-5. Start the core services and OIDC profile from the repository root.
-
-```sh
-docker compose -f docker-compose.yml -f docker-compose.seller-oidc.yml --profile seller-oidc up --build
-```
-
-The authorization server needs its dedicated PostgreSQL database and role, configured through `AUTHORIZATION_DB_URL`, `AUTHORIZATION_DB_USERNAME`, and `AUTHORIZATION_DB_PASSWORD`. Redis stores issuer sessions, BFF sessions, and pending revocations. Keep Redis and the mTLS RMI ports on the private service network.
+Follow the [Authorization Server deployment guide](../authorization-server/README.md) to start Account, the issuer, Redis, and Seller BFF. Set the BFF's public issuer URL, callback, post-logout URL, client ID, client secret, and audience to match the deployed issuer and YAML registration. Set `SELLER_OIDC_UI` to the frontend URL to open after sign-in.
 
 ## Session and issuer settings
 

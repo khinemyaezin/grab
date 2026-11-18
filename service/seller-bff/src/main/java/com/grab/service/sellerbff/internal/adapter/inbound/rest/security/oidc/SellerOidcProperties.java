@@ -2,6 +2,7 @@ package com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.time.Duration;
@@ -62,6 +63,16 @@ public record SellerOidcProperties(String issuer, String backchannel, String aud
         if (revocationBatchSize <= 0) {
             throw invalid("revocation-batch-size", "must be positive");
         }
+    }
+
+    public String browserLoginUrl() {
+        URI callbackUri = URI.create(callback);
+        String callbackPath = callbackUri.getPath();
+        int contextLength = callbackPath.length() - SellerOidcRoutes.CALLBACK.length();
+        String contextPath = callbackPath.substring(0, contextLength);
+        return UriComponentsBuilder.newInstance()
+                .scheme(callbackUri.getScheme()).host(callbackUri.getHost()).port(callbackUri.getPort())
+                .path(contextPath + SellerOidcRoutes.LOGIN).build().encode().toUriString();
     }
 
     String endpoint(String path) {

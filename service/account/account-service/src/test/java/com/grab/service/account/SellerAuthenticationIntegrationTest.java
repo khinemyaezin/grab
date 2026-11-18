@@ -5,6 +5,7 @@ import com.grab.rpc.adapter.MutualTlsRmiClient;
 import com.grab.rpc.adapter.MutualTlsRmiEndpoint.SslMaterial;
 import com.grab.service.account.merchant.port.SellerScopeRevisionQuery;
 import com.grab.service.contract.message.account.identity.AccessAssignmentPort;
+import com.grab.service.contract.message.account.identity.AccountAuthenticationPort;
 import com.grab.service.contract.message.account.identity.AuthenticationPort.RegisterUserMessage;
 import com.grab.service.contract.message.account.identity.IdentityAdminPort;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.VerifiedUser;
@@ -88,6 +89,11 @@ class SellerAuthenticationIntegrationTest {
                 assertThatThrownBy(() -> freshClient.lookup("localhost", bffPort, SellerRegistrationPort.class))
                         .isInstanceOf(RemoteException.class);
                 SellerAuthenticationPort auth = client.lookup("localhost", issuerPort, SellerAuthenticationPort.class);
+                AccountAuthenticationPort shared = client.lookup("localhost", issuerPort, AccountAuthenticationPort.class);
+                AccountAuthenticationPort.Credentials credentials = new AccountAuthenticationPort.Credentials(SELLER, PASSWORD);
+                AccountAuthenticationPort.SubjectRequest subject = new AccountAuthenticationPort.SubjectRequest(userId);
+                assertThat(shared.verify(credentials)).isEqualTo(shared.resolve(subject));
+                assertThat(shared.resolve(subject).userId()).isEqualTo(userId);
                 assertThat(auth.verify(new Credentials(SELLER, PASSWORD)).userId()).isEqualTo(userId);
                 assertThat(auth.verify(new Credentials(SELLER, "wrong"))).isNull();
                 assertThat(auth.resolve(new StateRequest(userId, null, true)).assignmentId()).isNull();
@@ -97,7 +103,10 @@ class SellerAuthenticationIntegrationTest {
                 admin.changeUserStatus(seller, "SUSPENDED");
                 assertThat(auth.verify(new Credentials(SELLER, PASSWORD))).isNull();
                 assertThat(auth.resolve(new StateRequest(userId, null, false))).isNull();
+                assertThat(shared.verify(credentials)).isNull();
+                assertThat(shared.resolve(subject)).isNull();
                 admin.changeUserStatus(seller, "ACTIVE");
+                assertThat(shared.resolve(subject).authenticationVersion()).isEqualTo(1);
                 VerifiedUser reactivated = auth.verify(new Credentials(SELLER, PASSWORD));
                 assertThat(reactivated.authenticationVersion()).isEqualTo(1);
 

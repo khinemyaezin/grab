@@ -12,7 +12,7 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 
 import java.io.IOException;
 
-public class SellerProtocolFailureHandler implements AuthenticationFailureHandler {
+public class AuthorizationProtocolFailureHandler implements AuthenticationFailureHandler {
     private final AuthenticationFailureHandler defaults = new OAuth2ErrorAuthenticationFailureHandler();
 
     @Override

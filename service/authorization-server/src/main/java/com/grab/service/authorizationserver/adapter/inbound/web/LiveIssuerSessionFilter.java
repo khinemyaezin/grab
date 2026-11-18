@@ -2,7 +2,7 @@ package com.grab.service.authorizationserver.adapter.inbound.web;
 
 import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
 import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.AccountUnavailableException;
-import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.AuthenticationState;
+import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.Subject;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,8 +28,9 @@ public class LiveIssuerSessionFilter extends OncePerRequestFilter {
         Authentication existing = SecurityContextHolder.getContext().getAuthentication();
         if ("/oauth2/authorize".equals(path) && existing != null && existing.isAuthenticated()) {
             try {
-                AuthenticationState state = account.resolve(existing.getName(), null, false);
-                if (state == null || state.authenticationVersion() != SellerFormAuthenticationProvider.loginVersion(existing)) {
+                String subject = existing.getName();
+                Subject state = account.resolve(subject);
+                if (state == null || state.authenticationVersion() != AccountFormAuthenticationProvider.loginVersion(existing)) {
                     SecurityContextLogoutHandler logout = new SecurityContextLogoutHandler();
                     logout.logout(request, response, existing);
                 }

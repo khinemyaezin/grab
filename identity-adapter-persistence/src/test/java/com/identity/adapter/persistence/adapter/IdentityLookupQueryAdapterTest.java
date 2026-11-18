@@ -8,7 +8,6 @@ import com.identity.adapter.persistence.entity.AuthorityEntity;
 import com.identity.adapter.persistence.entity.RoleEntity;
 import com.identity.adapter.persistence.entity.UserEntity;
 import com.identity.adapter.persistence.repository.jpa.AccessAssignmentJpaRepository;
-import com.identity.adapter.persistence.repository.jpa.ExternalEntitlementMappingJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.ExternalIdentityJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.UserJpaRepository;
 import org.junit.jupiter.api.Test;
@@ -39,8 +38,6 @@ class IdentityLookupQueryAdapterTest {
     @Mock
     private ExternalIdentityJpaRepository externalIdentities;
     @Mock
-    private ExternalEntitlementMappingJpaRepository entitlementMappings;
-    @Mock
     private AccessAssignmentJpaRepository assignments;
 
     @Test
@@ -68,7 +65,7 @@ class IdentityLookupQueryAdapterTest {
         )).thenReturn(List.of(owner, manager, otherMerchant));
 
         var actor = new IdentityLookupQueryAdapter(
-                users, externalIdentities, entitlementMappings, assignments,
+                users, externalIdentities, assignments,
                 () -> new ScopeCatalogView(Collections.singletonMap("merchant.account", null),
                         Map.of("merchant.account", "merchant"), Set.of())
         ).resolveByPlatformUserId(
@@ -93,7 +90,7 @@ class IdentityLookupQueryAdapterTest {
         parents.put("merchant.account", null);
         parents.put("inventory.location", "merchant.account");
         var view = new ScopeCatalogView(parents, Map.of("merchant.account", "merchant", "inventory.location", "inventory"), Set.of("merchant.account"));
-        var adapter = new IdentityLookupQueryAdapter(users, externalIdentities, entitlementMappings, assignments, () -> view);
+        var adapter = new IdentityLookupQueryAdapter(users, externalIdentities, assignments, () -> view);
         var context = new AccessContext("assignment-1", "inventory.location", "location-1");
         assertThatThrownBy(() -> adapter.resolveByPlatformUserId("local", "user-1", context))
                 .isInstanceOf(com.identity.domain.exception.IdentityDomainValidationException.class);
@@ -106,7 +103,7 @@ class IdentityLookupQueryAdapterTest {
         user.setStatus(UserStatus.ACTIVE);
         when(users.findByUuid("user-1")).thenReturn(Optional.of(user));
         var view = new ScopeCatalogView(Map.of(), Map.of(), Set.of());
-        var adapter = new IdentityLookupQueryAdapter(users, externalIdentities, entitlementMappings, assignments, () -> view);
+        var adapter = new IdentityLookupQueryAdapter(users, externalIdentities, assignments, () -> view);
         var context = new AccessContext("assignment-1", "unknown.scope", "resource-1");
         assertThatThrownBy(() -> adapter.resolveByPlatformUserId("local", "user-1", context))
                 .isInstanceOf(com.identity.domain.exception.IdentityDomainValidationException.class);

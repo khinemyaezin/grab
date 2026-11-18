@@ -7,14 +7,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
-@ConfigurationProperties("grab.seller-issuer")
-public record SellerIssuerProperties(
+@ConfigurationProperties("grab.authorization-server")
+public record AuthorizationIssuerProperties(
         String issuer,
-        String clientId,
-        String clientSecretHash,
-        String redirectUri,
-        String postLogoutRedirectUri,
-        String audience,
         Duration accessTokenTtl,
         Duration refreshTokenTtl,
         String accountHost,
@@ -31,12 +26,11 @@ public record SellerIssuerProperties(
         @DefaultValue("3000") int accountReadTimeout,
         @DefaultValue("30") int rateLimitMaxAttempts,
         @DefaultValue("60") int rateLimitWindowSeconds,
-        @DefaultValue("openid") List<String> scopes,
         @DefaultValue("P1D") Duration tokenRetention,
         @DefaultValue("6021278") long clientInitAdvisoryLock
 ) {
     @Override
     public String toString() {
-        return "SellerIssuerProperties[redacted]";
+        return "AuthorizationIssuerProperties[redacted]";
     }
 }

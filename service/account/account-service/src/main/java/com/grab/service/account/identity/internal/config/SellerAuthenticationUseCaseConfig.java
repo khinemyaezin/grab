@@ -2,12 +2,14 @@ package com.grab.service.account.identity.internal.config;
 
 import com.grab.framework.id.IdGenerator;
 import com.grab.service.account.merchant.port.SellerScopeRevisionQuery;
+import com.identity.application.port.inbound.ResolveActiveSubjectUseCase;
 import com.identity.application.port.inbound.ResolveSellerAuthenticationUseCase;
 import com.identity.application.port.inbound.VerifySellerCredentialsUseCase;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.application.port.outbound.SellerScopeLifecyclePort;
 import com.identity.application.port.outbound.SellerIdentityStateReader;
 import com.identity.application.port.outbound.SellerScopeLifecyclePort.ScopeRevision;
+import com.identity.application.service.ResolveActiveSubjectService;
 import com.identity.application.service.ResolveSellerAuthenticationService;
 import com.identity.application.service.VerifySellerCredentialsService;
 import com.identity.domain.service.PasswordHasher;
@@ -22,6 +24,11 @@ public class SellerAuthenticationUseCaseConfig {
     VerifySellerCredentialsUseCase verifySellerCredentials(IdentityLookupQueryPort identities, PasswordHasher passwords,
                                                           IdGenerator ids) {
         return new VerifySellerCredentialsService(identities, passwords, ids);
+    }
+
+    @Bean
+    ResolveActiveSubjectUseCase resolveActiveSubject(IdentityLookupQueryPort identities) {
+        return new ResolveActiveSubjectService(identities);
     }
 
     @Bean

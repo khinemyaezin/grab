@@ -1,6 +1,10 @@
 spring:
   application:
     name: authorization-server
+  config:
+    import:
+      - optional:file:./docker/config/authorization-clients.yml
+      - optional:file:/app/config/authorization-clients.yml
   datasource:
     url: ${AUTHORIZATION_DB_URL}
     username: ${AUTHORIZATION_DB_USERNAME}
@@ -47,32 +51,29 @@ management:
       probes:
         enabled: true
       show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
+      group:
+        readiness:
+          include: readinessState,db,redis
 
 grab:
-  seller-issuer:
-    issuer: ${SELLER_OIDC_ISSUER}
-    client-id: ${SELLER_OIDC_CLIENT_ID:seller-bff}
-    client-secret-hash: ${SELLER_OIDC_CLIENT_SECRET_HASH}
-    redirect-uri: ${SELLER_OIDC_CALLBACK}
-    post-logout-redirect-uri: ${SELLER_OIDC_POST_LOGOUT_URI}
-    audience: ${SELLER_OIDC_AUDIENCE:grab-seller-api}
-    access-token-ttl: ${SELLER_OIDC_ACCESS_TOKEN_TTL:PT15M}
-    refresh-token-ttl: ${SELLER_OIDC_REFRESH_TOKEN_TTL:P7D}
-    cleanup-delay: ${SELLER_OIDC_CLEANUP_DELAY:PT1H}
-    account-host: ${SELLER_AUTH_ACCOUNT_HOST:localhost}
-    account-port: ${SELLER_AUTH_ACCOUNT_PORT:1199}
-    account-connect-timeout: ${SELLER_AUTH_CONNECT_TIMEOUT_MS:1500}
-    account-read-timeout: ${SELLER_AUTH_READ_TIMEOUT_MS:3000}
-    rate-limit-max-attempts: ${SELLER_AUTH_RATE_LIMIT_MAX:30}
-    rate-limit-window-seconds: ${SELLER_AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
-    scopes: ${SELLER_OIDC_SCOPES:openid}
-    token-retention: ${SELLER_OIDC_TOKEN_RETENTION:P1D}
-    client-init-advisory-lock: ${SELLER_OIDC_CLIENT_INIT_ADVISORY_LOCK:6021278}
-    key-store: ${SELLER_OIDC_SIGNING_KEYSTORE}
-    key-store-password: ${SELLER_OIDC_SIGNING_PASSWORD}
-    signing-alias: ${SELLER_OIDC_SIGNING_ALIAS:seller-current}
-    retiring-aliases: ${SELLER_OIDC_RETIRING_ALIASES:}
-    account-client-key-store: ${SELLER_AUTH_CLIENT_KEYSTORE:}
-    account-client-key-password: ${SELLER_AUTH_CLIENT_KEY_PASSWORD:}
-    account-trust-store: ${SELLER_AUTH_CLIENT_TRUSTSTORE:}
-    account-trust-password: ${SELLER_AUTH_CLIENT_TRUST_PASSWORD:}
+  authorization-server:
+    issuer: ${AUTHORIZATION_ISSUER}
+    access-token-ttl: ${AUTHORIZATION_ACCESS_TOKEN_TTL:PT15M}
+    refresh-token-ttl: ${AUTHORIZATION_REFRESH_TOKEN_TTL:P7D}
+    cleanup-delay: ${AUTHORIZATION_CLEANUP_DELAY:PT1H}
+    account-host: ${AUTHORIZATION_ACCOUNT_HOST:localhost}
+    account-port: ${AUTHORIZATION_ACCOUNT_PORT:1199}
+    account-connect-timeout: ${AUTHORIZATION_CONNECT_TIMEOUT_MS:1500}
+    account-read-timeout: ${AUTHORIZATION_READ_TIMEOUT_MS:3000}
+    rate-limit-max-attempts: ${AUTHORIZATION_RATE_LIMIT_MAX:30}
+    rate-limit-window-seconds: ${AUTHORIZATION_RATE_LIMIT_WINDOW_SECONDS:60}
+    token-retention: ${AUTHORIZATION_TOKEN_RETENTION:P1D}
+    client-init-advisory-lock: ${AUTHORIZATION_CLIENT_INIT_ADVISORY_LOCK:6021278}
+    key-store: ${AUTHORIZATION_SIGNING_KEYSTORE}
+    key-store-password: ${AUTHORIZATION_SIGNING_PASSWORD}
+    signing-alias: ${AUTHORIZATION_SIGNING_ALIAS:issuer-current}
+    retiring-aliases: ${AUTHORIZATION_RETIRING_ALIASES:}
+    account-client-key-store: ${AUTHORIZATION_CLIENT_KEYSTORE}
+    account-client-key-password: ${AUTHORIZATION_CLIENT_KEY_PASSWORD}
+    account-trust-store: ${AUTHORIZATION_CLIENT_TRUSTSTORE}
+    account-trust-password: ${AUTHORIZATION_CLIENT_TRUST_PASSWORD}

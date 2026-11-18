@@ -1,7 +1,7 @@
 package com.grab.service.authorizationserver.config;
 
-import com.grab.service.authorizationserver.core.token.SellerJwtCustomizer;
-import com.grab.service.authorizationserver.core.token.SellerSigningKeys;
+import com.grab.service.authorizationserver.core.token.AuthorizationJwtCustomizer;
+import com.grab.service.authorizationserver.core.token.AuthorizationSigningKeys;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -27,9 +27,10 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Refr
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenGenerator;
 
 @Configuration(proxyBeanMethods = false)
-public class SellerTokenGeneratorConfig {
+public class AuthorizationTokenGeneratorConfig {
     @Bean
-    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwks, SellerIssuerProperties properties) {
+    public JwtDecoder jwtDecoder(JWKSource<SecurityContext> jwks, AuthorizationIssuerProperties properties,
+                                 AuthorizationClientPolicies policies) {
         DefaultJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
         JOSEObjectType accessType = new JOSEObjectType("at+jwt");
         processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(accessType));
@@ -39,7 +40,7 @@ public class SellerTokenGeneratorConfig {
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                 JwtValidators.createDefaultWithIssuer(properties.issuer()), jwt -> {
                     boolean match = jwt.getExpiresAt() != null && jwt.getAudience() != null
-                            && jwt.getAudience().contains(properties.audience());
+                            && jwt.getAudience().size() == 1 && policies.audiences().contains(jwt.getAudience().getFirst());
                     if (match) {
                         return OAuth2TokenValidatorResult.success();
                     }
@@ -50,10 +51,11 @@ public class SellerTokenGeneratorConfig {
     }
 
     @Bean
-    public OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator(SellerSigningKeys keys, SellerIssuerProperties properties) {
+    public OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator(AuthorizationSigningKeys keys,
+                                                                       AuthorizationClientPolicies clients) {
         NimbusJwtEncoder encoder = new NimbusJwtEncoder(keys.source());
         JwtGenerator jwt = new JwtGenerator(encoder);
-        jwt.setJwtCustomizer(new SellerJwtCustomizer(keys, properties));
+        jwt.setJwtCustomizer(new AuthorizationJwtCustomizer(keys, clients));
         return new DelegatingOAuth2TokenGenerator(jwt, new OAuth2AccessTokenGenerator(), new OAuth2RefreshTokenGenerator());
     }
 }

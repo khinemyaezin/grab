@@ -185,7 +185,11 @@ class SellerOidcBrowserIntegrationTest {
         CookieManager cookies = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
         HttpClient browser = HttpClient.newBuilder().cookieHandler(cookies).build();
         assertThat(send(browser, "/api/v1", "GET", null).statusCode()).isEqualTo(200);
-        assertThat(send(browser, "/api/v1/identity", "GET", null).statusCode()).isEqualTo(200);
+        HttpResponse<String> identity = send(browser, "/api/v1/identity", "GET", null);
+        assertThat(identity.statusCode()).isEqualTo(200);
+        String publicLogin = "http://localhost:8080/oauth2/authorization/seller";
+        JsonNode discovery = json.readTree(identity.body());
+        assertThat(discovery.at("/_links/login/href").asText()).isEqualTo(publicLogin);
         HttpResponse<String> login = send(browser, "/oauth2/authorization/seller", "GET", null);
         assertThat(login.statusCode()).isEqualTo(302);
         String redirect = login.headers().firstValue("Location").orElseThrow();
@@ -215,8 +219,9 @@ class SellerOidcBrowserIntegrationTest {
                 "{\"email\":\"new@example.com\",\"password\":\"safe-password\"}",
                 token.path("token").asText());
         assertThat(registered.statusCode()).isEqualTo(201);
-        assertThat(registered.body()).contains("new@example.com", "/oauth2/authorization/seller")
-                .doesNotContain("safe-password");
+        assertThat(registered.body()).contains("new@example.com").doesNotContain("safe-password");
+        JsonNode registrationBody = json.readTree(registered.body());
+        assertThat(registrationBody.at("/_links/login/href").asText()).isEqualTo(publicLogin);
 
         HttpResponse<String> anonymousLogout = send(browser, "/api/v1/identity/auth/logout", "POST",
                 null, token.path("token").asText());

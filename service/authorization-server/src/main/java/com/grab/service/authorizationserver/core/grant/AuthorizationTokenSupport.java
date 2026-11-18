@@ -1,21 +1,20 @@
 package com.grab.service.authorizationserver.core.grant;
 
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.AccountUnavailableException;
+import com.grab.service.authorizationserver.config.AuthorizationClientPolicies;
 import com.grab.service.authorizationserver.port.outbound.GrantFamilyStorePort;
-import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.AuthenticationState;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2ClientAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 
-import java.util.Objects;
+import java.util.List;
+import java.util.Map;
 
-public final class SellerTokenSupport {
+public final class AuthorizationTokenSupport {
     public static final String VERSION = "authentication_version";
     public static final String ASSIGNMENT = "assignment_id";
     public static final String SCOPE_KEY = "scope_key";
@@ -23,12 +22,12 @@ public final class SellerTokenSupport {
     public static final String MERCHANT_REVISION = "merchant_revision";
     public static final String STOREFRONT_REVISION = "storefront_revision";
 
-    private SellerTokenSupport() {}
+    private AuthorizationTokenSupport() {}
 
-    public static OAuth2ClientAuthenticationToken validateClient(Object supplied, String expectedClientId) {
+    public static OAuth2ClientAuthenticationToken validateClient(Object supplied, AuthorizationClientPolicies clients) {
         if (!(supplied instanceof OAuth2ClientAuthenticationToken client) || !client.isAuthenticated()
                 || client.getRegisteredClient() == null
-                || !expectedClientId.equals(client.getRegisteredClient().getClientId())) {
+                || !clients.isActive(client.getRegisteredClient().getClientId())) {
             throw new OAuth2AuthenticationException(OAuth2ErrorCodes.INVALID_CLIENT);
         }
         return client;
@@ -39,50 +38,18 @@ public final class SellerTokenSupport {
         return authorization != null && registration.getId().equals(authorization.getRegisteredClientId());
     }
 
+    public static boolean hasAudience(OAuth2Authorization authorization, String audience) {
+        if (authorization.getAccessToken() == null) {
+            return false;
+        }
+        Map<String, Object> claims = authorization.getAccessToken().getClaims();
+        List<String> expected = List.of(audience);
+        return claims != null && expected.equals(claims.get(JwtClaimNames.AUD));
+    }
+
     public static long version(OAuth2Authorization authorization, String key) {
         Number version = authorization.getAttribute(key);
         return version == null ? -1 : version.longValue();
-    }
-
-    public static AuthenticationState resolve(AccountIdentityPort account, MeterRegistry metrics,
-                                              String subject, String assignment, boolean initial) {
-        try {
-            return account.resolve(subject, assignment, initial);
-        } catch (AccountUnavailableException exception) {
-            metrics.counter("seller.oidc.account.unavailable").increment();
-            throw new OAuth2AuthenticationException(OAuth2ErrorCodes.SERVER_ERROR);
-        }
-    }
-
-    public static AuthenticationState liveState(OAuth2Authorization authorization, AccountIdentityPort account,
-                                                MeterRegistry metrics) {
-        String assignment = authorization.getAttribute(ASSIGNMENT);
-        AuthenticationState state = resolve(account, metrics, authorization.getPrincipalName(), assignment, false);
-        if (state == null || state.authenticationVersion() != version(authorization, VERSION)
-                || state.merchantRevision() != version(authorization, MERCHANT_REVISION)
-                || state.storefrontRevision() != version(authorization, STOREFRONT_REVISION)
-                || !Objects.equals(authorization.getAttribute(SCOPE_KEY), state.scopeKey())
-                || !Objects.equals(authorization.getAttribute(SCOPE_ID), state.scopeId())) {
-            return null;
-        }
-        return state;
-    }
-
-    public static OAuth2Authorization withState(OAuth2Authorization authorization, AuthenticationState state) {
-        return OAuth2Authorization.from(authorization)
-                .attribute(VERSION, state.authenticationVersion())
-                .attribute(MERCHANT_REVISION, state.merchantRevision())
-                .attribute(STOREFRONT_REVISION, state.storefrontRevision())
-                .attributes(attributes -> {
-                    attributes.remove(ASSIGNMENT);
-                    attributes.remove(SCOPE_KEY);
-                    attributes.remove(SCOPE_ID);
-                    if (state.assignmentId() != null) {
-                        attributes.put(ASSIGNMENT, state.assignmentId());
-                        attributes.put(SCOPE_KEY, state.scopeKey());
-                        attributes.put(SCOPE_ID, state.scopeId());
-                    }
-                }).build();
     }
 
     public static OAuth2Authorization lockCurrent(OAuth2AuthorizationService authorizations,

@@ -1,6 +1,6 @@
 package com.grab.service.authorizationserver.adapter.outbound.jdbc;
 
-import com.grab.service.authorizationserver.config.SellerIssuerProperties;
+import com.grab.service.authorizationserver.config.AuthorizationIssuerProperties;
 import com.grab.service.authorizationserver.port.outbound.GrantFamilyStorePort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.JdbcTransactionManager;
@@ -22,9 +22,9 @@ import java.util.function.Supplier;
 public class JdbcGrantFamilyStoreAdapter implements GrantFamilyStorePort {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
-    private final SellerIssuerProperties properties;
+    private final AuthorizationIssuerProperties properties;
 
-    public JdbcGrantFamilyStoreAdapter(JdbcTemplate jdbc, DataSource dataSource, SellerIssuerProperties properties) {
+    public JdbcGrantFamilyStoreAdapter(JdbcTemplate jdbc, DataSource dataSource, AuthorizationIssuerProperties properties) {
         this.jdbc = jdbc;
         this.properties = properties;
         JdbcTransactionManager manager = new JdbcTransactionManager(dataSource);
@@ -47,7 +47,7 @@ public class JdbcGrantFamilyStoreAdapter implements GrantFamilyStorePort {
     public void consume(String familyId, OAuth2RefreshToken token) {
         String digest = digest(token.getTokenValue());
         Timestamp expires = Timestamp.from(token.getExpiresAt());
-        jdbc.update("INSERT INTO seller_consumed_refresh (digest, authorization_id, expires_at) VALUES (?, ?, ?)",
+        jdbc.update("INSERT INTO oauth2_consumed_refresh (digest, authorization_id, expires_at) VALUES (?, ?, ?)",
                 digest, familyId, expires);
     }
 
@@ -55,16 +55,16 @@ public class JdbcGrantFamilyStoreAdapter implements GrantFamilyStorePort {
     public String findConsumedFamily(String token) {
         String digest = digest(token);
         List<String> rows = jdbc.queryForList("""
-                SELECT authorization_id FROM seller_consumed_refresh
+                SELECT authorization_id FROM oauth2_consumed_refresh
                 WHERE digest = ? AND expires_at >= CURRENT_TIMESTAMP
                 """, String.class, digest);
         return rows.isEmpty() ? null : rows.getFirst();
     }
 
     @Override
-    @Scheduled(fixedDelayString = "${grab.seller-issuer.cleanup-delay:PT1H}")
+    @Scheduled(fixedDelayString = "${grab.authorization-server.cleanup-delay:PT1H}")
     public void cleanExpired() {
-        jdbc.update("DELETE FROM seller_consumed_refresh WHERE expires_at < CURRENT_TIMESTAMP");
+        jdbc.update("DELETE FROM oauth2_consumed_refresh WHERE expires_at < CURRENT_TIMESTAMP");
         long retentionSeconds = properties.tokenRetention().toSeconds();
         jdbc.update("""
                 DELETE FROM oauth2_authorization

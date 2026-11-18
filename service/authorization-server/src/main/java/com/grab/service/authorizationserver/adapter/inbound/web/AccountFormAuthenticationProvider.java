@@ -2,7 +2,7 @@ package com.grab.service.authorizationserver.adapter.inbound.web;
 
 import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
 import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.AccountUnavailableException;
-import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.VerifiedUser;
+import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.Subject;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -16,13 +16,14 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class SellerFormAuthenticationProvider implements AuthenticationProvider {
-    public static final String LOGIN_VERSION = "SELLER_LOGIN_VERSION_";
+public class AccountFormAuthenticationProvider implements AuthenticationProvider {
+    private static final String LOGIN_VERSION = "ACCOUNT_LOGIN_VERSION_";
+    private static final String LEGACY_LOGIN_VERSION = "SELLER_LOGIN_VERSION_";
 
     private final AccountIdentityPort account;
     private final MeterRegistry metrics;
 
-    public SellerFormAuthenticationProvider(AccountIdentityPort account, MeterRegistry metrics) {
+    public AccountFormAuthenticationProvider(AccountIdentityPort account, MeterRegistry metrics) {
         this.account = account;
         this.metrics = metrics;
     }
@@ -32,17 +33,17 @@ public class SellerFormAuthenticationProvider implements AuthenticationProvider 
         try {
             String email = authentication.getName();
             String password = (String) authentication.getCredentials();
-            VerifiedUser result = account.verify(email, password);
+            Subject result = account.verify(email, password);
             if (result == null) {
-                metrics.counter("seller.oidc.login.denied").increment();
+                metrics.counter("authorization.oidc.login.denied").increment();
                 throw new BadCredentialsException("Invalid email or password");
             }
             String version = LOGIN_VERSION + result.authenticationVersion();
             List<SimpleGrantedAuthority> attributes = List.of(new SimpleGrantedAuthority(version));
-            metrics.counter("seller.oidc.login.succeeded").increment();
+            metrics.counter("authorization.oidc.login.succeeded").increment();
             return UsernamePasswordAuthenticationToken.authenticated(result.userId(), null, attributes);
         } catch (AccountUnavailableException exception) {
-            metrics.counter("seller.oidc.account.unavailable").increment();
+            metrics.counter("authorization.oidc.account.unavailable").increment();
             throw new AuthenticationServiceException("Sign-in is temporarily unavailable", exception);
         }
     }
@@ -57,10 +58,22 @@ public class SellerFormAuthenticationProvider implements AuthenticationProvider 
             for (GrantedAuthority authority : principal.getAuthorities()) {
                 String value = authority.getAuthority();
                 if (value.startsWith(LOGIN_VERSION)) {
-                    return Long.parseLong(value.substring(LOGIN_VERSION.length()));
+                    return parseVersion(value, LOGIN_VERSION);
+                }
+                if (value.startsWith(LEGACY_LOGIN_VERSION)) {
+                    return parseVersion(value, LEGACY_LOGIN_VERSION);
                 }
             }
         }
         return -1;
+    }
+
+    private static long parseVersion(String value, String prefix) {
+        try {
+            String version = value.substring(prefix.length());
+            return Long.parseLong(version);
+        } catch (NumberFormatException exception) {
+            return -1;
+        }
     }
 }

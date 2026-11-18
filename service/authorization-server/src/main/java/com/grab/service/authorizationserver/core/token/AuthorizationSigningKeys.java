@@ -1,6 +1,6 @@
 package com.grab.service.authorizationserver.core.token;
 
-import com.grab.service.authorizationserver.config.SellerIssuerProperties;
+import com.grab.service.authorizationserver.config.AuthorizationIssuerProperties;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -21,8 +21,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
-public record SellerSigningKeys(String currentId, JWKSource<SecurityContext> source) {
-    public static SellerSigningKeys load(SellerIssuerProperties properties) throws GeneralSecurityException, IOException {
+public record AuthorizationSigningKeys(String currentId, JWKSource<SecurityContext> source) {
+    public static AuthorizationSigningKeys load(AuthorizationIssuerProperties properties) throws GeneralSecurityException, IOException {
         KeyStore store = KeyStore.getInstance("PKCS12");
         char[] password = properties.keyStorePassword().toCharArray();
         try (InputStream stream = Files.newInputStream(properties.keyStore())) {
@@ -43,7 +43,7 @@ public record SellerSigningKeys(String currentId, JWKSource<SecurityContext> sou
             }
         }
         JWKSet keys = new JWKSet(verification);
-        return new SellerSigningKeys(alias, (selector, context) -> selector.select(keys));
+        return new AuthorizationSigningKeys(alias, (selector, context) -> selector.select(keys));
     }
 
     private static RSAKey.Builder verificationKey(KeyStore store, String alias) throws GeneralSecurityException {

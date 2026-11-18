@@ -276,11 +276,10 @@ public class IdentityPersistenceConfig {
     public IdentityLookupQueryPort identityLookupQueryPort(
             UserJpaRepository users,
             ExternalIdentityJpaRepository externalIdentities,
-            ExternalEntitlementMappingJpaRepository entitlementMappings,
             AccessAssignmentJpaRepository accessAssignments,
             ScopeCatalogQueryPort scopes) {
         return new IdentityLookupQueryAdapter(
-                users, externalIdentities, entitlementMappings, accessAssignments, scopes
+                users, externalIdentities, accessAssignments, scopes
         );
     }
 

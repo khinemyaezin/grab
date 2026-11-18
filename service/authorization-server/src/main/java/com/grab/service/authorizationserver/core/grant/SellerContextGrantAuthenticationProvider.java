@@ -1,9 +1,8 @@
 package com.grab.service.authorizationserver.core.grant;
 
-import com.grab.service.authorizationserver.config.SellerIssuerProperties;
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
+import com.grab.service.authorizationserver.config.AuthorizationClientPolicies;
 import com.grab.service.authorizationserver.port.outbound.GrantFamilyStorePort;
-import com.grab.service.contract.message.account.identity.SellerAuthenticationPort.AuthenticationState;
+import com.grab.service.authorizationserver.core.grant.AuthorizationIdentity.Identity;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -30,21 +29,21 @@ import java.security.Principal;
 public class SellerContextGrantAuthenticationProvider implements AuthenticationProvider {
     private final OAuth2AuthorizationService authorizations;
     private final GrantFamilyStorePort store;
-    private final AccountIdentityPort account;
-    private final SellerIssuerProperties properties;
+    private final AuthorizationIdentity identities;
+    private final AuthorizationClientPolicies clientPolicies;
     private final OAuth2TokenGenerator<? extends OAuth2Token> generator;
     private final MeterRegistry metrics;
 
     public SellerContextGrantAuthenticationProvider(OAuth2AuthorizationService authorizations,
                                                     GrantFamilyStorePort store,
-                                                    AccountIdentityPort account,
-                                                    SellerIssuerProperties properties,
+                                                    AuthorizationIdentity identities,
+                                                    AuthorizationClientPolicies clientPolicies,
                                                     OAuth2TokenGenerator<? extends OAuth2Token> generator,
                                                     MeterRegistry metrics) {
         this.authorizations = authorizations;
         this.store = store;
-        this.account = account;
-        this.properties = properties;
+        this.identities = identities;
+        this.clientPolicies = clientPolicies;
         this.generator = generator;
         this.metrics = metrics;
     }
@@ -52,25 +51,30 @@ public class SellerContextGrantAuthenticationProvider implements AuthenticationP
     @Override
     public Authentication authenticate(Authentication authentication) {
         SellerContextGrant grant = (SellerContextGrant) authentication;
-        OAuth2ClientAuthenticationToken client = SellerTokenSupport.validateClient(grant.getPrincipal(), properties.clientId());
+        OAuth2ClientAuthenticationToken client = AuthorizationTokenSupport.validateClient(grant.getPrincipal(), clientPolicies);
+        String clientId = client.getRegisteredClient().getClientId();
+        if (!clientPolicies.hasAssignmentContext(clientId)) {
+            throw new OAuth2AuthenticationException(OAuth2ErrorCodes.UNAUTHORIZED_CLIENT);
+        }
+        String audience = clientPolicies.find(clientId).orElseThrow().audience();
         Authentication result = store.inTransaction(() -> {
-            OAuth2Authorization authorization = SellerTokenSupport.lockCurrent(
+            OAuth2Authorization authorization = AuthorizationTokenSupport.lockCurrent(
                     authorizations, store, grant.subjectToken(), OAuth2TokenType.ACCESS_TOKEN, client);
             if (authorization == null || !authorization.getAccessToken().isActive()
-                    || !authorization.getRefreshToken().isActive()
-                    || SellerTokenSupport.liveState(authorization, account, metrics) == null) {
+                    || authorization.getRefreshToken() == null || !authorization.getRefreshToken().isActive()
+                    || !AuthorizationTokenSupport.hasAudience(authorization, audience)
+                    || identities.live(authorization, clientId) == null) {
                 return null;
             }
-            String subject = authorization.getPrincipalName();
-            AuthenticationState target = SellerTokenSupport.resolve(account, metrics, subject, grant.assignmentId(), false);
-            long expectedVersion = SellerTokenSupport.version(authorization, SellerTokenSupport.VERSION);
-            if (target == null || target.authenticationVersion() != expectedVersion) {
-                metrics.counter("seller.oidc.context.denied").increment();
+            Identity target = identities.forAssignment(authorization, clientId, grant.assignmentId());
+            long expectedVersion = AuthorizationTokenSupport.version(authorization, AuthorizationTokenSupport.VERSION);
+            if (target == null || target.subject().authenticationVersion() != expectedVersion) {
+                metrics.counter("authorization.oidc.context.denied").increment();
                 throw new OAuth2AuthenticationException(OAuth2ErrorCodes.ACCESS_DENIED);
             }
 
             RegisteredClient registration = client.getRegisteredClient();
-            OAuth2Authorization contextual = SellerTokenSupport.withState(authorization, target);
+            OAuth2Authorization contextual = identities.withState(authorization, target);
             Authentication principal = contextual.getAttribute(Principal.class.getName());
             DefaultOAuth2TokenContext.Builder context = DefaultOAuth2TokenContext.builder()
                     .registeredClient(registration)
@@ -94,7 +98,7 @@ public class SellerContextGrantAuthenticationProvider implements AuthenticationP
                     .build();
             store.consume(authorization.getId(), authorization.getRefreshToken().getToken());
             authorizations.save(next);
-            metrics.counter("seller.oidc.context.switched").increment();
+            metrics.counter("authorization.oidc.context.switched").increment();
             return new OAuth2AccessTokenAuthenticationToken(registration, client, access, refresh);
         });
 
