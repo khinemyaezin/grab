@@ -16,16 +16,8 @@ public final class SellerOidcFailure extends ResponseStatusException {
         return new SellerOidcFailure(HttpStatus.FORBIDDEN, "The selected context is unavailable");
     }
 
-    static SellerOidcFailure forbidden() {
-        return new SellerOidcFailure(HttpStatus.FORBIDDEN, "You do not have access to this operation");
-    }
-
     static SellerOidcFailure busy() {
         return new SellerOidcFailure(HttpStatus.CONFLICT, "The session is being updated");
-    }
-
-    static SellerOidcFailure contextRequired() {
-        return new SellerOidcFailure(HttpStatus.CONFLICT, "Select an access context to continue");
     }
 
     public static SellerOidcFailure unavailable() {

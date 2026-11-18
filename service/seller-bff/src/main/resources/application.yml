@@ -1,4 +1,21 @@
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          seller:
+            client-id: ${grab.seller-oidc.client-id}
+            client-secret: ${grab.seller-oidc.client-secret}
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: ${grab.seller-oidc.callback}
+            scope: openid
+            client-name: Seller Central
+        provider:
+          seller:
+            authorization-uri: ${grab.seller-oidc.issuer}/oauth2/authorize
+            token-uri: ${grab.seller-oidc.backchannel}/oauth2/token
+            jwk-set-uri: ${grab.seller-oidc.backchannel}/oauth2/jwks
   data:
     redis:
       url: ${SELLER_OIDC_REDIS_URL:redis://localhost:6379}
@@ -31,6 +48,8 @@ management:
 security:
   api:
     cors: ${SECURITY_API_CORS:*}
+    cors-allowed-methods: ${SECURITY_API_CORS_ALLOWED_METHODS:GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS}
+    cors-allowed-headers: ${SECURITY_API_CORS_ALLOWED_HEADERS:Content-Type,Authorization,X-CSRF-TOKEN}
 grab:
   rpc:
     clients:
@@ -46,7 +65,7 @@ grab:
 
   seller-oidc:
     issuer: ${SELLER_OIDC_ISSUER:}
-    backchannel: ${SELLER_OIDC_BACKCHANNEL:}
+    backchannel: ${SELLER_OIDC_BACKCHANNEL:${grab.seller-oidc.issuer}}
     audience: ${SELLER_OIDC_AUDIENCE:grab-seller-api}
     client-id: ${SELLER_OIDC_CLIENT_ID:seller-bff}
     client-secret: ${SELLER_OIDC_CLIENT_SECRET:}
@@ -56,6 +75,15 @@ grab:
     account-host: ${SELLER_AUTH_ACCOUNT_HOST:localhost}
     registration-port: ${SELLER_AUTH_REGISTRATION_PORT:1200}
     secure-cookies: ${SELLER_OIDC_SECURE_COOKIES:true}
+    cookie-name: ${SELLER_OIDC_COOKIE_NAME:GRAB_SELLER_SESSION}
+    redis-namespace: ${SELLER_OIDC_REDIS_NAMESPACE:grab:seller}
+    session-timeout: ${SELLER_OIDC_SESSION_TIMEOUT:7d}
+    connect-timeout: ${SELLER_OIDC_CONNECT_TIMEOUT:2s}
+    read-timeout: ${SELLER_OIDC_READ_TIMEOUT:6s}
+    revocation-retry-delay: ${SELLER_OIDC_REVOCATION_RETRY_DELAY:30s}
+    revocation-token-ttl: ${SELLER_OIDC_REVOCATION_TOKEN_TTL:7d}
+    revocation-claim-lease: ${SELLER_OIDC_REVOCATION_CLAIM_LEASE:60s}
+    revocation-batch-size: ${SELLER_OIDC_REVOCATION_BATCH_SIZE:25}
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}

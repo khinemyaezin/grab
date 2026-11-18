@@ -5,7 +5,7 @@ import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -19,25 +19,23 @@ import org.springframework.web.client.RestClientResponseException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.net.http.HttpClient;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
 
 final class SellerIssuerClient {
     private final SellerOidcProperties properties;
+    private final URI tokenUri;
     private final RestClient http;
     private final JwtDecoder decoder;
     private final MeterRegistry metrics;
 
-    SellerIssuerClient(SellerOidcProperties properties, JwtDecoder decoder, MeterRegistry metrics) {
+    SellerIssuerClient(SellerOidcProperties properties, URI tokenUri, JwtDecoder decoder, MeterRegistry metrics,
+                       ClientHttpRequestFactory requests) {
         this.properties = properties;
+        this.tokenUri = tokenUri;
         this.decoder = decoder;
         this.metrics = metrics;
-        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
-        JdkClientHttpRequestFactory requests = new JdkClientHttpRequestFactory(client);
-        requests.setReadTimeout(Duration.ofSeconds(6));
         http = RestClient.builder().requestFactory(requests).build();
     }
 
@@ -68,8 +66,9 @@ final class SellerIssuerClient {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("token", tokens.access());
         form.add("token_type_hint", "access_token");
+        URI introspectionUri = issuerEndpoint("/oauth2/introspect");
         Introspection state = metrics.timer("seller.oidc.introspection")
-                .record(() -> request("/oauth2/introspect", form, Introspection.class));
+                .record(() -> request(introspectionUri, form, Introspection.class));
         if (state == null || !state.active() || !Objects.equals(jwt.getSubject(), state.sub())
                 || !Objects.equals(tokens.subject(), state.sub()) || state.email() == null
                 || state.roles() == null || state.authorities() == null
@@ -94,11 +93,12 @@ final class SellerIssuerClient {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("token", refreshToken);
         form.add("token_type_hint", "refresh_token");
-        request("/oauth2/revoke", form, Void.class);
+        URI revocationUri = issuerEndpoint("/oauth2/revoke");
+        request(revocationUri, form, Void.class);
     }
 
     private Tokens grant(MultiValueMap<String, String> form, Tokens previous) {
-        Grant response = request("/oauth2/token", form, Grant.class);
+        Grant response = request(tokenUri, form, Grant.class);
         if (response == null || response.access() == null || response.refresh() == null || response.expiresIn() <= 0) {
             throw SellerOidcFailure.unavailable();
         }
@@ -107,9 +107,13 @@ final class SellerIssuerClient {
         return new Tokens(response.access(), response.refresh(), expiry, previous.subject(), idToken);
     }
 
-    private <T> T request(String path, MultiValueMap<String, String> form, Class<T> type) {
+    private URI issuerEndpoint(String path) {
+        String url = properties.endpoint(path);
+        return URI.create(url);
+    }
+
+    private <T> T request(URI endpoint, MultiValueMap<String, String> form, Class<T> type) {
         try {
-            URI endpoint = URI.create(properties.endpoint(path));
             String clientId = URLEncoder.encode(properties.clientId(), StandardCharsets.UTF_8);
             String secret = URLEncoder.encode(properties.clientSecret(), StandardCharsets.UTF_8);
             return http.post().uri(endpoint).contentType(MediaType.APPLICATION_FORM_URLENCODED)

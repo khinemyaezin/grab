@@ -6,6 +6,7 @@ import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.Se
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -47,22 +48,30 @@ public final class SellerOidcBrowserSession {
 
     AuthenticatedActor authenticate(HttpSession session, OidcUser principal) {
         String sessionId = session.getId();
-        Tokens tokens = owned(slots.read(sessionId), principal.getSubject());
+        String subject = principal.getSubject();
+        Tokens stored = slots.read(sessionId);
+        Tokens tokens = owned(stored, subject);
         if (nearExpiry(tokens)) {
-            tokens = slots.locked(sessionId, slot -> refresh(slot, sessionId, principal.getSubject()));
+            tokens = slots.locked(sessionId, slot -> refresh(slot, sessionId, subject));
         }
+        slots.requireActive(sessionId);
+        AuthenticatedActor actor;
         try {
-            return issuer.actor(tokens);
+            actor = issuer.actor(tokens);
         } catch (SellerOidcFailure failure) {
             if (!HttpStatus.UNAUTHORIZED.equals(failure.getStatusCode())) {
                 throw failure;
             }
-            Tokens latest = owned(slots.read(sessionId), principal.getSubject());
+            slots.requireActive(sessionId);
+            Tokens latestStored = slots.read(sessionId);
+            Tokens latest = owned(latestStored, subject);
             if (latest.access().equals(tokens.access())) {
                 throw failure;
             }
-            return issuer.actor(latest);
+            actor = issuer.actor(latest);
         }
+        slots.requireActive(sessionId);
+        return actor;
     }
 
     public AuthenticatedActor select(HttpServletRequest request, String subject, String assignmentId) {
@@ -73,23 +82,29 @@ public final class SellerOidcBrowserSession {
         String sessionId = session.getId();
         return slots.locked(sessionId, slot -> {
             Tokens current = refresh(slot, sessionId, subject);
+            slots.requireActive(sessionId);
+            slot.renew();
             Tokens next;
             try {
                 next = issuer.select(current, assignmentId);
             } catch (SellerOidcFailure failure) {
                 if (!HttpStatus.FORBIDDEN.equals(failure.getStatusCode())) {
-                    abandon(slot, sessionId, current);
+                    abandon(slot, current);
                 }
                 throw failure;
             }
+            persistRotation(slot, next);
+            slots.requireActive(sessionId);
+            AuthenticatedActor actor;
             try {
-                AuthenticatedActor actor = issuer.actor(next);
-                slot.write(next);
-                return actor;
+                slot.renew();
+                actor = issuer.actor(next);
             } catch (SellerOidcFailure failure) {
-                abandon(slot, sessionId, next);
+                abandon(slot, next);
                 throw failure;
             }
+            slots.requireActive(sessionId);
+            return actor;
         });
     }
 
@@ -100,24 +115,9 @@ public final class SellerOidcBrowserSession {
         }
         String sessionId = session.getId();
         try {
-            return slots.locked(sessionId, slot -> {
-                Tokens tokens = slot.read();
-                if (tokens == null) {
-                    return properties.postLogout();
-                }
-                revokeOrQueue(sessionId, tokens.refresh());
-                slot.write(null);
-                return issuerLogout(tokens);
-            });
-        } catch (SellerOidcFailure failure) {
-            if (HttpStatus.CONFLICT.equals(failure.getStatusCode())) {
-                Tokens tokens = slots.read(sessionId);
-                if (tokens != null) {
-                    pending.enqueue(sessionId, tokens.refresh());
-                    return issuerLogout(tokens);
-                }
-            }
-            return properties.postLogout();
+            Tokens tokens = slots.read(sessionId);
+            pending.enqueueLogout(sessionId);
+            return tokens == null ? properties.postLogout() : issuerLogout(tokens);
         } finally {
             SecurityContextLogoutHandler logout = new SecurityContextLogoutHandler();
             Authentication principal = SecurityContextHolder.getContext().getAuthentication();
@@ -133,16 +133,30 @@ public final class SellerOidcBrowserSession {
     }
 
     private Tokens refresh(Slot slot, String sessionId, String subject) {
-        Tokens existing = owned(slot.read(), subject);
+        slots.requireActive(sessionId);
+        Tokens stored = slot.read();
+        Tokens existing = owned(stored, subject);
         if (!nearExpiry(existing)) {
             return existing;
         }
+        slot.renew();
+        Tokens refreshed;
         try {
-            Tokens refreshed = issuer.refresh(existing);
-            slot.write(refreshed);
-            return refreshed;
+            refreshed = issuer.refresh(existing);
         } catch (SellerOidcFailure failure) {
-            abandon(slot, sessionId, existing);
+            abandon(slot, existing);
+            throw failure;
+        }
+        persistRotation(slot, refreshed);
+        return refreshed;
+    }
+
+    private void persistRotation(Slot slot, Tokens tokens) {
+        try {
+            slot.write(tokens);
+        } catch (SellerOidcFailure | DataAccessException failure) {
+            String refreshToken = tokens.refresh();
+            pending.enqueueToken(refreshToken);
             throw failure;
         }
     }
@@ -159,19 +173,14 @@ public final class SellerOidcBrowserSession {
         return tokens;
     }
 
-    private void abandon(Slot slot, String sessionId, Tokens tokens) {
+    private void abandon(Slot slot, Tokens tokens) {
+        String refreshToken = tokens.refresh();
         try {
-            revokeOrQueue(sessionId, tokens.refresh());
-        } finally {
-            slot.write(null);
+            slot.renew();
+            issuer.revoke(refreshToken);
+        } catch (SellerOidcFailure failure) {
+            pending.enqueueToken(refreshToken);
         }
-    }
-
-    private void revokeOrQueue(String sessionId, String refresh) {
-        try {
-            issuer.revoke(refresh);
-        } catch (SellerOidcFailure unavailable) {
-            pending.enqueue(sessionId, refresh);
-        }
+        slot.write(null);
     }
 }

@@ -1,17 +1,16 @@
 package com.grab.service.sellerbff.internal.adapter.inbound.rest.security.config;
 
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.SellerModuleSecurityConfigurer;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.stereotype.Component;
 
-@Component
-public class SellerRootSecurityConfigurer implements SellerModuleSecurityConfigurer {
+import static org.springframework.http.HttpMethod.GET;
 
+@Component
+final class SellerRootSecurityConfigurer implements SellerModuleSecurityConfigurer {
     @Override
-    public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
-        auth.requestMatchers(HttpMethod.GET, "/api/v1").permitAll();
+    public void configure(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry access) {
+        access.requestMatchers(GET, "/api/v1")
+                .permitAll();
     }
 }
-

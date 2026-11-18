@@ -29,9 +29,12 @@ public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
         if (response.isCommitted()) {
             return;
         }
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied");
-        problem.setTitle("Forbidden");
-        problem.setProperty("code", "idt.service.auth.access_denied");
+        boolean contextRequired = ex instanceof SellerContextRequiredException;
+        HttpStatus status = contextRequired ? HttpStatus.CONFLICT : HttpStatus.FORBIDDEN;
+        String detail = contextRequired ? ex.getMessage() : "Access denied";
+        String code = contextRequired ? "idt.service.auth.access_context_required" : "idt.service.auth.access_denied";
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setProperty("code", code);
         problem.setProperty("args", Map.of());
         problem.setProperty("traceId", MDC.get("traceId"));
         problem.setProperty("path", request.getRequestURI());
@@ -39,7 +42,7 @@ public class ProblemDetailAccessDeniedHandler implements AccessDeniedHandler {
         problem.setProperty("module", "seller");
         problem.setProperty("retryable", false);
 
-        response.setStatus(403);
+        response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), problem);
     }
