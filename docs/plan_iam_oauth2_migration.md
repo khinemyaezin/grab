@@ -341,6 +341,19 @@ Flyway migration `V3__local_users_and_access_contexts.sql`:
 3. **Service Documentation**:
    - Updated `service/authorization-server/README.md` documenting self-contained IAM role, SCIM outbound provisioning, in-IAM context selection, and claim minting.
    - Updated `service/seller-bff/README.md` documenting standard OIDC client configuration, context-aware principal, and pure RMI downstream integration.
+4. **Live Docker Compose E2E Smoke Test [COMPLETED & VERIFIED]**:
+   - Executed live against Docker Compose stack (`grab-authorization-server-1`, `grab-account-service`, `grab-seller-bff`, `grab-merchandising-service`, `grab-channel-service`, `grab-postgres-dev`, `grab-authorization-redis-1`):
+     - Step 1: Initiated OAuth 2.0 Login (`GET http://localhost:8080/oauth2/authorization/seller`) -> 302 redirect with PKCE S256 and state.
+     - Step 2: Followed authorize URL to Authorization Server (`GET /oauth2/authorize?...`) -> 302 redirect to `/login`.
+     - Step 3: Extracted CSRF token from IAM login page (`GET /login`).
+     - Step 4: Submitted credentials to IAM (`POST /login`) -> 302 back to `/oauth2/authorize?...&continue`.
+     - Step 5: `ContextSelectionFilter` evaluated contexts: verified dynamic SCIM attribute sync from `account-service` over mTLS RMI; automatically issued authorization code.
+     - Step 6: Delivered authorization code to BFF (`GET /login/oauth2/code/seller?...`) -> BFF performed PKCE code exchange with Authorization Server, established Redis Spring Session, and redirected to UI (`http://localhost:3000/`).
+     - Step 7: Queried active BFF session (`GET /api/v1/identity/session`) -> HTTP 200 with synced `platform_user_id`, active status, and populated access contexts (`merchant.account` with `merchant-123`, `merchant.storefront` with `store-456`).
+     - Step 7b: Queried session contexts (`GET /api/v1/identity/session/contexts`) -> HTTP 200 with HATEOAS collection and self links.
+     - Step 8: Tested context switch URL generation (`POST /api/v1/identity/session/contexts/switch` with `X-CSRF-TOKEN`) -> HTTP 303 redirect to `/oauth2/authorization/seller?prompt=select_context`.
+     - Step 9: Tested logout (`POST /api/v1/identity/auth/logout` with `X-CSRF-TOKEN`) -> HTTP 303 redirect to post-logout destination.
+     - Step 10: Verified session destruction (`GET /api/v1/identity/session`) -> HTTP 401 Unauthorized.
 
 ---
 
