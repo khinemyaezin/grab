@@ -1,6 +1,7 @@
 package com.grab.service.sellerbff.internal.config;
 
 import com.grab.framework.logger.Loggers;
+import com.grab.framework.logger.internal.LoggerConfigLoader;
 import com.grab.framework.logger.spi.LoggerConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
@@ -11,15 +12,59 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import java.util.Map;
 
 public final class SellerLoggerEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+
+    private static final String LOGGER_BACKEND = "logger.backend";
+    private static final String LOGGER_STRICT = "logger.fail-on-missing-backend";
+
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        String backend = environment.getProperty("logger.backend", "slf4j");
-        boolean required = environment.getProperty("logger.fail-on-missing-backend", Boolean.class, false);
-        Loggers.setConfigLoader(() -> new LoggerConfig(backend, null, Map.of(), required));
+        SpringEnvironmentLoggerConfigLoader configLoader = new SpringEnvironmentLoggerConfigLoader(environment);
+        Loggers.setConfigLoader(configLoader);
     }
 
     @Override
     public int getOrder() {
         return ConfigDataEnvironmentPostProcessor.ORDER + 1;
+    }
+
+    private static class SpringEnvironmentLoggerConfigLoader implements LoggerConfigLoader {
+
+        private final ConfigurableEnvironment environment;
+
+        private SpringEnvironmentLoggerConfigLoader(ConfigurableEnvironment environment) {
+            this.environment = environment;
+        }
+
+        @Override
+        public LoggerConfig load() {
+            String rawBackend = environment.getProperty(LOGGER_BACKEND);
+            String backend = trimToNull(rawBackend);
+            String rawStrict = environment.getProperty(LOGGER_STRICT);
+            String strict = trimToNull(rawStrict);
+            boolean isStrict = parseBoolean(strict);
+            Map<String, String> properties = Map.of();
+
+            return new LoggerConfig(
+                    backend,
+                    null,
+                    properties,
+                    isStrict
+            );
+        }
+
+        private boolean parseBoolean(String raw) {
+            return Boolean.parseBoolean(raw);
+        }
+
+        private String trimToNull(String raw) {
+            if (raw == null) {
+                return null;
+            }
+            String trimmed = raw.trim();
+            if (trimmed.isEmpty()) {
+                return null;
+            }
+            return trimmed;
+        }
     }
 }

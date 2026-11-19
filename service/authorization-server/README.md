@@ -27,11 +27,11 @@ This service hosts the self-contained IAM Authority and OIDC / OAuth 2.0 Issuer 
 
 1. Copy `docker/env/{authorization-server,account-service,seller-bff}.env.example` to the corresponding `.env` files. Copy `docker/config/authorization-clients.yml.example` to `docker/config/authorization-clients.yml`.
 2. Set a client secret in the Seller BFF environment and its delegated BCrypt hash in `AUTHORIZATION_CLIENT_0_SECRET_HASH`. Match the BFF's client ID, audience, callback, and post-logout URL to the registry. Match the BFF's public issuer URL to `AUTHORIZATION_ISSUER`.
-3. Start the authorization profile with Docker Compose:
+3. Start the environment with Docker Compose:
 
 ```sh
-docker compose --env-file docker/env/dev.env -f docker-compose.yml -f docker-compose.authorization.yml --profile authorization config --quiet
-docker compose --env-file docker/env/dev.env -f docker-compose.yml -f docker-compose.authorization.yml --profile authorization up --build --wait seller-bff
+docker compose --env-file docker/env/dev.env config --quiet
+docker compose --env-file docker/env/dev.env up --build -d
 ```
 
 ## Client Registration & Registry

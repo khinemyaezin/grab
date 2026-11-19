@@ -100,9 +100,6 @@ class SellerOidcBrowserIntegrationTest {
     SellerAuthOutboundPort registrations;
 
     @MockitoBean
-    SellerOAuthClient oauth;
-
-    @MockitoBean
     SellerMerchantQueryService merchants;
 
     @MockitoBean
