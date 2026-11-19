@@ -73,6 +73,13 @@ grab:
     callback: ${SELLER_OIDC_CALLBACK:}
     ui: ${SELLER_OIDC_UI:}
     post-logout: ${SELLER_OIDC_POST_LOGOUT_URI:}
+    metadata-uri: ${GRAB_SELLER_OIDC_METADATA_URI:}
+    token-endpoint: ${GRAB_SELLER_OIDC_TOKEN_ENDPOINT:}
+    jwk-set-endpoint: ${GRAB_SELLER_OIDC_JWK_SET_ENDPOINT:}
+    user-info-endpoint: ${GRAB_SELLER_OIDC_USER_INFO_ENDPOINT:}
+    introspection-endpoint: ${GRAB_SELLER_OIDC_INTROSPECTION_ENDPOINT:}
+    revocation-endpoint: ${GRAB_SELLER_OIDC_REVOCATION_ENDPOINT:}
+    logout-endpoint: ${GRAB_SELLER_OIDC_LOGOUT_ENDPOINT:}
     account-host: ${SELLER_AUTH_ACCOUNT_HOST:account-service}
     registration-port: ${SELLER_AUTH_REGISTRATION_PORT:1200}
     account-key-store: ${SELLER_AUTH_CLIENT_KEYSTORE:/run/secrets/seller-auth/client.p12}

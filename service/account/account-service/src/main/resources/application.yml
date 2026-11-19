@@ -72,6 +72,7 @@ grab:
       issuer-truststore: ${SELLER_AUTH_RPC_ISSUER_TRUSTSTORE:}
       bff-truststore: ${SELLER_AUTH_RPC_BFF_TRUSTSTORE:}
       trust-password: ${SELLER_AUTH_RPC_TRUST_PASSWORD:}
+      deserialization-filter: ${SELLER_AUTH_RPC_DESERIALIZATION_FILTER:}
   rpc:
     enabled: ${GRAB_RPC_ENABLED:false}
     registry-port: ${GRAB_RPC_REGISTRY_PORT:1099}

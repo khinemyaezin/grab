@@ -27,12 +27,14 @@ public class SellerAuthenticationTransportConfig {
             @Value("${grab.seller-authentication.rpc.keystore}") Path keyStore,
             @Value("${grab.seller-authentication.rpc.key-password}") String keyPassword,
             @Value("${grab.seller-authentication.rpc.issuer-truststore}") Path trustStore,
-            @Value("${grab.seller-authentication.rpc.trust-password}") String trustPassword) {
+            @Value("${grab.seller-authentication.rpc.trust-password}") String trustPassword,
+            @Value("${grab.seller-authentication.rpc.deserialization-filter:}") String filterPattern) {
         SslMaterial material = new SslMaterial(keyStore, keyPassword, trustStore, trustPassword);
         return new MutualTlsRmiEndpoint(bind, host, port, material,
                 Map.of(SellerAuthenticationPort.class, assignments,
                         AccountAuthenticationPort.class, account,
-                        ScimUserPort.class, scimUserPort));
+                        ScimUserPort.class, scimUserPort),
+                filterPattern);
     }
 
     @Bean
@@ -44,9 +46,11 @@ public class SellerAuthenticationTransportConfig {
             @Value("${grab.seller-authentication.rpc.keystore}") Path keyStore,
             @Value("${grab.seller-authentication.rpc.key-password}") String keyPassword,
             @Value("${grab.seller-authentication.rpc.bff-truststore}") Path trustStore,
-            @Value("${grab.seller-authentication.rpc.trust-password}") String trustPassword) {
+            @Value("${grab.seller-authentication.rpc.trust-password}") String trustPassword,
+            @Value("${grab.seller-authentication.rpc.deserialization-filter:}") String filterPattern) {
         SslMaterial material = new SslMaterial(keyStore, keyPassword, trustStore, trustPassword);
         return new MutualTlsRmiEndpoint(bind, host, port, material,
-                Map.of(SellerRegistrationPort.class, provider, SellerAccessPort.class, sellerAccess));
+                Map.of(SellerRegistrationPort.class, provider, SellerAccessPort.class, sellerAccess),
+                filterPattern);
     }
 }
