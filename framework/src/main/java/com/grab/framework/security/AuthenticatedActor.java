@@ -1,5 +1,6 @@
 package com.grab.framework.security;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -13,7 +14,7 @@ public record AuthenticatedActor(
         Set<String> authorities,
         AccessContext accessContext,
         long authenticationVersion
-) {
+) implements Serializable {
     public AuthenticatedActor(
             String platformUserId,
             String issuer,
