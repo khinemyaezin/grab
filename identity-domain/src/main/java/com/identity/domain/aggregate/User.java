@@ -45,6 +45,14 @@ public class User extends AggregateRoot<Id> {
         return user;
     }
 
+    public static User createExternal(Id id, Email email) {
+        LocalDateTime now = LocalDateTime.now();
+        User user = new User(id, email, null, IdentityManagementMode.EXTERNAL,
+                UserStatus.ACTIVE, now, now);
+        user.addEvent(new UserRegisteredEvent(id, email.value(), UserStatus.ACTIVE, now));
+        return user;
+    }
+
     public void activate() {
         changeStatus(UserStatus.PENDING_APPROVAL, UserStatus.ACTIVE);
     }

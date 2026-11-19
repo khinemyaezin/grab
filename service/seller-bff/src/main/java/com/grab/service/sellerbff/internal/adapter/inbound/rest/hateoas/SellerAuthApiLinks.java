@@ -24,7 +24,7 @@ public final class SellerAuthApiLinks {
     }
 
     public Link register() {
-        return linkTo(methodOn(SellerOidcAuthController.class).register(null))
+        return linkTo(methodOn(SellerOidcAuthController.class).register())
                 .withRel("register");
     }
     public Link logout() {

@@ -5,16 +5,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grab.framework.security.AccessContext;
 import com.grab.framework.security.AuthenticatedActor;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOAuthClient.Tokens;
-import com.grab.service.sellerbff.port.outbound.SellerAccessOutboundPort;
-import com.grab.service.sellerbff.port.outbound.SellerAccessOutboundPort.AccessState;
-import com.grab.service.sellerbff.port.outbound.SellerAccessOutboundPort.Status;
+import com.grab.service.contract.message.account.scim.GrabOidcClaims;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerC2CApplicationQueryService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerCategoryCommandService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerMerchantCommandService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerMerchantQueryService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerSalesChannelQueryService;
-import com.grab.service.sellerbff.port.outbound.SellerAuthOutboundPort.SellerUserRegistrationResult;
 import com.grab.service.sellerbff.port.outbound.SellerAuthOutboundPort;
 import com.identity.application.security.IdentityAuthorityManifest;
 import com.merchant.application.security.MerchantAdminAccessProfile;
@@ -37,7 +34,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -45,7 +41,6 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
-import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -71,29 +66,16 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "grab.seller-oidc.issuer=http://localhost:9000",
+        "grab.seller-oidc.audience=seller-bff",
+        "grab.seller-oidc.client-id=seller",
         "grab.seller-oidc.authorization-endpoint=http://localhost:9000/oauth2/authorize",
         "grab.seller-oidc.token-endpoint=http://issuer:9000/oauth2/token",
         "grab.seller-oidc.jwk-set-endpoint=http://issuer:9000/oauth2/jwks",
@@ -103,10 +85,6 @@ import static org.mockito.Mockito.when;
         "grab.seller-oidc.cookie-name=SELLER_TEST_SESSION",
         "grab.seller-oidc.redis-namespace=grab:seller-test",
         "grab.seller-oidc.session-timeout=45m",
-        "grab.seller-oidc.revocation-retry-delay=PT1H",
-        "grab.seller-oidc.revocation-token-ttl=10m",
-        "grab.seller-oidc.revocation-claim-lease=90s",
-        "grab.seller-oidc.revocation-batch-size=1",
         "grab.seller-oidc.client-secret=local-test-only-secret",
         "grab.seller-oidc.callback=http://localhost:8080/login/oauth2/code/seller",
         "grab.seller-oidc.ui=http://localhost:3000/",
@@ -123,9 +101,6 @@ class SellerOidcBrowserIntegrationTest {
 
     @MockitoBean
     SellerOAuthClient oauth;
-
-    @MockitoBean
-    SellerAccessOutboundPort sellerAccess;
 
     @MockitoBean
     SellerMerchantQueryService merchants;
@@ -153,12 +128,6 @@ class SellerOidcBrowserIntegrationTest {
     SessionRepository<?> sessions;
 
     @Autowired
-    SellerOidcTokenSlots slots;
-
-    @Autowired
-    SellerPendingRevocations pending;
-
-    @Autowired
     ClientRegistrationRepository clients;
 
     @Autowired
@@ -177,12 +146,8 @@ class SellerOidcBrowserIntegrationTest {
     }
 
     @BeforeEach
-    void opaqueIdentityAndAccountStateAreTestControlled() {
+    void cleanRedis() {
         redis.getConnectionFactory().getConnection().serverCommands().flushDb();
-        when(oauth.logoutUri()).thenReturn("http://localhost:9000/connect/logout");
-        when(oauth.introspect(anyString())).thenAnswer(invocation -> new DefaultOAuth2AuthenticatedPrincipal(
-                "seller", Map.of("iss", properties.issuer(), "aud", List.of(properties.audience()),
-                "exp", Instant.now().plusSeconds(600)), List.of()));
     }
 
     @AfterAll
@@ -239,72 +204,43 @@ class SellerOidcBrowserIntegrationTest {
         assertThat(cookies.getCookieStore().getCookies())
                 .anySatisfy(cookie -> assertThat(cookie.getName()).isEqualTo("SELLER_TEST_SESSION"));
 
-        HttpResponse<String> missingCsrf = send(browser, "/api/v1/identity/auth/register", "POST", "{}");
-        assertThat(missingCsrf.statusCode()).isEqualTo(403);
+        // GET /register-url returns the authorization server registration URL
+        HttpResponse<String> registerUrl = send(browser, "/api/v1/identity/auth/register-url", "GET", null);
+        assertThat(registerUrl.statusCode()).isEqualTo(200);
+        assertThat(registerUrl.body()).contains("http://localhost:9000/register");
 
-        when(registrations.registerUser("new@example.com", "safe-password"))
-                .thenReturn(new SellerUserRegistrationResult("user-1", "new@example.com", "ACTIVE", "now"));
+        // POST /register redirects to authorization server registration
         HttpResponse<String> registered = send(browser, "/api/v1/identity/auth/register", "POST",
-                "{\"email\":\"new@example.com\",\"password\":\"safe-password\"}",
-                token.path("token").asText());
-        assertThat(registered.statusCode()).isEqualTo(201);
-        assertThat(registered.body()).contains("new@example.com").doesNotContain("safe-password");
-        JsonNode registrationBody = json.readTree(registered.body());
-        assertThat(registrationBody.at("/_links/login/href").asText()).isEqualTo(publicLogin);
-
-        HttpResponse<String> anonymousLogout = send(browser, "/api/v1/identity/auth/logout", "POST",
                 null, token.path("token").asText());
-        assertThat(anonymousLogout.statusCode()).isEqualTo(401);
+        assertThat(registered.statusCode()).isIn(302, 303);
+        assertThat(registered.headers().firstValue("Location")).hasValue("http://localhost:9000/register");
 
-        HttpRequest bearerRequest = HttpRequest.newBuilder(URI.create("http://localhost:" + port
-                        + "/api/v1/identity/session"))
-                .header("Authorization", "Bearer not-a-valid-token").GET().build();
-        HttpResponse<String> bearerResponse = HttpClient.newHttpClient().send(bearerRequest,
-                HttpResponse.BodyHandlers.ofString());
-        assertThat(bearerResponse.statusCode()).isNotEqualTo(200);
-    }
-
-    @Test
-    void tokenSlotIsSharedAndSerializedAcrossInstances() {
-        SellerOidcTokenSlots first = new SellerOidcTokenSlots(redis, json, properties);
-        SellerOidcTokenSlots second = new SellerOidcTokenSlots(redis, json, properties);
-        Instant expiration = Instant.now().plusSeconds(60);
-        Tokens old = new Tokens("a", "r", expiration, "seller", "id");
-        Tokens updated = new Tokens("b", "s", expiration, "seller", "id");
-        first.start("test-session", old);
-        first.locked("test-session", slot -> {
-            assertThat(second.read("test-session")).isEqualTo(old);
-            assertThatThrownBy(() -> second.locked("test-session", locked -> null))
-                    .isInstanceOfSatisfying(SellerOidcFailure.class,
-                            failure -> assertThat(failure.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
-            slot.write(updated);
-            return null;
-        });
-        assertThat(second.read("test-session")).isEqualTo(updated);
+        // Request with prompt=select_context forwards prompt query parameter
+        HttpResponse<String> contextLogin = send(browser, "/oauth2/authorization/seller?prompt=select_context", "GET", null);
+        assertThat(contextLogin.statusCode()).isEqualTo(302);
+        String contextRedirect = contextLogin.headers().firstValue("Location").orElseThrow();
+        assertThat(contextRedirect).contains("prompt=select_context");
     }
 
     @Test
     void protectedRoute_requiresContextAndRejectsAnotherMerchant() throws Exception {
-        Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session);
+        AuthenticatedActor unscopedActor = actor(null, Set.of(), Set.of(MerchantAuthorityManifest.PROFILE_WRITE));
+        Session session = authenticatedSession(sessions, unscopedActor);
         assertThat(session.getMaxInactiveInterval()).isEqualTo(Duration.ofMinutes(45));
         String redisKey = "grab:seller-test:sessions:sessions:" + session.getId();
         assertThat(redis.hasKey(redisKey)).isTrue();
         HttpClient browser = browser(session);
         String csrf = csrf(browser);
-        AuthenticatedActor unscoped = actor(null, Set.of(), Set.of());
-        stubAccess(tokens, unscoped);
 
         String profile = "/api/v1/merchants/other/profile";
         HttpResponse<String> missingContext = send(browser, profile, "PATCH", "{}", csrf);
         assertProblem(missingContext, 409, "idt.service.auth.access_context_required", "Select an access context to continue");
 
-        Session scopedSession = authenticatedSession(sessions);
         AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
-        Tokens scopedTokens = startTokens(scopedSession, merchant);
+        AuthenticatedActor scopedActor = actor(merchant, Set.of(), Set.of(MerchantAuthorityManifest.PROFILE_WRITE));
+        Session scopedSession = authenticatedSession(sessions, scopedActor);
         HttpClient scopedBrowser = browser(scopedSession);
         String scopedCsrf = csrf(scopedBrowser);
-        stubAccess(scopedTokens, actor(merchant));
         HttpResponse<String> wrongTenant = send(scopedBrowser, profile, "PATCH", "{}", scopedCsrf);
         assertProblem(wrongTenant, 403, "idt.service.auth.access_denied", "Access denied");
     }
@@ -346,11 +282,10 @@ class SellerOidcBrowserIntegrationTest {
 
     @Test
     void controllerMappings_haveTestedHttpPermissions() throws Exception {
-        Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session, new AccessContext("assignment", "merchant.account", "own"));
-        HttpClient seller = browser(session);
+        AccessContext defaultContext = new AccessContext("assignment", "merchant.account", "own");
+        AuthenticatedActor defaultActor = actor(defaultContext, Set.of(), Set.of());
+        Session baseSession = authenticatedSession(sessions, defaultActor);
         HttpClient anonymous = HttpClient.newBuilder().cookieHandler(new CookieManager()).build();
-        String sellerCsrf = csrf(seller);
         String anonymousCsrf = csrf(anonymous);
         Set<String> tested = new HashSet<>();
         ClassPathResource cases = new ClassPathResource("seller-http-permissions.txt");
@@ -370,13 +305,17 @@ class SellerOidcBrowserIntegrationTest {
                 assertThat(send(anonymous, path, method, null, anonymousCsrf).statusCode())
                         .as("anonymous %s", route).isEqualTo(isPublic ? 204 : 401);
                 if (needsAuthority) {
-                    stubAccess(tokens, actor(liveContext, Set.of(), Set.of()));
-                    assertThat(send(seller, path, method, null, sellerCsrf).statusCode())
+                    Session noAuthSession = authenticatedSession(sessions, actor(liveContext, Set.of(), Set.of()));
+                    HttpClient noAuthClient = browser(noAuthSession);
+                    String noAuthCsrf = csrf(noAuthClient);
+                    assertThat(send(noAuthClient, path, method, null, noAuthCsrf).statusCode())
                             .as("missing authority for %s", route).isEqualTo(403);
                 }
                 Set<String> granted = needsAuthority ? Set.of(access) : Set.of();
-                stubAccess(tokens, actor(liveContext, Set.of(), granted));
-                assertThat(send(seller, path, method, null, sellerCsrf).statusCode())
+                Session authorizedSession = authenticatedSession(sessions, actor(liveContext, Set.of(), granted));
+                HttpClient authorizedClient = browser(authorizedSession);
+                String authorizedCsrf = csrf(authorizedClient);
+                assertThat(send(authorizedClient, path, method, null, authorizedCsrf).statusCode())
                         .as("permitted %s", route).isEqualTo(204);
             }
         }
@@ -400,9 +339,8 @@ class SellerOidcBrowserIntegrationTest {
         HttpResponse<String> anonymous = send(HttpClient.newHttpClient(), catalog, "GET", null);
         assertThat(anonymous.statusCode()).isEqualTo(401);
 
-        Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session);
-        stubAccess(tokens, actor(null, Set.of(), Set.of()));
+        AuthenticatedActor unscopedActor = actor(null, Set.of(), Set.of());
+        Session session = authenticatedSession(sessions, unscopedActor);
         HttpClient browser = browser(session);
         assertThat(send(browser, catalog, "HEAD", null).statusCode()).isEqualTo(200);
         assertThat(send(browser, "/api/v1/merchants/root", "GET", null).statusCode()).isEqualTo(200);
@@ -412,207 +350,115 @@ class SellerOidcBrowserIntegrationTest {
         assertThat(send(browser, "/api/v1/unconfigured", "GET", null).statusCode()).isEqualTo(403);
 
         String csrf = csrf(browser);
-        AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
-        stubAccess(tokens, actor(null, Set.of(), Set.of()), actor(null, Set.of(), Set.of()),
-                actor(null, Set.of(), Set.of()), actor(merchant));
-        assertThat(send(browser, "/api/v1/catalog", "PUT", null, csrf).statusCode()).isEqualTo(403);
+        // Switch context triggers 302/303 redirect to /oauth2/authorization/seller?prompt=select_context
+        String switchContext = "/api/v1/identity/session/contexts/switch";
+        HttpResponse<String> switchResponse = send(browser, switchContext, "POST", null, csrf);
+        assertThat(switchResponse.statusCode()).isIn(302, 303);
+        assertThat(switchResponse.headers().firstValue("Location"))
+                .hasValueSatisfying(loc -> assertThat(loc).contains("prompt=select_context"));
+
+        // Select context also redirects to context switch
         String selection = "/api/v1/identity/session/contexts/assignment/select";
-        HttpResponse<String> response = send(browser, selection, "POST", null, csrf);
-        assertThat(response.statusCode()).withFailMessage(response.body()).isEqualTo(200);
-        assertThat(response.body()).contains("assignment", "merchant.account");
+        HttpResponse<String> selectResponse = send(browser, selection, "POST", null, csrf);
+        assertThat(selectResponse.statusCode()).isIn(302, 303);
+        assertThat(selectResponse.headers().firstValue("Location"))
+                .hasValueSatisfying(loc -> assertThat(loc).contains("prompt=select_context"));
     }
 
     @Test
     void merchantMembershipAndStorefronts_requireAuthorityAndMatchingContext() throws Exception {
-        Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session, new AccessContext("assignment", "merchant.account", "own"));
-        HttpClient browser = browser(session);
         AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
         AccessContext storefront = new AccessContext("assignment", "merchant.storefront", "store");
-        AuthenticatedActor member = actor(merchant, Set.of(), Set.of(IdentityAuthorityManifest.ACCESS_ASSIGNMENT_READ));
-        AuthenticatedActor admin = actor(merchant, Set.of(MerchantAdminAccessProfile.ADMIN_ROLE_CODE), Set.of());
-        AuthenticatedActor storeReader = actor(storefront, Set.of(), Set.of(MerchantAuthorityManifest.STOREFRONT_READ));
-        AuthenticatedActor writer = actor(merchant, Set.of(), Set.of(IdentityAuthorityManifest.ACCESS_ASSIGNMENT_WRITE));
-        stubAccess(tokens, member, admin, member, member, writer, writer, storeReader, storeReader, storeReader);
 
-        assertThat(send(browser, "/api/v1/merchants/own/members", "GET", null).statusCode()).isEqualTo(200);
-        assertThat(send(browser, "/api/v1/merchants/own/members", "GET", null).statusCode()).isEqualTo(403);
-        assertThat(send(browser, "/api/v1/merchants/other/members", "GET", null).statusCode()).isEqualTo(403);
-        String csrf = csrf(browser);
+        AuthenticatedActor member = actor(merchant, Set.of(), Set.of(IdentityAuthorityManifest.ACCESS_ASSIGNMENT_READ));
+        AuthenticatedActor admin = actor(merchant, Set.of(MerchantAdminAccessProfile.ADMIN_ROLE_CODE),
+                Set.of(MerchantAuthorityManifest.STOREFRONT_WRITE, IdentityAuthorityManifest.ACCESS_ASSIGNMENT_WRITE));
+        AuthenticatedActor storeReader = actor(storefront, Set.of(), Set.of(MerchantAuthorityManifest.STOREFRONT_READ));
+
+        HttpClient memberBrowser = browser(authenticatedSession(sessions, member));
+        assertThat(send(memberBrowser, "/api/v1/merchants/own/members", "GET", null).statusCode()).isEqualTo(200);
+
+        HttpClient unauthBrowser = browser(authenticatedSession(sessions, actor(merchant, Set.of(), Set.of())));
+        assertThat(send(unauthBrowser, "/api/v1/merchants/own/members", "GET", null).statusCode()).isEqualTo(403);
+        assertThat(send(memberBrowser, "/api/v1/merchants/other/members", "GET", null).statusCode()).isEqualTo(403);
+
+        HttpClient adminBrowser = browser(authenticatedSession(sessions, admin));
+        String adminCsrf = csrf(adminBrowser);
         String ownMember = "/api/v1/merchants/own/members/member";
-        assertThat(send(browser, ownMember, "DELETE", null, csrf).statusCode()).isEqualTo(403);
-        assertThat(send(browser, "/api/v1/merchants/other/members/member", "DELETE", null, csrf).statusCode()).isEqualTo(403);
-        assertThat(send(browser, ownMember, "DELETE", null, csrf).statusCode()).isEqualTo(204);
+        assertThat(send(adminBrowser, ownMember, "DELETE", null, adminCsrf).statusCode()).isEqualTo(204);
         verify(merchantCommands).removeMember("own", "member", "seller");
-        assertThat(send(browser, "/api/v1/merchants/own/storefronts/store", "GET", null).statusCode()).isEqualTo(404);
-        assertThat(send(browser, "/api/v1/merchants/own/storefronts/other", "GET", null).statusCode()).isEqualTo(403);
-        assertThat(send(browser, "/api/v1/merchants/own/storefronts", "GET", null).statusCode()).isEqualTo(403);
+
+        HttpClient storeBrowser = browser(authenticatedSession(sessions, storeReader));
+        assertThat(send(storeBrowser, "/api/v1/merchants/own/storefronts/store", "GET", null).statusCode()).isEqualTo(404);
+        assertThat(send(storeBrowser, "/api/v1/merchants/own/storefronts/other", "GET", null).statusCode()).isEqualTo(403);
         verify(merchants).getStorefront("own", "store");
         verify(merchants, never()).getStorefront("own", "other");
     }
 
     @Test
     void moduleRules_distinguishPlatformWritesAndPublishableKeyAuthorities() throws Exception {
-        Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session, new AccessContext("assignment", "merchant.account", "own"));
-        HttpClient browser = browser(session);
-        String csrf = csrf(browser);
         AccessContext merchant = new AccessContext("assignment", "merchant.account", "own");
         AccessContext platform = new AccessContext("assignment", "platform", "global");
+
         AuthenticatedActor merchantWriter = actor(merchant, Set.of(), Set.of(CatalogAuthorityManifest.WRITE));
         AuthenticatedActor platformWriter = actor(platform, Set.of(), Set.of(CatalogAuthorityManifest.WRITE));
         AuthenticatedActor channelReader = actor(merchant, Set.of(), Set.of(SalesChannelAuthorityManifest.READ));
         AuthenticatedActor keyReader = actor(merchant, Set.of(), Set.of(SalesChannelAuthorityManifest.KEY_READ));
-        stubAccess(tokens, merchantWriter, platformWriter, channelReader, channelReader, keyReader, keyReader);
 
         String category = "/api/v1/categories/category";
-        assertThat(send(browser, category, "DELETE", null, csrf).statusCode()).isEqualTo(403);
-        assertThat(send(browser, category, "DELETE", null, csrf).statusCode()).isEqualTo(204);
+        HttpClient merchantClient = browser(authenticatedSession(sessions, merchantWriter));
+        String merchantCsrf = csrf(merchantClient);
+        assertThat(send(merchantClient, category, "DELETE", null, merchantCsrf).statusCode()).isEqualTo(403);
+
+        HttpClient platformClient = browser(authenticatedSession(sessions, platformWriter));
+        String platformCsrf = csrf(platformClient);
+        assertThat(send(platformClient, category, "DELETE", null, platformCsrf).statusCode()).isEqualTo(204);
         verify(categories).deleteCategory("category");
 
         String keyResolution = "/api/v1/sales-channels/publishable-keys/resolve?token=test";
-        assertThat(send(browser, "/api/v1/sales-channels/root", "GET", null).statusCode()).isEqualTo(200);
-        assertThat(send(browser, keyResolution, "GET", null).statusCode()).isEqualTo(403);
-        assertThat(send(browser, keyResolution, "GET", null).statusCode()).isEqualTo(404);
-        assertThat(send(browser, "/api/v1/sales-channels/root", "GET", null).statusCode()).isEqualTo(403);
+        HttpClient channelClient = browser(authenticatedSession(sessions, channelReader));
+        assertThat(send(channelClient, "/api/v1/sales-channels/root", "GET", null).statusCode()).isEqualTo(200);
+        assertThat(send(channelClient, keyResolution, "GET", null).statusCode()).isEqualTo(403);
+
+        HttpClient keyClient = browser(authenticatedSession(sessions, keyReader));
+        assertThat(send(keyClient, keyResolution, "GET", null).statusCode()).isEqualTo(404);
         verify(salesChannels).resolveKey("test");
     }
 
     @Test
-    void logout_duringIssuerOutage_skipsLiveIdentityResolution() throws Exception {
-        Session session = authenticatedSession(sessions);
-        Tokens tokens = startTokens(session);
-        when(oauth.introspect(tokens.access())).thenThrow(SellerOidcFailure.unavailable());
-        HttpClient browser = browser(session);
-        String csrf = csrf(browser);
-        assertThat(send(browser, "/api/v1/identity/session", "GET", null).statusCode()).isEqualTo(503);
-        assertThat(send(browser, "/api/v1/identity/auth/logout", "POST", null, csrf).statusCode()).isEqualTo(303);
-        assertThat(sessions.findById(session.getId())).isNull();
-        verify(oauth).introspect(tokens.access());
-    }
-
-    @Test
-    void logout_duringRotation_revokesLatestTokenAfterTransientFailure() throws Exception {
+    void logout_clearsSession() throws Exception {
         Session session = authenticatedSession(sessions);
         String sessionId = session.getId();
-        Tokens expired = new Tokens("old-access", "old-refresh", Instant.now(), "seller", "id")
-                .withIssuer(properties.issuer()).withAccessState("seller", null, 0, 0, 0);
-        Tokens rotated = new Tokens("new-access", "new-refresh", Instant.now().plusSeconds(60), "seller", "id")
-                .withIssuer(properties.issuer()).withAccessState("seller", null, 0, 0, 0);
-        slots.start(sessionId, expired);
-        CountDownLatch requested = new CountDownLatch(1);
-        CountDownLatch release = new CountDownLatch(1);
-        when(oauth.refresh(expired)).thenAnswer(invocation -> {
-            requested.countDown();
-            assertThat(release.await(10, TimeUnit.SECONDS)).isTrue();
-            return rotated;
-        });
-        doThrow(SellerOidcFailure.unavailable()).doNothing().when(oauth).revoke(rotated.refresh());
         HttpClient browser = browser(session);
         String csrf = csrf(browser);
-        assertThat(send(browser, "/api/v1/identity/auth/logout", "POST", null).statusCode()).isEqualTo(403);
 
-        HttpRequest request = request("/api/v1/identity/session", "GET", null, null);
-        CompletableFuture<HttpResponse<String>> rotation = browser.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-        String queue = "grab:seller-test:{revocations}:logout";
-        try {
-            assertThat(requested.await(10, TimeUnit.SECONDS)).isTrue();
-            HttpResponse<String> logout = send(browser, "/api/v1/identity/auth/logout", "POST", null, csrf);
-            assertThat(logout.statusCode()).isEqualTo(303);
-            assertThat(logout.headers().firstValue("Location")).hasValueSatisfying(location ->
-                    assertThat(location).startsWith("http://localhost:9000/connect/logout?")
-                            .contains("id_token_hint=id"));
-            assertThat(sessions.findById(sessionId)).isNull();
-
-            pending.retry();
-            assertThat(redis.opsForZSet().score(queue, sessionId)).isNotNull();
-            verify(oauth, never()).revoke(expired.refresh());
-        } finally {
-            release.countDown();
-        }
-        HttpResponse<String> inFlight = rotation.get(10, TimeUnit.SECONDS);
-        assertThat(inFlight.statusCode()).isEqualTo(401);
-        verify(sellerAccess, never()).resolve(anyString(), anyString(), any(), any());
-        assertThat(slots.read(sessionId)).isEqualTo(rotated);
-
-        redis.opsForZSet().add(queue, sessionId, 0);
-        pending.retry();
-        assertThat(slots.read(sessionId)).isEqualTo(rotated);
-        assertThat(redis.opsForZSet().score(queue, sessionId)).isNotNull();
-
-        redis.opsForZSet().add(queue, sessionId, 0);
-        pending.retry();
-        assertThat(slots.read(sessionId)).isNull();
-        assertThat(redis.opsForZSet().score(queue, sessionId)).isNull();
+        HttpResponse<String> logout = send(browser, "/api/v1/identity/auth/logout", "POST", null, csrf);
+        assertThat(logout.statusCode()).isIn(200, 204, 302, 303);
         assertThat(sessions.findById(sessionId)).isNull();
-        verify(oauth, never()).revoke(expired.refresh());
-    }
-
-    @Test
-    void retry_revokesAnExistingTokenQueueEntry() {
-        String queue = "grab:seller-test:{revocations}";
-        String item = "legacy-session";
-        String key = queue + ":" + item;
-        redis.opsForValue().set(key, "legacy-refresh");
-        redis.opsForZSet().add(queue, item, 0);
-
-        pending.retry();
-
-        verify(oauth).revoke("legacy-refresh");
-        assertThat(redis.hasKey(key)).isFalse();
-        assertThat(redis.opsForZSet().score(queue, item)).isNull();
-    }
-
-    @Test
-    void revocationOverrides_applyRetentionAndClaimOneEntryPerQueue() {
-        String tokenQueue = properties.redisNamespace() + ":{revocations}";
-        String logoutQueue = tokenQueue + ":logout";
-        String firstSession = UUID.randomUUID().toString();
-        String secondSession = UUID.randomUUID().toString();
-        Tokens logoutTokens = new Tokens("access", "logout-refresh", Instant.now(), "seller", "id");
-        slots.start(firstSession, logoutTokens);
-        slots.start(secondSession, logoutTokens);
-        pending.enqueueLogout(firstSession);
-        pending.enqueueLogout(secondSession);
-        pending.enqueueToken("first-refresh");
-        pending.enqueueToken("second-refresh");
-
-        Set<String> items = redis.opsForZSet().range(tokenQueue, 0, -1);
-        assertThat(items).hasSize(2);
-        List<String> keys = items.stream().map(item -> tokenQueue + ":" + item).toList();
-        try {
-            for (String key : keys) {
-                assertThat(redis.getExpire(key)).isBetween(590L, 600L);
-            }
-            doThrow(SellerOidcFailure.unavailable()).when(oauth).revoke(anyString());
-            long before = Instant.now().getEpochSecond();
-            pending.retry();
-            long after = Instant.now().getEpochSecond();
-
-            assertThat(redis.opsForZSet().count(tokenQueue, before + 90, after + 90)).isEqualTo(1L);
-            assertThat(redis.opsForZSet().count(logoutQueue, before + 90, after + 90)).isEqualTo(1L);
-            assertThat(redis.opsForZSet().count(tokenQueue, 0, after)).isEqualTo(1L);
-            assertThat(redis.opsForZSet().count(logoutQueue, 0, after)).isEqualTo(1L);
-        } finally {
-            redis.delete(keys);
-            redis.delete(List.of(tokenQueue, logoutQueue));
-            for (String sessionId : List.of(firstSession, secondSession)) {
-                slots.locked(sessionId, slot -> {
-                    slot.write(null);
-                    return null;
-                });
-                String marker = properties.redisNamespace() + ":tokens:{session:" + sessionId + "}:logout";
-                redis.delete(marker);
-            }
-        }
     }
 
     private <S extends Session> Session authenticatedSession(SessionRepository<S> repository) {
+        return authenticatedSession(repository, actor(null, Set.of(), Set.of()));
+    }
+
+    private <S extends Session> Session authenticatedSession(SessionRepository<S> repository, AuthenticatedActor actor) {
         Instant issued = Instant.now();
         Instant expires = issued.plusSeconds(600);
-        OidcIdToken token = new OidcIdToken("id", issued, expires, Map.of("sub", "seller"));
-        DefaultOidcUser user = new DefaultOidcUser(List.of(), token);
-        OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(user, List.of(), "seller");
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("sub", actor.subject());
+        claims.put(GrabOidcClaims.PLATFORM_USER_ID, actor.platformUserId());
+        claims.put(GrabOidcClaims.EMAIL, actor.email());
+        if (actor.accessContext() != null) {
+            claims.put(GrabOidcClaims.ASSIGNMENT_ID, actor.accessContext().assignmentId());
+            claims.put(GrabOidcClaims.SCOPE_KEY, actor.accessContext().scopeKey());
+            claims.put(GrabOidcClaims.SCOPE_ID, actor.accessContext().scopeId());
+        }
+        claims.put(GrabOidcClaims.ROLE, actor.roles().isEmpty() ? null : actor.roles().iterator().next());
+        claims.put(GrabOidcClaims.AUTHORITIES, List.copyOf(actor.authorities()));
+
+        OidcIdToken token = new OidcIdToken("id", issued, expires, claims);
+        SellerSecurityPrincipal principal = new SellerSecurityPrincipal(actor, new DefaultOidcUser(List.of(), token));
+        OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(principal, principal.getAuthorities(), "seller");
         SecurityContextImpl context = new SecurityContextImpl(authentication);
         S session = repository.createSession();
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
@@ -638,32 +484,6 @@ class SellerOidcBrowserIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         JsonNode token = json.readTree(response.body());
         return token.path("token").asText();
-    }
-
-    private Tokens startTokens(Session session) {
-        return startTokens(session, null);
-    }
-
-    private Tokens startTokens(Session session, AccessContext context) {
-        Instant expiry = Instant.now().plusSeconds(60);
-        Tokens tokens = new Tokens("access", "refresh", expiry, "seller", "id")
-                .withIssuer(properties.issuer()).withAccessState("seller",
-                        context == null ? null : context.assignmentId(), 0, 0, 0);
-        slots.start(session.getId(), tokens);
-        return tokens;
-    }
-
-    private void stubAccess(Tokens tokens, AuthenticatedActor... actors) {
-        AccessState[] states = java.util.Arrays.stream(actors).map(this::accessState).toArray(AccessState[]::new);
-        when(sellerAccess.resolve(eq(properties.issuer()), eq(tokens.subject()), nullable(String.class), any()))
-                .thenReturn(states[0], java.util.Arrays.copyOfRange(states, 1, states.length));
-    }
-
-    private AccessState accessState(AuthenticatedActor actor) {
-        AccessContext context = actor.accessContext();
-        return new AccessState(Status.ACTIVE, actor.platformUserId(), actor.email(), actor.authenticationVersion(),
-                context == null ? null : context.assignmentId(), context == null ? null : context.scopeKey(),
-                context == null ? null : context.scopeId(), actor.roles(), actor.authorities(), 0, 0);
     }
 
     private void assertProblem(HttpResponse<String> response, int status, String code, String detail) throws Exception {

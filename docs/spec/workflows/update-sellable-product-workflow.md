@@ -1,139 +1,55 @@
-# Workflow: Update Sellable Product
+# Update Sellable Product Workflow
 
-> **Purpose:** Apply a composed product snapshot, synchronize prices and inventory, and reconcile the product's channel publications.
-> **Starts When:** A caller posts to `/api/v1/workflows/update-sellable-product`.
-> **Successful Result:** Requested product, listing, price, inventory, and publication operations complete.
-> **Participating Domains:** Catalog · Pricing · Inventory · Sales Channel
-> **Related Domain Specs:** [Catalog Product](../domain/catalog/architecture/product-domain-spec.md) · [Catalog Product Publication](../domain/catalog/architecture/product-publication-domain-spec.md) · [Pricing](../domain/pricing/architecture/pricing-domain-spec.md) · [Inventory](../domain/inventory/architecture/inventory-item-domain-spec.md) · [Sales Channel](../domain/sales-channel/architecture/sales-channel-domain-spec.md)
-> **Sales Channel Reference:** Channel ownership, lifecycle, and usability assertions are defined in the [Sales Channel domain spec](../domain/sales-channel/architecture/sales-channel-domain-spec.md); variant/channel publication records remain owned by Catalog.
+## Status
 
-## 1. Step-by-Step Execution Path
+The app registers definition/payload versions 1 and 2. Version 2 uses typed optional steps, narrow owner request/result records, and a local final projection. Version 1 retains its original graph and routes for pinned executions and queued events. Starts and workers remain disabled by default.
 
-Steps run in the order below. Conditional steps complete without requests when their input is absent or their publication condition is false.
+No participant compensation routes are implemented. A successful product, variant, price, inventory, publish, or unpublish mutation remains an effect requiring operator reconciliation if cancellation or a later failure requests rollback. Known invalid requests, scope mismatches, and participant idempotency conflicts emit non-retryable outcomes after owner rollback; other failures rely on outbox redelivery and may become unknown at the task deadline.
 
-| # | Step | Owner | Action and completion condition |
-|---:|---|---|---|
-| 1 | `update-product` | Catalog | Update product metadata and synchronize the requested variant matrix; wait for `SellableProductProductUpdatedEvent`. |
-| 2 | `replace-medias` | Catalog | Replace media when supplied; wait for `ProductMediaReplacedEvent`. |
-| 3 | `replace-descriptions` | Catalog | Replace descriptions when supplied; wait for `ProductDescriptionsReplacedEvent`. |
-| 4 | `apply-status` | Catalog | Apply a nonblank requested status; wait for `ProductStatusAppliedEvent`. |
-| 5 | `sync-variant-prices` | Pricing | Fan out one sync per pricing line; skip when no lines are supplied and otherwise wait for every `VariantPriceSyncedEvent`. |
-| 6 | `sync-inventory-item` | Inventory | Fan out one sync per inventory line; skip for an empty list and otherwise wait for every `InventoryItemSyncedEvent`. |
-| 7 | `assert-channel` | Sales Channel | If publication lines exist, assert each unique channel; wait for all assertions. |
-| 8 | `assert-product` | Catalog | If publication lines exist, assert the product; wait for `ProductAssertedEvent`. |
-| 9 | `assert-channel-stock-path` | Inventory | If publication lines exist, check each unique channel's inventory route; wait for a result from every channel. |
-| 10 | `write-publication` | Catalog | If publication lines exist, publish each requested variant/channel line; wait for all writes. |
-| 11 | `unpublish-publication` | Catalog | Unpublish each explicitly supplied unpublish line; wait for all acknowledgements. |
+## Contract
 
-Media, descriptions, and status are optional. Publication validation and writing are conditional on publication lines. Pricing and inventory synchronization support fan-out; lines are correlated by SKU or supplied IDs as validated by the request.
+| Property | Value |
+|---|---|
+| Name/version | `update-sellable-product` / 1 or 2 |
+| Payload version | 1 for definition 1, 2 for definition 2 |
+| Caller scope | Trusted caller scope ID must equal the input merchant ID before execution creation |
+| Input | Merchant and actor IDs, product fields, variant sync intent/types/variants, optional media/descriptions/status, price and inventory sync intent/lines, publication and unpublication targets |
+| Result | Product ID, resolved variant IDs/SKUs, affected price set IDs, inventory item IDs, published and unpublished targets |
+| Batch bound | 100 lines per collection |
+| ID encoding | `Id` values serialize as scalar JSON strings and restore through the workflow payload codec |
+| Replacement semantics | `null` media/descriptions means unchanged; an empty list means clear |
 
-```mermaid
-sequenceDiagram
-    participant Caller
-    participant Workflow as Workflow Coordinator
-    participant Catalog
-    participant Pricing
-    participant Inventory
-    participant Channel as Sales Channel
-    Caller->>Workflow: Start update request
-    Workflow->>Catalog: Update product; replace optional listing data; apply optional status
-    Catalog-->>Workflow: Product and listing acknowledgements
-    opt Pricing lines provided
-        Workflow->>Pricing: Sync prices per line
-        Pricing-->>Workflow: Price synced per line
-    end
-    opt Inventory lines provided
-        Workflow->>Inventory: Sync inventory per line
-        Inventory-->>Workflow: Inventory synced per line
-    end
-    opt Publication lines provided
-        Workflow->>Channel: Assert each unique channel
-        Channel-->>Workflow: ChannelAssertedEvent per channel
-        Workflow->>Inventory: Check inventory route per unique channel
-        Inventory-->>Workflow: StockPathCheckedEvent per channel
-        Workflow->>Catalog: Write publications
-        Catalog-->>Workflow: Publication acknowledgements
-    end
-    opt Unpublish lines provided
-        Workflow->>Catalog: Unpublish requested publications
-        Catalog-->>Workflow: Unpublication acknowledgements
-    end
-```
+## Steps
 
-## 2. Events & Signals
-
-| Step | Request event | Completion event |
-|---|---|---|
-| `update-product` | `RequestUpdateProductSetEvent` | `SellableProductProductUpdatedEvent` |
-| `replace-medias` | `RequestReplaceProductMediaEvent` | `ProductMediaReplacedEvent` |
-| `replace-descriptions` | `RequestReplaceProductDescriptionsEvent` | `ProductDescriptionsReplacedEvent` |
-| `apply-status` | `RequestApplyProductStatusEvent` | `ProductStatusAppliedEvent` |
-| `sync-variant-prices` | `RequestSyncVariantPriceEvent` | `VariantPriceSyncedEvent` |
-| `sync-inventory-item` | `RequestSyncInventoryItemEvent` | `InventoryItemSyncedEvent` |
-| `assert-channel` | `RequestAssertChannelEvent` | `ChannelAssertedEvent` |
-| `assert-product` | `RequestAssertProductEvent` | `ProductAssertedEvent` |
-| `assert-channel-stock-path` | `RequestCheckChannelStockPathEvent` | `StockPathCheckedEvent` (includes `missingRoute`) |
-| `write-publication` | `RequestWritePublicationEvent` | `ProductPublishedToChannelEvent` |
-| `unpublish-publication` | `RequestUnpublishProductFromChannelEvent` | `ProductUnpublishedFromChannelEvent` |
-
-Catalog, Pricing, and Inventory step listeners emit `SellableProductStepFailedEvent` when their workflow runners catch an operation exception. Sales Channel assertions and Catalog product/publication operations emit `PublishProductStepFailedEvent` on caught exceptions. These workflow signals are separate from domain and integration events. If an expected completion never arrives, the workflow sweeper times out the waiting step and starts failure recovery without a failure event.
-
-The inventory-route check completes with a `StockPathCheckedEvent` for each unique channel and records `missingRoute` in the workflow checkpoint. A missing route does not itself fail the workflow or suppress publication; the requested publication writes are still attempted.
-
-## 3. Compensation & Failure Recovery
-
-The engine gathers compensation requests from completed steps in reverse definition order and publishes them as a batch. Acknowledgements do not serialize dispatch of later compensation requests.
-
-| Reverse step | Completed action | Compensation request | Acknowledgement |
-|---|---|---|---|
-| `unpublish-publication` | Removed a publication | `RequestWritePublicationEvent` per completed unpublication | `ProductPublishedToChannelEvent` |
-| `write-publication` | Added a publication | `RequestUnpublishProductCompensationEvent` per completed publication | `ProductUnpublishedFromChannelEvent` |
-| `sync-variant-prices` | Created a new price set | `RequestDeletePriceSetCompensationEvent` for price sets created in this run | `PriceSetDeletedEvent` |
-
-In-place price edits, Catalog product/variant changes, inventory operations, and earlier listing updates are not restored. Inventory operations may include stock mutations and are intentionally not rolled back. Publication compensation restores/unpublishes only the completed publication actions tracked by this workflow; it does not restore the product snapshot.
-
-The engine may finish `COMPENSATED` after all requested compensations are acknowledged. Failure before a compensable action, or a compensation timeout, can finish `FAILED`; terminal UI status may also indicate partial application. A `FAILED` or `COMPENSATED` status alone does not mean the product snapshot was rolled back.
-
-The terminal `partiallyApplied` flag is calculated from the update context: an acknowledged product update, any recorded price pair or inventory item, or publication changes that remain uncompensated make it true. It is included only for terminal `FAILED` or `COMPENSATED` outcomes. Because the context depends on received signals, an operation committed without its completion signal may not be reflected; the flag does not promise that the product snapshot was restored.
-
-```mermaid
-sequenceDiagram
-    participant Workflow as Workflow Coordinator
-    participant Catalog
-    participant Pricing
-
-    Note over Workflow: On a typed failure or waiting-step timeout, collect compensations in reverse definition order
-    opt Completed unpublish actions
-        Workflow-->>Catalog: RequestWritePublicationEvent
-    end
-    opt Completed publication writes
-        Workflow-->>Catalog: RequestUnpublishProductCompensationEvent
-    end
-    opt New price sets created
-        Workflow-->>Pricing: RequestDeletePriceSetCompensationEvent
-    end
-    Note over Workflow: Publish the collected requests together; no acknowledgement gates another request
-    opt Catalog compensation requested
-        Catalog-->>Workflow: Publication compensation acknowledgements
-    end
-    opt Price-set compensation requested
-        Pricing-->>Workflow: PriceSetDeletedEvent
-    end
-    alt All requested compensations acknowledged
-        Workflow->>Workflow: Mark COMPENSATED
-    else No compensation requests or compensation timeout
-        Workflow->>Workflow: Mark FAILED
-    end
-```
-
-## 4. Aggregate Cross-Lifecycle Matrix
-
-| Stage | Catalog product | Prices | Inventory | Publications |
+| Order | Owner/operation | Trigger and behavior | Output | Recovery behavior |
 |---|---|---|---|---|
-| Start | Existing | Existing or absent | Existing or absent | Existing |
-| After `update-product` | Requested metadata and variant changes applied | Unchanged | Unchanged | Unchanged |
-| After sync steps | Updated | Existing prices changed or new sets created | Requested lines created/changed | Unchanged |
-| Completed | Updated | Synchronized when lines supplied | Synchronized when lines supplied | Requested publishes and unpublishes applied |
-| Failure/compensation | Catalog changes retained | In-place edits retained; new sets may be deleted | Changes retained | Completed publish/unpublish actions are compensated when possible |
+| 1 | Catalog: `catalog.update-product-set` | Always. Applies product and variant data with the declared `LEAVE_AS_IS`, `FULL_SYNC`, or `COLLAPSE_TO_STANDALONE` intent. | Resolved variants | No guarded restore is available. |
+| 2 | Catalog: `catalog.replace-media` | Runs when media is present, including empty replacement. | Updated stage | No restore compensation is available. |
+| 3 | Catalog: `catalog.replace-descriptions` | Runs when descriptions are present, including empty replacement. | Updated stage | No restore compensation is available. |
+| 4 | Catalog: `catalog.apply-status` | Runs when a status was supplied. | Updated stage | No restore compensation is available. |
+| 5 | Pricing: `pricing.sync-product-prices` | Runs when pricing sync is requested and price lines are present. Resolves lines to updated variants before commands. | Affected price set IDs | No guarded price restoration is available. |
+| 6 | Inventory: `inventory.sync-product-items` | Runs when inventory sync is requested and operations are present. Supports `CREATE`, `ADJUST`, `DAMAGE`, `WRITE_OFF`, and `REORDER`; validates the batch before writes and requires the canonical `merchant.account` scope. | Affected inventory item IDs | No inventory compensation is available. |
+| 7 | Sales channel: `sales.assert-publication-targets` | Runs when publish or unpublish targets exist. Checks channel ownership; enabled state is required for publishing. | Validated stage | Read-only. Known assertion failures are non-retryable. |
+| 8 | Catalog: `catalog.assert-product-eligibility` | Same publication-change condition. Product must exist; active status is required when publishing. | Validated stage | Read-only. |
+| 9 | Inventory: `inventory.assert-stock-paths` | Same condition; checks stock paths for publish targets. | Validated stage | Read-only. Missing routes are non-retryable failures. |
+| 10 | Catalog: `catalog.publish-targets` | Runs first when publish targets are present, after all three assertions. Resolves the whole target batch before writes. | Targets written by this execution | No unpublish compensation is available. |
+| 11 | Catalog: `catalog.unpublish-targets` | Runs after publication when unpublish targets are present. Resolves the whole target batch before writes. | Targets removed by this execution | No guarded restoration is available. |
+| 12 | Workflow: local result map (version 2) or `workflow.result.update-sellable-product` | Always after selected branches. | Typed workflow result | Pure projection in version 2. |
 
-Implementation references: `store/src/main/java/com/grab/store/workflows/internal/workflows/updatesellableproduct/UpdateSellableProductDefinition.java`, `UpdateSellableProductContext.java`, and `store/src/main/java/com/grab/store/catalog/internal/event/PublishProductToChannelCatalogEventListener.java`.
+Choice decisions are stored by the engine and skipped branches pass the stage through. Catalog, pricing, and inventory execute in their own schema transactions. Each owner stores a successful logical-operation receipt and emits its outcome through its local outbox in that transaction. Known validation, scope, and idempotency failures are classified as non-retryable after the failed owner transaction rolls back; other errors are retried by outbox delivery and the workflow deadline can surface unknown outcomes.
+
+In version 2 the persisted workflow stage remains private to orchestration. The bound task sends its typed owner request and receives a smaller typed result. The orchestration merges that result into its stage and projects the final result locally. See the [typed authoring contracts](../system/workflow-framework-tech-spec.md#5-authoring-typed-definitions).
+
+## Current verification and remaining work
+
+| Scenario | Status |
+|---|---|
+| Route registration, selector behavior, payload ID encoding | Passed focused application tests |
+| Omitted versus empty replacements | Passed focused application test |
+| PostgreSQL receipt migrations and uniqueness | Passed against PostgreSQL 16 Testcontainers |
+| Product/variant, price, and inventory updates through real app participants/outboxes | Passed in `SellableProductWorkflowEndToEndTest` against PostgreSQL 16 Testcontainers |
+| Publication assertions and publish/unpublish mutations | Passed in the parameterized PostgreSQL outbox scenario for both versions |
+| Duplicate participant delivery after commit, restart recovery during this workflow, and compensation | Not covered |
+| Authenticated seller-scope resolution and participant compensation | Not implemented; transient failure classification remains incomplete |
+
+See [sellable product workflow feature](../features/feat_015-sellable-product-workflows-on-app-runtime.md) and [workflow runtime spec](../system/workflow-headless-runtime-and-protocol-tech-spec.md).

@@ -60,6 +60,14 @@ public class AuthorizationCodeRedeemProvider implements AuthenticationProvider {
                 return null;
             }
             OAuth2Authorization contextual = identities.withState(authorization, state);
+            com.grab.service.authorizationserver.core.user.SelectedContext selected =
+                    com.grab.service.authorizationserver.core.user.SelectedContext.from(authorization);
+            if (selected == null && principal != null && principal.getDetails() instanceof com.grab.service.authorizationserver.core.user.SelectedContext ctx) {
+                selected = ctx;
+            }
+            if (selected != null) {
+                contextual = selected.storeIn(contextual);
+            }
             authorizations.save(contextual);
             return delegate.authenticate(grant);
         });

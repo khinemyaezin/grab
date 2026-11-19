@@ -59,7 +59,7 @@ Section 6 has a phased plan that fixes these, and Section 5 compares alternative
   3. Async integration events via per-schema transactional outbox → in-process `@EventListener` (89 listener sites).
 * **Persistence:** 17 datasources (`account`, `channel`, `checkout`, `merchandising`, `catalog`, `inventory`, `identity`, `merchant`, `saleschannel`, `pricing`, `storefrontquery`, `region`, `customer`, `cart`, `order`, `payment`, `workflows`). Each module has its own Flyway history table and location.
 * **Outbox:** a row is written in the business transaction. After commit, a *hot queue* (in-memory `ArrayBlockingQueue`, 2 workers) dispatches it immediately. A *cold* poller (`fixed-delay 5s`, batch 20, claim timeout 120s, retention 7d) recovers anything the hot path dropped. Serialization is JSON (`JsonOutboxEventSerializer`). A Java-serialization variant also exists in `framework`.
-* **Workflow:** a custom event-driven engine (`EventDrivenWorkflowEngine`) with a JPA store and a 30s sweeper.
+* **Workflow:** a canonical typed runtime with durable PostgreSQL state, explicit timers, and outbox dispatch; product-specific workflow APIs are removed from the boot application.
 * **Security:** in-house JWT (RS256 via jjwt). Refresh-token sessions are stored in Postgres with pessimistic locks. A security/role manifest is published between modules.
 
 ### 2.2 Strengths (keep these)
@@ -270,7 +270,7 @@ The discovery module is already a projection (`storefrontquery` schema). Feeding
 
 | Option | Notes |
 |---|---|
-| Current `EventDrivenWorkflowEngine` | Fine for provisioning-type flows. |
+| Canonical workflow runtime | Use the typed transition engine for new orchestration; keep production starts gated until participant receipts and recovery tests are complete. |
 | **Temporal** | Durable execution, timers, retries, versioning, visibility UI. Strong choice for checkout → payment → fulfillment sagas. |
 | **Camunda 8 / Zeebe** | BPMN-modelled, good when business users own the processes. |
 | **Netflix Conductor (Orkes)** | JSON-defined workflows, microservice orchestration. |

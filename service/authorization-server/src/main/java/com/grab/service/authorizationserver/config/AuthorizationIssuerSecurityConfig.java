@@ -1,18 +1,21 @@
 package com.grab.service.authorizationserver.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.grab.service.authorizationserver.adapter.inbound.web.LiveIssuerSessionFilter;
-import com.grab.service.authorizationserver.adapter.inbound.web.LoginRateLimitFilter;
 import com.grab.service.authorizationserver.adapter.inbound.web.AccountFormAuthenticationProvider;
 import com.grab.service.authorizationserver.adapter.inbound.web.AuthorizationProtocolFailureHandler;
+import com.grab.service.authorizationserver.adapter.inbound.web.ContextSelectionFilter;
+import com.grab.service.authorizationserver.adapter.inbound.web.LiveIssuerSessionFilter;
+import com.grab.service.authorizationserver.adapter.inbound.web.LoginRateLimitFilter;
 import com.grab.service.authorizationserver.core.grant.AuthorizationCodeRedeemProvider;
 import com.grab.service.authorizationserver.core.grant.AuthorizationIdentity;
-import com.grab.service.authorizationserver.core.logout.ActiveClientLogoutProvider;
 import com.grab.service.authorizationserver.core.grant.AuthorizationRefreshTokenProvider;
 import com.grab.service.authorizationserver.core.introspection.AuthorizationTokenIntrospectionProvider;
+import com.grab.service.authorizationserver.core.logout.ActiveClientLogoutProvider;
 import com.grab.service.authorizationserver.core.revocation.AuthorizationTokenRevocationProvider;
+import com.grab.service.authorizationserver.core.user.ContextAwareOAuth2AuthorizationService;
+import com.grab.service.authorizationserver.core.user.ContextSelectionService;
+import com.grab.service.authorizationserver.core.user.IamUserRepository;
 import com.grab.service.authorizationserver.core.userinfo.AuthorizationUserInfoService;
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
 import com.grab.service.authorizationserver.port.outbound.GrantFamilyStorePort;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +30,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.jackson2.SecurityJackson2Modules;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
@@ -70,7 +75,8 @@ public class AuthorizationIssuerSecurityConfig {
                                               AuthorizationTokenIntrospectionProvider introspectionProvider,
                                               AuthorizationTokenRevocationProvider revocationProvider,
                                               AuthorizationUserInfoService userInfoService,
-                                              AccountIdentityPort account,
+                                              IamUserRepository users,
+                                              ContextSelectionService contextService,
                                               GrantFamilyStorePort store,
                                               OAuth2AuthorizationService authorizations,
                                               AuthorizationIdentity identities,
@@ -140,7 +146,8 @@ public class AuthorizationIssuerSecurityConfig {
                 .authorizeHttpRequests(requests -> requests.anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions.defaultAuthenticationEntryPointFor(
                         new LoginUrlAuthenticationEntryPoint("/login"), new MediaTypeRequestMatcher(MediaType.TEXT_HTML)))
-                .addFilterAfter(new LiveIssuerSessionFilter(account), SecurityContextHolderFilter.class);
+                .addFilterAfter(new LiveIssuerSessionFilter(users), SecurityContextHolderFilter.class)
+                .addFilterAfter(new ContextSelectionFilter(contextService, users), LiveIssuerSessionFilter.class);
 
         return http.build();
     }
@@ -155,6 +162,7 @@ public class AuthorizationIssuerSecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(
                                 "/login",
+                                "/register",
                                 "/error",
                                 "/css/**",
                                 "/images/**",
@@ -179,6 +187,11 @@ public class AuthorizationIssuerSecurityConfig {
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
     @Bean
@@ -229,7 +242,7 @@ public class AuthorizationIssuerSecurityConfig {
         parameters.setObjectMapper(json);
         authorizations.setAuthorizationParametersMapper(parameters);
 
-        return authorizations;
+        return new ContextAwareOAuth2AuthorizationService(authorizations);
     }
 
     private interface AuthorizationLongMixin {}

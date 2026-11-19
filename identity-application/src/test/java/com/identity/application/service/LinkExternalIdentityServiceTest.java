@@ -120,6 +120,11 @@ class LinkExternalIdentityServiceTest {
         }
 
         @Override
+        public Optional<ExternalIdentity> findByUserId(Id userId) {
+            return values.values().stream().filter(identity -> userId.equals(identity.userId())).findFirst();
+        }
+
+        @Override
         public ExternalIdentity save(ExternalIdentity identity) {
             saved = identity;
             values.put(identity.issuer() + "|" + identity.subject(), identity);

@@ -10,4 +10,6 @@ public interface ExternalIdentityJpaRepository extends JpaRepository<ExternalIde
 
     Optional<ExternalIdentityEntity> findByDirectoryIdAndResourceId(String directoryId, String resourceId);
 
+    Optional<ExternalIdentityEntity> findByUserUuid(String userUuid);
+
 }

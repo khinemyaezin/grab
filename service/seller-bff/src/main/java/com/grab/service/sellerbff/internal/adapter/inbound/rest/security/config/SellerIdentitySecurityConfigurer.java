@@ -17,17 +17,21 @@ final class SellerIdentitySecurityConfigurer implements SellerModuleSecurityConf
                 .permitAll();
         access.requestMatchers(GET, "/api/v1/identity/auth/csrf")
                 .permitAll();
+        access.requestMatchers(GET, "/api/v1/identity/auth/register-url")
+                .permitAll();
         access.requestMatchers(POST, "/api/v1/identity/auth/register")
                 .permitAll();
         access.requestMatchers(POST, "/api/v1/identity/auth/logout")
                 .authenticated();
         access.requestMatchers(GET, "/api/v1/identity/session",
-                        "/api/v1/identity/session/contexts")
+                        "/api/v1/identity/session/contexts",
+                        "/api/v1/identity/session/contexts/switch")
                 .authenticated();
         access.requestMatchers(HEAD, "/api/v1/identity/session",
                         "/api/v1/identity/session/contexts")
                 .authenticated();
-        access.requestMatchers(POST, "/api/v1/identity/session/contexts/{assignmentId}/select")
+        access.requestMatchers(POST, "/api/v1/identity/session/contexts/{assignmentId}/select",
+                        "/api/v1/identity/session/contexts/switch")
                 .authenticated();
         access.requestMatchers(GET, "/api/v1/identity/admin/merchants")
                 .hasAuthority(MerchantAuthorityManifest.GLOBAL_READ);

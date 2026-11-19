@@ -50,7 +50,7 @@ class SellerOidcSecurityConfig {
                                            List<SellerModuleSecurityConfigurer> modules,
                                            DefaultOAuth2AuthorizationRequestResolver requests,
                                            OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> codeClient,
-                                           SellerOidcBrowserSession sessions, ObjectMapper json,
+                                           SellerOidcUserService oidcUserService,
                                            AuthenticationEntryPoint entryPoint,
                                            AccessDeniedHandler deniedHandler,
                                            CorsProperties corsProperties,
@@ -82,23 +82,13 @@ class SellerOidcSecurityConfig {
                 .oauth2Login(login -> login.authorizedClientRepository(clients)
                         .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(requests))
                         .tokenEndpoint(endpoint -> endpoint.accessTokenResponseClient(codeClient))
+                        .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
                         .successHandler((request, response, authentication) -> {
-                            OAuth2AuthorizedClient client = clients.loadAuthorizedClient(REGISTRATION_ID, authentication, request);
-                            try {
-                                OidcUser principal = (OidcUser) authentication.getPrincipal();
-                                sessions.start(request, client, principal);
-                                clients.removeAuthorizedClient(REGISTRATION_ID, authentication, request, response);
-                                response.sendRedirect(properties.ui().toASCIIString());
-                            } catch (RuntimeException exception) {
-                                metrics.counter("seller.oidc.callback.failed").increment();
-                                SecurityContextLogoutHandler logout = new SecurityContextLogoutHandler();
-                                logout.logout(request, response, authentication);
-                                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-                            }
+                            response.sendRedirect(properties.ui().toASCIIString());
                         })
                         .failureHandler((request, response, exception) -> {
                             String code = exception instanceof OAuth2AuthenticationException oauth
-                                    ? oauth.getError().getErrorCode() : exception.getClass().getSimpleName();
+                                     ? oauth.getError().getErrorCode() : exception.getClass().getSimpleName();
                             Throwable cause = exception.getCause();
                             boolean unavailable = cause instanceof ResourceAccessException
                                     || (cause instanceof RestClientResponseException httpError
@@ -110,8 +100,6 @@ class SellerOidcSecurityConfig {
                             response.sendError(status);
                         }));
 
-        SellerOidcBrowserFilter browser = new SellerOidcBrowserFilter(sessions, json, entryPoint);
-        http.addFilterAfter(browser, OAuth2LoginAuthenticationFilter.class);
         SellerContextRequiredFilter context = new SellerContextRequiredFilter();
         http.addFilterBefore(context, AuthorizationFilter.class);
         return http.build();

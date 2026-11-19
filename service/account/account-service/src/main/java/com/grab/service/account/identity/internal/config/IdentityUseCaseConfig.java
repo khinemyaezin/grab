@@ -12,6 +12,8 @@ import com.identity.application.port.inbound.CreateRoleUseCase;
 import com.identity.application.port.inbound.EnsureSecurityCatalogStateUseCase;
 import com.identity.application.port.inbound.GetRoleDeclarationStatusUseCase;
 import com.identity.application.port.inbound.GetSecurityCatalogStatusUseCase;
+import com.identity.application.port.inbound.GetUserAccessContextsUseCase;
+import com.identity.application.port.inbound.GetExternalUserUseCase;
 import com.identity.application.port.inbound.GetUserProfileUseCase;
 import com.identity.application.port.inbound.GrantAccessUseCase;
 import com.identity.application.port.inbound.IdentityLookupUseCase;
@@ -25,6 +27,7 @@ import com.identity.application.port.inbound.ListWaitingSecurityManifestCandidat
 import com.identity.application.port.inbound.LoginUseCase;
 import com.identity.application.port.inbound.LogoutUseCase;
 import com.identity.application.port.inbound.ManageAuthorityUseCase;
+import com.identity.application.port.inbound.ProvisionExternalUserUseCase;
 import com.identity.application.port.inbound.RefreshTokenUseCase;
 import com.identity.application.port.inbound.RegisterRoleDeclarationUseCase;
 import com.identity.application.port.inbound.RegisterUseCase;
@@ -33,6 +36,7 @@ import com.identity.application.port.inbound.RevalidateSecurityManifestUseCase;
 import com.identity.application.port.inbound.RevokeSessionsByScopeUseCase;
 import com.identity.application.port.inbound.SearchRolesUseCase;
 import com.identity.application.port.inbound.SwitchAccessContextUseCase;
+import com.identity.application.port.inbound.UpdateExternalUserUseCase;
 import com.identity.application.port.inbound.UpdateScopeDisplayUseCase;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
 import com.identity.application.port.outbound.EventDeliveryIdPort;
@@ -51,8 +55,10 @@ import com.identity.application.service.ChangeUserStatusService;
 import com.identity.application.service.CreateAccessInvitationService;
 import com.identity.application.service.CreateRoleService;
 import com.identity.application.service.EnsureSecurityCatalogStateService;
+import com.identity.application.service.GetExternalUserService;
 import com.identity.application.service.GetRoleDeclarationStatusService;
 import com.identity.application.service.GetSecurityCatalogStatusService;
+import com.identity.application.service.GetUserAccessContextsService;
 import com.identity.application.service.GetUserProfileService;
 import com.identity.application.service.GrantAccessService;
 import com.identity.application.service.IdentityLookupService;
@@ -66,6 +72,7 @@ import com.identity.application.service.ListWaitingSecurityManifestCandidatesSer
 import com.identity.application.service.LoginService;
 import com.identity.application.service.LogoutService;
 import com.identity.application.service.ManageAuthorityService;
+import com.identity.application.service.ProvisionExternalUserService;
 import com.identity.application.service.RefreshTokenService;
 import com.identity.application.service.RegisterRoleDeclarationService;
 import com.identity.application.service.RegisterSecurityManifestService;
@@ -75,6 +82,7 @@ import com.identity.application.service.RevalidateSecurityManifestService;
 import com.identity.application.service.RevokeSessionsByScopeService;
 import com.identity.application.service.SearchRolesService;
 import com.identity.application.service.SwitchAccessContextService;
+import com.identity.application.service.UpdateExternalUserService;
 import com.identity.application.service.UpdateScopeDisplayService;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
@@ -388,6 +396,42 @@ public class IdentityUseCaseConfig {
             RoleDeclarationQueryPort declarations
     ) {
         return new GetRoleDeclarationStatusService(declarations);
+    }
+
+    @Bean
+    public ProvisionExternalUserUseCase provisionExternalUserUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            IdGenerator idGenerator
+    ) {
+        return new ProvisionExternalUserService(users, externalIdentities, idGenerator);
+    }
+
+    @Bean
+    public UpdateExternalUserUseCase updateExternalUserUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            IdGenerator idGenerator
+    ) {
+        return new UpdateExternalUserService(users, externalIdentities, idGenerator);
+    }
+
+    @Bean
+    public GetUserAccessContextsUseCase getUserAccessContextsUseCase(
+            ScopeCatalogQueryPort scopes,
+            AccessAssignmentQueryPort assignments,
+            RoleRepository roles
+    ) {
+        return new GetUserAccessContextsService(scopes, assignments, roles);
+    }
+
+    @Bean
+    public GetExternalUserUseCase getExternalUserUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            IdGenerator idGenerator
+    ) {
+        return new GetExternalUserService(users, externalIdentities, idGenerator);
     }
 }
 

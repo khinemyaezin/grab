@@ -1,8 +1,7 @@
 package com.grab.service.authorizationserver.adapter.inbound.web;
 
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.AccountUnavailableException;
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.Subject;
+import com.grab.service.authorizationserver.core.user.IamUser;
+import com.grab.service.authorizationserver.core.user.IamUserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,12 +12,13 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public class LiveIssuerSessionFilter extends OncePerRequestFilter {
-    private final AccountIdentityPort account;
+    private final IamUserRepository users;
 
-    public LiveIssuerSessionFilter(AccountIdentityPort account) {
-        this.account = account;
+    public LiveIssuerSessionFilter(IamUserRepository users) {
+        this.users = users;
     }
 
     @Override
@@ -27,16 +27,12 @@ public class LiveIssuerSessionFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         Authentication existing = SecurityContextHolder.getContext().getAuthentication();
         if ("/oauth2/authorize".equals(path) && existing != null && existing.isAuthenticated()) {
-            try {
-                String subject = existing.getName();
-                Subject state = account.resolve(subject);
-                if (state == null || state.authenticationVersion() != AccountFormAuthenticationProvider.loginVersion(existing)) {
-                    SecurityContextLogoutHandler logout = new SecurityContextLogoutHandler();
-                    logout.logout(request, response, existing);
-                }
-            } catch (AccountUnavailableException exception) {
-                response.sendError(503);
-                return;
+            String subject = existing.getName();
+            Optional<IamUser> user = users.findById(subject);
+            if (user.isEmpty() || !user.get().enabled()
+                    || user.get().authenticationVersion() != AccountFormAuthenticationProvider.loginVersion(existing)) {
+                SecurityContextLogoutHandler logout = new SecurityContextLogoutHandler();
+                logout.logout(request, response, existing);
             }
         }
         chain.doFilter(request, response);

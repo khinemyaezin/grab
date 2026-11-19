@@ -5,6 +5,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface SellerAuthenticationPort extends Remote {
+    @Deprecated(since = "2.0", forRemoval = true)
     VerifiedUser verify(Credentials message) throws RemoteException;
 
     record Credentials(String email, String password) implements Serializable {

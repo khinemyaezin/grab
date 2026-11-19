@@ -1,23 +1,23 @@
 package com.grab.service.authorizationserver.core.grant;
 
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.AccountUnavailableException;
+import com.grab.service.authorizationserver.core.user.IamUser;
+import com.grab.service.authorizationserver.core.user.IamUserRepository;
 import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.Subject;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 import static com.grab.service.authorizationserver.core.grant.AuthorizationTokenSupport.VERSION;
 
 @Component
 public class AuthorizationIdentity {
-    private final AccountIdentityPort account;
+    private final IamUserRepository users;
     private final MeterRegistry metrics;
 
-    public AuthorizationIdentity(AccountIdentityPort account, MeterRegistry metrics) {
-        this.account = account;
+    public AuthorizationIdentity(IamUserRepository users, MeterRegistry metrics) {
+        this.users = users;
         this.metrics = metrics;
     }
 
@@ -34,13 +34,11 @@ public class AuthorizationIdentity {
     }
 
     private Identity resolve(OAuth2Authorization authorization) {
-        try {
-            Subject subject = account.resolve(authorization.getPrincipalName());
-            return subject == null ? null : new Identity(subject);
-        } catch (AccountUnavailableException exception) {
-            metrics.counter("authorization.oidc.account.unavailable").increment();
-            throw new OAuth2AuthenticationException(OAuth2ErrorCodes.SERVER_ERROR);
-        }
+        Optional<IamUser> found = users.findById(authorization.getPrincipalName());
+        return found
+                .filter(IamUser::enabled)
+                .map(user -> new Identity(new Subject(user.id(), user.authenticationVersion())))
+                .orElse(null);
     }
 
     public OAuth2Authorization withState(OAuth2Authorization authorization, Identity identity) {
@@ -49,9 +47,12 @@ public class AuthorizationIdentity {
                 .build();
     }
 
-    private long version(OAuth2Authorization authorization) {
-        Object storedVersion = authorization.getAttribute(VERSION);
-        return storedVersion instanceof Number number ? number.longValue() : -1;
+    private static long version(OAuth2Authorization authorization) {
+        Object attribute = authorization.getAttribute(VERSION);
+        if (attribute instanceof Number number) {
+            return number.longValue();
+        }
+        return -1;
     }
 
     public record Identity(Subject subject) {}

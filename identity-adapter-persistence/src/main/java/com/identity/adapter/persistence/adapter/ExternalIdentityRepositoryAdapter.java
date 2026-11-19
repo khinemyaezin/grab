@@ -30,6 +30,12 @@ public class ExternalIdentityRepositoryAdapter implements ExternalIdentityReposi
     }
 
     @Override
+    public Optional<ExternalIdentity> findByUserId(com.grab.framework.id.Id userId) {
+        return executor.query("ExternalIdentity", () -> identities.findByUserUuid(userId.getValue())
+                .map(this::toDomain));
+    }
+
+    @Override
     public ExternalIdentity save(ExternalIdentity identity) {
         return executor.command("ExternalIdentity", () -> {
             ExternalIdentityEntity entity = identities.findByIssuerAndSubject(identity.issuer(), identity.subject())

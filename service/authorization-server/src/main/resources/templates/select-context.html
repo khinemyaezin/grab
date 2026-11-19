@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Access Context - Grab</title>
+    <link rel="stylesheet" th:href="@{/css/login.css}" />
+    <style>
+        .context-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .context-item {
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #ffffff;
+        }
+        .context-item:hover {
+            border-color: #2563eb;
+            background-color: #f8fafc;
+        }
+        .context-item input[type="radio"] {
+            margin-right: 1rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            cursor: pointer;
+        }
+        .context-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .context-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #1f2937;
+        }
+        .context-meta {
+            font-size: 0.8125rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        .badge-role {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: #e0e7ff;
+            color: #3730a3;
+            border-radius: 9999px;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body class="login-body">
+    <main class="login-container">
+        <header class="login-header">
+            <h1>Select Access Context</h1>
+            <p>Choose the account or storefront you wish to access</p>
+        </header>
+
+        <form th:action="@{/oauth2/select-context}" method="post" class="login-form">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+
+            <div class="context-list">
+                <label th:each="ctx, stat : ${contexts}" class="context-item" th:for="${'ctx-' + ctx.assignmentId}">
+                    <input type="radio" th:id="${'ctx-' + ctx.assignmentId}" name="assignmentId"
+                           th:value="${ctx.assignmentId}" th:checked="${stat.first}" required />
+                    <div class="context-details">
+                        <div class="context-title">
+                            <span th:text="${ctx.displayName}">Acme Corp</span>
+                            <span class="badge-role" th:text="${ctx.role}">MERCHANT_OWNER</span>
+                        </div>
+                        <div class="context-meta">
+                            <span th:text="${ctx.scopeKey}">merchant.account</span> &bull;
+                            ID: <span th:text="${ctx.scopeId}">merchant-123</span>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <button type="submit" class="btn-primary">Continue with Selected Context</button>
+        </form>
+    </main>
+</body>
+</html>

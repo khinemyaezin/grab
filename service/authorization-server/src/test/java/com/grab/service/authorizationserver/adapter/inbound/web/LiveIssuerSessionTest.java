@@ -1,7 +1,7 @@
 package com.grab.service.authorizationserver.adapter.inbound.web;
 
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort;
-import com.grab.service.authorizationserver.port.outbound.AccountIdentityPort.Subject;
+import com.grab.service.authorizationserver.core.user.IamUser;
+import com.grab.service.authorizationserver.core.user.IamUserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
@@ -20,7 +20,10 @@ import org.springframework.session.data.redis.RedisIndexedSessionRepository;
 import org.springframework.session.data.redis.RedisIndexedSessionRepository.RedisSession;
 import org.testcontainers.containers.GenericContainer;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -52,14 +55,18 @@ class LiveIssuerSessionTest {
                 Session restored = newRepository.findById(session.getId());
                 SecurityContext context = restored.getAttribute(contextKey);
                 SecurityContextHolder.setContext(context);
-                AccountIdentityPort account = mock(AccountIdentityPort.class);
-                when(account.resolve("subject")).thenReturn(new Subject("subject", 4L));
-                LiveIssuerSessionFilter filter = new LiveIssuerSessionFilter(account);
+                IamUserRepository users = mock(IamUserRepository.class);
+                IamUser activeUser = new IamUser("subject", "subject", "sub@example.com", "hash", "Sub", "Ject",
+                        true, "plat-1", 4L, Set.of(), Instant.now(), Instant.now());
+                when(users.findById("subject")).thenReturn(Optional.of(activeUser));
+                LiveIssuerSessionFilter filter = new LiveIssuerSessionFilter(users);
                 MockHttpServletRequest current = authorizationRequest();
                 filter.doFilter(current, new MockHttpServletResponse(), new MockFilterChain());
                 assertThat(SecurityContextHolder.getContext().getAuthentication()).isEqualTo(principal);
 
-                when(account.resolve("subject")).thenReturn(new Subject("subject", 5L));
+                IamUser bumpedUser = new IamUser("subject", "subject", "sub@example.com", "hash", "Sub", "Ject",
+                        true, "plat-1", 5L, Set.of(), Instant.now(), Instant.now());
+                when(users.findById("subject")).thenReturn(Optional.of(bumpedUser));
                 MockHttpServletRequest stale = authorizationRequest();
                 MockHttpSession staleSession = (MockHttpSession) stale.getSession(false);
                 filter.doFilter(stale, new MockHttpServletResponse(), new MockFilterChain());

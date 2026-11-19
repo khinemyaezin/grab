@@ -59,9 +59,9 @@ public final class MutualTlsRmiEndpoint implements SmartLifecycle {
             };
             registry = LocateRegistry.createRegistry(port, client, server);
             ObjectInputFilter filter = ObjectInputFilter.Config.createFilter(
-                    "maxdepth=12;maxrefs=64;maxbytes=262144;java.lang.String;java.lang.Enum;" +
-                            "java.util.CollSer;java.util.ImmutableCollections$*;" +
-                            "com.grab.service.contract.message.account.identity.*;!*");
+                    "maxdepth=12;maxrefs=64;maxbytes=262144;" +
+                            "java.lang.**;java.util.**;java.time.**;" +
+                            "com.grab.service.contract.message.**;!*");
             for (Map.Entry<Class<? extends Remote>, Remote> binding : providers.entrySet()) {
                 Remote provider = binding.getValue();
                 Remote stub = UnicastRemoteObject.exportObject(provider, port, client, server, filter);

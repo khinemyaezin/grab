@@ -3,6 +3,7 @@ package com.grab.service.account.identity.internal.config;
 import com.grab.rpc.adapter.MutualTlsRmiEndpoint;
 import com.grab.rpc.adapter.MutualTlsRmiEndpoint.SslMaterial;
 import com.grab.service.contract.message.account.identity.AccountAuthenticationPort;
+import com.grab.service.contract.message.account.identity.ScimUserPort;
 import com.grab.service.contract.message.account.identity.SellerAuthenticationPort;
 import com.grab.service.contract.message.account.identity.SellerAccessPort;
 import com.grab.service.contract.message.account.identity.SellerRegistrationPort;
@@ -19,7 +20,7 @@ import java.util.Map;
 public class SellerAuthenticationTransportConfig {
     @Bean
     MutualTlsRmiEndpoint issuerAuthenticationEndpoint(
-            SellerAuthenticationPort assignments, AccountAuthenticationPort account,
+            SellerAuthenticationPort assignments, AccountAuthenticationPort account, ScimUserPort scimUserPort,
             @Value("${grab.rpc.bind-address:127.0.0.1}") String bind,
             @Value("${grab.rpc.advertised-host:localhost}") String host,
             @Value("${grab.seller-authentication.rpc.issuer-port:1199}") int port,
@@ -29,7 +30,9 @@ public class SellerAuthenticationTransportConfig {
             @Value("${grab.seller-authentication.rpc.trust-password}") String trustPassword) {
         SslMaterial material = new SslMaterial(keyStore, keyPassword, trustStore, trustPassword);
         return new MutualTlsRmiEndpoint(bind, host, port, material,
-                Map.of(SellerAuthenticationPort.class, assignments, AccountAuthenticationPort.class, account));
+                Map.of(SellerAuthenticationPort.class, assignments,
+                        AccountAuthenticationPort.class, account,
+                        ScimUserPort.class, scimUserPort));
     }
 
     @Bean

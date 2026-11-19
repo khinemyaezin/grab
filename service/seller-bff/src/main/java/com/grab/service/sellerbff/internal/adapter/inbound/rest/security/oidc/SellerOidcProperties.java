@@ -15,7 +15,8 @@ public record SellerOidcProperties(String issuer, String audience, List<String> 
                                    String callback, URI ui, URI postLogout,
                                    String metadataUri, String authorizationEndpoint,
                                    String tokenEndpoint, String jwkSetEndpoint,
-                                   String introspectionEndpoint, String revocationEndpoint, String logoutEndpoint,
+                                   String userInfoEndpoint, String introspectionEndpoint,
+                                   String revocationEndpoint, String logoutEndpoint,
                                    String accountHost, int registrationPort,
                                    Path accountKeyStore, String accountKeyPassword,
                                    Path accountTrustStore, String accountTrustPassword,
@@ -39,6 +40,7 @@ public record SellerOidcProperties(String issuer, String audience, List<String> 
         authorizationEndpoint = optionalValue(authorizationEndpoint);
         tokenEndpoint = optionalValue(tokenEndpoint);
         jwkSetEndpoint = optionalValue(jwkSetEndpoint);
+        userInfoEndpoint = optionalValue(userInfoEndpoint);
         introspectionEndpoint = optionalValue(introspectionEndpoint);
         revocationEndpoint = optionalValue(revocationEndpoint);
         logoutEndpoint = optionalValue(logoutEndpoint);
@@ -70,6 +72,7 @@ public record SellerOidcProperties(String issuer, String audience, List<String> 
         validateOptionalEndpoint("authorization-endpoint", authorizationEndpoint);
         validateOptionalEndpoint("token-endpoint", tokenEndpoint);
         validateOptionalEndpoint("jwk-set-endpoint", jwkSetEndpoint);
+        validateOptionalEndpoint("user-info-endpoint", userInfoEndpoint);
         requireText("account-host", accountHost);
         if (registrationPort < 1 || registrationPort > 65535) {
             throw invalid("registration-port", "must be a valid TCP port");

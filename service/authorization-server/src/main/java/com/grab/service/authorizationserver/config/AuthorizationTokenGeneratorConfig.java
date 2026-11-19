@@ -2,6 +2,7 @@ package com.grab.service.authorizationserver.config;
 
 import com.grab.service.authorizationserver.core.token.AuthorizationJwtCustomizer;
 import com.grab.service.authorizationserver.core.token.AuthorizationSigningKeys;
+import com.grab.service.authorizationserver.core.user.IamUserRepository;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -52,10 +53,11 @@ public class AuthorizationTokenGeneratorConfig {
 
     @Bean
     public OAuth2TokenGenerator<? extends OAuth2Token> tokenGenerator(AuthorizationSigningKeys keys,
-                                                                       AuthorizationClientPolicies clients) {
+                                                                       AuthorizationClientPolicies clients,
+                                                                       IamUserRepository users) {
         NimbusJwtEncoder encoder = new NimbusJwtEncoder(keys.source());
         JwtGenerator jwt = new JwtGenerator(encoder);
-        jwt.setJwtCustomizer(new AuthorizationJwtCustomizer(keys, clients));
+        jwt.setJwtCustomizer(new AuthorizationJwtCustomizer(keys, clients, users));
         return new DelegatingOAuth2TokenGenerator(jwt, new OAuth2AccessTokenGenerator(), new OAuth2RefreshTokenGenerator());
     }
 }

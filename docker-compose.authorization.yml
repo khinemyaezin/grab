@@ -85,9 +85,10 @@ services:
       GRAB_SELLER_OIDC_METADATA_URI: ${AUTHORIZATION_METADATA_URI:-http://authorization-server:9000/.well-known/openid-configuration}
       GRAB_SELLER_OIDC_TOKEN_ENDPOINT: ${AUTHORIZATION_TOKEN_ENDPOINT:-http://authorization-server:9000/oauth2/token}
       GRAB_SELLER_OIDC_JWK_SET_ENDPOINT: ${AUTHORIZATION_JWK_SET_ENDPOINT:-http://authorization-server:9000/oauth2/jwks}
+      GRAB_SELLER_OIDC_USER_INFO_ENDPOINT: ${AUTHORIZATION_USERINFO_ENDPOINT:-http://authorization-server:9000/userinfo}
       GRAB_SELLER_OIDC_INTROSPECTION_ENDPOINT: ${AUTHORIZATION_INTROSPECTION_ENDPOINT:-http://authorization-server:9000/oauth2/introspect}
       GRAB_SELLER_OIDC_REVOCATION_ENDPOINT: ${AUTHORIZATION_REVOCATION_ENDPOINT:-http://authorization-server:9000/oauth2/revoke}
-      GRAB_SELLER_OIDC_LOGOUT_ENDPOINT: ${AUTHORIZATION_LOGOUT_ENDPOINT:-http://authorization-server:9000/connect/logout}
+      GRAB_SELLER_OIDC_LOGOUT_ENDPOINT: ${AUTHORIZATION_LOGOUT_ENDPOINT:-http://localhost:9000/connect/logout}
       SELLER_OIDC_REDIS_URL: ${SELLER_COMPOSE_REDIS_URL:-redis://authorization-redis:6379}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
     restart: unless-stopped

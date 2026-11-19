@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.client.registration.InMemoryClientReg
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.AuthenticationMethod;
+import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
@@ -51,8 +52,34 @@ class SellerOidcClientConfig {
     DefaultOAuth2AuthorizationRequestResolver sellerAuthorizationRequests(ClientRegistrationRepository registrations) {
         DefaultOAuth2AuthorizationRequestResolver requests =
                 new DefaultOAuth2AuthorizationRequestResolver(registrations, AUTHORIZATION_BASE);
-        requests.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers.withPkce());
+        requests.setAuthorizationRequestCustomizer(builder -> {
+            OAuth2AuthorizationRequestCustomizers.withPkce().accept(builder);
+            org.springframework.web.context.request.RequestAttributes attributes =
+                    org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servletAttrs) {
+                String prompt = servletAttrs.getRequest().getParameter("prompt");
+                if (prompt != null && !prompt.isBlank()) {
+                    builder.additionalParameters(params -> params.put("prompt", prompt));
+                }
+            }
+        });
         return requests;
+    }
+
+    @Bean
+    public org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager authorizedClientManager(
+            ClientRegistrationRepository clientRegistrationRepository,
+            org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository authorizedClientRepository) {
+        org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider provider =
+                org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder.builder()
+                        .authorizationCode()
+                        .refreshToken()
+                        .build();
+        org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager manager =
+                new org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager(
+                        clientRegistrationRepository, authorizedClientRepository);
+        manager.setAuthorizedClientProvider(provider);
+        return manager;
     }
 
     @Bean
@@ -88,7 +115,7 @@ class SellerOidcClientConfig {
                 "authorization_endpoint", "authorization-endpoint");
         String token = endpoint(properties, properties.tokenEndpoint(), metadata, "token_endpoint", "token-endpoint");
         String jwks = endpoint(properties, properties.jwkSetEndpoint(), metadata, "jwks_uri", "jwk-set-endpoint");
-        String userInfo = optionalEndpoint(properties, metadata.get("userinfo_endpoint"));
+        String userInfo = optionalEndpoint(properties, properties.userInfoEndpoint(), metadata.get("userinfo_endpoint"));
         ClientRegistration.Builder registration = ClientRegistration.withRegistrationId(REGISTRATION_ID)
                 .clientId(properties.clientId())
                 .clientSecret(properties.clientSecret())
@@ -130,6 +157,7 @@ class SellerOidcClientConfig {
     OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> sellerAuthorizationCodeClient(
             ClientHttpRequestFactory sellerIssuerRequests) {
         RestTemplate rest = new RestTemplate(sellerIssuerRequests);
+        rest.getMessageConverters().add(0, new OAuth2AccessTokenResponseHttpMessageConverter());
         rest.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
         DefaultAuthorizationCodeTokenResponseClient client = new DefaultAuthorizationCodeTokenResponseClient();
         client.setRestOperations(rest);
@@ -140,6 +168,7 @@ class SellerOidcClientConfig {
     OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest> sellerRefreshTokenClient(
             ClientHttpRequestFactory sellerIssuerRequests) {
         RestTemplate rest = new RestTemplate(sellerIssuerRequests);
+        rest.getMessageConverters().add(0, new OAuth2AccessTokenResponseHttpMessageConverter());
         rest.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
         DefaultRefreshTokenTokenResponseClient client = new DefaultRefreshTokenTokenResponseClient();
         client.setRestOperations(rest);
@@ -214,8 +243,13 @@ class SellerOidcClientConfig {
         return validateEndpoint(properties, endpoint, propertyKey);
     }
 
-    private static String optionalEndpoint(SellerOidcProperties properties, Object value) {
-        return value == null ? null : validateEndpoint(properties, value.toString(), "userinfo-endpoint");
+    private static String optionalEndpoint(SellerOidcProperties properties, String configured, Object discovered) {
+        String endpoint = configured;
+        if (endpoint == null || endpoint.isBlank()) {
+            endpoint = discovered == null ? null : discovered.toString();
+        }
+        return endpoint == null || endpoint.isBlank()
+                ? null : validateEndpoint(properties, endpoint, "user-info-endpoint");
     }
 
     private static String validateEndpoint(SellerOidcProperties properties, String endpoint, String propertyKey) {

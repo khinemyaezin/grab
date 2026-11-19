@@ -5,6 +5,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface AccountAuthenticationPort extends Remote {
+    @Deprecated(since = "2.0", forRemoval = true)
     Subject verify(Credentials request) throws RemoteException;
 
     Subject resolve(SubjectRequest request) throws RemoteException;

@@ -31,6 +31,18 @@ class UserTest {
     }
 
     @Test
+    void createExternal_withValidIdentity_shouldCreateActiveExternalUserWithoutPassword() {
+        User user = User.createExternal(
+                new CommonId("u2"), new Email("EXTERNAL@Example.com"));
+
+        assertEquals(UserStatus.ACTIVE, user.getStatus());
+        assertEquals("external@example.com", user.getEmail().value());
+        assertEquals(IdentityManagementMode.EXTERNAL, user.getIdentityManagementMode());
+        assertTrue(user.getPasswordHash().isEmpty());
+        assertInstanceOf(UserRegisteredEvent.class, user.getEvents().getFirst());
+    }
+
+    @Test
     void activate_withPendingUser_shouldActivateAndEmitEvent() {
         User user = hydratedUser(UserStatus.PENDING_APPROVAL);
 
