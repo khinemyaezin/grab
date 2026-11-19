@@ -48,6 +48,7 @@ import com.identity.domain.port.outbound.SecurityCatalogRepository;
 import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.SessionStore;
+import com.identity.domain.port.outbound.ExternalIdentityRepository;
 import com.identity.domain.port.outbound.UserRepository;
 import com.identity.domain.service.PasswordHasher;
 import com.manifest.adapter.persistence.SecurityManifestEventFactory;
@@ -77,6 +78,14 @@ public class IdentityPersistenceConfig {
             @Qualifier("identityInProcessDomainEventPublisher") DomainEventProducer domainEventProducer,
             @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
         return new UserRepositoryAdapter(jpaRepository, mapper, domainEventProducer, executor);
+    }
+
+    @Bean
+    public ExternalIdentityRepository externalIdentityRepository(
+            ExternalIdentityJpaRepository identities,
+            UserJpaRepository users,
+            @Qualifier("identityPersistenceExecutor") PersistenceExecutor executor) {
+        return new ExternalIdentityRepositoryAdapter(identities, users, executor);
     }
 
     @Bean
@@ -276,11 +285,10 @@ public class IdentityPersistenceConfig {
     public IdentityLookupQueryPort identityLookupQueryPort(
             UserJpaRepository users,
             ExternalIdentityJpaRepository externalIdentities,
-            ExternalEntitlementMappingJpaRepository entitlementMappings,
             AccessAssignmentJpaRepository accessAssignments,
             ScopeCatalogQueryPort scopes) {
         return new IdentityLookupQueryAdapter(
-                users, externalIdentities, entitlementMappings, accessAssignments, scopes
+                users, externalIdentities, accessAssignments, scopes
         );
     }
 

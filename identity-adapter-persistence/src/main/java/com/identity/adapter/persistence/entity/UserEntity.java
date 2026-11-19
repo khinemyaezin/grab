@@ -1,6 +1,7 @@
 package com.identity.adapter.persistence.entity;
 
 import com.identity.domain.enums.UserStatus;
+import com.identity.domain.enums.IdentityManagementMode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,6 +25,10 @@ public class UserEntity {
 
     @Column(name = "password_hash")
     private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "identity_management_mode", nullable = false)
+    private IdentityManagementMode identityManagementMode = IdentityManagementMode.LOCAL;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

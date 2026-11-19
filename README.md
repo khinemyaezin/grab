@@ -18,12 +18,28 @@ mvn -pl store spring-boot:run
 
 ## Docker
 
-`docker-compose.yml` defines the app service and runtime environment.
+The deployment architecture uses a base topology (`docker-compose.yml`) with environment overlays:
+- **Development**: `docker-compose.override.yml` (auto-loaded; exposes local database/RMI ports and launches pgAdmin at `http://localhost:5050`)
+- **Production**: `docker-compose.prod.yml` (hardened network isolation, resource limits, log rotation, no pgAdmin)
+
+### Development
 
 ```bash
-# Start
-docker compose --env-file docker/env/dev.env -f docker-compose.yml up --build -d
+# Start dev environment (auto-loads docker-compose.yml + docker-compose.override.yml)
+docker compose --env-file docker/env/dev.env up --build -d
 
-# Stop
-docker compose --env-file docker/env/dev.env -f docker-compose.yml down -v
+# Stop dev environment
+docker compose --env-file docker/env/dev.env down -v
+```
+
+pgAdmin 4 is available at [http://localhost:5050](http://localhost:5050) with pre-configured connections for all 5 domain databases (`account`, `merchandising`, `channel`, `checkout`, `authorization`).
+
+### Production
+
+```bash
+# Start production environment
+docker compose --env-file docker/env/prod.env -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Stop production environment
+docker compose --env-file docker/env/prod.env -f docker-compose.yml -f docker-compose.prod.yml down
 ```

@@ -1,11 +1,61 @@
 {
   "Servers": {
     "1": {
-      "Name": "Local Postgres",
-      "Group": "Servers",
+      "Name": "Postgres Cluster (Root)",
+      "Group": "Grab E-Commerce",
       "Host": "postgres",
       "Port": 5432,
       "MaintenanceDB": "postgres",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Account Service DB",
+      "Group": "Grab E-Commerce",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "account",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "Merchandising DB",
+      "Group": "Grab E-Commerce",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "merchandising",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "4": {
+      "Name": "Channel DB",
+      "Group": "Grab E-Commerce",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "channel",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "5": {
+      "Name": "Checkout DB",
+      "Group": "Grab E-Commerce",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "checkout",
+      "Username": "admin",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer"
+    },
+    "6": {
+      "Name": "Authorization IAM DB",
+      "Group": "Grab E-Commerce",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "authorization",
       "Username": "admin",
       "PassFile": "/pgpass",
       "SSLMode": "prefer"

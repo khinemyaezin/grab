@@ -64,3 +64,5 @@ release.properties
 replay_pid*
 
 docker/secrets/seller-oidc/
+docker/secrets/authorization/
+docker/config/authorization-clients.yml

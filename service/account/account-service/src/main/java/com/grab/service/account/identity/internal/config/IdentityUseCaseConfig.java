@@ -12,6 +12,8 @@ import com.identity.application.port.inbound.CreateRoleUseCase;
 import com.identity.application.port.inbound.EnsureSecurityCatalogStateUseCase;
 import com.identity.application.port.inbound.GetRoleDeclarationStatusUseCase;
 import com.identity.application.port.inbound.GetSecurityCatalogStatusUseCase;
+import com.identity.application.port.inbound.GetUserAccessContextsUseCase;
+import com.identity.application.port.inbound.GetExternalUserUseCase;
 import com.identity.application.port.inbound.GetUserProfileUseCase;
 import com.identity.application.port.inbound.GrantAccessUseCase;
 import com.identity.application.port.inbound.IdentityLookupUseCase;
@@ -19,11 +21,13 @@ import com.identity.application.port.inbound.ListAccessAssignmentsUseCase;
 import com.identity.application.port.inbound.ListAccessContextsUseCase;
 import com.identity.application.port.inbound.ListRolesUseCase;
 import com.identity.application.port.inbound.ListUsersUseCase;
+import com.identity.application.port.inbound.LinkExternalIdentityUseCase;
 import com.identity.application.port.inbound.ListWaitingRoleDeclarationsUseCase;
 import com.identity.application.port.inbound.ListWaitingSecurityManifestCandidatesUseCase;
 import com.identity.application.port.inbound.LoginUseCase;
 import com.identity.application.port.inbound.LogoutUseCase;
 import com.identity.application.port.inbound.ManageAuthorityUseCase;
+import com.identity.application.port.inbound.ProvisionExternalUserUseCase;
 import com.identity.application.port.inbound.RefreshTokenUseCase;
 import com.identity.application.port.inbound.RegisterRoleDeclarationUseCase;
 import com.identity.application.port.inbound.RegisterUseCase;
@@ -32,6 +36,7 @@ import com.identity.application.port.inbound.RevalidateSecurityManifestUseCase;
 import com.identity.application.port.inbound.RevokeSessionsByScopeUseCase;
 import com.identity.application.port.inbound.SearchRolesUseCase;
 import com.identity.application.port.inbound.SwitchAccessContextUseCase;
+import com.identity.application.port.inbound.UpdateExternalUserUseCase;
 import com.identity.application.port.inbound.UpdateScopeDisplayUseCase;
 import com.identity.application.port.outbound.AccessAssignmentQueryPort;
 import com.identity.application.port.outbound.EventDeliveryIdPort;
@@ -50,8 +55,10 @@ import com.identity.application.service.ChangeUserStatusService;
 import com.identity.application.service.CreateAccessInvitationService;
 import com.identity.application.service.CreateRoleService;
 import com.identity.application.service.EnsureSecurityCatalogStateService;
+import com.identity.application.service.GetExternalUserService;
 import com.identity.application.service.GetRoleDeclarationStatusService;
 import com.identity.application.service.GetSecurityCatalogStatusService;
+import com.identity.application.service.GetUserAccessContextsService;
 import com.identity.application.service.GetUserProfileService;
 import com.identity.application.service.GrantAccessService;
 import com.identity.application.service.IdentityLookupService;
@@ -59,11 +66,13 @@ import com.identity.application.service.ListAccessAssignmentsService;
 import com.identity.application.service.ListAccessContextsService;
 import com.identity.application.service.ListRolesService;
 import com.identity.application.service.ListUsersService;
+import com.identity.application.service.LinkExternalIdentityService;
 import com.identity.application.service.ListWaitingRoleDeclarationsService;
 import com.identity.application.service.ListWaitingSecurityManifestCandidatesService;
 import com.identity.application.service.LoginService;
 import com.identity.application.service.LogoutService;
 import com.identity.application.service.ManageAuthorityService;
+import com.identity.application.service.ProvisionExternalUserService;
 import com.identity.application.service.RefreshTokenService;
 import com.identity.application.service.RegisterRoleDeclarationService;
 import com.identity.application.service.RegisterSecurityManifestService;
@@ -73,6 +82,7 @@ import com.identity.application.service.RevalidateSecurityManifestService;
 import com.identity.application.service.RevokeSessionsByScopeService;
 import com.identity.application.service.SearchRolesService;
 import com.identity.application.service.SwitchAccessContextService;
+import com.identity.application.service.UpdateExternalUserService;
 import com.identity.application.service.UpdateScopeDisplayService;
 import com.identity.domain.policy.RoleDelegationPolicy;
 import com.identity.domain.policy.impl.RoleAdministrationPolicy;
@@ -88,12 +98,15 @@ import com.identity.domain.port.outbound.SecurityManifestInboxRepository;
 import com.identity.domain.port.outbound.SecurityManifestRevisionRepository;
 import com.identity.domain.port.outbound.SessionStore;
 import com.identity.domain.port.outbound.UserRepository;
+import com.identity.domain.port.outbound.ExternalIdentityRepository;
 import com.identity.domain.service.InvitationTokenService;
 import com.identity.domain.service.PasswordHasher;
 import com.identity.domain.service.TokenLifeCycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
 
 @Configuration(proxyBeanMethods = false)
 public class IdentityUseCaseConfig {
@@ -161,6 +174,19 @@ public class IdentityUseCaseConfig {
             SessionStore sessions
     ) {
         return ChangeUserStatusService.forHeadlessAccount(userRepository, sessions);
+    }
+
+    @Bean
+    public Clock identityClock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    public LinkExternalIdentityUseCase linkExternalIdentityUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            Clock identityClock) {
+        return new LinkExternalIdentityService(users, externalIdentities, identityClock);
     }
 
     @Bean
@@ -370,6 +396,42 @@ public class IdentityUseCaseConfig {
             RoleDeclarationQueryPort declarations
     ) {
         return new GetRoleDeclarationStatusService(declarations);
+    }
+
+    @Bean
+    public ProvisionExternalUserUseCase provisionExternalUserUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            IdGenerator idGenerator
+    ) {
+        return new ProvisionExternalUserService(users, externalIdentities, idGenerator);
+    }
+
+    @Bean
+    public UpdateExternalUserUseCase updateExternalUserUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            IdGenerator idGenerator
+    ) {
+        return new UpdateExternalUserService(users, externalIdentities, idGenerator);
+    }
+
+    @Bean
+    public GetUserAccessContextsUseCase getUserAccessContextsUseCase(
+            ScopeCatalogQueryPort scopes,
+            AccessAssignmentQueryPort assignments,
+            RoleRepository roles
+    ) {
+        return new GetUserAccessContextsService(scopes, assignments, roles);
+    }
+
+    @Bean
+    public GetExternalUserUseCase getExternalUserUseCase(
+            UserRepository users,
+            ExternalIdentityRepository externalIdentities,
+            IdGenerator idGenerator
+    ) {
+        return new GetExternalUserService(users, externalIdentities, idGenerator);
     }
 }
 

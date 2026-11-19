@@ -122,7 +122,7 @@ sequenceDiagram
     participant UI as Browser (EventSource)
     participant Ctrl as EventStreamController
     participant Hub as SseHub
-    participant W as WorkflowEngine
+    participant W as WorkflowRuntime
     participant Tx as Spring Transaction
     participant L as WorkflowTerminalUiEventListener
 

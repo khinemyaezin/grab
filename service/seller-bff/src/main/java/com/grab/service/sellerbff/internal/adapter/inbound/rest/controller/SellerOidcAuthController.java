@@ -1,36 +1,31 @@
 package com.grab.service.sellerbff.internal.adapter.inbound.rest.controller;
 
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.assembler.SellerUserProfileModelAssembler;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.request.SellerRegisterRequest;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerCsrfResponse;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerUserProfileResponse;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcBrowserSession;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerAuthCommandService;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/identity/auth")
 @RequiredArgsConstructor
 public class SellerOidcAuthController {
-    private final SellerAuthCommandService commands;
-    private final SellerUserProfileModelAssembler profiles;
-    private final SellerOidcBrowserSession sessions;
+    private final SellerOidcProperties properties;
 
     @GetMapping("/csrf")
     public ResponseEntity<EntityModel<SellerCsrfResponse>> csrf(CsrfToken token) {
@@ -39,15 +34,25 @@ public class SellerOidcAuthController {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(model);
     }
 
+    @GetMapping("/register-url")
+    public ResponseEntity<EntityModel<Map<String, String>>> registerUrl() {
+        String registerUrl = properties.issuer() + "/register";
+        EntityModel<Map<String, String>> model = EntityModel.of(Map.of("url", registerUrl));
+        return ResponseEntity.ok(model);
+    }
+
     @PostMapping("/register")
-    public ResponseEntity<EntityModel<SellerUserProfileResponse>> register(@Valid @RequestBody SellerRegisterRequest request) {
-        SellerUserProfileResponse registered = commands.register(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(profiles.toModel(registered));
+    public ResponseEntity<Void> register() {
+        URI registerUri = URI.create(properties.issuer() + "/register");
+        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(registerUri).build();
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        URI destination = sessions.logout(request, response);
+        SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        logoutHandler.logout(request, response, auth);
+        URI destination = properties.postLogout() != null ? properties.postLogout() : URI.create("/");
         return ResponseEntity.status(HttpStatus.SEE_OTHER).location(destination)
                 .header("Referrer-Policy", "no-referrer")
                 .cacheControl(CacheControl.noStore()).build();

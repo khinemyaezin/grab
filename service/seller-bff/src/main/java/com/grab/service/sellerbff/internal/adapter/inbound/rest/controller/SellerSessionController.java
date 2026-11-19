@@ -4,25 +4,19 @@ import com.grab.service.sellerbff.internal.adapter.inbound.rest.assembler.Access
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.assembler.CurrentUserProfileModelAssembler;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.AccessContextResponse;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.CurrentUserProfileResponse;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.dto.response.SellerAuthResponse;
+import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcRoutes;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.principal.SellerSecurityPrincipal;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcBrowserSession;
-import com.grab.framework.security.AccessContext;
-import com.grab.framework.security.AuthenticatedActor;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.hateoas.RepresentationModel;
-import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerAccessContextCommandService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerAccessContextQueryService;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.service.SellerProfileQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -32,10 +26,8 @@ public class SellerSessionController {
 
     private final SellerProfileQueryService profileQueryService;
     private final SellerAccessContextQueryService accessContextQueryService;
-    private final SellerAccessContextCommandService accessContextCommandService;
     private final CurrentUserProfileModelAssembler profileModelAssembler;
     private final AccessContextModelAssembler contextModelAssembler;
-    private final ObjectProvider<SellerOidcBrowserSession> oidcSessions;
 
     @GetMapping
     public ResponseEntity<EntityModel<CurrentUserProfileResponse>> getProfile(
@@ -54,17 +46,21 @@ public class SellerSessionController {
         return ResponseEntity.ok(collection);
     }
 
+    @PostMapping("/contexts/switch")
+    public ResponseEntity<Void> switchContext() {
+        URI target = URI.create(SellerOidcRoutes.AUTHORIZATION_BASE + "/" + SellerOidcRoutes.REGISTRATION_ID + "?prompt=select_context");
+        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(target).build();
+    }
+
+    @GetMapping("/contexts/switch")
+    public ResponseEntity<Void> switchContextGet() {
+        URI target = URI.create(SellerOidcRoutes.AUTHORIZATION_BASE + "/" + SellerOidcRoutes.REGISTRATION_ID + "?prompt=select_context");
+        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(target).build();
+    }
+
     @PostMapping("/contexts/{assignmentId}/select")
-    public ResponseEntity<? extends RepresentationModel<?>> selectContext(
-            @PathVariable String assignmentId,
-            @AuthenticationPrincipal SellerSecurityPrincipal principal,
-            HttpServletRequest request) {
-        SellerOidcBrowserSession oidc = oidcSessions.getObject();
-        String userId = principal.getPlatformUserId();
-        AuthenticatedActor selected = oidc.select(request, userId, assignmentId);
-        AccessContext context = selected.accessContext();
-        AccessContextResponse response = new AccessContextResponse(context.assignmentId(), selected.roles(),
-                context.scopeKey(), context.scopeId(), null, null, null);
-        return ResponseEntity.ok().body(contextModelAssembler.toModel(response));
+    public ResponseEntity<Void> selectContext(@PathVariable String assignmentId) {
+        URI target = URI.create(SellerOidcRoutes.AUTHORIZATION_BASE + "/" + SellerOidcRoutes.REGISTRATION_ID + "?prompt=select_context");
+        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(target).build();
     }
 }

@@ -3,9 +3,10 @@ package com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc;
 import com.grab.service.sellerbff.internal.adapter.inbound.rest.security.oidc.SellerOidcSecurityConfig.CorsProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -15,18 +16,32 @@ import org.springframework.web.filter.CorsFilter;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SellerOidcPropertiesTest {
     private final ApplicationContextRunner context = new ApplicationContextRunner()
-            .withInitializer(new ConfigDataApplicationContextInitializer())
             .withUserConfiguration(Binding.class)
             .withPropertyValues("grab.seller-oidc.issuer=https://issuer.example",
                     "grab.seller-oidc.audience=grab-seller-api",
+                    "grab.seller-oidc.scopes=openid,profile,email",
                     "grab.seller-oidc.client-id=seller-bff",
                     "grab.seller-oidc.client-secret=test-secret",
+                    "grab.seller-oidc.introspection-endpoint=https://issuer.example/introspect",
+                    "grab.seller-oidc.revocation-endpoint=https://issuer.example/revoke",
+                    "grab.seller-oidc.logout-endpoint=https://issuer.example/logout",
+                    "grab.seller-oidc.metadata-uri=https://issuer.example/.well-known/openid-configuration",
+                    "grab.seller-oidc.authorization-endpoint=https://issuer.example/authorize",
+                    "grab.seller-oidc.token-endpoint=https://issuer.example/token",
+                    "grab.seller-oidc.jwk-set-endpoint=https://issuer.example/keys",
                     "grab.seller-oidc.callback=https://bff.example/login/oauth2/code/seller",
                     "grab.seller-oidc.ui=https://ui.example/",
-                    "grab.seller-oidc.post-logout=https://ui.example/");
+                    "grab.seller-oidc.post-logout=https://ui.example/",
+                    "grab.seller-oidc.account-host=account",
+                    "grab.seller-oidc.registration-port=1200",
+                    "grab.seller-oidc.revocation-retry-delay=30s",
+                    "grab.seller-oidc.revocation-token-ttl=7d",
+                    "grab.seller-oidc.revocation-claim-lease=60s",
+                    "grab.seller-oidc.revocation-batch-size=25");
 
     @Test
     void binding_usesCompatibleDefaults() {
@@ -37,7 +52,6 @@ class SellerOidcPropertiesTest {
             assertThat(properties.sessionTimeout()).isEqualTo(Duration.ofDays(7));
             assertThat(properties.connectTimeout()).isEqualTo(Duration.ofSeconds(2));
             assertThat(properties.readTimeout()).isEqualTo(Duration.ofSeconds(6));
-            assertThat(properties.backchannel()).isEqualTo("https://issuer.example");
             assertThat(properties.revocationRetryDelay()).isEqualTo(Duration.ofSeconds(30));
             assertThat(properties.revocationTokenTtl()).isEqualTo(Duration.ofDays(7));
             assertThat(properties.revocationClaimLease()).isEqualTo(Duration.ofSeconds(60));
@@ -53,8 +67,6 @@ class SellerOidcPropertiesTest {
         rejects("callback=relative/path", "callback must be an absolute");
         rejects("callback=https://bff.example/login/oauth2/code/other", "callback must end in");
         rejects("issuer=ftp://issuer.example", "issuer must be an absolute");
-        rejects("backchannel=", "backchannel is required");
-        rejects("backchannel=http://issuer/#fragment", "backchannel must have no");
         rejects("session-timeout=0s", "session-timeout must be a positive");
         rejects("read-timeout=11s", "connect-timeout and read-timeout must total at most");
         rejects("revocation-retry-delay=0s", "revocation-retry-delay must be at least 1ms");
@@ -70,6 +82,21 @@ class SellerOidcPropertiesTest {
             SellerOidcProperties properties = application.getBean(SellerOidcProperties.class);
             assertThat(properties.connectTimeout()).isEqualTo(Duration.ofMillis(750));
             assertThat(properties.readTimeout()).isEqualTo(Duration.ofSeconds(4));
+        });
+    }
+
+    @Test
+    void productionConfigurationRejectsMissingDeploymentIssuer() {
+        context.run(application -> {
+            SellerProductionConfigurationValidator validator = new SellerProductionConfigurationValidator(
+                    application.getBean(SellerOidcProperties.class),
+                    application.getBean(CorsProperties.class), new RedisProperties());
+            validator.setEnvironment(new MockEnvironment());
+
+            assertThatThrownBy(validator::validate)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("SELLER_OIDC_ISSUER is required")
+                    .hasMessageNotContaining("test-secret");
         });
     }
 

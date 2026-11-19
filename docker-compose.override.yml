@@ -1,0 +1,71 @@
+services:
+  # ============================================================================
+  # Development Port Bindings & Overrides
+  # ============================================================================
+  seller-bff:
+    ports:
+      - "${SELLER_BFF_PORT:-8080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+
+  authorization-server:
+    ports:
+      - "127.0.0.1:${AUTHORIZATION_PUBLISHED_PORT:-9000}:9000"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+
+  account-service:
+    ports:
+      - "${ACCOUNT_PORT:-1099}:1099"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+
+  merchandising-service:
+    ports:
+      - "${MERCHANDISING_PORT:-1100}:1100"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+
+  channel-service:
+    ports:
+      - "${CHANNEL_PORT:-1101}:1101"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+
+  checkout-service:
+    ports:
+      - "${CHECKOUT_PORT:-1102}:1102"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-dev}"
+
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  seaweedfs:
+    ports:
+      - "${SEAWEEDFS_S3_PORT:-8333}:8333"
+
+  # ============================================================================
+  # Developer Tools: pgAdmin 4
+  # ============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: grab-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL:-admin@grab.local}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD:-admin}"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_SERVER_JSON_FILE: "/pgadmin4/servers.json"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./docker/postgres/servers.json:/pgadmin4/servers.json:ro
+      - ./docker/postgres/.pgpass:/pgpass:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped

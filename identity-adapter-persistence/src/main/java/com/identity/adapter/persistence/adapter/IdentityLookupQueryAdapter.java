@@ -2,15 +2,17 @@ package com.identity.adapter.persistence.adapter;
 
 import com.grab.framework.id.Id;
 import com.grab.framework.security.AccessContext;
+import com.identity.application.model.read.ActiveSubjectView;
 import com.identity.application.model.read.CredentialView;
+import com.identity.application.model.read.ScopeCatalogView;
 import com.grab.framework.security.AuthenticatedActor;
 import com.identity.domain.enums.UserStatus;
 import com.identity.domain.exception.IdentityDomainError;
 import com.identity.domain.exception.IdentityDomainValidationException;
+import com.identity.domain.valueobject.ScopeHierarchy;
 import com.identity.application.port.outbound.IdentityLookupQueryPort;
 import com.identity.adapter.persistence.entity.*;
 import com.identity.adapter.persistence.repository.jpa.AccessAssignmentJpaRepository;
-import com.identity.adapter.persistence.repository.jpa.ExternalEntitlementMappingJpaRepository;
 import com.identity.adapter.persistence.repository.jpa.ExternalIdentityJpaRepository;
 import com.identity.application.port.outbound.ScopeCatalogQueryPort;
 import com.identity.adapter.persistence.repository.jpa.UserJpaRepository;
@@ -25,16 +27,14 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
 
     private final UserJpaRepository users;
     private final ExternalIdentityJpaRepository externalIdentities;
-    private final ExternalEntitlementMappingJpaRepository entitlementMappings;
     private final AccessAssignmentJpaRepository accessAssignments;
     private final ScopeCatalogQueryPort scopes;
 
     public IdentityLookupQueryAdapter(UserJpaRepository users, ExternalIdentityJpaRepository externalIdentities,
-            ExternalEntitlementMappingJpaRepository entitlementMappings, AccessAssignmentJpaRepository accessAssignments,
+            AccessAssignmentJpaRepository accessAssignments,
             ScopeCatalogQueryPort scopes) {
         this.users = users;
         this.externalIdentities = externalIdentities;
-        this.entitlementMappings = entitlementMappings;
         this.accessAssignments = accessAssignments;
         this.scopes = scopes;
     }
@@ -42,6 +42,12 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
     @Override
     public Optional<CredentialView> findCredentials(String normalizedEmail) {
         return users.findCredentialView(normalizedEmail);
+    }
+
+    @Override
+    public Optional<ActiveSubjectView> findActiveSubject(Id userId) {
+        String uuid = userId.getValue();
+        return users.findSubject(uuid, UserStatus.ACTIVE);
     }
 
     @Override
@@ -69,7 +75,7 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
             context = new AccessContext(assignmentKey, assignment.getScopeKey(), assignment.getScopeId());
         }
         try {
-            AuthenticatedActor actor = resolveForUser(user, "seller-oidc", userKey, context, Set.of());
+            AuthenticatedActor actor = resolveForUser(user, "seller-oidc", userKey, context);
             return Optional.of(actor);
         } catch (IdentityDomainValidationException exception) {
             return Optional.empty();
@@ -79,32 +85,27 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
     @Override
     public Optional<AuthenticatedActor> resolveByPlatformUserId(String issuer, String userId, AccessContext accessContext) {
         return users.findByUuid(userId)
-                .map(user -> resolveForUser(user, issuer, userId, accessContext, Set.of()));
+                .map(user -> resolveForUser(user, issuer, userId, accessContext));
     }
 
     @Override
     public Optional<AuthenticatedActor> resolveByExternalIdentity(String issuer, String subject, Set<String> entitlements, AccessContext accessContext) {
         return externalIdentities.findByIssuerAndSubject(issuer, subject)
+                .filter(ExternalIdentityEntity::isEnabled)
                 .map(ExternalIdentityEntity::getUser)
-                .map(user -> resolveForUser(user, issuer, subject, accessContext, entitlements));
+                .map(user -> resolveForUser(user, issuer, subject, accessContext));
     }
 
-    private AuthenticatedActor resolveForUser(UserEntity user, String issuer, String subject, AccessContext accessContext, Set<String> entitlements) {
+    private AuthenticatedActor resolveForUser(UserEntity user, String issuer, String subject, AccessContext accessContext) {
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new IdentityDomainValidationException(
                     new IdentityDomainError.AccountNotActive(user.getUuid()), "Account is not active");
         }
 
-        Set<RoleEntity> effectiveRoles = accessContext != null
-                ? scopedRoles(user, accessContext)
-                : new LinkedHashSet<>();
-
-        if (accessContext == null && !entitlements.isEmpty()) {
-            entitlementMappings.findByIssuerAndEntitlementIn(issuer, entitlements)
-                    .stream()
-                    .map(ExternalEntitlementMappingEntity::getRole)
-                    .forEach(effectiveRoles::add);
-        }
+        AccessContext effectiveContext = accessContext == null ? null : effectiveContext(user, accessContext);
+        Set<RoleEntity> effectiveRoles = effectiveContext == null
+                ? new LinkedHashSet<>()
+                : scopedRoles(user, effectiveContext);
 
         Set<String> roleCodes = effectiveRoles.stream()
                 .filter(RoleEntity::isActive)
@@ -125,14 +126,38 @@ public class IdentityLookupQueryAdapter implements IdentityLookupQueryPort {
                 user.getEmail(),
                 roleCodes,
                 authorities,
-                accessContext,
+                effectiveContext,
                 user.getAuthenticationVersion()
         );
     }
 
+    private AccessContext effectiveContext(UserEntity user, AccessContext requestedContext) {
+        if (requestedContext.assignmentId() == null) {
+            throw invalidAccessContext();
+        }
+        if (requestedContext.scopeKey() != null) {
+            ScopeCatalogView catalog = scopes.load();
+            ScopeHierarchy hierarchy = catalog.hierarchy();
+            if (!hierarchy.isEffective(requestedContext.scopeKey())) {
+                throw invalidAccessContext();
+            }
+        }
+        AccessAssignmentEntity anchor = accessAssignments.findEffectiveByUser(user.getUuid(), Instant.now()).stream()
+                .filter(assignment -> assignment.getUuid().equals(requestedContext.assignmentId()))
+                .findFirst()
+                .orElseThrow(this::invalidAccessContext);
+        boolean requestedScopeMatches = requestedContext.scopeKey() == null && requestedContext.scopeId() == null
+                || anchor.getScopeKey().equals(requestedContext.scopeKey())
+                && anchor.getScopeId().equals(requestedContext.scopeId());
+        if (!requestedScopeMatches) {
+            throw invalidAccessContext();
+        }
+        return new AccessContext(requestedContext.assignmentId(), anchor.getScopeKey(), anchor.getScopeId());
+    }
+
     private Set<RoleEntity> scopedRoles(UserEntity user, AccessContext context) {
-        var catalog = scopes.load();
-        var hierarchy = catalog.hierarchy();
+        ScopeCatalogView catalog = scopes.load();
+        ScopeHierarchy hierarchy = catalog.hierarchy();
         if (!hierarchy.isEffective(context.scopeKey())) {
             throw invalidAccessContext();
         }

@@ -7,4 +7,9 @@ import java.util.Optional;
 
 public interface ExternalIdentityJpaRepository extends JpaRepository<ExternalIdentityEntity, Long> {
     Optional<ExternalIdentityEntity> findByIssuerAndSubject(String issuer, String subject);
+
+    Optional<ExternalIdentityEntity> findByDirectoryIdAndResourceId(String directoryId, String resourceId);
+
+    Optional<ExternalIdentityEntity> findByUserUuid(String userUuid);
+
 }
