@@ -1,137 +1,46 @@
-# Workflow: Update Product Variant
+# Update Product Variant Workflow
 
-> **Purpose:** Update a merchant product variant's SKU and inventory-management setting, optionally synchronize its price, and process requested inventory lines.
-> **Starts When:** API call `POST /api/v1/workflows/update-product-variant` is received.
-> **Successful Result:** Catalog variant SKU and `manageInventory` are updated, an optional price is synchronized, and each provided inventory line is synchronized.
-> **Participating Domains:** Catalog · Pricing · Inventory
-> **Related Domain Specs:**
-> - [Catalog Domain Spec](../domain/catalog/architecture/product-domain-spec.md)
-> - [Pricing Domain Spec](../domain/pricing/architecture/pricing-domain-spec.md)
-> - [Inventory Domain Spec](../domain/inventory/architecture/inventory-item-domain-spec.md)
+## Status
 
----
+The app registers definition/payload versions 1 and 2. Version 2 uses typed optional steps, narrow owner request/result records, and a local final projection. Version 1 retains its original graph and routes for pinned executions and queued events. Starts and workers remain disabled by default.
 
-## 1. Step-by-Step Execution Path
+This definition does not yet declare participant compensation. If cancellation or a later step failure follows a successful mutation, the execution requires attention rather than claiming rollback.
 
-### Normal Path (Happy Path)
+## Contract
 
-| # | Step Name | Owner Domain | Business Action | Starts When | Complete When |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | `update-variant` | Catalog | Updates the variant SKU and requested `manageInventory` value. | Workflow initiated | `VariantUpdatedEvent` received |
-| **2** | `sync-variant-prices` | Pricing | Upserts the price for the variant (creates the price set if missing). | Step 1 completes | `VariantPriceSyncedEvent` received |
-| **3** | `sync-inventory-item` | Inventory | Executes stock adjustment, damage, write-off, or reorder operations per inventory line. | Step 2 completes | `InventoryItemSyncedEvent` received for every line → Workflow completes |
+| Property | Value |
+|---|---|
+| Name/version | `update-product-variant` / 1 or 2 |
+| Payload version | 1 for definition 1, 2 for definition 2 |
+| Caller scope | Trusted caller scope ID must equal the input merchant ID before execution creation |
+| Input | Merchant and actor IDs, product and variant IDs, optional SKU and inventory policy, pricing sync intent and lines, inventory sync intent and lines |
+| Result | Product and variant IDs, resolved SKU, price set IDs, inventory item IDs |
+| Batch bound | 100 lines per collection |
+| ID encoding | `Id` values serialize as scalar JSON strings and restore through the workflow payload codec |
 
-### Special Flows & Edge Conditions
+## Steps
 
-- **Parallel fan-out:** Step 3 fans out one inventory sync request per inventory line and advances when all sync.
-- **Conditional / skipped steps:** Step 2 (pricing) is skipped when no price is provided; Step 3 is skipped when no inventory lines are provided. Catalog applies the requested `manageInventory` value in Step 1. Request validation rejects a `CREATE` inventory line when this request explicitly sets `manageInventory=false`; existing inventory operations remain allowed. If the field is omitted, that validator condition does not apply.
+| Order | Owner/operation | Trigger and behavior | Output | Recovery behavior |
+|---|---|---|---|---|
+| 1 | Catalog: `catalog.update-variant` | Always. Updates the requested variant through the merchandising command bus and returns the resolved SKU. | Updated variant stage | A failure rolls back this owner transaction. No compensation is available after a committed update. |
+| 2 | Pricing: `pricing.sync-variant-prices` | Runs only when pricing sync is requested and price lines are present. Validates the bounded batch, resolves IDs/SKUs, then issues owner commands in one pricing transaction. | Affected price set IDs | A failure rolls back the pricing batch. No compensation is available after a committed update/create. |
+| 3 | Inventory: `inventory.apply-operations` | Runs only when inventory sync is requested and operations are present. Supports `CREATE`, `ADJUST`, `DAMAGE`, `WRITE_OFF`, and `REORDER`; validates all lines before commands. Requires `merchant.account` scope and matching merchant ID. | Affected inventory item IDs | A failure rolls back the owner batch. Inventory changes have no compensation route. |
+| 4 | Workflow: local result map (version 2) or `workflow.result.update-product-variant` | Always, after prior optional work. | Typed workflow result | Pure projection in version 2. |
 
-When `manageInventory` is omitted, validation does not compare the request to the current Catalog value. The workflow passes the explicit variant ID to Inventory, bypassing the Inventory service's SKU-only check of the projected `manageInventory` flag; a `CREATE` line can therefore proceed while the existing variant is not inventory-managed. This is a current implementation limitation.
+Skipped pricing and inventory branches pass the immutable stage through unchanged. Retry attempts preserve their logical operation identity and owner receipts replay a previously committed successful result for the same request fingerprint. Known invalid inputs, scope mismatches, and receipt conflicts return non-retryable outcomes after rollback; other failures rely on outbox redelivery.
 
-### Happy Path Flow
+In version 2 the persisted workflow stage remains private to orchestration. The bound task sends its typed owner request and receives a smaller typed result. The orchestration merges that result into its stage and projects the final result locally. See the [typed authoring contracts](../system/workflow-framework-tech-spec.md#5-authoring-typed-definitions).
 
-```mermaid
-sequenceDiagram
-    participant Caller
-    participant Workflow as Workflow Coordinator
-    participant Catalog
-    participant Pricing
-    participant Inventory
+## Current verification and remaining work
 
-    Caller->>Workflow: Start workflow request
-    Workflow->>Catalog: RequestUpdateVariantEvent
-    Catalog-->>Workflow: VariantUpdatedEvent
-    opt [Price Present]
-        Workflow->>Pricing: RequestSyncVariantPriceEvent
-        Pricing-->>Workflow: VariantPriceSyncedEvent
-    end
-    opt [Inventory Lines Present]
-        Workflow->>Inventory: RequestSyncInventoryItemEvent (fan-out per line)
-        Inventory-->>Workflow: InventoryItemSyncedEvent
-    end
-    Workflow-->>Caller: Workflow completed notification (terminal UI event)
-```
+| Scenario | Status |
+|---|---|
+| Definition registration, route coverage, and optional sync choice | Passed focused application test |
+| `Id` scalar codec round-trip | Passed focused application test |
+| Owner receipt migrations and uniqueness constraints against PostgreSQL | Passed against PostgreSQL 16 Testcontainers |
+| Variant update, price update, and inventory adjustment through real app participants/outboxes | Passed in `SellableProductWorkflowEndToEndTest` against PostgreSQL 16 Testcontainers |
+| Duplicate delivery after participant commit, restart recovery during this workflow, and compensation | Not covered |
+| Trusted seller-scope authorization at an authenticated ingress | Not implemented; no start REST route is included |
+| Known validation/scope/idempotency failure outcomes | Implemented as non-retryable; transient failure classification and compensation acknowledgement are not implemented |
 
----
-
-## 2. Events & Signals
-
-### Request Events (Workflow → Domain)
-
-| Event Name | Step | Dispatched To | Intent / Payload Summary |
-| :--- | :--- | :--- | :--- |
-| `RequestUpdateVariantEvent` | `update-variant` | Catalog | Requests updating the variant SKU and `manageInventory` setting. |
-| `RequestSyncVariantPriceEvent` | `sync-variant-prices` | Pricing | Requests price synchronization (upsert) for the variant. |
-| `RequestSyncInventoryItemEvent` | `sync-inventory-item` | Inventory | Requests inventory creation, stock adjustment, damage, write-off, or reorder. |
-
-### Completion Events (Domain → Workflow)
-
-| Event Name | Step | Emitted By | Meaning to Workflow |
-| :--- | :--- | :--- | :--- |
-| `VariantUpdatedEvent` | `update-variant` | Catalog | Catalog variant updated successfully; advance to price sync. |
-| `VariantPriceSyncedEvent` | `sync-variant-prices` | Pricing | Price synchronized for the variant; advance to inventory sync. |
-| `InventoryItemSyncedEvent` | `sync-inventory-item` | Inventory | Inventory operation completed for a line; step completes when all lines sync. |
-
-### Failure Events (Domain → Workflow)
-
-| Event Name | Emitted By | Failure Cause | Resulting Workflow Action |
-| :--- | :--- | :--- | :--- |
-| `SellableProductStepFailedEvent` | Catalog, Pricing, or Inventory step listener | A caught operation exception for one of the three workflow steps | Halts forward execution and starts compensation when any undo request exists. |
-
-If a completion signal never arrives, the workflow sweeper times out the waiting step; timeout is an engine action, not a `SellableProductStepFailedEvent`.
-
----
-
-## 3. Compensation & Failure Recovery
-
-> **Starts When:** A step reports failure via `SellableProductStepFailedEvent`.
-
-### Compensation Order
-
-| Reverse step | Completed action | Undo action | Request event | Acknowledgement event |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | Step 2: Created a new price set | Delete only price sets created by this workflow run | `RequestDeletePriceSetCompensationEvent` | `PriceSetDeletedEvent` |
-
-### Explicitly Non-Compensated Actions
-
-- **Catalog variant SKU:** The variant is intentionally retained to prevent merchant data loss on transient failures, and prior SKUs are not snapshotted for rollback.
-- **In-place price updates:** Prior price amounts are not snapshotted for rollback. Only a *newly created* price set is deleted.
-- **Inventory items and adjustments:** Stock adjustments, damage reports, write-offs, and newly created items are explicitly not rolled back by business policy.
-
-Compensation requests are collected in reverse step order and published together; the engine does not wait for one compensation acknowledgement before dispatching the next request. A workflow with no compensation requests ends `FAILED`. If a new price set was created and its deletion is acknowledged, the workflow can end `COMPENSATED` even though the catalog update and any inventory operations remain applied. A compensation timeout ends `FAILED`. For terminal `FAILED` or `COMPENSATED` outcomes, `partiallyApplied` is true when the variant update completed, a price sync completed, or at least one inventory item was recorded. These values are based on received completion signals, so a committed operation whose acknowledgement was not received may not be reflected; the flag does not indicate that retained changes were rolled back.
-
-### Failure Flow
-
-```mermaid
-sequenceDiagram
-    participant StepOwner as Domain
-    participant Workflow as Workflow Coordinator
-    participant Pricing
-
-    alt Participant reports a caught operation failure
-        StepOwner-->>Workflow: SellableProductStepFailedEvent
-    else Expected completion times out
-        Workflow->>Workflow: Sweeper starts failure recovery
-    end
-    Note over Workflow: Halt forward execution
-    opt [Newly Created Price Set Present]
-        Workflow->>Pricing: RequestDeletePriceSetCompensationEvent
-        Pricing-->>Workflow: PriceSetDeletedEvent
-    end
-    Note over Workflow: Mark COMPENSATED only after all requested price deletions are acknowledged
-    Note over Workflow: Otherwise mark FAILED (no undo request or compensation timeout)
-```
-
----
-
-## 4. Aggregate Cross-Lifecycle Matrix
-
-| Workflow Stage | Catalog Variant | Pricing PriceSet | InventoryItem |
-| :--- | :--- | :--- | :--- |
-| **Initial Start** | Existing active variant | Existing or absent PriceSet | Existing or absent InventoryItem |
-| **After Step 1** | Requested SKU and `manageInventory` applied | Unchanged | Unchanged |
-| **After Step 2** | Updated | Price upserted when supplied; otherwise unchanged | Unchanged |
-| **After Step 3** | Updated | Upserted price retained | Requested inventory operations applied; new items created when requested |
-| **If Compensation Completes** | SKU and `manageInventory` changes retained | In-place edits retained; newly created PriceSet deleted | New items and stock changes retained |
-
-Implementation references: `store/src/main/java/com/grab/store/workflows/internal/workflows/updateproductvariant/UpdateProductVariantDefinition.java`, `UpdateProductVariantContext.java`, `store/src/main/java/com/grab/store/workflows/internal/workflows/updateproductvariant/rest/dto/request/InventoryLinesValidator.java`, and `store/src/main/java/com/grab/store/catalog/internal/event/UpdateProductVariantCatalogEventListener.java`.
+See [sellable product workflow feature](../features/feat_015-sellable-product-workflows-on-app-runtime.md) for overall adoption requirements and [workflow runtime spec](../system/workflow-headless-runtime-and-protocol-tech-spec.md) for runtime semantics.

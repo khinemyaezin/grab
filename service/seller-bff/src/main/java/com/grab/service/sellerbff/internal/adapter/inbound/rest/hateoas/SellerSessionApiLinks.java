@@ -12,8 +12,13 @@ public final class SellerSessionApiLinks {
     }
 
     public static Link selectContext(String assignmentId) {
-        return linkTo(methodOn(SellerSessionController.class).selectContext(assignmentId, null, null))
+        return linkTo(methodOn(SellerSessionController.class).selectContext(assignmentId))
                 .withRel("select-context");
+    }
+
+    public static Link switchContext() {
+        return linkTo(methodOn(SellerSessionController.class).switchContext())
+                .withRel("switch-context");
     }
 
     public static Link listContexts() {

@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grab Seller Central - Sign In</title>
+    <title>Sign in to Grab</title>
     <link rel="stylesheet" th:href="@{/css/login.css}" />
 </head>
 <body class="login-body">
     <main class="login-container">
         <header class="login-header">
-            <h1>Welcome to Seller Central.</h1>
-            <p>Sign in securely with your Seller account.</p>
+            <h1>Sign in to Grab</h1>
         </header>
 
         <div th:if="${param.error}" class="alert alert-error" role="alert">
             Invalid email or password. Please verify your credentials and try again.
+        </div>
+
+        <div th:if="${param.registered}" class="alert alert-info" role="alert">
+            Account created successfully! Please sign in.
         </div>
 
         <div th:if="${param.logout}" class="alert alert-info" role="alert">
@@ -27,7 +30,7 @@
             <div class="form-group">
                 <label for="username" class="form-label">Email Address</label>
                 <input type="email" id="username" name="username" class="form-input"
-                       placeholder="seller@example.com" autocomplete="username" required autofocus />
+                       placeholder="you@example.com" autocomplete="username" required autofocus />
             </div>
 
             <div class="form-group">
@@ -38,6 +41,10 @@
 
             <button type="submit" class="btn-primary">Sign in</button>
         </form>
+
+        <footer style="margin-top: 1.5rem; text-align: center; font-size: 0.875rem;">
+            Don't have an account? <a th:href="@{/register}">Register here</a>
+        </footer>
     </main>
 </body>
 </html>

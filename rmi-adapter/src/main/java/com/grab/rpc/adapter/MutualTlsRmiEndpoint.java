@@ -16,25 +16,43 @@ import java.rmi.registry.Registry;
 import java.rmi.server.RMIServerSocketFactory;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.GeneralSecurityException;
+import java.util.Map;
 
 public final class MutualTlsRmiEndpoint implements SmartLifecycle {
+    public static final String DEFAULT_FILTER_PATTERN =
+            "maxdepth=12;maxrefs=64;maxbytes=262144;" +
+                    "java.lang.**;java.util.**;java.time.**;" +
+                    "com.grab.service.contract.message.**;!*";
+
     private final String bindAddress;
     private final String advertisedHost;
     private final int port;
     private final SslMaterial material;
-    private final Class<? extends Remote> contract;
-    private final Remote provider;
+    private final Map<Class<? extends Remote>, Remote> providers;
+    private final String filterPattern;
     private Registry registry;
     private volatile boolean running;
 
     public MutualTlsRmiEndpoint(String bindAddress, String advertisedHost, int port, SslMaterial material,
                                 Class<? extends Remote> contract, Remote provider) {
+        this(bindAddress, advertisedHost, port, material, Map.of(contract, provider), null);
+    }
+
+    public MutualTlsRmiEndpoint(String bindAddress, String advertisedHost, int port, SslMaterial material,
+                                Map<Class<? extends Remote>, Remote> providers) {
+        this(bindAddress, advertisedHost, port, material, providers, null);
+    }
+
+    public MutualTlsRmiEndpoint(String bindAddress, String advertisedHost, int port, SslMaterial material,
+                                Map<Class<? extends Remote>, Remote> providers, String filterPattern) {
         this.bindAddress = bindAddress;
         this.advertisedHost = advertisedHost;
         this.port = port;
         this.material = material;
-        this.contract = contract;
-        this.provider = provider;
+        this.providers = Map.copyOf(providers);
+        this.filterPattern = (filterPattern != null && !filterPattern.isBlank())
+                ? filterPattern
+                : System.getProperty("grab.rmi.deserialization-filter", DEFAULT_FILTER_PATTERN);
     }
 
     @Override
@@ -54,11 +72,13 @@ public final class MutualTlsRmiEndpoint implements SmartLifecycle {
                 return socket;
             };
             registry = LocateRegistry.createRegistry(port, client, server);
-            ObjectInputFilter filter = ObjectInputFilter.Config.createFilter(
-                    "maxdepth=12;maxrefs=64;maxbytes=262144;java.lang.String;" +
-                            "com.grab.service.contract.message.account.identity.*;!*");
-            Remote stub = UnicastRemoteObject.exportObject(provider, port, client, server, filter);
-            registry.rebind(contract.getName(), stub);
+            ObjectInputFilter filter = ObjectInputFilter.Config.createFilter(filterPattern);
+            for (Map.Entry<Class<? extends Remote>, Remote> binding : providers.entrySet()) {
+                Remote provider = binding.getValue();
+                Remote stub = UnicastRemoteObject.exportObject(provider, port, client, server, filter);
+                String name = binding.getKey().getName();
+                registry.rebind(name, stub);
+            }
             running = true;
         } catch (GeneralSecurityException | IOException exception) {
             stop();
@@ -68,7 +88,7 @@ public final class MutualTlsRmiEndpoint implements SmartLifecycle {
 
     @Override
     public synchronized void stop() {
-        unexport(provider);
+        providers.values().forEach(this::unexport);
         if (registry != null) {
             unexport(registry);
             registry = null;

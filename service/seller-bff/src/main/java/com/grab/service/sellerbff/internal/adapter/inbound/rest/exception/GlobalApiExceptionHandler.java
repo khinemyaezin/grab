@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
+import java.rmi.RemoteException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,11 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(DomainException.class)
     public ProblemDetail handleDomainException(DomainException exception, HttpServletRequest request) {
-        log.error(exception.getMessage(), exception);
+        if (exception.getMessageSource().kind() == ErrorCategory.INTERNAL) {
+            log.error("{}: {}", exception.getMessageSource().code(), exception.getMessage(), exception);
+        } else {
+            log.warn("{}: {}", exception.getMessageSource().code(), exception.getMessage());
+        }
         return toProblem(
                 statusFromCategory(exception.getMessageSource().kind()),
                 exception.getMessageSource(),
@@ -55,7 +60,6 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidationException(MethodArgumentNotValidException exception, HttpServletRequest request) {
-        log.error(exception.getMessage(), exception);
         List<Map<String, Object>> errors = exception.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -67,10 +71,9 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleConstraintViolation(ConstraintViolationException exception, HttpServletRequest request) {
-        log.error(exception.getMessage(), exception);
         List<Map<String, Object>> errors = exception.getConstraintViolations()
                 .stream()
-                .map(violation -> Map.<String, Object>of(
+                .map(violation -> Map.of(
                         "path", String.valueOf(violation.getPropertyPath()),
                         "message", violation.getMessage(),
                         "invalidValue", violation.getInvalidValue()
@@ -82,8 +85,6 @@ public class GlobalApiExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail handleMalformedBody(HttpMessageNotReadableException exception, HttpServletRequest request) {
-        log.error(exception.getMessage(), exception);
-        exception.getMostSpecificCause();
         String reason = Objects.toString(
                 exception.getMostSpecificCause().getMessage(),
                 "unknown"
@@ -120,15 +121,29 @@ public class GlobalApiExceptionHandler {
         return failure.getBody();
     }
 
+    @ExceptionHandler(RemoteException.class)
+    public ProblemDetail handleRemoteException(RemoteException exception, HttpServletRequest request) {
+        DomainException domainException = findDomainException(exception);
+        if (domainException != null) {
+            return handleDomainException(domainException, request);
+        }
+        log.error("Remote service communication failure on {}: {}", request.getRequestURI(), exception.getMessage(), exception);
+        return handleDomainException(SharedErrors.internalUnexpected(), request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpectedException(Exception exception, HttpServletRequest request) {
+        DomainException domainException = findDomainException(exception);
+        if (domainException != null) {
+            return handleDomainException(domainException, request);
+        }
         log.error(exception.getMessage(), exception);
         return handleDomainException(SharedErrors.internalUnexpected(), request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail handleAccessDenied(AccessDeniedException exception, HttpServletRequest request) {
-        log.error(exception.getMessage(), exception);
+        log.warn("Access denied on {}: {}", request.getRequestURI(), exception.getMessage());
         return toProblem(HttpStatus.FORBIDDEN, new MessageSource() {
             public ErrorCategory kind() { return ErrorCategory.FORBIDDEN; }
             public String code() { return "idt.service.auth.access_denied"; }
@@ -137,14 +152,28 @@ public class GlobalApiExceptionHandler {
     }
 
     @ExceptionHandler({MissingServletRequestParameterException.class, MissingRequestHeaderException.class})
-    public ProblemDetail handleDomainException(MissingServletRequestParameterException exception, HttpServletRequest request) {
-        log.error(exception.getMessage(), exception);
+    public ProblemDetail handleMissingParameterOrHeader(Exception exception, HttpServletRequest request) {
+        log.warn("Missing request parameter or header on {}: {}", request.getRequestURI(), exception.getMessage());
         return toProblem(
                 statusFromCategory(ErrorCategory.BAD_REQUEST),
                 new SharedError.RequestMalformedJson("Bad Request"),
                 exception.getMessage(),
                 request
         );
+    }
+
+    private DomainException findDomainException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof DomainException domainException) {
+                return domainException;
+            }
+            if (current.getCause() == current) {
+                break;
+            }
+            current = current.getCause();
+        }
+        return null;
     }
 
 

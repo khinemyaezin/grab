@@ -12,5 +12,5 @@ COPY --from=builder --chown=grab:grab /workspace/service/authorization-server/ta
 USER grab
 EXPOSE 9000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
-    CMD wget -q -O - http://127.0.0.1:${AUTHORIZATION_PORT:-9000}/actuator/health/liveness >/dev/null || exit 1
+    CMD wget -q -O - http://127.0.0.1:${AUTHORIZATION_PORT:-9000}/actuator/health/readiness >/dev/null || exit 1
 ENTRYPOINT ["java", "-jar", "/app/server.jar"]

@@ -104,17 +104,25 @@ public final class OutboxDeliveryEngine<T extends OutboxEntry<ID>, ID> implement
             outcomes.reportClaimLost(claim, "before dispatch");
             return;
         }
-        try {
-            dispatch(row.get());
-            boolean published = transactions.inNewTransaction(() -> outcomes.markPublished(claim));
-            if (!published) {
-                outcomes.reportClaimLost(claim, "after dispatch");
+        T event = row.get();
+        String headerTraceId = OutboxEventHeaders.extractTraceId(event.getHeaders());
+        String traceId = headerTraceId == null || headerTraceId.isBlank() ? TraceContext.generate() : headerTraceId;
+        UUID eventId = event.getEventId();
+        String eventIdValue = eventId == null ? null : eventId.toString();
+
+        TraceContext.run(traceId, () -> LogContext.run(LogContext.EVENT_ID, eventIdValue, () -> {
+            try {
+                dispatch(event);
+                boolean published = transactions.inNewTransaction(() -> outcomes.markPublished(claim));
+                if (!published) {
+                    outcomes.reportClaimLost(claim, "after dispatch");
+                }
+            } catch (OutboxPoisonEventException exception) {
+                outcomes.recordFailure(claim, exception, true);
+            } catch (RuntimeException exception) {
+                outcomes.recordFailure(claim, exception, false);
             }
-        } catch (OutboxPoisonEventException exception) {
-            outcomes.recordFailure(claim, exception, true);
-        } catch (RuntimeException exception) {
-            outcomes.recordFailure(claim, exception, false);
-        }
+        }));
     }
 
     public void shutdown() {
@@ -170,11 +178,6 @@ public final class OutboxDeliveryEngine<T extends OutboxEntry<ID>, ID> implement
                 eventPayload,
                 eventHeaders
         );
-        String headerTraceId = OutboxEventHeaders.extractTraceId(event.getHeaders());
-        String traceId = headerTraceId == null || headerTraceId.isBlank() ? TraceContext.generate() : headerTraceId;
-        UUID eventId = event.getEventId();
-        String eventIdValue = eventId == null ? null : eventId.toString();
-        Runnable delivery = () -> OutboxDeliveryContext.run(metadata, () -> dispatcher.dispatch(payload));
-        TraceContext.run(traceId, () -> LogContext.run(LogContext.EVENT_ID, eventIdValue, delivery));
+        OutboxDeliveryContext.run(metadata, () -> dispatcher.dispatch(payload));
     }
 }

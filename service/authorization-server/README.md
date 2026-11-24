@@ -1,23 +1,52 @@
-# Seller Authorization Server
+# Authorization Server (IAM Authority)
 
-This Boot service issues OIDC tokens for Seller BFF. Account remains the only store for user passwords, assignments, roles, and permissions. The issuer has a separate PostgreSQL database role and schema, `authorization_server`. Provision the database and give its dedicated role permission to create the schema and run its Flyway migrations before starting.
+This service hosts the self-contained IAM Authority and OIDC / OAuth 2.0 Issuer (Keycloak alternative) backed by PostgreSQL, Redis, and outbound SCIM integration with `account-service`.
 
-## Local deployment
+## Core Responsibilities & Architecture
 
-1. Copy the three environment examples in `docker/env` to their corresponding ignored `.env` files. Set a random confidential client secret in the BFF file and its Spring delegated BCrypt encoding, prefixed with `{bcrypt}`, in the issuer file. Use single quotes around the BCrypt value in Compose env files so the dollar signs are literal.
-2. Mount PKCS#12 files using the directories in `docker-compose.seller-oidc.yml`. Account's server certificate must have the name clients connect to in its SAN, normally `account-service`. Use distinct issuer and BFF client certificates with client-auth usage. Each Account peer allowlist contains only the client leaf certificates authorized for that port. Each client truststore trusts the Account server certificate or its CA. The issuer signing keystore has a separate RSA key of at least 2048 bits.
-3. Set `SELLER_AUTH_RPC_ENABLED=true` in the Account environment file and `SELLER_OIDC_ENABLED=true` in the Seller BFF file. Start the services with the overlay:
+1. **Local Identity & Credential Store**:
+   - Manages user identity locally (`iam_user` table) with BCrypt password hashing.
+   - Handles direct user self-registration via `/register`.
+2. **Outbound SCIM 2.0 Synchronization**:
+   - Outbound provisioning to `account-service` over Java RMI (`ScimUserPort`).
+   - On local registration, automatically provisions a SCIM user to `account-service` and receives the authoritative `platform_user_id`.
+3. **In-IAM Context Selection & Delayed Token Issuance**:
+   - Before authorization codes or tokens are minted, authenticated users select their active access context (`/select-context`).
+   - Access contexts are synced from `account-service` (`ScimUserPort.getUserAccessContexts`) and cached locally (`iam_access_context`).
+   - Context switching is triggered seamlessly by clients passing `prompt=select_context` to the `/oauth2/authorize` endpoint.
+4. **Token Minting & Claims**:
+   - ID tokens, access tokens, and `/userinfo` responses are enriched with standard and Grab claims:
+     - `platform_user_id`: Authoritative UUID for downstream domain calls.
+     - `scope_key`: Generalized context category (e.g. `merchant.account`, `merchant.storefront`, `platform`).
+     - `scope_id`: Identifier of the selected context (e.g. `merchant-123`, `store-456`).
+     - `assignment_id`: User assignment identifier.
+     - `role`: Selected context role code (e.g. `MERCHANT_OWNER`, `STORE_MANAGER`).
+     - `authorities`: Granted permissions for the selected context.
 
-   ```sh
-   docker compose -f docker-compose.yml -f docker-compose.seller-oidc.yml --profile seller-oidc up --build
-   ```
+## Local Compose Deployment
 
-The profile expects a reachable authorization database in `AUTHORIZATION_DB_URL`. The optional local Redis instance stores both server-side sessions and pending revocations. The two mTLS RMI ports are private. For production, use HTTPS for issuer and BFF, set both secure-cookie flags to true, and configure a private, persistent Redis service with authentication and TLS. Restrict Actuator metrics to the internal network.
+1. Copy `docker/env/{authorization-server,account-service,seller-bff}.env.example` to the corresponding `.env` files. Copy `docker/config/authorization-clients.yml.example` to `docker/config/authorization-clients.yml`.
+2. Set a client secret in the Seller BFF environment and its delegated BCrypt hash in `AUTHORIZATION_CLIENT_0_SECRET_HASH`. Match the BFF's client ID, audience, callback, and post-logout URL to the registry. Match the BFF's public issuer URL to `AUTHORIZATION_ISSUER`.
+3. Start the environment with Docker Compose:
 
-## Browser integration
+```sh
+docker compose --env-file docker/env/dev.env config --quiet
+docker compose --env-file docker/env/dev.env up --build -d
+```
 
-Navigate to `GET /oauth2/authorization/seller` to log in. After the callback, fetch `GET /api/v1/identity/auth/csrf` with the BFF session cookie and send the returned token using its `headerName` on unsafe API methods. Read `GET /api/v1/identity/session` and `GET /api/v1/identity/session/contexts`. The selection POST returns HAL context metadata and no token strings. For logout, submit a top-level POST with the CSRF form parameter so the browser follows the issuer logout redirect. Fetch a fresh CSRF token after login or logout.
+## Client Registration & Registry
 
-Rotate signing keys by deploying a new current alias and retaining the previous public aliases in `SELLER_OIDC_RETIRING_ALIASES` for at least the lifetime of tokens signed by them. Use distinct key aliases. Keep issuer URLs and registered callback URLs stable during a deploy.
+Clients are declared in `docker/config/authorization-clients.yml` with:
+- `client-id`: Unique OAuth 2.0 client ID (e.g. `seller`).
+- `client-secret`: BCrypt hash of client secret.
+- `redirect-uris`: Exact authorization callback URIs.
+- `post-logout-redirect-uris`: RP-initiated logout destination URIs.
+- `scopes`: Supported scopes (`openid`, `profile`, `email`).
+- Capabilities: PKCE (S256), rotating refresh tokens, and claim minting.
 
-The existing bearer issuer works independently of this browser mode. Before enabling the opt-in mode in production, verify the roles granted to real Seller accounts against the route permissions, the app's navigation and CSRF behavior, and legacy bearer callers. Monitor the `seller.oidc.*` metrics for denied logins and switches, callback failures, Account outages, introspection latency, refresh replay, and pending revocations.
+## Database Migrations
+
+Database schema management uses Flyway:
+- `V1__oauth2.sql`: Spring Authorization Server standard tables.
+- `V2__rename_consumed_refresh.sql`: Refresh token tracking schema adjustments.
+- `V3__local_users_and_access_contexts.sql`: Local user identities (`iam_user`) and cached access contexts (`iam_access_context`).

@@ -1,7 +1,9 @@
 package com.identity.adapter.persistence.repository.jpa;
 
 import com.identity.adapter.persistence.entity.UserEntity;
+import com.identity.application.model.read.ActiveSubjectView;
 import com.identity.application.model.read.UserAssignmentView;
+import com.identity.domain.enums.UserStatus;
 import com.identity.application.model.read.CredentialView;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,9 +27,16 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
             SELECT new com.identity.application.model.read.CredentialView(
                 u.uuid, u.passwordHash, u.status, u.authenticationVersion)
             FROM UserEntity u
-            WHERE u.email = :email
+            WHERE u.email = :email AND u.identityManagementMode = 'LOCAL'
             """)
     Optional<CredentialView> findCredentialView(@Param("email") String email);
+
+    @Query("""
+            SELECT new com.identity.application.model.read.ActiveSubjectView(u.uuid, u.authenticationVersion)
+            FROM UserEntity u
+            WHERE u.uuid = :uuid AND u.status = :status
+            """)
+    Optional<ActiveSubjectView> findSubject(@Param("uuid") String uuid, @Param("status") UserStatus status);
 
     @Query("""
             SELECT new com.identity.application.model.read.UserAssignmentView(

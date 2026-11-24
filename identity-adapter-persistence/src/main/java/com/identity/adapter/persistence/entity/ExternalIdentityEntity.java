@@ -27,4 +27,25 @@ public class ExternalIdentityEntity {
 
     @Column(name = "linked_at", nullable = false)
     private LocalDateTime linkedAt;
+
+    @Column(name = "directory_id")
+    private String directoryId;
+
+    @Column(name = "resource_id")
+    private String resourceId;
+
+    @Column(name = "linked_by")
+    private String linkedBy;
+
+    @Column(name = "updated_by")
+    private String updatedBy;
+
+    @Column(nullable = false)
+    private boolean enabled = true;
+
+    @Column(name = "directory_revision", nullable = false)
+    private long directoryRevision;
+
+    @Column(name = "directory_observed_at")
+    private LocalDateTime directoryObservedAt;
 }

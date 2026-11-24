@@ -18,10 +18,13 @@ POST /api/v1/categories CATALOG_WRITE platform
 DELETE /api/v1/categories/{categoryId} CATALOG_WRITE platform
 GET /api/v1/identity public none
 GET /api/v1/identity/auth/csrf public none
+GET /api/v1/identity/auth/register-url public none
 POST /api/v1/identity/auth/register public none
 POST /api/v1/identity/auth/logout authenticated none
+GET /api/v1/identity/auth/logout-url authenticated none
 GET,HEAD /api/v1/identity/session authenticated none
 GET,HEAD /api/v1/identity/session/contexts authenticated none
+GET,POST /api/v1/identity/session/contexts/switch authenticated none
 POST /api/v1/identity/session/contexts/{assignmentId}/select authenticated none
 GET,HEAD /api/v1/identity/admin/merchants MERCHANT_GLOBAL_READ merchant.account
 POST /api/v1/identity/admin/merchants/{merchantId}/request-changes MERCHANT_LIFECYCLE_WRITE merchant.account

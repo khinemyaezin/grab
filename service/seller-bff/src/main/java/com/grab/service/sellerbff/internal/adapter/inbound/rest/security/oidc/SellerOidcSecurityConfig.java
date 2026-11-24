@@ -16,6 +16,8 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
@@ -47,7 +49,8 @@ class SellerOidcSecurityConfig {
                                            SellerOidcProperties properties,
                                            List<SellerModuleSecurityConfigurer> modules,
                                            DefaultOAuth2AuthorizationRequestResolver requests,
-                                           SellerOidcBrowserSession sessions, ObjectMapper json,
+                                           OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> codeClient,
+                                           SellerOidcUserService oidcUserService,
                                            AuthenticationEntryPoint entryPoint,
                                            AccessDeniedHandler deniedHandler,
                                            CorsProperties corsProperties,
@@ -78,23 +81,14 @@ class SellerOidcSecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .oauth2Login(login -> login.authorizedClientRepository(clients)
                         .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(requests))
+                        .tokenEndpoint(endpoint -> endpoint.accessTokenResponseClient(codeClient))
+                        .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
                         .successHandler((request, response, authentication) -> {
-                            OAuth2AuthorizedClient client = clients.loadAuthorizedClient(REGISTRATION_ID, authentication, request);
-                            try {
-                                OidcUser principal = (OidcUser) authentication.getPrincipal();
-                                sessions.start(request, client, principal);
-                                clients.removeAuthorizedClient(REGISTRATION_ID, authentication, request, response);
-                                response.sendRedirect(properties.ui().toASCIIString());
-                            } catch (RuntimeException exception) {
-                                metrics.counter("seller.oidc.callback.failed").increment();
-                                SecurityContextLogoutHandler logout = new SecurityContextLogoutHandler();
-                                logout.logout(request, response, authentication);
-                                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-                            }
+                            response.sendRedirect(properties.ui().toASCIIString());
                         })
                         .failureHandler((request, response, exception) -> {
                             String code = exception instanceof OAuth2AuthenticationException oauth
-                                    ? oauth.getError().getErrorCode() : exception.getClass().getSimpleName();
+                                     ? oauth.getError().getErrorCode() : exception.getClass().getSimpleName();
                             Throwable cause = exception.getCause();
                             boolean unavailable = cause instanceof ResourceAccessException
                                     || (cause instanceof RestClientResponseException httpError
@@ -106,8 +100,6 @@ class SellerOidcSecurityConfig {
                             response.sendError(status);
                         }));
 
-        SellerOidcBrowserFilter browser = new SellerOidcBrowserFilter(sessions, json, entryPoint);
-        http.addFilterAfter(browser, OAuth2LoginAuthenticationFilter.class);
         SellerContextRequiredFilter context = new SellerContextRequiredFilter();
         http.addFilterBefore(context, AuthorizationFilter.class);
         return http.build();

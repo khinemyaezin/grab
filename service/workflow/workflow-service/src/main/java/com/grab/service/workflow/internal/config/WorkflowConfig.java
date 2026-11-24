@@ -1,5 +1,6 @@
 package com.grab.service.workflow.internal.config;
 
+import com.grab.service.workflow.internal.config.tracing.WorkflowTracingConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -9,7 +10,8 @@ import org.springframework.context.annotation.Import;
         ServiceSharedConfiguration.class,
         WorkflowConfiguration.class,
         WorkflowDataSourceConfig.class,
-        WorkflowBusConfig.class
+        WorkflowBusConfig.class,
+        WorkflowTracingConfiguration.class
 })
 public class WorkflowConfig {
 }
