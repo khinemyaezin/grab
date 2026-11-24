@@ -430,15 +430,46 @@ class SellerOidcBrowserIntegrationTest {
         String csrf = csrf(browser);
 
         HttpResponse<String> logout = send(browser, "/api/v1/identity/auth/logout", "POST", null, csrf);
-        assertThat(logout.statusCode()).isIn(200, 204, 302, 303);
+        assertThat(logout.statusCode()).isEqualTo(303);
+        assertThat(logout.headers().firstValue("Location"))
+                .hasValue("http://issuer:9000/connect/logout?id_token_hint=id&post_logout_redirect_uri=http://localhost:3000/");
+        assertThat(sessions.findById(sessionId)).isNull();
+    }
+
+    @Test
+    void logoutUrl_returnsFederatedUrl() throws Exception {
+        Session session = authenticatedSession(sessions);
+        HttpClient browser = browser(session);
+
+        HttpResponse<String> response = send(browser, "/api/v1/identity/auth/logout-url", "GET", null);
+        assertThat(response.statusCode()).isEqualTo(200);
+        JsonNode root = json.readTree(response.body());
+        assertThat(root.path("url").asText())
+                .isEqualTo("http://issuer:9000/connect/logout?id_token_hint=id&post_logout_redirect_uri=http://localhost:3000/");
+    }
+
+    @Test
+    void logout_withoutIdToken_fallsBackToPostLogout() throws Exception {
+        Session session = authenticatedSession(sessions, actor(null, Set.of(), Set.of()), false);
+        String sessionId = session.getId();
+        HttpClient browser = browser(session);
+        String csrf = csrf(browser);
+
+        HttpResponse<String> logout = send(browser, "/api/v1/identity/auth/logout", "POST", null, csrf);
+        assertThat(logout.statusCode()).isEqualTo(303);
+        assertThat(logout.headers().firstValue("Location")).hasValue("http://localhost:3000/");
         assertThat(sessions.findById(sessionId)).isNull();
     }
 
     private <S extends Session> Session authenticatedSession(SessionRepository<S> repository) {
-        return authenticatedSession(repository, actor(null, Set.of(), Set.of()));
+        return authenticatedSession(repository, actor(null, Set.of(), Set.of()), true);
     }
 
     private <S extends Session> Session authenticatedSession(SessionRepository<S> repository, AuthenticatedActor actor) {
+        return authenticatedSession(repository, actor, true);
+    }
+
+    private <S extends Session> Session authenticatedSession(SessionRepository<S> repository, AuthenticatedActor actor, boolean includeIdToken) {
         Instant issued = Instant.now();
         Instant expires = issued.plusSeconds(600);
         Map<String, Object> claims = new HashMap<>();
@@ -453,8 +484,9 @@ class SellerOidcBrowserIntegrationTest {
         claims.put(GrabOidcClaims.ROLE, actor.roles().isEmpty() ? null : actor.roles().iterator().next());
         claims.put(GrabOidcClaims.AUTHORITIES, List.copyOf(actor.authorities()));
 
-        OidcIdToken token = new OidcIdToken("id", issued, expires, claims);
-        SellerSecurityPrincipal principal = new SellerSecurityPrincipal(actor, new DefaultOidcUser(List.of(), token));
+        OidcIdToken token = includeIdToken ? new OidcIdToken("id", issued, expires, claims) : null;
+        DefaultOidcUser oidcUser = includeIdToken ? new DefaultOidcUser(List.of(), token) : null;
+        SellerSecurityPrincipal principal = new SellerSecurityPrincipal(actor, oidcUser);
         OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(principal, principal.getAuthorities(), "seller");
         SecurityContextImpl context = new SecurityContextImpl(authentication);
         S session = repository.createSession();

@@ -101,7 +101,8 @@ class SellerOidcClientConfig {
             RestTemplate rest = new RestTemplate(sellerIssuerRequests);
             ResponseEntity<Map<String, Object>> responseEntity = rest.exchange(discoveryUri,
                     org.springframework.http.HttpMethod.GET, null,
-                    new ParameterizedTypeReference<Map<String, Object>>() {});
+                    new ParameterizedTypeReference<>() {
+                    });
             Map<String, Object> response = responseEntity.getBody();
             metadata = response == null ? Map.of() : response;
         } catch (RuntimeException exception) {

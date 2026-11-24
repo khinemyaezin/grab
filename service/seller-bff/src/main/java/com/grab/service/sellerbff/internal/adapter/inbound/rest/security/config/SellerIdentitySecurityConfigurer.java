@@ -23,6 +23,8 @@ final class SellerIdentitySecurityConfigurer implements SellerModuleSecurityConf
                 .permitAll();
         access.requestMatchers(POST, "/api/v1/identity/auth/logout")
                 .authenticated();
+        access.requestMatchers(GET, "/api/v1/identity/auth/logout-url")
+                .authenticated();
         access.requestMatchers(GET, "/api/v1/identity/session",
                         "/api/v1/identity/session/contexts",
                         "/api/v1/identity/session/contexts/switch")

@@ -18,6 +18,7 @@ psql -X -d postgres -v ON_ERROR_STOP=1 <<'SQL'
 \getenv db AUTHORIZATION_DB_NAME
 SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'role', :'password')
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'role')\gexec
+SELECT format('ALTER ROLE %I WITH PASSWORD %L', :'role', :'password')\gexec
 SELECT format('CREATE DATABASE %I', :'db')
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'db')\gexec
 GRANT CONNECT ON DATABASE :"db" TO :"role";

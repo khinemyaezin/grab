@@ -11,7 +11,8 @@ import org.springframework.context.annotation.Import;
 @Configuration(proxyBeanMethods = false)
 @Import({
         SellerBusConfig.class,
-        TracingConfiguration.class
+        TracingConfiguration.class,
+        SellerAsyncConfig.class
 })
 public class SellerConfig {
 

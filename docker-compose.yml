@@ -66,8 +66,8 @@ services:
       PGUSER: "${POSTGRES_USER:-admin}"
       PGPASSWORD: "${POSTGRES_PASSWORD:-123}"
       AUTHORIZATION_DB_NAME: "${AUTHORIZATION_DB_NAME:-authorization}"
-      AUTHORIZATION_DB_USERNAME: "${AUTHORIZATION_DB_USERNAME:-auth_user}"
-      AUTHORIZATION_DB_PASSWORD: "${AUTHORIZATION_DB_PASSWORD:-auth_secret}"
+      AUTHORIZATION_DB_USERNAME: "${AUTHORIZATION_DB_USERNAME:-authorization_server}"
+      AUTHORIZATION_DB_PASSWORD: "${AUTHORIZATION_DB_PASSWORD:-123}"
     depends_on:
       postgres:
         condition: service_healthy

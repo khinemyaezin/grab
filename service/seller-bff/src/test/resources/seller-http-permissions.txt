@@ -21,6 +21,7 @@ GET /api/v1/identity/auth/csrf public none
 GET /api/v1/identity/auth/register-url public none
 POST /api/v1/identity/auth/register public none
 POST /api/v1/identity/auth/logout authenticated none
+GET /api/v1/identity/auth/logout-url authenticated none
 GET,HEAD /api/v1/identity/session authenticated none
 GET,HEAD /api/v1/identity/session/contexts authenticated none
 GET,POST /api/v1/identity/session/contexts/switch authenticated none

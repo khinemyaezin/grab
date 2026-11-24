@@ -31,4 +31,9 @@ public final class SellerAuthApiLinks {
         return linkTo(methodOn(SellerOidcAuthController.class).logout(null, null))
                 .withRel("logout");
     }
+
+    public Link logoutUrl() {
+        return linkTo(methodOn(SellerOidcAuthController.class).logoutUrl())
+                .withRel("logout-url");
+    }
 }

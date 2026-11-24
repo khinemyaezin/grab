@@ -1,0 +1,25 @@
+package com.grab.service.workflow.internal.config.tracing;
+
+import com.grab.framework.logger.slf4j.TraceContext;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+
+@Aspect
+public class ScheduledTraceContextAspect {
+
+    @Around("@annotation(org.springframework.scheduling.annotation.Scheduled)")
+    public Object aroundScheduled(ProceedingJoinPoint joinPoint) throws Throwable {
+        String existing = TraceContext.current();
+        if (existing != null && !existing.isBlank()) {
+            return joinPoint.proceed();
+        }
+        String traceId = TraceContext.generate();
+        TraceContext.put(traceId);
+        try {
+            return joinPoint.proceed();
+        } finally {
+            TraceContext.clear();
+        }
+    }
+}

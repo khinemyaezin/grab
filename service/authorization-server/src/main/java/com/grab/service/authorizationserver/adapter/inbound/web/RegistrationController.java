@@ -22,7 +22,7 @@ import java.util.UUID;
 
 @Controller
 public class RegistrationController {
-    private static final Logger LOG = Loggers.getLogger(RegistrationController.class);
+    private static final Logger log = Loggers.getLogger(RegistrationController.class);
 
     private final IamUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -102,10 +102,10 @@ public class RegistrationController {
             ScimUser scimResponse = scimClient.provisionUser(scimRequest);
             if (scimResponse != null && scimResponse.id() != null) {
                 userRepository.updatePlatformUserId(iamUserId, scimResponse.id());
-                LOG.info("Provisioned user {} via SCIM with platform ID {}", iamUserId, scimResponse.id());
+                log.info("Provisioned user {} via SCIM with platform ID {}", iamUserId, scimResponse.id());
             }
         } catch (Exception e) {
-            LOG.warn("Failed to provision user {} to account-service via SCIM during registration: {}", iamUserId, e.getMessage());
+            log.warn("Failed to provision user {} to account-service via SCIM during registration: {}", iamUserId, e.getMessage(), e);
         }
 
         return "redirect:/login?registered";

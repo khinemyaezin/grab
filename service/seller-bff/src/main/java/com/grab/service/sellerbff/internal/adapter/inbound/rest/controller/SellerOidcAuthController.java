@@ -11,12 +11,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Map;
@@ -47,14 +49,45 @@ public class SellerOidcAuthController {
         return ResponseEntity.status(HttpStatus.SEE_OTHER).location(registerUri).build();
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+    @GetMapping("/logout-url")
+    public ResponseEntity<EntityModel<Map<String, String>>> logoutUrl() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        URI destination = resolveLogoutDestination(auth);
+        EntityModel<Map<String, String>> model = EntityModel.of(Map.of("url", destination.toString()));
+        return ResponseEntity.ok(model);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        URI destination = resolveLogoutDestination(auth);
+
+        SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
         logoutHandler.logout(request, response, auth);
-        URI destination = properties.postLogout() != null ? properties.postLogout() : URI.create("/");
-        return ResponseEntity.status(HttpStatus.SEE_OTHER).location(destination)
+
+        return ResponseEntity.ok()
                 .header("Referrer-Policy", "no-referrer")
-                .cacheControl(CacheControl.noStore()).build();
+                .cacheControl(CacheControl.noStore())
+                .body(Map.of("logoutUrl", destination.toString()));
+    }
+
+    private URI resolveLogoutDestination(Authentication auth) {
+        String idTokenHint = extractIdToken(auth);
+        if (properties.logoutEndpoint() != null && idTokenHint != null && !idTokenHint.isBlank()) {
+            UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(properties.logoutEndpoint())
+                    .queryParam("id_token_hint", idTokenHint);
+            if (properties.postLogout() != null) {
+                builder.queryParam("post_logout_redirect_uri", properties.postLogout());
+            }
+            return builder.build().toUri();
+        }
+        return properties.postLogout() != null ? properties.postLogout() : URI.create("/");
+    }
+
+    private String extractIdToken(Authentication auth) {
+        if (auth != null && auth.getPrincipal() instanceof OidcUser oidcUser && oidcUser.getIdToken() != null) {
+            return oidcUser.getIdToken().getTokenValue();
+        }
+        return null;
     }
 }

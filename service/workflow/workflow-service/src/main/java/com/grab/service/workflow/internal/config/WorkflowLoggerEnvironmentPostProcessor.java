@@ -14,11 +14,17 @@ public class WorkflowLoggerEnvironmentPostProcessor implements EnvironmentPostPr
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        Loggers.setConfigLoader(() -> new LoggerConfig(
-                environment.getProperty("logger.backend"),
-                null,
-                Map.of(),
-                environment.getProperty("logger.fail-on-missing-backend", Boolean.class, false)));
+        Loggers.setConfigLoader(() -> {
+            String backend = environment.getProperty("logger.backend");
+            if (backend != null) {
+                backend = backend.trim();
+            }
+            return new LoggerConfig(
+                    backend,
+                    null,
+                    Map.of(),
+                    environment.getProperty("logger.fail-on-missing-backend", Boolean.class, false));
+        });
     }
 
     @Override
